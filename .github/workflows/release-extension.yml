@@ -1,0 +1,102 @@
+name: Release WinGet installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version number (leave empty to use AppxPackageVersion from csproj)
+        required: false
+        type: string
+      release_notes:
+        description: Release notes
+        required: false
+        default: Initial WinGet release of Terminal Shortcuts for Command Palette.
+        type: string
+
+env:
+  DISPLAY_NAME: Terminal Shortcuts
+  EXTENSION_NAME: TerminalShortcuts
+  GITHUB_REPO_URL: https://github.com/tonythethompson/CmdPalTerminalShortcuts
+
+jobs:
+  build:
+    runs-on: windows-2022
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+        shell: pwsh
+
+      - name: Get version
+        id: version
+        run: |
+          if ("${{ github.event.inputs.version }}" -ne "") {
+            $version = "${{ github.event.inputs.version }}"
+          } else {
+            $projectFile = "TerminalShortcuts/TerminalShortcuts.csproj"
+            $xml = [xml](Get-Content $projectFile)
+            $version = $xml.Project.PropertyGroup.AppxPackageVersion | Select-Object -First 1
+            if (-not $version) { throw "AppxPackageVersion not found in $projectFile" }
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Using version: $version"
+        shell: pwsh
+
+      - name: Build EXE installers
+        run: |
+          Set-Location TerminalShortcuts
+          .\build-exe.ps1 -Version "${{ steps.version.outputs.VERSION }}"
+        shell: pwsh
+
+      - name: Upload x64 installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerminalShortcuts-x64-installer
+          path: TerminalShortcuts/bin/Release/installer/*-x64.exe
+          if-no-files-found: error
+
+      - name: Upload ARM64 installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerminalShortcuts-arm64-installer
+          path: TerminalShortcuts/bin/Release/installer/*-arm64.exe
+          if-no-files-found: warn
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: Terminal Shortcuts v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Terminal Shortcuts v${{ steps.version.outputs.VERSION }}
+
+            ${{ github.event.inputs.release_notes }}
+
+            ## Install
+
+            - **x64**: `TerminalShortcuts-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
+            - **ARM64**: `TerminalShortcuts-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
+
+            After installing, run **Reload Command Palette Extension** in PowerToys Command Palette.
+
+            ## WinGet
+
+            ```powershell
+            winget install tonythethompson.TerminalShortcuts
+            ```
+          files: TerminalShortcuts/bin/Release/installer/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

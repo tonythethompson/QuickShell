@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "My API",
+    "Abbreviation": "api",
+    "Directory": "C:\\Projects\\MyApi",
+    "Command": "dotnet run",
+    "Terminal": "wt"
+  },
+  {
+    "Name": "Frontend",
+    "Abbreviation": "fe",
+    "Directory": "C:\\Projects\\web",
+    "Command": "npm run dev",
+    "Terminal": "wt"
+  },
+  {
+    "Name": "Home shell",
+    "Abbreviation": "home",
+    "Directory": "C:\\Users\\you",
+    "Command": "",
+    "Terminal": "powershell"
+  }
+]

@@ -1,0 +1,11 @@
+bin/
+obj/
+AppPackages/
+*.user
+.vs/
+_pt/
+_nupkg/
+TerminalShortcuts/bin/
+TerminalShortcuts/obj/
+TerminalShortcuts/setup-x64.iss
+TerminalShortcuts/setup-arm64.iss
