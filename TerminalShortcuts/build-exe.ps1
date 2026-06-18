@@ -65,6 +65,9 @@ foreach ($Platform in $Platforms) {
     if (-not (Test-Path $InnoSetupPath)) {
         $InnoSetupPath = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
     }
+    if (-not (Test-Path $InnoSetupPath)) {
+        $InnoSetupPath = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+    }
 
     if (-not (Test-Path $InnoSetupPath)) {
         throw "Inno Setup 6 not found. Install from https://jrsoftware.org/isinfo.php or use the GitHub Actions workflow."
