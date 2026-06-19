@@ -1,7 +1,7 @@
 ; Inno Setup script for Quick Shell (Command Palette extension)
 ; COM registration uses LocalServer32 for ExeServer (not InprocServer32).
 
-#define AppVersion "0.1.2.0"
+#define AppVersion "0.1.2.1"
 #define ExtensionName "QuickShell"
 #define DisplayName "Quick Shell"
 #define DeveloperName "Tony Thompson"

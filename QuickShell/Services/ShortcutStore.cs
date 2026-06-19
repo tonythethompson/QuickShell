@@ -280,25 +280,12 @@ internal static class ShortcutStore
                 return;
             }
 
-            var json = File.ReadAllText(ConfigPath);
-            var parsed = JsonSerializer.Deserialize(json, QuickShellJsonContext.Default.ListTerminalShortcut);
-            if (parsed is null)
+            if (!TryLoadShortcutsFromFile(ConfigPath, out var loaded))
             {
-                throw new InvalidDataException("Shortcut file was empty.");
+                throw new InvalidDataException("Shortcut file could not be read.");
             }
 
-            if (parsed.Count > ShortcutValidation.MaxShortcutCount)
-            {
-                throw new InvalidDataException("Shortcut file exceeds the supported shortcut count.");
-            }
-
-            _shortcuts = OrderForDisplay(
-                parsed
-                    .Where(IsValidShortcut)
-                    .Select(Normalize)
-                    .Select(Clone)
-                    .ToArray());
-
+            _shortcuts = loaded;
             _lastGoodShortcuts = CloneAll(_shortcuts);
             _lastWriteTimeUtc = writeTime;
         }
@@ -318,6 +305,15 @@ internal static class ShortcutStore
 
         Directory.CreateDirectory(ConfigDirectory);
 
+        if (!File.Exists(ConfigPath) || !HasShortcutContent(ConfigPath))
+        {
+            if (TryImportShortcutsFromAlternateSources())
+            {
+                _configEnsured = true;
+                return;
+            }
+        }
+
         if (!File.Exists(ConfigPath))
         {
             var empty = Array.Empty<TerminalShortcut>();
@@ -328,6 +324,84 @@ internal static class ShortcutStore
         }
 
         _configEnsured = true;
+    }
+
+    private static bool HasShortcutContent(string path)
+    {
+        return TryLoadShortcutsFromFile(path, out var shortcuts) && shortcuts.Length > 0;
+    }
+
+    private static bool TryImportShortcutsFromAlternateSources()
+    {
+        foreach (var candidate in GetImportCandidatePaths())
+        {
+            if (!File.Exists(candidate))
+            {
+                continue;
+            }
+
+            if (!TryLoadShortcutsFromFile(candidate, out var shortcuts) || shortcuts.Length == 0)
+            {
+                continue;
+            }
+
+            WriteShortcutsAtomic(shortcuts);
+            _lastGoodShortcuts = CloneAll(shortcuts);
+            _shortcuts = shortcuts;
+            _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string> GetImportCandidatePaths()
+    {
+        yield return ConfigPath + ".bak";
+
+        yield return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TerminalShortcutsCmdPal",
+            "shortcuts.json");
+    }
+
+    private static bool TryLoadShortcutsFromFile(string path, out TerminalShortcut[] shortcuts)
+    {
+        shortcuts = [];
+
+        try
+        {
+            var fileInfo = new FileInfo(path);
+            if (!fileInfo.Exists || fileInfo.Length == 0 || fileInfo.Length > MaxConfigBytes)
+            {
+                return false;
+            }
+
+            var json = File.ReadAllText(path);
+            var parsed = JsonSerializer.Deserialize(json, QuickShellJsonContext.Default.ListTerminalShortcut);
+            if (parsed is null)
+            {
+                return false;
+            }
+
+            if (parsed.Count > ShortcutValidation.MaxShortcutCount)
+            {
+                return false;
+            }
+
+            shortcuts = OrderForDisplay(
+                parsed
+                    .Where(IsValidShortcut)
+                    .Select(Normalize)
+                    .Select(Clone)
+                    .ToArray());
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void SaveLocked(IReadOnlyCollection<TerminalShortcut> shortcuts)

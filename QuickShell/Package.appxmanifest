@@ -11,7 +11,7 @@
   <Identity
     Name="QuickShell"
     Publisher="CN=QuickShell Dev"
-    Version="0.1.2.0" />
+    Version="0.1.2.1" />
 
   <Properties>
     <DisplayName>Quick Shell</DisplayName>
