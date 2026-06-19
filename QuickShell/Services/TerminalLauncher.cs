@@ -5,7 +5,7 @@ namespace QuickShell.Services;
 
 internal static class TerminalLauncher
 {
-    public static void Open(TerminalShortcut shortcut)
+    public static void Open(TerminalShortcut shortcut, bool runAsAdmin = false)
     {
         if (!Directory.Exists(shortcut.Directory))
         {
@@ -21,6 +21,11 @@ internal static class TerminalLauncher
             "cmd" => CreateCmdStartInfo(shortcut),
             _ => CreateWindowsTerminalStartInfo(shortcut),
         };
+
+        if (runAsAdmin || shortcut.RunAsAdmin)
+        {
+            startInfo.Verb = "runas";
+        }
 
         Process.Start(startInfo);
     }

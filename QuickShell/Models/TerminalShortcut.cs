@@ -11,4 +11,6 @@ internal sealed class TerminalShortcut
     public string? Command { get; set; }
 
     public string Terminal { get; set; } = "wt";
+
+    public bool RunAsAdmin { get; set; }
 }

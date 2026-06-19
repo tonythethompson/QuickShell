@@ -36,11 +36,24 @@ internal sealed partial class QuickShellPage : DynamicListPage
 
         foreach (var shortcut in shortcuts)
         {
-            items.Add(new ListItem(new OpenTerminalShortcutCommand(shortcut))
+            var item = new ListItem(new OpenTerminalShortcutCommand(shortcut))
             {
                 Title = shortcut.Name,
                 Subtitle = BuildSubtitle(shortcut),
-            });
+            };
+
+            if (!shortcut.RunAsAdmin)
+            {
+                item.MoreCommands =
+                [
+                    new CommandContextItem(new OpenTerminalShortcutCommand(shortcut, runAsAdmin: true))
+                    {
+                        Title = "Open as administrator",
+                    },
+                ];
+            }
+
+            items.Add(item);
         }
 
         items.Add(new ListItem(new ReloadShortcutsCommand(Reload))
@@ -74,6 +87,12 @@ internal sealed partial class QuickShellPage : DynamicListPage
         }
 
         parts.Add($"terminal: {shortcut.Terminal}");
+
+        if (shortcut.RunAsAdmin)
+        {
+            parts.Add("admin");
+        }
+
         return string.Join(" | ", parts);
     }
 }

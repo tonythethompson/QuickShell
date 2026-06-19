@@ -36,6 +36,7 @@ Example:
 | `Directory` | yes | Folder to open |
 | `Command` | no | Command to run after opening |
 | `Terminal` | no | `wt`, `powershell`, `pwsh`, `cmd` (default: `wt`) |
+| `RunAsAdmin` | no | `true` to always launch elevated (UAC prompt) |
 
 See `shortcuts.example.json` for more examples.
 
@@ -71,6 +72,8 @@ Steps:
 - Search `Quick Shell` and pick a saved directory
 - Or type an abbreviation like `api` at the root palette; matching shortcuts appear as fallback results
 - Use `Reload shortcuts` after editing `shortcuts.json`
+- Use **Open as administrator** from a shortcut's ⋯ menu for a one-off elevated launch
+- Set `"RunAsAdmin": true` in JSON for shortcuts that should always elevate
 
 ## Project layout
 

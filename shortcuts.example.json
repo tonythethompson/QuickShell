@@ -19,5 +19,13 @@
     "Directory": "C:\\Users\\you",
     "Command": "",
     "Terminal": "powershell"
+  },
+  {
+    "Name": "Admin tools",
+    "Abbreviation": "adm",
+    "Directory": "C:\\Windows\\System32",
+    "Command": "",
+    "Terminal": "wt",
+    "RunAsAdmin": true
   }
 ]
