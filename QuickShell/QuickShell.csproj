@@ -87,6 +87,7 @@
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
     <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
     <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
+    <IncludeDebugSymbolsProjectOutputGroup>false</IncludeDebugSymbolsProjectOutputGroup>
     <PackageCertificateKeyFile>QuickShell_Dev.pfx</PackageCertificateKeyFile>
     <PackageCertificatePassword>QuickShell</PackageCertificatePassword>
   </PropertyGroup>
@@ -114,5 +115,11 @@
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- Dev MSIX does not publish Store symbol packages; skip mspdbcmf lookup when PDBs exist. -->
+  <Target Name="_QuickShellClearAppxSymbolInputs" AfterTargets="_CalculateInputsForGenerateAppxPackageRecipe">
+    <ItemGroup>
+      <PDBPayload Remove="@(PDBPayload)" />
+    </ItemGroup>
+  </Target>
 
 </Project>
