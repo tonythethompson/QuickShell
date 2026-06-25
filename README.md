@@ -13,6 +13,7 @@ Save directories you use every day, pick a terminal, optionally run a command on
 - **Run a command on open** — start dev servers, scripts, or anything else automatically
 - **Pin shortcuts** so they stay at the top of your list
 - **Create and edit shortcuts in Command Palette** — no hand-editing JSON required
+- **Import and export shortcuts** as JSON for backup, sharing, or moving to another PC
 - **Open elevated** when you need admin — from the ⋯ menu or with **Ctrl+Enter**
 - **Search from the root palette** — type an abbreviation like `api` and matching shortcuts appear without opening the extension first
 
@@ -70,7 +71,8 @@ The app creates this file on first run. You can edit it in any text editor, or m
 | --- | --- |
 | Open a saved folder | Search **Quick Shell**, pick a shortcut |
 | Jump straight to a shortcut | Type its **abbreviation** in the root search box (e.g. `api`) |
-| Reload after editing JSON | Run **Reload shortcuts** inside Quick Shell |
+| Reload after editing JSON | Run **Refresh terminals** inside Quick Shell |
+| Back up or move shortcuts | **Export shortcuts** / **Import shortcuts** (merge) or **Import and replace** |
 | Open once as admin | Select a shortcut → **⋯** → **Open as administrator**, or press **Ctrl+Enter** |
 | Always open as admin | Set `"RunAsAdmin": true` on that shortcut (see below) |
 | Change default terminal | **Quick Shell** → **⋯** → **Quick Shell settings** |

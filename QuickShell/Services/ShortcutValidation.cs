@@ -11,7 +11,10 @@ internal static class ShortcutValidation
     public const int MaxWtProfileLength = 120;
     public const int MaxShortcutCount = 500;
 
-    public static bool TryValidate(TerminalShortcut shortcut, out string error)
+    public static bool TryValidate(TerminalShortcut shortcut, out string error) =>
+        TryValidate(shortcut, requireDirectoryExists: true, out error);
+
+    public static bool TryValidate(TerminalShortcut shortcut, bool requireDirectoryExists, out string error)
     {
         if (string.IsNullOrWhiteSpace(shortcut.Name))
         {
@@ -50,12 +53,6 @@ internal static class ShortcutValidation
 
         shortcut.Directory = normalizedDirectory;
 
-        if (!DirectoryExists(shortcut.Directory))
-        {
-            error = $"Directory not found: {shortcut.Directory}";
-            return false;
-        }
-
         if (!TryValidateCommand(shortcut.Command, out error))
         {
             return false;
@@ -66,9 +63,24 @@ internal static class ShortcutValidation
             return false;
         }
 
+        if (!requireDirectoryExists)
+        {
+            error = string.Empty;
+            return true;
+        }
+
+        if (!DirectoryExists(shortcut.Directory))
+        {
+            error = $"Directory not found: {shortcut.Directory}";
+            return false;
+        }
+
         error = string.Empty;
         return true;
     }
+
+    public static bool TryValidateForImport(TerminalShortcut shortcut, out string error) =>
+        TryValidate(shortcut, requireDirectoryExists: false, out error);
 
     public static bool TryValidateUniqueName(string name, string? originalName, out string error)
     {

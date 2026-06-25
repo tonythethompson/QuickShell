@@ -4,6 +4,19 @@ using System.Threading;
 
 namespace QuickShell.Services;
 
+internal sealed class ShortcutTransferResult
+{
+    public bool Success { get; init; }
+
+    public string Message { get; init; } = string.Empty;
+
+    public int Imported { get; init; }
+
+    public int Skipped { get; init; }
+
+    public int Renamed { get; init; }
+}
+
 internal static class ShortcutStore
 {
     private const int MaxConfigBytes = 2 * 1024 * 1024;
@@ -65,6 +78,222 @@ internal static class ShortcutStore
         lock (Sync)
         {
             FlushPendingPersistLocked();
+        }
+    }
+
+    public static bool TryExportToFile(string path, out string error)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            error = "Export path is required.";
+            return false;
+        }
+
+        lock (Sync)
+        {
+            EnsureLoaded();
+            FlushPendingPersistLocked();
+
+            try
+            {
+                var shortcuts = CloneAll(_shortcuts);
+                var json = JsonSerializer.Serialize(shortcuts, QuickShellJsonContext.Default.TerminalShortcutArray);
+                if (json.Length > MaxConfigBytes)
+                {
+                    error = "Shortcut data is too large to export.";
+                    return false;
+                }
+
+                var directory = Path.GetDirectoryName(path);
+                if (!string.IsNullOrWhiteSpace(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                File.WriteAllText(path, json);
+                error = string.Empty;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+    }
+
+    public static bool TryReadImportFile(string path, out TerminalShortcut[] shortcuts, out string error)
+    {
+        shortcuts = [];
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            error = "Import path is required.";
+            return false;
+        }
+
+        if (!File.Exists(path))
+        {
+            error = "File not found.";
+            return false;
+        }
+
+        if (!TryLoadShortcutsFromFile(path, out shortcuts) || shortcuts.Length == 0)
+        {
+            error = "No valid shortcuts were found in that file.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    public static ShortcutTransferResult ImportMerge(string path)
+    {
+        if (!TryReadImportFile(path, out var imported, out var error))
+        {
+            return new ShortcutTransferResult
+            {
+                Success = false,
+                Message = error,
+            };
+        }
+
+        lock (Sync)
+        {
+            EnsureLoaded();
+            CancelPendingPersist();
+            var previous = CloneAll(_shortcuts);
+            var list = _shortcuts.Select(Clone).ToList();
+            var existingNames = list.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var importedCount = 0;
+            var skipped = 0;
+            var renamed = 0;
+
+            foreach (var source in imported)
+            {
+                var shortcut = Clone(source);
+                shortcut.LastUsedUtc = null;
+
+                if (!ShortcutValidation.TryValidateForImport(shortcut, out _))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var uniqueName = GetUniqueName(shortcut.Name, existingNames);
+                if (!uniqueName.Equals(shortcut.Name, StringComparison.Ordinal))
+                {
+                    renamed++;
+                    shortcut.Name = uniqueName;
+                }
+
+                existingNames.Add(shortcut.Name);
+
+                if (shortcut.IsPinned && shortcut.PinOrder is null)
+                {
+                    shortcut.PinOrder = NextPinOrder(list);
+                }
+
+                list.Add(shortcut);
+                importedCount++;
+            }
+
+            if (importedCount == 0)
+            {
+                return new ShortcutTransferResult
+                {
+                    Success = false,
+                    Message = "No shortcuts could be imported from that file.",
+                    Skipped = skipped,
+                };
+            }
+
+            if (list.Count > ShortcutValidation.MaxShortcutCount)
+            {
+                return new ShortcutTransferResult
+                {
+                    Success = false,
+                    Message = $"Import would exceed the {ShortcutValidation.MaxShortcutCount}-shortcut limit.",
+                };
+            }
+
+            RecordHistoryLocked(previous, list);
+            SaveLocked(list);
+
+            return new ShortcutTransferResult
+            {
+                Success = true,
+                Message = BuildImportMessage(importedCount, skipped, renamed),
+                Imported = importedCount,
+                Skipped = skipped,
+                Renamed = renamed,
+            };
+        }
+    }
+
+    public static ShortcutTransferResult ImportReplace(string path)
+    {
+        if (!TryReadImportFile(path, out var imported, out var error))
+        {
+            return new ShortcutTransferResult
+            {
+                Success = false,
+                Message = error,
+            };
+        }
+
+        lock (Sync)
+        {
+            EnsureLoaded();
+            CancelPendingPersist();
+            var previous = CloneAll(_shortcuts);
+            var valid = new List<TerminalShortcut>(imported.Length);
+            var skipped = 0;
+
+            foreach (var source in imported)
+            {
+                var shortcut = Clone(source);
+                shortcut.LastUsedUtc = null;
+
+                if (!ShortcutValidation.TryValidateForImport(shortcut, out _))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                valid.Add(shortcut);
+            }
+
+            if (valid.Count == 0)
+            {
+                return new ShortcutTransferResult
+                {
+                    Success = false,
+                    Message = "No shortcuts could be imported from that file.",
+                    Skipped = skipped,
+                };
+            }
+
+            if (valid.Count > ShortcutValidation.MaxShortcutCount)
+            {
+                return new ShortcutTransferResult
+                {
+                    Success = false,
+                    Message = $"Import exceeds the {ShortcutValidation.MaxShortcutCount}-shortcut limit.",
+                };
+            }
+
+            RecordHistoryLocked(previous, valid);
+            SaveLocked(valid);
+
+            return new ShortcutTransferResult
+            {
+                Success = true,
+                Message = BuildImportMessage(valid.Count, skipped, renamed: 0),
+                Imported = valid.Count,
+                Skipped = skipped,
+            };
         }
     }
 
@@ -570,6 +799,16 @@ internal static class ShortcutStore
     private static string GetDuplicateName(string sourceName)
     {
         var existingNames = GetShortcuts().Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return GetUniqueName(sourceName, existingNames);
+    }
+
+    private static string GetUniqueName(string sourceName, HashSet<string> existingNames)
+    {
+        if (!existingNames.Contains(sourceName))
+        {
+            return sourceName;
+        }
+
         var baseName = $"{sourceName} Copy";
         if (!existingNames.Contains(baseName))
         {
@@ -587,6 +826,23 @@ internal static class ShortcutStore
 
             i++;
         }
+    }
+
+    private static string BuildImportMessage(int imported, int skipped, int renamed)
+    {
+        var parts = new List<string> { $"Imported {imported} shortcut{(imported == 1 ? "" : "s")}." };
+
+        if (renamed > 0)
+        {
+            parts.Add($"{renamed} renamed to avoid duplicates.");
+        }
+
+        if (skipped > 0)
+        {
+            parts.Add($"{skipped} skipped.");
+        }
+
+        return string.Join(" ", parts);
     }
 
     private static bool IsValidShortcut(TerminalShortcut shortcut) =>

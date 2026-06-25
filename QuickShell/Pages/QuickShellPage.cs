@@ -105,6 +105,21 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             Title = "Refresh terminals",
             Subtitle = "Reload shortcuts and rediscover installed terminals",
         });
+        items.Add(new ListItem(new ExportShortcutsCommand())
+        {
+            Title = "Export shortcuts",
+            Subtitle = "Save shortcuts to a JSON file for backup or sharing",
+        });
+        items.Add(new ListItem(new ImportShortcutsCommand(Reload))
+        {
+            Title = "Import shortcuts",
+            Subtitle = "Add shortcuts from a JSON file; duplicates are renamed",
+        });
+        items.Add(new ListItem(new ImportReplaceShortcutsCommand(Reload))
+        {
+            Title = "Import and replace shortcuts",
+            Subtitle = "Replace all shortcuts with a JSON file",
+        });
 
         if (!string.IsNullOrWhiteSpace(query) && shortcuts.Length == 0)
         {
