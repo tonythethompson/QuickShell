@@ -52,7 +52,8 @@ Turn on Narrator (`Win+Ctrl+Enter`) and verify:
 
 - [ ] Shortcut **Title** is announced clearly (the shortcut name)
 - [ ] **Subtitle** adds useful context without being unreadable noise
-- [ ] Form fields announce their **labels** (Name, Directory, Command, Terminal)
+- [ ] Form fields announce their **labels** (Name, Search keyword, Folder path, Command, Terminal)
+- [ ] **Info** buttons expose field help via **tooltip** (Narrator reads tooltip on focus)
 - [ ] **Save shortcut** and **Browse** are identifiable by name
 - [ ] Save/delete/pin actions give understandable feedback (toast or list update)
 

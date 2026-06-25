@@ -5,6 +5,9 @@ AppPackages/
 .vs/
 _pt/
 _nupkg/
+_winget-pkgs/
+_winget-pr/
+_winget-test/
 QuickShell/QuickShell_Dev.cer
 QuickShell/QuickShell_Dev.pfx
 QuickShell/bin/
