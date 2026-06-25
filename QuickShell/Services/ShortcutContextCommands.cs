@@ -9,13 +9,13 @@ namespace QuickShell.Services;
 
 internal static class ShortcutContextCommands
 {
+    private const int HoverOrderMoveUp = -20;
+    private const int HoverOrderMoveDown = -10;
     private const int HoverOrderElevation = 0;
     private const int HoverOrderEdit = 10;
     private const int HoverOrderFavorite = 20;
     private const int HoverOrderDuplicate = 30;
     private const int HoverOrderDelete = 50;
-    private const int HoverOrderMoveUp = 60;
-    private const int HoverOrderMoveDown = 70;
 
     public static CommandContextItem[] Build(
         TerminalShortcut shortcut,

@@ -33,8 +33,13 @@
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseLocalCmdPalSdk)' != 'true'">
     <PackageReference Include="Microsoft.CommandPalette.Extensions" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseLocalCmdPalSdk)' == 'true'">
+    <ProjectReference Include="$(LocalCmdPalToolkit)" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.Windows.CsWinRT" />
     <PackageReference Include="Shmuelie.WinRTServer" />
 

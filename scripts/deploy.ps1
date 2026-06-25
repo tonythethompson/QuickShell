@@ -146,6 +146,19 @@ function Install-DevCertificateTrust {
     Write-Warning 'Not running as administrator. If install fails, rerun deploy without -SkipElevation.'
 }
 
+function Get-MsBuildPath {
+    $msbuild = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
+    if (-not (Test-Path $msbuild)) {
+        $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+    }
+
+    if (-not $msbuild -or -not (Test-Path $msbuild)) {
+        throw 'MSBuild not found. Install Visual Studio with Desktop development to build QuickShell against the local CmdPal SDK.'
+    }
+
+    return $msbuild
+}
+
 function Get-PackageFolder {
     param([string]$Root)
 
@@ -183,14 +196,34 @@ try {
     $thumbprint = Ensure-DevCertificate
     Install-DevCertificateTrust
 
+    $localToolkit = Join-Path (Split-Path $ProjectRoot -Parent) 'PowerToys\src\modules\cmdpal\extensionsdk\Microsoft.CommandPalette.Extensions.Toolkit\Microsoft.CommandPalette.Extensions.Toolkit.csproj'
+    if (Test-Path $localToolkit) {
+        Write-Host 'Building local Command Palette SDK (hover APIs)...'
+        $msbuild = Get-MsBuildPath
+        & $msbuild $localToolkit /p:Configuration=$Configuration /p:Platform=x64 /t:Build /v:minimal | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            throw "Local CmdPal SDK build failed with exit code $LASTEXITCODE"
+        }
+    }
+    else {
+        Write-Warning @"
+Local PowerToys SDK not found at $localToolkit.
+QuickShell will use NuGet Microsoft.CommandPalette.Extensions, which does not include hover action APIs.
+Clone/build PowerToys at A:\PowerToys or set UseLocalCmdPalSdk=false only for legacy builds.
+"@
+    }
+
     Write-Host "Building signed MSIX ($Configuration|x64)..."
-    dotnet build (Join-Path $ProjectDir 'QuickShell.csproj') `
-        -c $Configuration `
-        -p:Platform=x64 `
-        -p:PackageCertificateThumbprint=$thumbprint `
-        -p:PackageCertificateKeyFile= `
-        -p:PackageCertificatePassword= `
-        -p:AppxPackageSigningEnabled=true | Out-Host
+    $msbuild = Get-MsBuildPath
+    & $msbuild (Join-Path $ProjectDir 'QuickShell.csproj') `
+        /p:Configuration=$Configuration `
+        /p:Platform=x64 `
+        /p:PackageCertificateThumbprint=$thumbprint `
+        /p:PackageCertificateKeyFile= `
+        /p:PackageCertificatePassword= `
+        /p:AppxPackageSigningEnabled=true `
+        /t:Build `
+        /v:minimal | Out-Host
 
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed with exit code $LASTEXITCODE"

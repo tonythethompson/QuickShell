@@ -33,21 +33,21 @@ internal static class ShortcutDisplay
     public static Tag[]? BuildTags(TerminalShortcut shortcut)
     {
         var tags = new List<Tag>();
-        if (shortcut.IsPinned)
-        {
-            tags.Add(new Tag(string.Empty)
-            {
-                Icon = new IconInfo(ShortcutGlyphs.FavoriteFilled),
-                ToolTip = "Favorite",
-            });
-        }
-
         if (shortcut.RunAsAdmin)
         {
             tags.Add(new Tag(string.Empty)
             {
                 Icon = new IconInfo(ShortcutGlyphs.AdminShield),
                 ToolTip = "Always run as administrator",
+            });
+        }
+
+        if (shortcut.IsPinned)
+        {
+            tags.Add(new Tag(string.Empty)
+            {
+                Icon = new IconInfo(ShortcutGlyphs.FavoriteFilled),
+                ToolTip = "Favorite",
             });
         }
 

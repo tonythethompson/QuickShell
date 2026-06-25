@@ -6,5 +6,7 @@
     <_SkipUpgradeNetAnalyzersNuGetWarning>true</_SkipUpgradeNetAnalyzersNuGetWarning>
     <NuGetAuditMode>direct</NuGetAuditMode>
     <PlatformTarget>$(Platform)</PlatformTarget>
+    <LocalCmdPalToolkit>$(MSBuildThisFileDirectory)..\PowerToys\src\modules\cmdpal\extensionsdk\Microsoft.CommandPalette.Extensions.Toolkit\Microsoft.CommandPalette.Extensions.Toolkit.csproj</LocalCmdPalToolkit>
+    <UseLocalCmdPalSdk Condition="'$(UseLocalCmdPalSdk)' == '' and Exists('$(LocalCmdPalToolkit)')">true</UseLocalCmdPalSdk>
   </PropertyGroup>
 </Project>
