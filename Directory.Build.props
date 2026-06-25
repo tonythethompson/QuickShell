@@ -9,4 +9,7 @@
     <LocalCmdPalToolkit>$(MSBuildThisFileDirectory)..\PowerToys\src\modules\cmdpal\extensionsdk\Microsoft.CommandPalette.Extensions.Toolkit\Microsoft.CommandPalette.Extensions.Toolkit.csproj</LocalCmdPalToolkit>
     <UseLocalCmdPalSdk Condition="'$(UseLocalCmdPalSdk)' == '' and Exists('$(LocalCmdPalToolkit)')">true</UseLocalCmdPalSdk>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(UseLocalCmdPalSdk)' == 'true'">
+    <DefineConstants>$(DefineConstants);CMDPAL_HOVER_ACTIONS</DefineConstants>
+  </PropertyGroup>
 </Project>

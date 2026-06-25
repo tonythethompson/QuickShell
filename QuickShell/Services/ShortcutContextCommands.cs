@@ -134,8 +134,10 @@ internal static class ShortcutContextCommands
         items.Add(new CommandContextItem(editPage)
         {
             Title = editPage.Title,
+#if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = true,
             HoverOrder = HoverOrderEdit,
+#endif
             RequestedShortcut = KeyChordHelpers.FromModifiers(
                 ctrl: true,
                 alt: false,
@@ -203,8 +205,10 @@ internal static class ShortcutContextCommands
         new(command)
         {
             Title = "Open as administrator",
+#if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = HoverOrderElevation,
+#endif
             RequestedShortcut = KeyChordHelpers.FromModifiers(
                 ctrl: true,
                 alt: false,
@@ -219,8 +223,10 @@ internal static class ShortcutContextCommands
         new(command)
         {
             Title = "Open without administrator",
+#if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = HoverOrderElevation,
+#endif
             RequestedShortcut = KeyChordHelpers.FromModifiers(
                 ctrl: true,
                 alt: false,
@@ -243,8 +249,10 @@ internal static class ShortcutContextCommands
         {
             Title = title,
             IsCritical = isCritical,
+#if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = hoverOrder,
+#endif
             RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl, alt, shift, win: false, vkey: key),
         };
 }

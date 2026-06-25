@@ -33,9 +33,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         Title = "Quick Shell";
         Name = "Open";
         PlaceholderText = "Search shortcuts by name, path, or command...";
+#if CMDPAL_HOVER_ACTIONS
         HoverActionsMode = HoverActionsMode.Explicit;
         MaxHoverActions = -1;
         HoverActionsVisibility = HoverActionsVisibility.HoverOrSelected;
+#endif
         RefreshItems(string.Empty);
     }
 
@@ -186,7 +188,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         RaiseItemsChanged();
     }
 
-    private ListItem BuildShortcutItem(TerminalShortcut shortcut, IReadOnlyList<TerminalShortcut> pinnedInOrder)
+    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> pinnedInOrder)
     {
         var item = ShortcutListItems.CreateOpen(shortcut, _settings);
 

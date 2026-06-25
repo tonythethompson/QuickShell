@@ -8,7 +8,9 @@ namespace QuickShell;
 
 public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 {
+#if CMDPAL_HOVER_ACTIONS
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
+#endif
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private readonly ImportConflictPage _importConflictPage;
@@ -44,39 +46,53 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 Title = DisplayName,
                 Subtitle = "Open saved folders in your terminal",
                 Icon = new IconInfo("\uE756"),
+#if CMDPAL_HOVER_ACTIONS
                 HomeHoverActionsMode = HoverActionsMode.Explicit,
+#endif
                 MoreCommands =
                 [
                     new CommandContextItem(_createShortcutCommand)
                     {
                         Title = "Create new shortcut",
                         Icon = new IconInfo("\uE710"),
+#if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = true,
                         HoverOrder = 0,
+#endif
                     },
                     new CommandContextItem(new UndoShortcutCommand(ReloadPages))
                     {
                         RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: Windows.System.VirtualKey.Z),
+#if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = false,
+#endif
                     },
                     new CommandContextItem(new RedoShortcutCommand(ReloadPages))
                     {
                         RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: Windows.System.VirtualKey.Y),
+#if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = false,
+#endif
                     },
                     new CommandContextItem(new ExportShortcutsCommand())
                     {
+#if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = false,
+#endif
                     },
                     new CommandContextItem(new ImportShortcutsCommand(ReloadPages))
                     {
+#if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = false,
+#endif
                     },
                     new CommandContextItem(settingsPage)
                     {
                         Icon = new IconInfo("\uE713"),
+#if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = true,
                         HoverOrder = 10,
+#endif
                     },
                 ],
             },
