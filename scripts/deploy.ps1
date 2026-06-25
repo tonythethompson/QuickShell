@@ -177,6 +177,12 @@ if (-not $SkipElevation -and -not (Test-IsAdmin)) {
 
 Push-Location $ProjectRoot
 try {
+    $storeLogo = Join-Path $ProjectDir 'Assets\StoreLogo.png'
+    if (-not (Test-Path $storeLogo)) {
+        Write-Host 'Generating MSIX logo assets...'
+        & (Join-Path $PSScriptRoot 'generate-assets.ps1')
+    }
+
     $thumbprint = Ensure-DevCertificate
     Install-DevCertificateTrust
 
