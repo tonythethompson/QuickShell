@@ -7,7 +7,7 @@ namespace QuickShell;
 internal sealed partial class QuickShellFallback : FallbackCommandItem
 {
     public QuickShellFallback(QuickShellFallbackPage page)
-        : base("com.quickshell.fallback", "Quick Shell shortcut")
+        : base("com.quickshell.fallback", "Saved shortcut")
     {
         Command = page;
     }

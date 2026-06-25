@@ -75,13 +75,6 @@ The app creates this file on first run. You can edit it in any text editor, or m
 | Always open as admin | Set `"RunAsAdmin": true` on that shortcut (see below) |
 | Change default terminal | **Quick Shell** → **⋯** → **Quick Shell settings** |
 
-### Two entries in search?
-
-That is expected:
-
-- **Quick Shell** — browse and manage all shortcuts
-- **Quick Shell shortcuts** — matches abbreviations when you search from the root palette
-
 ---
 
 ## Shortcut options

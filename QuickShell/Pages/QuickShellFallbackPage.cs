@@ -18,7 +18,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         _settings = settings;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Icon = new IconInfo("\uE756");
-        Title = "Quick Shell shortcuts";
+        Title = "Saved shortcut";
         Name = "Open";
     }
 

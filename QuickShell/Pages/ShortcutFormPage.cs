@@ -18,11 +18,7 @@ internal sealed partial class ShortcutFormPage : ContentPage
         Name = existing is null ? "Create" : "Edit";
     }
 
-    public override IContent[] GetContent() =>
-    [
-        new MarkdownContent("**Name** is the title in your list. **Search keyword** is an optional shortcut for the root Command Palette. Set a **folder** and optional **command**."),
-        _form,
-    ];
+    public override IContent[] GetContent() => [_form];
 }
 
 internal sealed partial class ShortcutForm : FormContent
@@ -57,61 +53,39 @@ internal sealed partial class ShortcutForm : FormContent
               "label": "Name",
               "isRequired": true,
               "errorMessage": "Name is required",
-              "value": "${Name}",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "Info",
-                "tooltip": "Title shown in your shortcut list, for example My API project.",
-                "data": { "action": "help" },
-                "associatedInputs": "none"
-              }
+              "value": "${Name}"
             },
             {
               "type": "Input.Text",
               "id": "Abbreviation",
               "label": "Search keyword (optional)",
-              "value": "${Abbreviation}",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "Info",
-                "tooltip": "Short text typed in the root Command Palette to find this shortcut. Not the same as Name.",
-                "data": { "action": "help" },
-                "associatedInputs": "none"
-              }
+              "value": "${Abbreviation}"
             },
             {
               "type": "Input.Text",
               "id": "Directory",
               "label": "Folder path",
-              "errorMessage": "Directory is required",
-              "value": "${Directory}",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "Browse",
-                "tooltip": "Choose the folder to open in the terminal.",
-                "data": { "action": "browse" },
-                "associatedInputs": "auto"
-              }
+              "errorMessage": "Folder path is required",
+              "value": "${Directory}"
+            },
+            {
+              "type": "ActionSet",
+              "spacing": "None",
+              "actions": [
+                {
+                  "type": "Action.Submit",
+                  "title": "Browse folder",
+                  "tooltip": "Pick folder",
+                  "data": { "action": "browse" },
+                  "associatedInputs": "auto"
+                }
+              ]
             },
             {
               "type": "Input.Text",
               "id": "Command",
-              "label": "Command to run (optional)",
-              "value": "${Command}",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "Info",
-                "tooltip": "Command run after the folder opens, for example npm run dev or dotnet run.",
-                "data": { "action": "help" },
-                "associatedInputs": "none"
-              }
-            },
-            {
-              "type": "TextBlock",
-              "text": "Shell used when opening this shortcut.",
-              "isSubtle": true,
-              "size": "Small",
-              "spacing": "Small"
+              "label": "Command (optional)",
+              "value": "${Command}"
             },
             {
               "type": "Input.ChoiceSet",
@@ -145,11 +119,6 @@ internal sealed partial class ShortcutForm : FormContent
 
     public override CommandResult SubmitForm(string inputs, string data)
     {
-        if (IsHelpAction(inputs, data))
-        {
-            return CommandResult.KeepOpen();
-        }
-
         if (IsBrowseAction(inputs, data))
         {
             return HandleBrowse(inputs);
@@ -160,11 +129,6 @@ internal sealed partial class ShortcutForm : FormContent
 
     public override CommandResult SubmitForm(string payload)
     {
-        if (IsHelpAction(payload, null))
-        {
-            return CommandResult.KeepOpen();
-        }
-
         if (IsBrowseAction(payload, null))
         {
             return HandleBrowse(payload);
@@ -199,7 +163,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (string.IsNullOrWhiteSpace(draft.Name) || string.IsNullOrWhiteSpace(draft.Directory))
         {
-            return QuickShellNavigation.StayOpen("Name and directory are required.");
+            return QuickShellNavigation.StayOpen("Name and folder path are required.");
         }
 
         var shortcut = new TerminalShortcut
@@ -275,17 +239,6 @@ internal sealed partial class ShortcutForm : FormContent
         };
 
         return true;
-    }
-
-    private static bool IsHelpAction(string inputs, string? data)
-    {
-        if (TryGetAction(data) == "help")
-        {
-            return true;
-        }
-
-        var inputObject = JsonNode.Parse(inputs)?.AsObject();
-        return inputObject?["action"]?.ToString() == "help";
     }
 
     private static bool IsBrowseAction(string inputs, string? data)

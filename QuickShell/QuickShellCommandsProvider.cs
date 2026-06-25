@@ -42,15 +42,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         ];
 
         _fallbackPage = new QuickShellFallbackPage(_settingsManager);
-        _fallbacks =
-        [
-            new QuickShellFallback(_fallbackPage)
-            {
-                Title = "Quick Shell shortcuts",
-                Subtitle = "Match saved shortcuts from the root search box",
-                Icon = new IconInfo("\uE756"),
-            },
-        ];
+        _fallbacks = [new QuickShellFallback(_fallbackPage)];
     }
 
     public override ICommandItem[] TopLevelCommands() => _commands;
