@@ -8,6 +8,9 @@ _nupkg/
 _winget-pkgs/
 _winget-pr/
 _winget-test/
+.claude/
+.serena/
+.oac.json
 ACCESSIBILITY.md
 QuickShell/QuickShell_Dev.cer
 QuickShell/QuickShell_Dev.pfx
