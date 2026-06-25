@@ -86,6 +86,7 @@
 
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
     <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
+    <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
     <PackageCertificateKeyFile>QuickShell_Dev.pfx</PackageCertificateKeyFile>
     <PackageCertificatePassword>QuickShell</PackageCertificatePassword>
   </PropertyGroup>
