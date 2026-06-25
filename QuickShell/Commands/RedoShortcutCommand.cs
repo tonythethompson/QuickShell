@@ -10,7 +10,7 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
     public RedoShortcutCommand(Action onChanged)
     {
         _onChanged = onChanged;
-        Name = "Redo last shortcut change";
+        Name = "Redo";
         Icon = new IconInfo("\uE7A6");
     }
 

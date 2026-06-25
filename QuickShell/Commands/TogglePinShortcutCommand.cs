@@ -12,14 +12,14 @@ internal sealed partial class TogglePinShortcutCommand : InvokableCommand
     {
         _name = name;
         _onChanged = onChanged;
-        Name = isPinned ? "Unpin" : "Pin to top";
-        Icon = new IconInfo(isPinned ? "\uE718" : "\uE735");
+        Name = isPinned ? "Unfavorite" : "Favorite";
+        Icon = new IconInfo(isPinned ? "\uE735" : "\uE734");
     }
 
     public override CommandResult Invoke()
     {
-        var pinned = ShortcutStore.TogglePinned(_name);
+        var favorited = ShortcutStore.TogglePinned(_name);
         _onChanged();
-        return QuickShellNavigation.StayOpen(pinned ? $"Pinned '{_name}'." : $"Unpinned '{_name}'.");
+        return QuickShellNavigation.StayOpen(favorited ? $"Favorited '{_name}'." : $"Removed '{_name}' from favorites.");
     }
 }

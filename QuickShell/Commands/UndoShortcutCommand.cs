@@ -10,7 +10,7 @@ internal sealed partial class UndoShortcutCommand : InvokableCommand
     public UndoShortcutCommand(Action onChanged)
     {
         _onChanged = onChanged;
-        Name = "Undo last shortcut change";
+        Name = "Undo";
         Icon = new IconInfo("\uE7A7");
     }
 

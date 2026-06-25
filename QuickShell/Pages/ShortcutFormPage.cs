@@ -92,9 +92,14 @@ internal sealed partial class ShortcutForm : FormContent
               "type": "Input.Text",
               "id": "Name",
               "label": "Name",
-              "errorMessage": "Name is required",
               "value": "${Name}",
               "spacing": "Medium"
+            },
+            {
+              "type": "TextBlock",
+              "text": "Leave blank to use the folder name.",
+              "isSubtle": true,
+              "spacing": "Small"
             },
             {
               "type": "Input.Text",
@@ -107,6 +112,7 @@ internal sealed partial class ShortcutForm : FormContent
               "type": "Input.Text",
               "id": "Directory",
               "label": "Folder path",
+              "isRequired": true,
               "errorMessage": "Folder path is required",
               "placeholder": "Type or paste a path, e.g. C:\\Projects\\MyApp",
               "value": "${Directory}",

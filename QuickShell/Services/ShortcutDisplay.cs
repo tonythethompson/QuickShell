@@ -37,8 +37,8 @@ internal static class ShortcutDisplay
         {
             tags.Add(new Tag(string.Empty)
             {
-                Icon = new IconInfo("\uE718"),
-                ToolTip = "Pinned to top",
+                Icon = new IconInfo("\uE735"),
+                ToolTip = "Favorite",
             });
         }
 

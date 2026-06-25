@@ -22,7 +22,7 @@ internal sealed class TerminalShortcut
 
     public bool IsPinned { get; set; }
 
-    // Lower number means higher in pinned section.
+    // Lower number means higher in the favorites section.
     public int? PinOrder { get; set; }
 
     public DateTime? LastUsedUtc { get; set; }

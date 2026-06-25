@@ -11,7 +11,7 @@ Save directories you use every day, pick a terminal, optionally run a command on
 - **Save shortcuts** to folders you open often, with optional abbreviations for fast search
 - **Launch in your terminal** — Windows Terminal (with profile), PowerShell, PowerShell 7, or cmd
 - **Run a command on open** — start dev servers, scripts, or anything else automatically
-- **Pin shortcuts** so they stay at the top of your list
+- **Favorite shortcuts** so they stay at the top of your list
 - **Create and edit shortcuts in Command Palette** — no hand-editing JSON required
 - **Import and export shortcuts** as JSON for backup, sharing, or moving to another PC
 - **Open elevated** when you need admin — from the ⋯ menu or with **Ctrl+Enter**
