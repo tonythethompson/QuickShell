@@ -8,6 +8,7 @@ _nupkg/
 _winget-pkgs/
 _winget-pr/
 _winget-test/
+ACCESSIBILITY.md
 QuickShell/QuickShell_Dev.cer
 QuickShell/QuickShell_Dev.pfx
 QuickShell/bin/

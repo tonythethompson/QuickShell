@@ -124,12 +124,6 @@ The WinGet installer registers the extension for discovery. For local developmen
 
 ---
 
-## Accessibility
-
-Quick Shell is built on PowerToys Command Palette, which supports keyboard navigation, screen readers, and high contrast. For a testing checklist and links to Windows accessibility settings, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md).
-
----
-
 ## Building from source
 
 For contributors and local MSIX installs (recommended for development):

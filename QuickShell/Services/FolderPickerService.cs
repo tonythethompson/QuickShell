@@ -37,8 +37,10 @@ internal static class FolderPickerService
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
             UseDescriptionForTitle = true,
-            Description = "Select a folder for this shortcut",
+            Description = "Select a folder for this shortcut. Tab through the dialog; type a path in the address bar to jump to a folder.",
             ShowNewFolderButton = true,
+            AutoUpgradeEnabled = true,
+            OkRequiresInteraction = false,
         };
 
         if (!string.IsNullOrWhiteSpace(initialDirectory))
@@ -51,6 +53,7 @@ internal static class FolderPickerService
 
             if (Directory.Exists(initial))
             {
+                dialog.InitialDirectory = initial;
                 dialog.SelectedPath = initial;
             }
         }
