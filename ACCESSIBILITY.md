@@ -28,7 +28,7 @@ Test each flow with **keyboard only**, then again with **Narrator** on.
 |---|----------|---------------|
 | 1 | Search and open a shortcut | Arrow keys select a row; Enter launches the terminal |
 | 2 | Create a new shortcut | Enter on **Create new shortcut**; Tab through all fields; Save works |
-| 3 | Edit / pin / duplicate / delete | **Ctrl+K** opens More actions; each action completes |
+| 3 | Edit / pin / duplicate / delete | Context shortcuts below work on a selected row; **Ctrl+K** opens full More menu |
 | 4 | Open as administrator | Available in More actions when not always-admin |
 | 5 | Browse for folder | Browse button activatable; folder picker usable with keyboard |
 | 6 | Reload shortcuts | **Refresh terminals** runs without error |
@@ -41,7 +41,14 @@ Test each flow with **keyboard only**, then again with **Narrator** on.
 | Arrow keys | Move selection in the results list |
 | `Enter` | Run the selected command |
 | `Ctrl+Enter` | Open as administrator (when available) |
-| `Ctrl+K` | **More** menu (Edit, Pin, Delete, etc.) |
+| `Ctrl+E` | Edit shortcut (main list only) |
+| `Ctrl+P` | Pin or unpin shortcut |
+| `Ctrl+Shift+D` | Duplicate shortcut |
+| `Ctrl+Z` | Undo last shortcut change |
+| `Ctrl+Y` | Redo last shortcut change |
+| `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | Move pinned shortcut up or down |
+| `Ctrl+Delete` | Delete shortcut |
+| `Ctrl+K` | **More** menu (all actions) |
 | `Esc` | Go back / close |
 
 **Note:** `Shift+F10` opens the context menu for the **focused** control. If focus is in the search box, you will see Paste/Undo — not shortcut actions. Use arrow keys to select a list item, then `Ctrl+K` for extension actions.
@@ -55,6 +62,25 @@ Turn on Narrator (`Win+Ctrl+Enter`) and verify:
 - [ ] Form fields announce their **labels** (Name, Search keyword, Folder path, Command, Terminal)
 - [ ] **Browse folder** and **Save shortcut** are identifiable by name
 - [ ] Save/delete/pin actions give understandable feedback (toast or list update)
+
+### More menu (`Ctrl+K`) limitation
+
+Quick Shell sets explicit `Title` values on every context action, but the **Command Palette More menu UI is owned by PowerToys**, not the extension.
+
+In the current CmdPal host:
+
+- Focus lands in the **Search commands...** box at the bottom of the menu.
+- Up/Down changes the highlighted row, but Narrator may only announce the **first** row (the primary open action, e.g. the shortcut name).
+- The main shortcut list got screen-reader selection announcements in PowerToys; the shared context menu control has not yet received the same fix.
+
+**Workarounds for screen reader users**
+
+1. Prefer the direct shortcuts on a selected shortcut row (no menu required):
+   - `Ctrl+E` edit, `Ctrl+P` pin, `Ctrl+Shift+D` duplicate, `Ctrl+Delete` delete, `Ctrl+Enter` open as admin
+2. Actions still run when highlighted and you press `Enter` from the filter box, even if Narrator does not read each row.
+3. File or upvote a PowerToys issue asking for context-menu `SelectionChanged` automation announcements (same pattern as the main list fix).
+
+Quick Shell cannot render or fully fix CmdPal menu accessibility from the extension SDK.
 
 ## Visual accessibility
 

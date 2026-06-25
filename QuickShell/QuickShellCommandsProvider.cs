@@ -1,5 +1,6 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Commands;
 using QuickShell.Pages;
 
 namespace QuickShell;
@@ -36,6 +37,16 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 Icon = new IconInfo("\uE756"),
                 MoreCommands =
                 [
+                    new CommandContextItem(new UndoShortcutCommand(ReloadPages))
+                    {
+                        Title = "Undo last shortcut change",
+                        RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: Windows.System.VirtualKey.Z),
+                    },
+                    new CommandContextItem(new RedoShortcutCommand(ReloadPages))
+                    {
+                        Title = "Redo last shortcut change",
+                        RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: Windows.System.VirtualKey.Y),
+                    },
                     new CommandContextItem(settingsPage),
                 ],
             },
@@ -48,6 +59,12 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     public override ICommandItem[] TopLevelCommands() => _commands;
 
     public override IFallbackCommandItem[] FallbackCommands() => _fallbacks;
+
+    private void ReloadPages()
+    {
+        _page.Reload();
+        _fallbackPage.UpdateSearchText(string.Empty, string.Empty);
+    }
 
     public override void Dispose()
     {

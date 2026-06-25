@@ -83,10 +83,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         if (!shortcut.RunAsAdmin)
         {
             var adminCommand = new OpenTerminalShortcutCommand(shortcut, _settings, runAsAdmin: true);
-            moreCommands.Insert(0, new CommandContextItem(adminCommand)
-            {
-                Title = "Open as administrator",
-            });
+            moreCommands.Insert(0, ShortcutContextCommands.CreateOpenAsAdminContextItem(adminCommand));
         }
 
         item.MoreCommands = moreCommands.ToArray();

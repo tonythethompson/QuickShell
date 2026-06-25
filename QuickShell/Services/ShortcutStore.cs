@@ -7,12 +7,15 @@ namespace QuickShell.Services;
 internal static class ShortcutStore
 {
     private const int MaxConfigBytes = 2 * 1024 * 1024;
+    private const int MaxHistoryEntries = 50;
 
     private static readonly object Sync = new();
     private static readonly Mutex FileMutex = new(false, @"Global\QuickShell_shortcuts_json");
 
     private static TerminalShortcut[] _shortcuts = [];
     private static TerminalShortcut[] _lastGoodShortcuts = [];
+    private static readonly List<TerminalShortcut[]> UndoHistory = [];
+    private static readonly List<TerminalShortcut[]> RedoHistory = [];
     private static DateTime _lastWriteTimeUtc = DateTime.MinValue;
     private static bool _configEnsured;
     private static bool _persistPending;
@@ -65,6 +68,48 @@ internal static class ShortcutStore
         }
     }
 
+    public static bool Undo()
+    {
+        lock (Sync)
+        {
+            EnsureLoaded();
+            CancelPendingPersist();
+
+            if (UndoHistory.Count == 0)
+            {
+                return false;
+            }
+
+            var current = CloneAll(_shortcuts);
+            var previous = UndoHistory[^1];
+            UndoHistory.RemoveAt(UndoHistory.Count - 1);
+            PushHistory(RedoHistory, current);
+            SaveLocked(previous);
+            return true;
+        }
+    }
+
+    public static bool Redo()
+    {
+        lock (Sync)
+        {
+            EnsureLoaded();
+            CancelPendingPersist();
+
+            if (RedoHistory.Count == 0)
+            {
+                return false;
+            }
+
+            var current = CloneAll(_shortcuts);
+            var next = RedoHistory[^1];
+            RedoHistory.RemoveAt(RedoHistory.Count - 1);
+            PushHistory(UndoHistory, current);
+            SaveLocked(next);
+            return true;
+        }
+    }
+
     public static void Upsert(TerminalShortcut shortcut, string? originalName = null)
     {
         if (!ShortcutValidation.TryValidate(shortcut, out var validationError))
@@ -81,6 +126,7 @@ internal static class ShortcutStore
         {
             EnsureLoaded();
             CancelPendingPersist();
+            var previous = CloneAll(_shortcuts);
 
             var list = _shortcuts.Select(Clone).ToList();
 
@@ -108,6 +154,7 @@ internal static class ShortcutStore
                 SetPinOrder(list, shortcut.Name, NextPinOrder(list));
             }
 
+            RecordHistoryLocked(previous, list);
             SaveLocked(list);
         }
     }
@@ -123,11 +170,13 @@ internal static class ShortcutStore
         {
             EnsureLoaded();
             CancelPendingPersist();
+            var previous = CloneAll(_shortcuts);
 
             var list = _shortcuts.Select(Clone).ToList();
             var removed = list.RemoveAll(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) > 0;
             if (removed)
             {
+                RecordHistoryLocked(previous, list);
                 SaveLocked(list);
             }
 
@@ -146,6 +195,7 @@ internal static class ShortcutStore
         {
             EnsureLoaded();
             CancelPendingPersist();
+            var previous = CloneAll(_shortcuts);
 
             var list = _shortcuts.Select(Clone).ToList();
             var shortcut = list.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -156,6 +206,7 @@ internal static class ShortcutStore
 
             shortcut.IsPinned = !shortcut.IsPinned;
             shortcut.PinOrder = shortcut.IsPinned ? NextPinOrder(list) : null;
+            RecordHistoryLocked(previous, list);
             SaveLocked(list);
             return shortcut.IsPinned;
         }
@@ -172,6 +223,7 @@ internal static class ShortcutStore
         {
             EnsureLoaded();
             CancelPendingPersist();
+            var previous = CloneAll(_shortcuts);
 
             var list = _shortcuts.Select(Clone).ToList();
             var pinned = list
@@ -198,6 +250,7 @@ internal static class ShortcutStore
                 SetPinOrder(list, pinned[i].Name, i + 1);
             }
 
+            RecordHistoryLocked(previous, list);
             SaveLocked(list);
             return true;
         }
@@ -599,6 +652,60 @@ internal static class ShortcutStore
 
     private static TerminalShortcut[] CloneAll(IEnumerable<TerminalShortcut> shortcuts) =>
         shortcuts.Select(Clone).ToArray();
+
+    private static void RecordHistoryLocked(
+        IReadOnlyCollection<TerminalShortcut> previous,
+        IReadOnlyCollection<TerminalShortcut> next)
+    {
+        var orderedNext = OrderForDisplay(next.Where(IsValidShortcut).Select(Normalize).Select(Clone));
+        if (SnapshotEquals(previous, orderedNext))
+        {
+            return;
+        }
+
+        PushHistory(UndoHistory, previous);
+        RedoHistory.Clear();
+    }
+
+    private static void PushHistory(List<TerminalShortcut[]> history, IEnumerable<TerminalShortcut> snapshot)
+    {
+        history.Add(CloneAll(snapshot));
+        if (history.Count > MaxHistoryEntries)
+        {
+            history.RemoveAt(0);
+        }
+    }
+
+    private static bool SnapshotEquals(IReadOnlyCollection<TerminalShortcut> left, TerminalShortcut[] right)
+    {
+        if (left.Count != right.Length)
+        {
+            return false;
+        }
+
+        var leftArray = left as TerminalShortcut[] ?? left.ToArray();
+        for (var i = 0; i < leftArray.Length; i++)
+        {
+            if (!ShortcutEquals(leftArray[i], right[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool ShortcutEquals(TerminalShortcut left, TerminalShortcut right) =>
+        string.Equals(left.Name, right.Name, StringComparison.Ordinal) &&
+        string.Equals(left.Abbreviation, right.Abbreviation, StringComparison.Ordinal) &&
+        string.Equals(left.Directory, right.Directory, StringComparison.Ordinal) &&
+        string.Equals(left.Command, right.Command, StringComparison.Ordinal) &&
+        string.Equals(left.Terminal, right.Terminal, StringComparison.Ordinal) &&
+        string.Equals(left.WtProfile, right.WtProfile, StringComparison.Ordinal) &&
+        left.RunAsAdmin == right.RunAsAdmin &&
+        left.IsPinned == right.IsPinned &&
+        left.PinOrder == right.PinOrder &&
+        left.LastUsedUtc == right.LastUsedUtc;
 
     private static TerminalShortcut Clone(TerminalShortcut shortcut) => new()
     {
