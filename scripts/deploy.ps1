@@ -3,7 +3,8 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
     [switch]$SkipElevation,
-    [switch]$RecreateCertificate
+    [switch]$RecreateCertificate,
+    [switch]$UseLocalCmdPalSdk
 )
 
 $ErrorActionPreference = 'Stop'
@@ -194,15 +195,22 @@ try {
     Install-DevCertificateTrust
 
     $msbuild = Get-MsBuildPath
-    $localToolkit = Join-Path (Split-Path $ProjectRoot -Parent) 'PowerToys\src\modules\cmdpal\extensionsdk\Microsoft.CommandPalette.Extensions.Toolkit\Microsoft.CommandPalette.Extensions.Toolkit.csproj'
-    $useLocalSdk = $false
-    if (Test-Path $localToolkit) {
+    $powerToysRoot = Join-Path (Split-Path $ProjectRoot -Parent) 'PowerToys'
+    $localToolkit = Join-Path $powerToysRoot 'src\modules\cmdpal\extensionsdk\Microsoft.CommandPalette.Extensions.Toolkit\Microsoft.CommandPalette.Extensions.Toolkit.csproj'
+    $useLocalSdk = $UseLocalCmdPalSdk.IsPresent
+    if ($useLocalSdk) {
+        if (-not (Test-Path $localToolkit)) {
+            throw "UseLocalCmdPalSdk requires a PowerToys checkout at $powerToysRoot."
+        }
+
         Write-Host 'Building local Command Palette SDK (hover APIs)...'
         & $msbuild $localToolkit /p:Configuration=$Configuration /p:Platform=x64 /t:Build /v:minimal | Out-Host
         if ($LASTEXITCODE -ne 0) {
             throw "Local CmdPal SDK build failed with exit code $LASTEXITCODE"
         }
-        Write-Warning 'Local PowerToys SDK built, but QuickShell uses NuGet by default to avoid duplicate Toolkit assemblies. Hover actions require a dedicated local-SDK build profile.'
+    }
+    elseif (Test-Path $localToolkit) {
+        Write-Host 'Skipping local PowerToys SDK (NuGet CmdPal SDK). Pass -UseLocalCmdPalSdk for hover-action APIs.' -ForegroundColor DarkGray
     }
     else {
         Write-Warning @"
@@ -211,11 +219,13 @@ QuickShell will use NuGet Microsoft.CommandPalette.Extensions.
 "@
     }
 
+    $useLocalSdkMsbuild = if ($useLocalSdk) { 'true' } else { 'false' }
+
     Write-Host "Building signed MSIX ($Configuration|x64)..."
     & $msbuild (Join-Path $ProjectDir 'QuickShell.csproj') `
         /p:Configuration=$Configuration `
         /p:Platform=x64 `
-        /p:UseLocalCmdPalSdk=false `
+        "/p:UseLocalCmdPalSdk=$useLocalSdkMsbuild" `
         /p:GenerateAppxPackageOnBuild=true `
         /p:PackageCertificateThumbprint=$thumbprint `
         /p:PackageCertificateKeyFile= `
@@ -235,10 +245,13 @@ QuickShell will use NuGet Microsoft.CommandPalette.Extensions.
     }
 
     Write-Host "Installing $($msix.FullName)..."
-    $installed = Get-AppxPackage -Name 'QuickShell' -ErrorAction SilentlyContinue
-    if ($installed) {
-        Write-Host 'Removing previous QuickShell install...'
-        Remove-AppxPackage -Package $installed.PackageFullName
+    $installed = @(
+        Get-AppxPackage -Name 'tonythethompson.536944BA0D095' -ErrorAction SilentlyContinue
+        Get-AppxPackage -Name 'QuickShell' -ErrorAction SilentlyContinue
+    )
+    foreach ($package in $installed) {
+        Write-Host "Removing previous install $($package.PackageFullName)..."
+        Remove-AppxPackage -Package $package.PackageFullName
     }
 
     try {
