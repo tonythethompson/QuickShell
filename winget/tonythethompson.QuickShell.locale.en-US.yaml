@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
 
 PackageIdentifier: tonythethompson.QuickShell
-PackageVersion: 0.1.5.0
+PackageVersion: 0.1.6.0
 PackageLocale: en-US
 Publisher: Tony Thompson
 PublisherUrl: https://github.com/tonythethompson
@@ -10,11 +10,12 @@ PackageName: Quick Shell
 PackageUrl: https://github.com/tonythethompson/QuickShell
 License: MIT
 LicenseUrl: https://github.com/tonythethompson/QuickShell/blob/master/LICENSE
-ShortDescription: Open saved terminal directories and run commands from PowerToys Command Palette
+ShortDescription: Open saved folders in any terminal from PowerToys Command Palette
 Description: |
-  Quick Shell is a PowerToys Command Palette extension that lets you save
-  favorite project directories and launch them in Windows Terminal, PowerShell,
-  PowerShell 7, or cmd — optionally running a command on open.
+  Quick Shell is a PowerToys Command Palette extension that saves project folders
+  and opens them in the terminal you already use — every Windows Terminal profile
+  (including custom installs), WSL, PowerShell, cmd, and more. Optionally run a
+  command when the folder opens.
 
   After installing, open PowerToys Command Palette and run "Reload Command Palette Extension".
   For full Command Palette integration, MSIX install via scripts/deploy.ps1 is recommended.
@@ -27,10 +28,11 @@ Tags:
 - windows-commandpalette-extension
 - windows-terminal
 ReleaseNotes: |
-  - Fix root palette search so home keywords surface shortcuts as a list instead of running like a command
-  - Home keyword field label and help text on the shortcut form (JSON field remains Abbreviation)
-  - run-cmdpal-dev.ps1 script for local CmdPal + Quick Shell dev loop
-  - Debug build and dev MSIX deploy signing fixes
-ReleaseNotesUrl: https://github.com/tonythethompson/QuickShell/releases/tag/v0.1.5.0
+  - Home keywords: fix root palette search and clearer form label/help text
+  - Any terminal you use: Windows Terminal profiles (custom shells included), WSL, and classic shells
+  - Privacy policy added; removed unused internetClient capability
+  - Store MSIX builds unsigned for Microsoft re-signing after certification
+  - Updated Store screenshots and listing copy
+ReleaseNotesUrl: https://github.com/tonythethompson/QuickShell/releases/tag/v0.1.6.0
 ManifestType: defaultLocale
 ManifestVersion: 1.9.0

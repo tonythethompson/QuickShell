@@ -2,20 +2,28 @@
 
 **Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) — in one search.**
 
-Save directories you use every day, pick a terminal, optionally run a command on open (`dotnet run`, `npm run dev`, and so on), and jump there without digging through File Explorer.
+Save directories you use every day, open them in whichever terminal you actually use, optionally run a command on open (`dotnet run`, `npm run dev`, and so on), and jump there without digging through File Explorer.
 
 ---
 
 ## What you can do
 
 - **Save shortcuts** to folders you open often, with optional **home keywords** for fast root search
-- **Launch in your terminal** — Windows Terminal (with profile), PowerShell, PowerShell 7, or cmd
+- **Any terminal you use** — every Windows Terminal profile on your PC (custom shells included), plus WSL and classic shells
 - **Run a command on open** — start dev servers, scripts, or anything else automatically
 - **Favorite shortcuts** so they stay at the top of your list
 - **Create and edit shortcuts in Command Palette** — no hand-editing JSON required
 - **Import and export shortcuts** as JSON for backup, sharing, or moving to another PC
 - **Open elevated** when you need admin — from the ⋯ menu or with **Ctrl+Enter**
 - **Search from the root palette** — type a home keyword like `api` and matching shortcuts appear without opening the extension first
+
+---
+
+## Terminals
+
+Quick Shell reads your **Windows Terminal** `settings.json` and lists **every profile** you have configured — including custom shells such as Alacritty, WezTerm, Git Bash, or Ubuntu. It also discovers **WSL** distros and classic shells on your PATH (**PowerShell**, **pwsh**, **cmd**).
+
+After you install a new terminal or edit Windows Terminal profiles, run **Refresh terminals** inside Quick Shell to update the list.
 
 ---
 
@@ -101,7 +109,7 @@ Each shortcut supports these fields in `shortcuts.json`:
 | `Directory` | Yes | Folder to open |
 | `Abbreviation` | No | **Home keyword** — type at the Command Palette home screen to jump to this shortcut (e.g. `api`). JSON field name stays `Abbreviation`. |
 | `Command` | No | Command to run after opening the folder |
-| `Terminal` | No | `wt`, `powershell`, `pwsh`, or `cmd` (default: `wt`) |
+| `Terminal` | No | Launch target: `default`, `wt` (Windows Terminal — pair with `WtProfile` for a specific profile), `powershell`, `pwsh`, `cmd`, or `wsl`. Shells wired through Windows Terminal appear as profiles in the picker. |
 | `RunAsAdmin` | No | `true` to always launch elevated (UAC prompt); also available as a checkbox when editing in Command Palette |
 | `IsPinned` | No | `true` to favorite the shortcut (keeps it at the top of your Quick Shell list) |
 
@@ -151,7 +159,7 @@ For contributors and local MSIX installs (recommended for development):
 
 # WinGet-style EXE installers (x64 + ARM64)
 cd QuickShell
-.\build-exe.ps1 -Version 0.1.5.0
+.\build-exe.ps1 -Version 0.1.6.0
 ```
 
 Then run **Reload Command Palette Extension** in Command Palette.

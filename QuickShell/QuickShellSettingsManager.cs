@@ -20,7 +20,7 @@ internal sealed class QuickShellSettingsManager
         _settings.Add(new ChoiceSetSetting(DefaultTerminalId, choices)
         {
             Label = "Default terminal",
-            Description = "Used when a shortcut is set to Default. Lists Windows Terminal profiles and installed shells.",
+            Description = "Used when a shortcut is set to Default. Includes every Windows Terminal profile on your PC, plus WSL and other installed shells.",
         });
 
         if (!choices.Any(c => c.Value.Equals(initial, StringComparison.OrdinalIgnoreCase)))

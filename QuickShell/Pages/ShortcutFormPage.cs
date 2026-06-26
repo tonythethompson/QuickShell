@@ -163,6 +163,13 @@ internal sealed partial class ShortcutForm : FormContent
               "spacing": "Medium"
             },
             {
+              "type": "TextBlock",
+              "text": "Every Windows Terminal profile on your PC — custom shells included — plus WSL and classic shells.",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "Small"
+            },
+            {
               "type": "Input.Toggle",
               "id": "RunAsAdmin",
               "title": "Always run as administrator",

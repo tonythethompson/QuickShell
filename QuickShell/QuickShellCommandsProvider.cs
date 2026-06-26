@@ -44,7 +44,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             new CommandItem(_page)
             {
                 Title = DisplayName,
-                Subtitle = "Open saved folders in your terminal",
+                Subtitle = "Open saved folders in any terminal you use",
                 Icon = new IconInfo("\uE756"),
 #if CMDPAL_HOVER_ACTIONS
                 HomeHoverActionsMode = HoverActionsMode.Explicit,
