@@ -5,32 +5,18 @@
 
 .DESCRIPTION
     Builds Release x64 + ARM64 packages using the public NuGet CmdPal SDK, then
-    bundles them for Partner Center upload. Requires a Store signing certificate
-    matching Partner Center Product identity (see -CertificatePath or -CertificateThumbprint).
-
-.PARAMETER CertificatePath
-    Path to the .pfx from Visual Studio "Associate App with the Store" or Partner Center.
-
-.PARAMETER CertificatePassword
-    Password for the Store .pfx (optional if the cert is in CurrentUser\My).
-
-.PARAMETER CertificateThumbprint
-    Thumbprint of an already-imported Store certificate in CurrentUser\My.
+    bundles them for Partner Center upload. Microsoft Store MSIX submissions do
+    not require a local CA-trusted signing certificate; the Store re-signs the
+    package after certification.
 
 .EXAMPLE
-    .\scripts\build-store.ps1 -CertificatePath "$env:USERPROFILE\QuickShell.Store.pfx"
+    .\scripts\build-store.ps1
 #>
-param(
-    [string]$CertificatePath,
-    [string]$CertificatePassword,
-    [string]$CertificateThumbprint
-)
 
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ProjectDir = Join-Path $ProjectRoot 'QuickShell'
 $ProjectFile = Join-Path $ProjectDir 'QuickShell.csproj'
-$StorePublisherCn = '31D3C278-3D55-4A42-8A6A-24E16D158B63'
 
 function Get-MsBuildPath {
     $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
@@ -62,59 +48,6 @@ function Get-MakeAppxPath {
     return $makeappx.FullName
 }
 
-function Resolve-StoreCertificateThumbprint {
-    if ($CertificateThumbprint) {
-        return $CertificateThumbprint
-    }
-
-    if ($CertificatePath) {
-        if (-not (Test-Path $CertificatePath)) {
-            throw "Certificate not found: $CertificatePath"
-        }
-
-        $securePassword = $null
-        if ($CertificatePassword) {
-            $securePassword = ConvertTo-SecureString -String $CertificatePassword -AsPlainText -Force
-        }
-
-        $importArgs = @{
-            FilePath         = $CertificatePath
-            CertStoreLocation = 'Cert:\CurrentUser\My'
-            Exportable       = $true
-        }
-        if ($securePassword) {
-            $importArgs.Password = $securePassword
-        }
-
-        $imported = Import-PfxCertificate @importArgs
-        Write-Host "Imported Store certificate ($($imported.Thumbprint))."
-        return $imported.Thumbprint
-    }
-
-    $match = Get-ChildItem Cert:\CurrentUser\My -ErrorAction SilentlyContinue |
-        Where-Object { $_.Subject -like "*$StorePublisherCn*" -and $_.HasPrivateKey } |
-        Sort-Object NotAfter -Descending |
-        Select-Object -First 1
-
-    if ($match) {
-        Write-Host "Using Store certificate from CurrentUser\My ($($match.Thumbprint))."
-        return $match.Thumbprint
-    }
-
-    throw @"
-No Store signing certificate found.
-
-Associate Quick Shell with the Store in Visual Studio once:
-  QuickShell.sln -> right-click QuickShell -> Publish -> Associate App with the Store
-
-Then either:
-  - rerun this script (cert is imported automatically), or
-  - pass -CertificatePath to the .pfx Partner Center / Visual Studio created.
-
-Dev certificate QuickShell_Dev.pfx cannot sign Store packages.
-"@
-}
-
 function Get-PackageVersion {
     [xml]$manifest = Get-Content (Join-Path $ProjectDir 'Package.appxmanifest')
     return [string]$manifest.Package.Identity.Version
@@ -123,19 +56,19 @@ function Get-PackageVersion {
 function Build-PlatformPackage {
     param(
         [string]$MsBuild,
-        [string]$Platform,
-        [string]$Thumbprint
+        [string]$Platform
     )
 
-    Write-Host "Building Store MSIX (Release|$Platform)..."
+    Write-Host "Building unsigned Store MSIX (Release|$Platform)..."
     & $MsBuild $ProjectFile `
         /p:Configuration=Release `
         /p:Platform=$Platform `
         /p:UseLocalCmdPalSdk=false `
         /p:StoreBuild=true `
-        /p:PackageCertificateThumbprint=$Thumbprint `
         /p:PackageCertificateKeyFile= `
+        /p:PackageCertificateThumbprint= `
         /p:PackageCertificatePassword= `
+        /p:AppxPackageSigningEnabled=false `
         /p:AppxPackageDir="AppPackages\$Platform\" `
         /t:Build `
         /v:minimal | Out-Host
@@ -167,13 +100,12 @@ try {
     & (Join-Path $PSScriptRoot 'generate-assets.ps1')
 
     $msbuild = Get-MsBuildPath
-    $thumbprint = Resolve-StoreCertificateThumbprint
     $version = Get-PackageVersion
     $bundleDir = Join-Path $ProjectDir "AppPackages\Store_$version"
     New-Item -ItemType Directory -Path $bundleDir -Force | Out-Null
 
-    $x64Msix = Build-PlatformPackage -MsBuild $msbuild -Platform x64 -Thumbprint $thumbprint
-    $arm64Msix = Build-PlatformPackage -MsBuild $msbuild -Platform ARM64 -Thumbprint $thumbprint
+    $x64Msix = Build-PlatformPackage -MsBuild $msbuild -Platform x64
+    $arm64Msix = Build-PlatformPackage -MsBuild $msbuild -Platform ARM64
 
     $x64Name = Split-Path $x64Msix -Leaf
     $arm64Name = Split-Path $arm64Msix -Leaf
@@ -187,7 +119,7 @@ try {
     $bundlePath = Join-Path $bundleDir "QuickShell_$version`_Store.msixbundle"
     $makeappx = Get-MakeAppxPath
     Write-Host "Creating bundle $bundlePath ..."
-    & $makeappx bundle /f $mappingFile /p $bundlePath | Out-Host
+    & $makeappx bundle /f $mappingFile /p $bundlePath /o | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "makeappx bundle failed with exit code $LASTEXITCODE"
     }
@@ -197,6 +129,7 @@ try {
     Write-Host "  $bundlePath"
     Write-Host ''
     Write-Host 'Upload this file in Partner Center -> Submission -> Packages, then Save.'
+    Write-Host 'Microsoft Store will re-sign the MSIX bundle after certification.'
 }
 finally {
     Pop-Location

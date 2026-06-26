@@ -11,7 +11,7 @@
 
     <AppxPackageVersion>0.1.4.0</AppxPackageVersion>
     <AppxPackageIdentityName>tonythethompson.536944BA0D095</AppxPackageIdentityName>
-    <AppxPackagePublisher>CN=31D3C278-3D55-4A42-8A6A-24E16D158B63</AppxPackagePublisher>
+    <AppxPackagePublisher>CN=31D3C278-3D55-4A42-BA6A-24E16D15B863</AppxPackagePublisher>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
@@ -124,10 +124,11 @@
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Release MSIX for Microsoft Store (scripts/build-store.ps1 sets StoreBuild=true) -->
+  <!-- Release MSIX for Microsoft Store (scripts/build-store.ps1 sets StoreBuild=true).
+       Store submissions are re-signed by Microsoft after certification. -->
   <PropertyGroup Condition="'$(StoreBuild)'=='true'">
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
-    <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
   </PropertyGroup>
 
