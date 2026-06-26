@@ -151,7 +151,7 @@ For contributors and local MSIX installs (recommended for development):
 
 # WinGet-style EXE installers (x64 + ARM64)
 cd QuickShell
-.\build-exe.ps1 -Version 0.1.2.2
+.\build-exe.ps1 -Version 0.1.3.0
 ```
 
 Then run **Reload Command Palette Extension** in Command Palette.
