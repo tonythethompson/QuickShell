@@ -104,9 +104,17 @@ internal sealed partial class ShortcutForm : FormContent
             {
               "type": "Input.Text",
               "id": "Abbreviation",
-              "label": "Search keyword (optional)",
+              "label": "Trigger word (optional)",
+              "placeholder": "e.g. api",
               "value": "${Abbreviation}",
               "spacing": "Medium"
+            },
+            {
+              "type": "TextBlock",
+              "text": "Type this at the Command Palette home screen to jump straight to this shortcut — no need to open Quick Shell first.",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "Small"
             },
             {
               "type": "Input.Text",

@@ -8,14 +8,14 @@ Save directories you use every day, pick a terminal, optionally run a command on
 
 ## What you can do
 
-- **Save shortcuts** to folders you open often, with optional abbreviations for fast search
+- **Save shortcuts** to folders you open often, with optional **trigger words** for fast root search
 - **Launch in your terminal** — Windows Terminal (with profile), PowerShell, PowerShell 7, or cmd
 - **Run a command on open** — start dev servers, scripts, or anything else automatically
 - **Favorite shortcuts** so they stay at the top of your list
 - **Create and edit shortcuts in Command Palette** — no hand-editing JSON required
 - **Import and export shortcuts** as JSON for backup, sharing, or moving to another PC
 - **Open elevated** when you need admin — from the ⋯ menu or with **Ctrl+Enter**
-- **Search from the root palette** — type an abbreviation like `api` and matching shortcuts appear without opening the extension first
+- **Search from the root palette** — type a trigger word like `api` and matching shortcuts appear without opening the extension first
 
 ---
 
@@ -80,7 +80,7 @@ Open the **⋯** menu on any shortcut (or press **Ctrl+K**) for actions like edi
 | What you want | How |
 | --- | --- |
 | Open a saved folder | Search **Quick Shell**, pick a shortcut |
-| Jump straight to a shortcut | Type its **abbreviation** in the root search box (e.g. `api`) |
+| Jump straight to a shortcut | Type its **trigger word** at the Command Palette home screen (e.g. `api`) |
 | Favorite a shortcut | **⋯** → **Favorite**, or **Ctrl+P** (star badge on favorited items) |
 | Reorder favorites | **⋯** → **Move favorite up** / **Move favorite down** |
 | Reload after editing JSON | Run **Refresh terminals** inside Quick Shell |
@@ -99,7 +99,7 @@ Each shortcut supports these fields in `shortcuts.json`:
 | --- | --- | --- |
 | `Name` | Yes | Display name in Command Palette |
 | `Directory` | Yes | Folder to open |
-| `Abbreviation` | No | Short keyword for root search (e.g. `api`) |
+| `Abbreviation` | No | **Trigger word** — type at the Command Palette home screen to jump to this shortcut (e.g. `api`). JSON field name stays `Abbreviation`. |
 | `Command` | No | Command to run after opening the folder |
 | `Terminal` | No | `wt`, `powershell`, `pwsh`, or `cmd` (default: `wt`) |
 | `RunAsAdmin` | No | `true` to always launch elevated (UAC prompt); also available as a checkbox when editing in Command Palette |

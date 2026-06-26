@@ -50,7 +50,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private void RefreshItems()
     {
-        var shortcuts = QuickShellRuntimeServices.Shortcuts.Search(_query).ToArray();
+        var shortcuts = QuickShellRuntimeServices.Shortcuts.SearchForRootPalette(_query).ToArray();
         _items = shortcuts.Length == 0
             ? []
             : shortcuts.Select(BuildShortcutItem).Cast<IListItem>().ToArray();
@@ -67,6 +67,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private ListItem BuildShortcutItem(TerminalShortcut shortcut)
     {
         var item = ShortcutListItems.CreateOpen(shortcut, _settings);
+        item.Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcut);
 
         var moreCommands = new List<CommandContextItem>(ShortcutContextCommands.Build(shortcut, Reload, _settings, includeEdit: false));
 

@@ -1,6 +1,5 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
@@ -13,14 +12,13 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
     private static readonly NoOpCommand BaseCommand = new() { Id = CommandId };
 
     private readonly QuickShellFallbackPage _listPage;
-    private readonly QuickShellSettingsManager _settings;
     private string _lastQuery = string.Empty;
 
     public QuickShellFallback(QuickShellFallbackPage listPage, QuickShellSettingsManager settings)
         : base(BaseCommand, "Saved shortcut", CommandId)
     {
+        _ = settings;
         _listPage = listPage;
-        _settings = settings;
         Title = string.Empty;
         Subtitle = string.Empty;
         Icon = new IconInfo("\uE756");
@@ -36,7 +34,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
             return;
         }
 
-        var shortcuts = QuickShellRuntimeServices.Shortcuts.Search(_lastQuery).ToArray();
+        var shortcuts = QuickShellRuntimeServices.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
         if (shortcuts.Length == 0)
         {
             ClearResult();
@@ -44,32 +42,26 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
         }
 
         _listPage.UpdateSearchText(string.Empty, _lastQuery);
+        ApplyListResult(shortcuts);
+    }
 
+    private void ApplyListResult(TerminalShortcut[] shortcuts)
+    {
         if (shortcuts.Length == 1)
         {
-            ApplyShortcutResult(shortcuts[0]);
-            return;
+            Title = shortcuts[0].Name;
+            Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcuts[0]);
+        }
+        else
+        {
+            Title = $"{shortcuts.Length} shortcuts";
+            Subtitle = $"Matching \"{_lastQuery}\"";
         }
 
-        Title = string.Empty;
-        Subtitle = string.Empty;
-        Command = _listPage;
-    }
-
-    private void ApplyShortcutResult(TerminalShortcut shortcut)
-    {
-        Title = shortcut.Name;
-        Subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
         Icon = new IconInfo("\uE756");
-        Command = new OpenTerminalShortcutCommand(shortcut, _settings);
-
-        var moreCommands = new List<CommandContextItem>(
-            ShortcutContextCommands.Build(shortcut, ReloadListPage, _settings, includeEdit: false));
-
-        MoreCommands = moreCommands.ToArray();
+        Command = _listPage;
+        MoreCommands = [];
     }
-
-    private void ReloadListPage() => UpdateQuery(_lastQuery);
 
     private static bool ShouldSuppress(string? query)
     {

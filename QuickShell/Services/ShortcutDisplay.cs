@@ -6,6 +6,11 @@ namespace QuickShell.Services;
 
 internal static class ShortcutDisplay
 {
+    public static string BuildDirectorySubtitle(TerminalShortcut shortcut)
+    {
+        return string.Join(" · ", ShortenPath(shortcut.Directory), TerminalCatalog.GetDisplayName(shortcut));
+    }
+
     public static string BuildSubtitle(TerminalShortcut shortcut)
     {
         var parts = new List<string> { ShortenPath(shortcut.Directory) };
@@ -19,7 +24,7 @@ internal static class ShortcutDisplay
 
         if (!string.IsNullOrWhiteSpace(shortcut.Abbreviation))
         {
-            parts.Add($"abbr {shortcut.Abbreviation}");
+            parts.Add($"trigger · {shortcut.Abbreviation}");
         }
 
         if (shortcut.LastUsedUtc is not null)

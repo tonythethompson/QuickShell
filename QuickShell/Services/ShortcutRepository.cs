@@ -693,6 +693,31 @@ internal sealed class ShortcutRepository : IShortcutRepository
         return shortcuts.Where(shortcut => Matches(shortcut, query.Trim()));
     }
 
+    public IEnumerable<TerminalShortcut> SearchForRootPalette(string query)
+    {
+        var trimmed = query.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return [];
+        }
+
+        var shortcuts = GetShortcuts();
+        var abbreviationMatches = shortcuts
+            .Where(shortcut => !string.IsNullOrWhiteSpace(shortcut.Abbreviation)
+                && shortcut.Abbreviation.Contains(trimmed, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(shortcut => shortcut.Abbreviation!.Equals(trimmed, StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(shortcut => shortcut.Abbreviation!.StartsWith(trimmed, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (abbreviationMatches.Length > 0)
+        {
+            return abbreviationMatches;
+        }
+
+        return shortcuts.Where(shortcut => MatchesForRootPalette(shortcut, trimmed));
+    }
+
     private void EnsureLoaded(bool force = false)
     {
         EnsureConfigExists();
@@ -1105,7 +1130,7 @@ internal sealed class ShortcutRepository : IShortcutRepository
 
     private bool Matches(TerminalShortcut shortcut, string query)
     {
-        if (shortcut.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+        if (MatchesForRootPalette(shortcut, query))
         {
             return true;
         }
@@ -1123,19 +1148,24 @@ internal sealed class ShortcutRepository : IShortcutRepository
             }
         }
 
+        return !string.IsNullOrWhiteSpace(shortcut.Command) &&
+               shortcut.Command.Contains(query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesForRootPalette(TerminalShortcut shortcut, string query)
+    {
+        if (shortcut.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         if (shortcut.Directory.Contains(query, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        if (!string.IsNullOrWhiteSpace(shortcut.WtProfile) &&
-            shortcut.WtProfile.Contains(query, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return !string.IsNullOrWhiteSpace(shortcut.Command) &&
-               shortcut.Command.Contains(query, StringComparison.OrdinalIgnoreCase);
+        return !string.IsNullOrWhiteSpace(shortcut.WtProfile) &&
+               shortcut.WtProfile.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
     private TerminalShortcut Normalize(TerminalShortcut shortcut)

@@ -58,5 +58,7 @@ internal interface IShortcutRepository
 
     IEnumerable<TerminalShortcut> Search(string query);
 
+    IEnumerable<TerminalShortcut> SearchForRootPalette(string query);
+
     string ResolveAvailableName(string desiredName, string? replacingOriginalName = null);
 }
