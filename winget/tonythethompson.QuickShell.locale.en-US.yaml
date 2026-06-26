@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
 
 PackageIdentifier: tonythethompson.QuickShell
-PackageVersion: 0.1.3.0
+PackageVersion: 0.1.4.0
 PackageLocale: en-US
 Publisher: Tony Thompson
 PublisherUrl: https://github.com/tonythethompson
@@ -27,14 +27,10 @@ Tags:
 - windows-commandpalette-extension
 - windows-terminal
 ReleaseNotes: |
-  - Import and export shortcuts as JSON
-  - Always run as administrator toggle on the shortcut form, with one-off elevated or standard open from the context menu
-  - Favorite shortcuts (star badge) instead of pin-to-top, to avoid clashing with Command Palette pin-to-home
-  - Edit drafts autosave with list recovery for unsaved form changes
-  - Stable shortcut IDs so home-pinned shortcuts survive renames
-  - Shortcut list hover actions for create, edit, favorite, and more (requires local CmdPal SDK build via deploy.ps1)
-  - Form fixes: browse folder and cancel work with an empty path; leaving the form returns to the list without closing Command Palette
-  - Admin and favorite glyph badges on shortcut rows
-ReleaseNotesUrl: https://github.com/tonythethompson/QuickShell/releases/tag/v0.1.3.0
+  - Fix root palette search so home keywords surface shortcuts as a list instead of running like a command
+  - Home keyword field label and help text on the shortcut form (JSON field remains Abbreviation)
+  - run-cmdpal-dev.ps1 script for local CmdPal + Quick Shell dev loop
+  - Debug build and dev MSIX deploy signing fixes
+ReleaseNotesUrl: https://github.com/tonythethompson/QuickShell/releases/tag/v0.1.4.0
 ManifestType: defaultLocale
 ManifestVersion: 1.9.0
