@@ -93,7 +93,14 @@ internal sealed partial class ShortcutForm : FormContent
               "id": "Name",
               "label": "Name",
               "value": "${Name}",
-              "spacing": "Medium"
+              "spacing": "Medium",
+              "inlineAction": {
+                "type": "Action.Submit",
+                "title": "ⓘ",
+                "tooltip": "Name shown in your Quick Shell list. Leave blank to use the folder name.",
+                "associatedInputs": "none",
+                "data": { "action": "help" }
+              }
             },
             {
               "type": "TextBlock",
@@ -107,7 +114,14 @@ internal sealed partial class ShortcutForm : FormContent
               "label": "Home keyword (optional)",
               "placeholder": "e.g. api",
               "value": "${Abbreviation}",
-              "spacing": "Medium"
+              "spacing": "Medium",
+              "inlineAction": {
+                "type": "Action.Submit",
+                "title": "ⓘ",
+                "tooltip": "Type this at the Command Palette home screen to jump straight to this shortcut — no need to open Quick Shell first.",
+                "associatedInputs": "none",
+                "data": { "action": "help" }
+              }
             },
             {
               "type": "TextBlock",
@@ -124,7 +138,14 @@ internal sealed partial class ShortcutForm : FormContent
               "errorMessage": "Folder path is required",
               "placeholder": "Type or paste a path, e.g. C:\\Projects\\MyApp",
               "value": "${Directory}",
-              "spacing": "Medium"
+              "spacing": "Medium",
+              "inlineAction": {
+                "type": "Action.Submit",
+                "title": "ⓘ",
+                "tooltip": "Folder opened when you run this shortcut. Type a path, use Paste path, or Browse folder.",
+                "associatedInputs": "none",
+                "data": { "action": "help" }
+              }
             },
             {
               "type": "ActionSet",
@@ -132,16 +153,16 @@ internal sealed partial class ShortcutForm : FormContent
               "actions": [
                 {
                   "type": "Action.Submit",
-                  "title": "Paste path",
-                  "tooltip": "Paste a folder path from the clipboard into the field above",
-                  "data": { "action": "paste" },
+                  "title": "Browse folder",
+                  "tooltip": "Open the Windows folder picker (you can also type or paste a path above)",
+                  "data": { "action": "browse" },
                   "associatedInputs": "none"
                 },
                 {
                   "type": "Action.Submit",
-                  "title": "Browse folder",
-                  "tooltip": "Open the Windows folder picker (you can also type or paste a path above)",
-                  "data": { "action": "browse" },
+                  "title": "Paste path",
+                  "tooltip": "Paste a folder path from the clipboard into the field above",
+                  "data": { "action": "paste" },
                   "associatedInputs": "none"
                 }
               ]
@@ -151,16 +172,53 @@ internal sealed partial class ShortcutForm : FormContent
               "id": "Command",
               "label": "Command (optional)",
               "value": "${Command}",
-              "spacing": "Medium"
+              "spacing": "Medium",
+              "inlineAction": {
+                "type": "Action.Submit",
+                "title": "ⓘ",
+                "tooltip": "Optional command or script run after the terminal opens in this folder.",
+                "associatedInputs": "none",
+                "data": { "action": "help" }
+              }
             },
             {
-              "type": "Input.ChoiceSet",
-              "id": "LaunchTarget",
-              "label": "Terminal",
-              "style": "compact",
-              "value": "${LaunchTarget}",
-              "choices": {{terminalChoices}},
-              "spacing": "Medium"
+              "type": "ColumnSet",
+              "spacing": "Medium",
+              "columns": [
+                {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                    {
+                      "type": "Input.ChoiceSet",
+                      "id": "LaunchTarget",
+                      "label": "Terminal",
+                      "style": "compact",
+                      "value": "${LaunchTarget}",
+                      "choices": {{terminalChoices}}
+                    }
+                  ]
+                },
+                {
+                  "type": "Column",
+                  "width": "auto",
+                  "verticalContentAlignment": "Top",
+                  "items": [
+                    {
+                      "type": "ActionSet",
+                      "actions": [
+                        {
+                          "type": "Action.Submit",
+                          "title": "ⓘ",
+                          "tooltip": "Every Windows Terminal profile on your PC — custom shells included — plus WSL and classic shells.",
+                          "associatedInputs": "none",
+                          "data": { "action": "help" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "TextBlock",
@@ -170,24 +228,56 @@ internal sealed partial class ShortcutForm : FormContent
               "spacing": "Small"
             },
             {
-              "type": "Input.Toggle",
-              "id": "RunAsAdmin",
-              "title": "Always run as administrator",
-              "value": "${RunAsAdmin}",
-              "valueOn": "true",
-              "valueOff": "false",
-              "spacing": "Medium"
+              "type": "ColumnSet",
+              "spacing": "Medium",
+              "columns": [
+                {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                    {
+                      "type": "Input.Toggle",
+                      "id": "RunAsAdmin",
+                      "title": "Always run as administrator",
+                      "value": "${RunAsAdmin}",
+                      "valueOn": "true",
+                      "valueOff": "false"
+                    }
+                  ]
+                },
+                {
+                  "type": "Column",
+                  "width": "auto",
+                  "verticalContentAlignment": "Center",
+                  "items": [
+                    {
+                      "type": "ActionSet",
+                      "actions": [
+                        {
+                          "type": "Action.Submit",
+                          "title": "ⓘ",
+                          "tooltip": "Launch the terminal elevated. Windows may show a UAC prompt each time.",
+                          "associatedInputs": "none",
+                          "data": { "action": "help" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ],
           "actions": [
             {
               "type": "Action.Submit",
               "title": "Save shortcut",
+              "tooltip": "Save changes and return to your shortcut list.",
               "associatedInputs": "auto"
             },
             {
               "type": "Action.Submit",
               "title": "Cancel",
+              "tooltip": "Go back without saving. You will be asked to confirm if there are unsaved changes.",
               "data": { "action": "cancel" },
               "associatedInputs": "none"
             }
@@ -260,6 +350,11 @@ internal sealed partial class ShortcutForm : FormContent
             return HandleDiscardPromptAction(inputs, data);
         }
 
+        if (IsHelpAction(inputs, data))
+        {
+            return CommandResult.KeepOpen();
+        }
+
         if (IsBrowseAction(inputs, data))
         {
             return HandleBrowse(inputs);
@@ -285,6 +380,11 @@ internal sealed partial class ShortcutForm : FormContent
         if (IsDiscardPromptAction(payload, null))
         {
             return HandleDiscardPromptAction(payload, null);
+        }
+
+        if (IsHelpAction(payload, null))
+        {
+            return CommandResult.KeepOpen();
         }
 
         if (IsBrowseAction(payload, null))
@@ -692,6 +792,9 @@ internal sealed partial class ShortcutForm : FormContent
 
     private static bool IsBrowseAction(string inputs, string? data) =>
         TryGetAction(data) == "browse" || TryGetActionFromInputs(inputs) == "browse";
+
+    private static bool IsHelpAction(string inputs, string? data) =>
+        TryGetAction(data) == "help" || TryGetActionFromInputs(inputs) == "help";
 
     private static bool IsPasteAction(string inputs, string? data) =>
         TryGetAction(data) == "paste" || TryGetActionFromInputs(inputs) == "paste";
