@@ -206,17 +206,6 @@ cd QuickShell
 
 Then run **Reload Command Palette Extension** in Command Palette.
 
-### Store listing screenshots (contributors)
-
-Regenerate README and Partner Center images:
-
-```powershell
-.\scripts\store-screenshots.ps1 -Mode Capture   # 1. list  2. edit  3. settings
-.\scripts\store-screenshots.ps1 -Mode Prepare   # letterbox + update Screenshot_1–3.png
-```
-
-Optional: import [`dev-shortcuts.json`](dev-shortcuts.json) (merge) to run those scripts as **pwsh** shortcuts from CmdPal — update **Directory** if your clone is not `A:\QuickShell`.
-
 ---
 
 ## License
