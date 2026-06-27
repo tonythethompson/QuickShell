@@ -27,6 +27,60 @@
       {{ content }}
     </main>
 
+    <!-- Lightbox -->
+    <div id="lightbox-overlay" class="lightbox-overlay" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
+      <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
+      <img id="lightbox-img" src="" alt="">
+      <p class="lightbox-caption" id="lightbox-caption"></p>
+      <span class="lightbox-hint">Esc or click outside to close</span>
+    </div>
+
+    <script>
+    (function () {
+      var overlay = document.getElementById('lightbox-overlay');
+      var lbImg = document.getElementById('lightbox-img');
+      var caption = document.getElementById('lightbox-caption');
+      var closeBtn = document.getElementById('lightbox-close');
+
+      function openLightbox(src, alt) {
+        lbImg.src = src;
+        lbImg.alt = alt || '';
+        caption.textContent = alt || '';
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeLightbox() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        setTimeout(function () { lbImg.src = ''; }, 300);
+      }
+
+      document.querySelectorAll('.screenshot-grid img').forEach(function (el) {
+        el.style.cursor = 'zoom-in';
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.addEventListener('click', function () { openLightbox(el.src, el.alt); });
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(el.src, el.alt); }
+        });
+      });
+
+      closeBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeLightbox();
+      });
+
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeLightbox();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && overlay.classList.contains('active')) closeLightbox();
+      });
+    })();
+    </script>
+
     <footer class="site-footer">
       <div class="wrap">
         <div>
