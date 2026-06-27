@@ -5,7 +5,12 @@ namespace QuickShell.Services;
 
 internal static class TerminalLauncher
 {
-    public static void Open(TerminalShortcut shortcut, string defaultLaunchTargetId, bool runAsAdmin = false, bool runAsStandard = false)
+    public static void Open(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId,
+        bool runAsAdmin = false,
+        bool runAsStandard = false)
     {
         if (!ShortcutValidation.TryNormalizeDirectory(shortcut.Directory, out var directory, out var error))
         {
@@ -36,10 +41,11 @@ internal static class TerminalLauncher
             LastUsedUtc = shortcut.LastUsedUtc,
         };
 
-        var target = TerminalCatalog.ResolveForShortcut(launchShortcut, defaultLaunchTargetId);
+        var target = TerminalCatalog.ResolveForShortcut(launchShortcut, terminalApplicationId, defaultProfileId);
         var startInfo = target.Kind switch
         {
-            LaunchTargetKind.WindowsTerminal => CreateWindowsTerminalStartInfo(launchShortcut, target),
+            LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal =>
+                CreateWindowsTerminalStartInfo(launchShortcut, target),
             LaunchTargetKind.PowerShell => CreatePowerShellStartInfo(launchShortcut, usePwsh: false),
             LaunchTargetKind.Pwsh => CreatePowerShellStartInfo(launchShortcut, usePwsh: true),
             LaunchTargetKind.Cmd => CreateCmdStartInfo(launchShortcut, target),
@@ -82,7 +88,7 @@ internal static class TerminalLauncher
             arguments.Add(BuildWindowsTerminalCommandSuffix(shortcut, target));
         }
 
-        return CreateWtStartInfo(arguments);
+        return CreateWtStartInfo(arguments, target.HostExecutable);
     }
 
     private static ProcessStartInfo CreateWindowsTerminalForWslDirectory(
@@ -100,18 +106,18 @@ internal static class TerminalLauncher
         if (IsWslProfile(target))
         {
             arguments.Add(ToWslExecutableCommand(shortcut, target, wslLocation));
-            return CreateWtStartInfo(arguments);
+            return CreateWtStartInfo(arguments, target.HostExecutable);
         }
 
         if (IsPowerShellProfile(target))
         {
             var directory = wslLocation.UncPath ?? shortcut.Directory;
             arguments.Add(ToPowerShellExecutableCommand(shortcut, GetPowerShellPathForProfile(target), directory));
-            return CreateWtStartInfo(arguments);
+            return CreateWtStartInfo(arguments, target.HostExecutable);
         }
 
         arguments.Add(ToWslExecutableCommand(shortcut, target, wslLocation));
-        return CreateWtStartInfo(arguments);
+        return CreateWtStartInfo(arguments, target.HostExecutable);
     }
 
     private static string BuildWindowsTerminalCommandSuffix(TerminalShortcut shortcut, LaunchTarget target)
@@ -270,10 +276,10 @@ internal static class TerminalLauncher
         return directory;
     }
 
-    private static ProcessStartInfo CreateWtStartInfo(IEnumerable<string> arguments) =>
+    private static ProcessStartInfo CreateWtStartInfo(IEnumerable<string> arguments, string hostExecutable) =>
         new()
         {
-            FileName = "wt.exe",
+            FileName = hostExecutable,
             Arguments = string.Join(' ', arguments.Where(arg => !string.IsNullOrWhiteSpace(arg))),
             UseShellExecute = true,
         };

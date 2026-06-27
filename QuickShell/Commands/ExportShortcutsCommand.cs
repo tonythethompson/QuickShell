@@ -1,3 +1,4 @@
+using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Services;
 using System.Threading;
@@ -7,9 +8,11 @@ namespace QuickShell.Commands;
 internal sealed partial class ExportShortcutsCommand : InvokableCommand
 {
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
+    private readonly bool _stayOnSettings;
 
-    public ExportShortcutsCommand()
+    public ExportShortcutsCommand(bool stayOnSettings = true)
     {
+        _stayOnSettings = stayOnSettings;
         Name = "Export shortcuts";
         Icon = new IconInfo("\uE896");
     }
@@ -19,16 +22,21 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
         var path = ShortcutFilePickerService.PickExportFile();
         if (path is null)
         {
-            return QuickShellNavigation.StayOpen("Export cancelled.");
+            return Finish("Export cancelled.");
         }
 
         using var cancellation = new CancellationTokenSource(IoTimeout);
         var result = QuickShellRuntimeServices.Shortcuts.TryExportToFileAsync(path, cancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
-            return QuickShellNavigation.StayOpen($"Export failed: {result.Error}");
+            return Finish($"Export failed: {result.Error}");
         }
 
-        return QuickShellNavigation.StayOpen($"Exported shortcuts to {path}.");
+        return Finish($"Exported shortcuts to {path}.");
     }
+
+    private CommandResult Finish(string? message) =>
+        _stayOnSettings
+            ? QuickShellNavigation.StayOnSettings(message)
+            : QuickShellNavigation.StayOpen(message);
 }

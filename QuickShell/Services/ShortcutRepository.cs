@@ -31,9 +31,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private readonly Mutex _fileMutex = new(false, @"Global\QuickShell_shortcuts_json");
 
     private TerminalShortcut[] _shortcuts = [];
-    private TerminalShortcut[] _lastGoodShortcuts = [];
-    private readonly List<TerminalShortcut[]> _undoHistory = [];
-    private readonly List<TerminalShortcut[]> _redoHistory = [];
+    private List<ShortcutLayoutEntry> _layout = [];
+    private List<ShortcutLayoutEntry> _lastGoodLayout = [];
+    private readonly List<List<ShortcutLayoutEntry>> _undoHistory = [];
+    private readonly List<List<ShortcutLayoutEntry>> _redoHistory = [];
     private DateTime _lastWriteTimeUtc = DateTime.MinValue;
     private bool _configEnsured;
     private bool _persistPending;
@@ -50,6 +51,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
             return CloneAll(_shortcuts);
+        });
+
+    public IReadOnlyList<ShortcutLayoutEntry> GetLayout() =>
+        WithLock(() =>
+        {
+            EnsureLoaded();
+            return CloneLayout(_layout);
         });
 
     public TerminalShortcut? GetByName(string name)
@@ -137,14 +145,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 EnsureLoaded();
                 FlushPendingPersistLocked();
 
-                var shortcuts = CloneAll(_shortcuts);
-                var preparedPayload = JsonSerializer.SerializeToUtf8Bytes(shortcuts, QuickShellJsonContext.Default.TerminalShortcutArray);
-                if (preparedPayload.Length > MaxConfigBytes)
+                var payload = ShortcutLayoutJson.Serialize(_layout);
+                if (payload.Length > MaxConfigBytes)
                 {
                     return (Success: false, Payload: Array.Empty<byte>());
                 }
 
-                return (Success: true, Payload: preparedPayload);
+                return (Success: true, Payload: payload);
             });
 
             if (!prepare.Success)
@@ -209,13 +216,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
         try
         {
-            var (loaded, shortcuts) = await TryLoadShortcutsFromFileAsync(path, cancellationToken).ConfigureAwait(false);
-            if (!loaded || shortcuts.Length == 0)
+            var (loaded, layout) = await TryLoadLayoutFromFileAsync(path, cancellationToken).ConfigureAwait(false);
+            if (!loaded || CountValidShortcuts(layout) == 0)
             {
                 return new ShortcutImportReadResult(false, [], "No valid shortcuts were found in that file.");
             }
 
-            return new ShortcutImportReadResult(true, shortcuts, string.Empty);
+            return new ShortcutImportReadResult(true, ShortcutLayoutJson.ExtractShortcuts(layout), string.Empty);
         }
         catch (OperationCanceledException)
         {
@@ -280,7 +287,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public ShortcutTransferResult ImportReplace(string path)
     {
-        if (!TryReadImportFile(path, out var imported, out var error))
+        if (!TryReadImportLayout(path, out var layout, out var error))
         {
             return new ShortcutTransferResult
             {
@@ -289,14 +296,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             };
         }
 
-        return ImportReplaceCore(imported);
+        return ImportReplaceCore(layout);
     }
 
     public async Task<ShortcutTransferResult> ImportReplaceAsync(string path, CancellationToken cancellationToken = default)
     {
         try
         {
-            var readResult = await TryReadImportFileAsync(path, cancellationToken).ConfigureAwait(false);
+            var readResult = await TryReadImportLayoutAsync(path, cancellationToken).ConfigureAwait(false);
             if (!readResult.Success)
             {
                 return new ShortcutTransferResult
@@ -307,7 +314,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            return ImportReplaceCore(readResult.Shortcuts);
+            return ImportReplaceCore(readResult.Layout);
         }
         catch (OperationCanceledException)
         {
@@ -319,14 +326,54 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
     }
 
+    private static bool TryReadImportLayout(string path, out List<ShortcutLayoutEntry> layout, out string error)
+    {
+        var result = TryReadImportLayoutAsync(path).GetAwaiter().GetResult();
+        layout = result.Layout;
+        error = result.Error;
+        return result.Success;
+    }
+
+    private static async Task<(bool Success, List<ShortcutLayoutEntry> Layout, string Error)> TryReadImportLayoutAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return (false, [], "Import path is required.");
+        }
+
+        if (!File.Exists(path))
+        {
+            return (false, [], "File not found.");
+        }
+
+        try
+        {
+            var (loaded, layout) = await TryLoadLayoutFromFileAsync(path, cancellationToken).ConfigureAwait(false);
+            if (!loaded || CountValidShortcuts(layout) == 0)
+            {
+                return (false, [], "No valid shortcuts were found in that file.");
+            }
+
+            return (true, layout, string.Empty);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+    }
+
     private ShortcutTransferResult ImportMergeCore(TerminalShortcut[] imported) =>
         WithLock(() =>
         {
             EnsureLoaded();
             CancelPendingPersist();
-            var previous = CloneAll(_shortcuts);
-            var list = _shortcuts.Select(Clone).ToList();
-            var existingNames = list.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(_layout);
+            var existingNames = ShortcutLayoutJson.ExtractShortcuts(layout)
+                .Select(s => s.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var importedCount = 0;
             var skipped = 0;
             var renamed = 0;
@@ -350,14 +397,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 }
 
                 existingNames.Add(shortcut.Name);
-                AssignShortcutId(shortcut, list);
+                AssignShortcutId(shortcut, ShortcutLayoutJson.ExtractShortcuts(layout));
 
                 if (shortcut.IsPinned && shortcut.PinOrder is null)
                 {
-                    shortcut.PinOrder = NextPinOrder(list);
+                    shortcut.PinOrder = NextPinOrder(ShortcutLayoutJson.ExtractShortcuts(layout));
                 }
 
-                list.Add(shortcut);
+                layout.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
                 importedCount++;
             }
 
@@ -371,7 +418,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 };
             }
 
-            if (list.Count > ShortcutValidation.MaxShortcutCount)
+            if (CountValidShortcuts(layout) > ShortcutValidation.MaxShortcutCount)
             {
                 return new ShortcutTransferResult
                 {
@@ -380,8 +427,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 };
             }
 
-            RecordHistoryLocked(previous, list);
-            SaveLocked(list);
+            RecordHistoryLayoutLocked(previous, layout);
+            SaveLayoutLocked(layout);
 
             return new ShortcutTransferResult
             {
@@ -393,18 +440,31 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             };
         });
 
-    private ShortcutTransferResult ImportReplaceCore(TerminalShortcut[] imported) =>
+    private ShortcutTransferResult ImportReplaceCore(List<ShortcutLayoutEntry> importedLayout) =>
         WithLock(() =>
         {
             EnsureLoaded();
             CancelPendingPersist();
-            var previous = CloneAll(_shortcuts);
-            var valid = new List<TerminalShortcut>(imported.Length);
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(importedLayout);
+            var valid = new List<ShortcutLayoutEntry>();
             var skipped = 0;
 
-            foreach (var source in imported)
+            foreach (var entry in layout)
             {
-                var shortcut = Clone(source);
+                if (entry.Kind == ShortcutLayoutEntryKind.Separator)
+                {
+                    valid.Add(ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle));
+                    continue;
+                }
+
+                if (entry.Shortcut is null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var shortcut = Clone(entry.Shortcut);
                 shortcut.LastUsedUtc = null;
 
                 if (!ShortcutValidation.TryValidateForImport(shortcut, out _))
@@ -413,10 +473,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     continue;
                 }
 
-                valid.Add(shortcut);
+                valid.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
             }
 
-            if (valid.Count == 0)
+            if (CountValidShortcuts(valid) == 0)
             {
                 return new ShortcutTransferResult
                 {
@@ -426,7 +486,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 };
             }
 
-            if (valid.Count > ShortcutValidation.MaxShortcutCount)
+            if (CountValidShortcuts(valid) > ShortcutValidation.MaxShortcutCount)
             {
                 return new ShortcutTransferResult
                 {
@@ -435,16 +495,31 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 };
             }
 
-            RecordHistoryLocked(previous, valid);
-            SaveLocked(valid);
+            NormalizeLayout(valid);
+            RecordHistoryLayoutLocked(previous, valid);
+            SaveLayoutLocked(valid);
 
             return new ShortcutTransferResult
             {
                 Success = true,
-                Message = BuildImportMessage(valid.Count, skipped, renamed: 0),
-                Imported = valid.Count,
+                Message = BuildImportMessage(CountValidShortcuts(valid), skipped, renamed: 0),
+                Imported = CountValidShortcuts(valid),
                 Skipped = skipped,
             };
+        });
+
+    public bool CanUndo =>
+        WithLock(() =>
+        {
+            EnsureLoaded();
+            return _undoHistory.Count > 0;
+        });
+
+    public bool CanRedo =>
+        WithLock(() =>
+        {
+            EnsureLoaded();
+            return _redoHistory.Count > 0;
         });
 
     public bool Undo() =>
@@ -458,11 +533,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 return false;
             }
 
-            var current = CloneAll(_shortcuts);
+            var current = CloneLayout(_layout);
             var previous = _undoHistory[^1];
             _undoHistory.RemoveAt(_undoHistory.Count - 1);
-            PushHistory(_redoHistory, current);
-            SaveLocked(previous);
+            PushLayoutHistory(_redoHistory, current);
+            SaveLayoutLocked(previous);
             return true;
         });
 
@@ -477,11 +552,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 return false;
             }
 
-            var current = CloneAll(_shortcuts);
+            var current = CloneLayout(_layout);
             var next = _redoHistory[^1];
             _redoHistory.RemoveAt(_redoHistory.Count - 1);
-            PushHistory(_undoHistory, current);
-            SaveLocked(next);
+            PushLayoutHistory(_undoHistory, current);
+            SaveLayoutLocked(next);
             return true;
         });
 
@@ -501,41 +576,41 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
             CancelPendingPersist();
-            var previous = CloneAll(_shortcuts);
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(_layout);
+            var cloned = Clone(shortcut);
 
-            var list = _shortcuts.Select(Clone).ToList();
+            var existingEntry = FindShortcutEntry(layout, cloned.Name)
+                ?? (string.IsNullOrWhiteSpace(originalName) ? null : FindShortcutEntry(layout, originalName));
 
-            var existing = list.FirstOrDefault(s =>
-                s.Name.Equals(shortcut.Name, StringComparison.OrdinalIgnoreCase) ||
-                (!string.IsNullOrWhiteSpace(originalName) && s.Name.Equals(originalName, StringComparison.OrdinalIgnoreCase)));
-
-            if (existing is not null)
+            if (existingEntry?.Shortcut is not null)
             {
-                shortcut.Id = existing.Id;
-                shortcut.IsPinned = existing.IsPinned;
-                shortcut.PinOrder = existing.PinOrder;
-                shortcut.LastUsedUtc = existing.LastUsedUtc;
+                cloned.Id = existingEntry.Shortcut.Id;
+                cloned.IsPinned = existingEntry.Shortcut.IsPinned;
+                cloned.PinOrder = existingEntry.Shortcut.PinOrder;
+                cloned.LastUsedUtc = existingEntry.Shortcut.LastUsedUtc;
             }
             else
             {
-                AssignShortcutId(shortcut, list);
+                AssignShortcutId(cloned, ShortcutLayoutJson.ExtractShortcuts(layout));
             }
 
-            if (!string.IsNullOrWhiteSpace(originalName))
+            if (cloned.IsPinned && cloned.PinOrder is null)
             {
-                list.RemoveAll(s => s.Name.Equals(originalName, StringComparison.OrdinalIgnoreCase));
+                cloned.PinOrder = NextPinOrder(ShortcutLayoutJson.ExtractShortcuts(layout));
             }
 
-            list.RemoveAll(s => s.Name.Equals(shortcut.Name, StringComparison.OrdinalIgnoreCase));
-            list.Add(Clone(shortcut));
-
-            if (shortcut.IsPinned && shortcut.PinOrder is null)
+            if (existingEntry is not null)
             {
-                SetPinOrder(list, shortcut.Name, NextPinOrder(list));
+                existingEntry.Shortcut = cloned;
+            }
+            else
+            {
+                layout.Add(ShortcutLayoutEntry.FromShortcut(cloned));
             }
 
-            RecordHistoryLocked(previous, list);
-            SaveLocked(list);
+            RecordHistoryLayoutLocked(previous, layout);
+            SaveLayoutLocked(layout);
         });
     }
 
@@ -550,14 +625,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
             CancelPendingPersist();
-            var previous = CloneAll(_shortcuts);
-
-            var list = _shortcuts.Select(Clone).ToList();
-            var removed = list.RemoveAll(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) > 0;
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(_layout);
+            var removed = RemoveShortcutEntry(layout, name);
             if (removed)
             {
-                RecordHistoryLocked(previous, list);
-                SaveLocked(list);
+                RecordHistoryLayoutLocked(previous, layout);
+                SaveLayoutLocked(layout);
             }
 
             return removed;
@@ -575,20 +649,21 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
             CancelPendingPersist();
-            var previous = CloneAll(_shortcuts);
-
-            var list = _shortcuts.Select(Clone).ToList();
-            var shortcut = list.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (shortcut is null)
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(_layout);
+            var entry = FindShortcutEntry(layout, name);
+            if (entry?.Shortcut is null)
             {
                 return false;
             }
 
-            shortcut.IsPinned = !shortcut.IsPinned;
-            shortcut.PinOrder = shortcut.IsPinned ? NextPinOrder(list) : null;
-            RecordHistoryLocked(previous, list);
-            SaveLocked(list);
-            return shortcut.IsPinned;
+            entry.Shortcut.IsPinned = !entry.Shortcut.IsPinned;
+            entry.Shortcut.PinOrder = entry.Shortcut.IsPinned
+                ? NextPinOrder(ShortcutLayoutJson.ExtractShortcuts(layout))
+                : null;
+            RecordHistoryLayoutLocked(previous, layout);
+            SaveLayoutLocked(layout);
+            return entry.Shortcut.IsPinned;
         });
     }
 
@@ -603,10 +678,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
             CancelPendingPersist();
-            var previous = CloneAll(_shortcuts);
-
-            var list = _shortcuts.Select(Clone).ToList();
-            var pinned = list
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(_layout);
+            var shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout);
+            var pinned = shortcuts
                 .Where(s => s.IsPinned)
                 .OrderBy(s => s.PinOrder ?? int.MaxValue)
                 .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
@@ -627,11 +702,58 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             (pinned[index], pinned[target]) = (pinned[target], pinned[index]);
             for (var i = 0; i < pinned.Count; i++)
             {
-                SetPinOrder(list, pinned[i].Name, i + 1);
+                SetPinOrder(shortcuts, pinned[i].Name, i + 1);
             }
 
-            RecordHistoryLocked(previous, list);
-            SaveLocked(list);
+            RecordHistoryLayoutLocked(previous, layout);
+            SaveLayoutLocked(layout);
+            return true;
+        });
+    }
+
+    public bool MovePinnedToEdge(string name, bool toTop)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        return WithLock(() =>
+        {
+            EnsureLoaded();
+            CancelPendingPersist();
+            var previous = CloneLayout(_layout);
+            var layout = CloneLayout(_layout);
+            var shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout);
+            var pinned = shortcuts
+                .Where(s => s.IsPinned)
+                .OrderBy(s => s.PinOrder ?? int.MaxValue)
+                .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var index = pinned.FindIndex(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (index < 0)
+            {
+                return false;
+            }
+
+            var target = toTop ? 0 : pinned.Count - 1;
+            if (index == target)
+            {
+                return false;
+            }
+
+            var item = pinned[index];
+            pinned.RemoveAt(index);
+            pinned.Insert(target, item);
+
+            for (var i = 0; i < pinned.Count; i++)
+            {
+                SetPinOrder(shortcuts, pinned[i].Name, i + 1);
+            }
+
+            RecordHistoryLayoutLocked(previous, layout);
+            SaveLayoutLocked(layout);
             return true;
         });
     }
@@ -647,21 +769,23 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
 
-            var list = _shortcuts.Select(Clone).ToList();
-            var shortcut = list.FirstOrDefault(s => s.Id.Equals(shortcutId, StringComparison.OrdinalIgnoreCase));
-            if (shortcut is null)
+            var entry = _layout.FirstOrDefault(item =>
+                item.Kind == ShortcutLayoutEntryKind.Shortcut &&
+                item.Shortcut is not null &&
+                item.Shortcut.Id.Equals(shortcutId, StringComparison.OrdinalIgnoreCase));
+            if (entry?.Shortcut is null)
             {
                 return;
             }
 
             var now = DateTime.UtcNow;
-            if (shortcut.LastUsedUtc is not null && (now - shortcut.LastUsedUtc.Value).TotalSeconds < 2)
+            if (entry.Shortcut.LastUsedUtc is not null && (now - entry.Shortcut.LastUsedUtc.Value).TotalSeconds < 2)
             {
                 return;
             }
 
-            shortcut.LastUsedUtc = now;
-            _shortcuts = OrderForDisplay(list);
+            entry.Shortcut.LastUsedUtc = now;
+            SyncShortcutsFromLayout(_layout);
             SchedulePersistLocked();
         });
     }
@@ -734,32 +858,50 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             var fileInfo = new FileInfo(ConfigPath);
             if (fileInfo.Length > MaxConfigBytes)
             {
-                _shortcuts = _lastGoodShortcuts.Length > 0 ? CloneAll(_lastGoodShortcuts) : [];
+                RestoreLastGoodLayout();
                 _lastWriteTimeUtc = writeTime;
                 return;
             }
 
-            if (!TryLoadShortcutsFromFile(ConfigPath, out var loaded))
+            if (!TryLoadLayoutFromFile(ConfigPath, out var loaded))
             {
                 throw new InvalidDataException("Shortcut file could not be read.");
             }
 
-            _shortcuts = loaded;
-            _lastGoodShortcuts = CloneAll(_shortcuts);
+            ApplyLoadedLayout(loaded);
             _lastWriteTimeUtc = writeTime;
 
             if (AssignMissingShortcutIds(_shortcuts))
             {
-                WriteShortcutsAtomic(_shortcuts);
-                _lastGoodShortcuts = CloneAll(_shortcuts);
+                WriteLayoutAtomic(_layout);
+                _lastGoodLayout = CloneLayout(_layout);
                 _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
             }
         }
         catch
         {
-            _shortcuts = _lastGoodShortcuts.Length > 0 ? CloneAll(_lastGoodShortcuts) : [];
+            RestoreLastGoodLayout();
             _lastWriteTimeUtc = writeTime;
         }
+    }
+
+    private void RestoreLastGoodLayout()
+    {
+        if (_lastGoodLayout.Count > 0)
+        {
+            ApplyLoadedLayout(CloneLayout(_lastGoodLayout));
+            return;
+        }
+
+        _layout = [];
+        _shortcuts = [];
+    }
+
+    private void ApplyLoadedLayout(List<ShortcutLayoutEntry> loaded)
+    {
+        _layout = NormalizeLayout(CloneLayout(loaded));
+        SyncShortcutsFromLayout(_layout);
+        _lastGoodLayout = CloneLayout(_layout);
     }
 
     private void EnsureConfigExists()
@@ -782,19 +924,19 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
         if (!File.Exists(ConfigPath))
         {
-            var empty = Array.Empty<TerminalShortcut>();
-            WriteShortcutsAtomic(empty);
-            _lastGoodShortcuts = empty;
-            _shortcuts = empty;
+            WriteLayoutAtomic([]);
+            _lastGoodLayout = [];
+            _layout = [];
+            _shortcuts = [];
             _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
         }
 
         _configEnsured = true;
     }
 
-    private bool HasShortcutContent(string path)
+    private static bool HasShortcutContent(string path)
     {
-        return TryLoadShortcutsFromFile(path, out var shortcuts) && shortcuts.Length > 0;
+        return TryLoadLayoutFromFile(path, out var layout) && CountValidShortcuts(layout) > 0;
     }
 
     private bool TryImportShortcutsFromAlternateSources()
@@ -806,14 +948,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 continue;
             }
 
-            if (!TryLoadShortcutsFromFile(candidate, out var shortcuts) || shortcuts.Length == 0)
+            if (!TryLoadLayoutFromFile(candidate, out var layout) || CountValidShortcuts(layout) == 0)
             {
                 continue;
             }
 
-            WriteShortcutsAtomic(shortcuts);
-            _lastGoodShortcuts = CloneAll(shortcuts);
-            _shortcuts = shortcuts;
+            ApplyLoadedLayout(layout);
+            WriteLayoutAtomic(_layout);
+            _lastGoodLayout = CloneLayout(_layout);
             _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
             return true;
         }
@@ -831,9 +973,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             "shortcuts.json");
     }
 
-    private bool TryLoadShortcutsFromFile(string path, out TerminalShortcut[] shortcuts)
+    private static bool TryLoadLayoutFromFile(string path, out List<ShortcutLayoutEntry> layout)
     {
-        shortcuts = [];
+        layout = [];
 
         try
         {
@@ -844,33 +986,30 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             using var stream = File.OpenRead(path);
-            var parsed = JsonSerializer.Deserialize(stream, QuickShellJsonContext.Default.ListTerminalShortcut);
-            if (parsed is null)
+            if (!ShortcutLayoutJson.TryParse(stream, out layout))
             {
                 return false;
             }
 
-            if (parsed.Count > ShortcutValidation.MaxShortcutCount)
+            if (CountValidShortcuts(layout) > ShortcutValidation.MaxShortcutCount)
             {
+                layout = [];
                 return false;
             }
 
-            shortcuts = OrderForDisplay(
-                parsed
-                    .Where(IsValidShortcut)
-                    .Select(Normalize)
-                    .Select(Clone)
-                    .ToArray());
-
+            layout = NormalizeLayout(layout);
             return true;
         }
         catch
         {
+            layout = [];
             return false;
         }
     }
 
-    private async Task<(bool Success, TerminalShortcut[] Shortcuts)> TryLoadShortcutsFromFileAsync(string path, CancellationToken cancellationToken)
+    private static async Task<(bool Success, List<ShortcutLayoutEntry> Layout)> TryLoadLayoutFromFileAsync(
+        string path,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -881,25 +1020,18 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             await using var stream = File.OpenRead(path);
-            var parsed = await JsonSerializer.DeserializeAsync(stream, QuickShellJsonContext.Default.ListTerminalShortcut, cancellationToken).ConfigureAwait(false);
-            if (parsed is null)
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ShortcutLayoutJson.TryParse(stream, out var layout))
             {
                 return (false, []);
             }
 
-            if (parsed.Count > ShortcutValidation.MaxShortcutCount)
+            if (CountValidShortcuts(layout) > ShortcutValidation.MaxShortcutCount)
             {
                 return (false, []);
             }
 
-            var shortcuts = OrderForDisplay(
-                parsed
-                    .Where(IsValidShortcut)
-                    .Select(Normalize)
-                    .Select(Clone)
-                    .ToArray());
-
-            return (true, shortcuts);
+            return (true, NormalizeLayout(layout));
         }
         catch (OperationCanceledException)
         {
@@ -911,14 +1043,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
     }
 
-    private void SaveLocked(IReadOnlyCollection<TerminalShortcut> shortcuts)
+    private void SaveLayoutLocked(List<ShortcutLayoutEntry> layout)
     {
         Directory.CreateDirectory(ConfigDirectory);
-        var ordered = OrderForDisplay(shortcuts.Where(IsValidShortcut).Select(Normalize).Select(Clone)).ToArray();
-        AssignMissingShortcutIds(ordered);
-        WriteShortcutsAtomic(ordered);
-        _shortcuts = ordered;
-        _lastGoodShortcuts = CloneAll(ordered);
+        var normalized = NormalizeLayout(CloneLayout(layout));
+        WriteLayoutAtomic(normalized);
+        _layout = normalized;
+        SyncShortcutsFromLayout(_layout);
+        _lastGoodLayout = CloneLayout(_layout);
         _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
     }
 
@@ -943,19 +1075,19 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
 
         _persistPending = false;
-        WriteShortcutsAtomic(_shortcuts);
-        _lastGoodShortcuts = CloneAll(_shortcuts);
+        WriteLayoutAtomic(_layout);
+        _lastGoodLayout = CloneLayout(_layout);
         _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
     }
 
-    private void WriteShortcutsAtomic(TerminalShortcut[] shortcuts)
+    private void WriteLayoutAtomic(IReadOnlyList<ShortcutLayoutEntry> layout)
     {
-        if (shortcuts.Length > ShortcutValidation.MaxShortcutCount)
+        if (CountValidShortcuts(layout) > ShortcutValidation.MaxShortcutCount)
         {
             throw new InvalidOperationException($"At most {ShortcutValidation.MaxShortcutCount} shortcuts are supported.");
         }
 
-        var payload = JsonSerializer.SerializeToUtf8Bytes(shortcuts, QuickShellJsonContext.Default.TerminalShortcutArray);
+        var payload = ShortcutLayoutJson.Serialize(layout);
         if (payload.Length > MaxConfigBytes)
         {
             throw new InvalidOperationException("Shortcut data is too large to save.");
@@ -1002,6 +1134,124 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
     }
 
+    private static List<ShortcutLayoutEntry> NormalizeLayout(IEnumerable<ShortcutLayoutEntry> layout)
+    {
+        var normalized = new List<ShortcutLayoutEntry>();
+        foreach (var entry in layout)
+        {
+            if (entry.Kind == ShortcutLayoutEntryKind.Separator)
+            {
+                normalized.Add(ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle));
+                continue;
+            }
+
+            if (entry.Shortcut is null || !IsValidShortcutEntry(entry.Shortcut))
+            {
+                continue;
+            }
+
+            var shortcut = Clone(entry.Shortcut);
+            Normalize(shortcut);
+            normalized.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
+        }
+
+        AssignMissingShortcutIds(ShortcutLayoutJson.ExtractShortcuts(normalized));
+        return normalized;
+    }
+
+    private void SyncShortcutsFromLayout(List<ShortcutLayoutEntry> layout)
+    {
+        _shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout).Select(Clone).ToArray();
+    }
+
+    private static int CountValidShortcuts(IEnumerable<ShortcutLayoutEntry> layout) =>
+        layout.Count(entry => entry.Kind == ShortcutLayoutEntryKind.Shortcut &&
+                              entry.Shortcut is not null &&
+                              IsValidShortcutEntry(entry.Shortcut));
+
+    private static bool IsValidShortcutEntry(TerminalShortcut shortcut) =>
+        !string.IsNullOrWhiteSpace(shortcut.Name) && !string.IsNullOrWhiteSpace(shortcut.Directory);
+
+    private static ShortcutLayoutEntry? FindShortcutEntry(List<ShortcutLayoutEntry> layout, string name)
+    {
+        return layout.FirstOrDefault(entry =>
+            entry.Kind == ShortcutLayoutEntryKind.Shortcut &&
+            entry.Shortcut is not null &&
+            entry.Shortcut.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool RemoveShortcutEntry(List<ShortcutLayoutEntry> layout, string name) =>
+        layout.RemoveAll(entry =>
+            entry.Kind == ShortcutLayoutEntryKind.Shortcut &&
+            entry.Shortcut is not null &&
+            entry.Shortcut.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) > 0;
+
+    private static List<ShortcutLayoutEntry> CloneLayout(IEnumerable<ShortcutLayoutEntry> layout) =>
+        layout.Select(entry => entry.Kind switch
+        {
+            ShortcutLayoutEntryKind.Separator => ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle),
+            _ => ShortcutLayoutEntry.FromShortcut(Clone(entry.Shortcut!)),
+        }).ToList();
+
+    private void RecordHistoryLayoutLocked(
+        IReadOnlyList<ShortcutLayoutEntry> previous,
+        IReadOnlyList<ShortcutLayoutEntry> next)
+    {
+        if (LayoutSnapshotEquals(NormalizeLayout(previous), NormalizeLayout(next)))
+        {
+            return;
+        }
+
+        PushLayoutHistory(_undoHistory, previous);
+        _redoHistory.Clear();
+    }
+
+    private static void PushLayoutHistory(List<List<ShortcutLayoutEntry>> history, IEnumerable<ShortcutLayoutEntry> snapshot)
+    {
+        history.Add(CloneLayout(snapshot));
+        if (history.Count > MaxHistoryEntries)
+        {
+            history.RemoveAt(0);
+        }
+    }
+
+    private static bool LayoutSnapshotEquals(
+        List<ShortcutLayoutEntry> left,
+        List<ShortcutLayoutEntry> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (!LayoutEntryEquals(left[i], right[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool LayoutEntryEquals(ShortcutLayoutEntry left, ShortcutLayoutEntry right)
+    {
+        if (left.Kind != right.Kind)
+        {
+            return false;
+        }
+
+        if (left.Kind == ShortcutLayoutEntryKind.Separator)
+        {
+            return string.Equals(left.SeparatorTitle, right.SeparatorTitle, StringComparison.Ordinal);
+        }
+
+        return left.Shortcut is not null &&
+               right.Shortcut is not null &&
+               ShortcutEquals(left.Shortcut, right.Shortcut);
+    }
+
     private static TerminalShortcut[] OrderForDisplay(IEnumerable<TerminalShortcut> shortcuts) =>
         shortcuts
             .OrderByDescending(s => s.IsPinned)
@@ -1013,7 +1263,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private static int NextPinOrder(IEnumerable<TerminalShortcut> list) =>
         list.Where(s => s.IsPinned).Select(s => s.PinOrder ?? 0).DefaultIfEmpty().Max() + 1;
 
-    private static void SetPinOrder(List<TerminalShortcut> list, string name, int order)
+    private static void SetPinOrder(IEnumerable<TerminalShortcut> list, string name, int order)
     {
         var shortcut = list.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (shortcut is not null)
@@ -1089,7 +1339,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return string.Join(" ", parts);
     }
 
-    private bool IsValidShortcut(TerminalShortcut shortcut) =>
+    private static bool IsValidShortcut(TerminalShortcut shortcut) =>
         !string.IsNullOrWhiteSpace(shortcut.Name) && !string.IsNullOrWhiteSpace(shortcut.Directory);
 
     private static bool AssignMissingShortcutIds(TerminalShortcut[] shortcuts)
@@ -1169,12 +1419,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                shortcut.WtProfile.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
-    private TerminalShortcut Normalize(TerminalShortcut shortcut)
+    private static TerminalShortcut Normalize(TerminalShortcut shortcut)
     {
         var terminal = (shortcut.Terminal ?? string.Empty).Trim().ToLowerInvariant();
         shortcut.Terminal = terminal switch
         {
             "wt" or "windows-terminal" => "wt",
+            "it" or "intelligent-terminal" => "it",
+            "wsl" => "wsl",
             "powershell" => "powershell",
             "pwsh" or "powershell7" => "pwsh",
             "cmd" => "cmd",
@@ -1192,50 +1444,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return shortcut;
     }
 
-    private TerminalShortcut[] CloneAll(IEnumerable<TerminalShortcut> shortcuts) =>
+    private static TerminalShortcut[] CloneAll(IEnumerable<TerminalShortcut> shortcuts) =>
         shortcuts.Select(Clone).ToArray();
-
-    private void RecordHistoryLocked(
-        IReadOnlyCollection<TerminalShortcut> previous,
-        IReadOnlyCollection<TerminalShortcut> next)
-    {
-        var orderedNext = OrderForDisplay(next.Where(IsValidShortcut).Select(Normalize).Select(Clone));
-        if (SnapshotEquals(previous, orderedNext))
-        {
-            return;
-        }
-
-        PushHistory(_undoHistory, previous);
-        _redoHistory.Clear();
-    }
-
-    private void PushHistory(List<TerminalShortcut[]> history, IEnumerable<TerminalShortcut> snapshot)
-    {
-        history.Add(CloneAll(snapshot));
-        if (history.Count > MaxHistoryEntries)
-        {
-            history.RemoveAt(0);
-        }
-    }
-
-    private static bool SnapshotEquals(IReadOnlyCollection<TerminalShortcut> left, TerminalShortcut[] right)
-    {
-        if (left.Count != right.Length)
-        {
-            return false;
-        }
-
-        var leftArray = left as TerminalShortcut[] ?? left.ToArray();
-        for (var i = 0; i < leftArray.Length; i++)
-        {
-            if (!ShortcutEquals(leftArray[i], right[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     private static bool ShortcutEquals(TerminalShortcut left, TerminalShortcut right) =>
         string.Equals(left.Id, right.Id, StringComparison.Ordinal) &&
@@ -1250,7 +1460,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         left.PinOrder == right.PinOrder &&
         left.LastUsedUtc == right.LastUsedUtc;
 
-    private TerminalShortcut Clone(TerminalShortcut shortcut) => new()
+    private static TerminalShortcut Clone(TerminalShortcut shortcut) => new()
     {
         Id = shortcut.Id,
         Name = shortcut.Name,

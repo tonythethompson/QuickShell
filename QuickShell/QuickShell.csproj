@@ -9,7 +9,7 @@
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 
-    <AppxPackageVersion>0.1.6.0</AppxPackageVersion>
+    <AppxPackageVersion>0.1.7.0</AppxPackageVersion>
     <AppxPackageIdentityName>tonythethompson.536944BA0D095</AppxPackageIdentityName>
     <AppxPackagePublisher>CN=31D3C278-3D55-4A42-BA6A-24E16D15B863</AppxPackagePublisher>
     <EnableMsixTooling>true</EnableMsixTooling>
@@ -122,14 +122,21 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release' and '$(WinGetBuild)'!='true'">
     <PublishTrimmed>false</PublishTrimmed>
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+    <!-- WinForms ships many localized satellite assemblies; Quick Shell is English-only.
+         Keeping them out of the MSIX avoids PRI263 MakePRI warnings and shrinks the package. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <!-- Release MSIX for Microsoft Store (scripts/build-store.ps1 sets StoreBuild=true).
-       Store submissions are re-signed by Microsoft after certification. -->
+       Unsigned packages are re-signed by Microsoft after certification. -->
   <PropertyGroup Condition="'$(StoreBuild)'=='true'">
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
+    <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
+    <AppxBundle>Always</AppxBundle>
+    <AppxBundlePlatforms>x64|ARM64</AppxBundlePlatforms>
+    <PublishSingleFile>false</PublishSingleFile>
   </PropertyGroup>
 
   <!-- Dev MSIX does not publish Store symbol packages; skip mspdbcmf lookup when PDBs exist. -->

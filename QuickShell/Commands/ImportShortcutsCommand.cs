@@ -1,6 +1,5 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using QuickShell.Pages;
 using QuickShell.Services;
 using System.Threading;
 
@@ -9,12 +8,18 @@ namespace QuickShell.Commands;
 internal sealed partial class ImportShortcutsCommand : InvokableCommand
 {
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
-
     private readonly Action _onReload;
+    private readonly Action? _onSettingsRefresh;
+    private readonly bool _stayOnSettings;
 
-    public ImportShortcutsCommand(Action onReload)
+    public ImportShortcutsCommand(
+        Action onReload,
+        bool stayOnSettings = true,
+        Action? onSettingsRefresh = null)
     {
         _onReload = onReload;
+        _stayOnSettings = stayOnSettings;
+        _onSettingsRefresh = onSettingsRefresh;
         Name = "Import shortcuts";
         Icon = new IconInfo("\uE898");
     }
@@ -24,14 +29,14 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         var path = ShortcutFilePickerService.PickImportFile();
         if (path is null)
         {
-            return QuickShellNavigation.StayOpen("Import cancelled.");
+            return Finish("Import cancelled.");
         }
 
         using var readCancellation = new CancellationTokenSource(IoTimeout);
         var readResult = QuickShellRuntimeServices.Shortcuts.TryReadImportFileAsync(path, readCancellation.Token).GetAwaiter().GetResult();
         if (!readResult.Success)
         {
-            return QuickShellNavigation.StayOpen(readResult.Error);
+            return Finish(readResult.Error, isError: true);
         }
 
         var imported = readResult.Shortcuts;
@@ -39,21 +44,33 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         if (conflicts > 0)
         {
             ImportConflictState.Set(path, conflicts, imported.Length, _onReload);
-            _onReload();
-            return CommandResult.GoToPage(new GoToPageArgs
-            {
-                PageId = ImportConflictPage.PageId,
-            });
+            SettingsFormHelpers.ScheduleRefresh(_onSettingsRefresh);
+            return _stayOnSettings
+                ? QuickShellNavigation.StayOnSettings()
+                : QuickShellNavigation.GoToSettings();
         }
 
         using var mergeCancellation = new CancellationTokenSource(IoTimeout);
         var result = QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(path, mergeCancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
-            return QuickShellNavigation.StayOpen(result.Message);
+            return Finish(result.Message, isError: true);
         }
 
         _onReload();
-        return QuickShellNavigation.StayOpen(result.Message);
+        SettingsFormHelpers.ScheduleRefresh(_onSettingsRefresh);
+        return Finish(result.Message);
+    }
+
+    private CommandResult Finish(string? message, bool isError = false, bool navigateToSettings = false)
+    {
+        if (navigateToSettings)
+        {
+            return QuickShellNavigation.GoToSettings(message);
+        }
+
+        return _stayOnSettings
+            ? QuickShellNavigation.StayOnSettings(message)
+            : QuickShellNavigation.StayOpen(message);
     }
 }

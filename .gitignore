@@ -18,3 +18,18 @@ QuickShell/bin/
 QuickShell/obj/
 QuickShell/setup-x64.iss
 QuickShell/setup-arm64.iss
+
+# Store screenshot workflow (generated locally; demo preset stays tracked)
+QuickShell/Assets/Screenshot_*.png
+QuickShell/Assets/StoreScreenshots/raw/
+QuickShell/Assets/StoreScreenshots/prepared/
+QuickShell/Assets/StoreScreenshots/shortcuts-backup.json
+QuickShell/BundleArtifacts/
+
+# Local MSIX/bundle inspection scratch
+_arm64_inspect/
+_bundle_inspect/
+_msbuild_bundle/
+_msix_inspect/
+_upload_inspect/
+_upload.zip

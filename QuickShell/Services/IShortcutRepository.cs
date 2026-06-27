@@ -12,6 +12,8 @@ internal interface IShortcutRepository
 
     IReadOnlyList<TerminalShortcut> GetShortcuts();
 
+    IReadOnlyList<ShortcutLayoutEntry> GetLayout();
+
     TerminalShortcut? GetByName(string name);
 
     TerminalShortcut? GetById(string id);
@@ -40,6 +42,10 @@ internal interface IShortcutRepository
 
     Task<ShortcutTransferResult> ImportReplaceAsync(string path, CancellationToken cancellationToken = default);
 
+    bool CanUndo { get; }
+
+    bool CanRedo { get; }
+
     bool Undo();
 
     bool Redo();
@@ -51,6 +57,8 @@ internal interface IShortcutRepository
     bool TogglePinned(string name);
 
     bool MovePinned(string name, int direction);
+
+    bool MovePinnedToEdge(string name, bool toTop);
 
     void MarkUsed(string shortcutId);
 

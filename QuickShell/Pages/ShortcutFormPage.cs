@@ -21,6 +21,11 @@ internal partial class ShortcutFormPage : ContentPage
         Icon = new IconInfo("\uE70F");
         Title = existing is null ? "Add shortcut" : $"Edit {existing.Name}";
         Name = existing is null ? "Create" : "Edit";
+
+        if (onSaved is not null)
+        {
+            Commands = ShortcutContextCommands.BuildUndoRedoCommands(onSaved);
+        }
     }
 
     public override IContent[] GetContent() =>
@@ -66,224 +71,7 @@ internal sealed partial class ShortcutForm : FormContent
         _releaseForm = releaseForm;
 
         var launchTarget = TerminalCatalog.EncodeLaunchTargetId(existing ?? new TerminalShortcut());
-        var terminalChoices = TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true);
-
-        TemplateJson = $$"""
-        {
-          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-          "type": "AdaptiveCard",
-          "version": "1.6",
-          "body": [
-            {
-              "type": "Input.Text",
-              "id": "OriginalName",
-              "isVisible": false,
-              "value": "${OriginalName}"
-            },
-            {
-              "type": "TextBlock",
-              "text": "Restored unsaved changes from your last edit. Save or Cancel when you are done.",
-              "wrap": true,
-              "isSubtle": true,
-              "spacing": "Small",
-              "$when": "${ShowRestoredDraftNote}"
-            },
-            {
-              "type": "Input.Text",
-              "id": "Name",
-              "label": "Name",
-              "value": "${Name}",
-              "spacing": "Medium",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "ⓘ",
-                "tooltip": "Name shown in your Quick Shell list. Leave blank to use the folder name.",
-                "associatedInputs": "none",
-                "data": { "action": "help" }
-              }
-            },
-            {
-              "type": "TextBlock",
-              "text": "Leave blank to use the folder name.",
-              "isSubtle": true,
-              "spacing": "Small"
-            },
-            {
-              "type": "Input.Text",
-              "id": "Abbreviation",
-              "label": "Home keyword (optional)",
-              "placeholder": "e.g. api",
-              "value": "${Abbreviation}",
-              "spacing": "Medium",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "ⓘ",
-                "tooltip": "Type this at the Command Palette home screen to jump straight to this shortcut — no need to open Quick Shell first.",
-                "associatedInputs": "none",
-                "data": { "action": "help" }
-              }
-            },
-            {
-              "type": "TextBlock",
-              "text": "Type this at the Command Palette home screen to jump straight to this shortcut — no need to open Quick Shell first.",
-              "wrap": true,
-              "isSubtle": true,
-              "spacing": "Small"
-            },
-            {
-              "type": "Input.Text",
-              "id": "Directory",
-              "label": "Folder path",
-              "isRequired": true,
-              "errorMessage": "Folder path is required",
-              "placeholder": "Type or paste a path, e.g. C:\\Projects\\MyApp",
-              "value": "${Directory}",
-              "spacing": "Medium",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "ⓘ",
-                "tooltip": "Folder opened when you run this shortcut. Type a path, use Paste path, or Browse folder.",
-                "associatedInputs": "none",
-                "data": { "action": "help" }
-              }
-            },
-            {
-              "type": "ActionSet",
-              "spacing": "Small",
-              "actions": [
-                {
-                  "type": "Action.Submit",
-                  "title": "Browse folder",
-                  "tooltip": "Open the Windows folder picker (you can also type or paste a path above)",
-                  "data": { "action": "browse" },
-                  "associatedInputs": "none"
-                },
-                {
-                  "type": "Action.Submit",
-                  "title": "Paste path",
-                  "tooltip": "Paste a folder path from the clipboard into the field above",
-                  "data": { "action": "paste" },
-                  "associatedInputs": "none"
-                }
-              ]
-            },
-            {
-              "type": "Input.Text",
-              "id": "Command",
-              "label": "Command (optional)",
-              "value": "${Command}",
-              "spacing": "Medium",
-              "inlineAction": {
-                "type": "Action.Submit",
-                "title": "ⓘ",
-                "tooltip": "Optional command or script run after the terminal opens in this folder.",
-                "associatedInputs": "none",
-                "data": { "action": "help" }
-              }
-            },
-            {
-              "type": "ColumnSet",
-              "spacing": "Medium",
-              "columns": [
-                {
-                  "type": "Column",
-                  "width": "stretch",
-                  "items": [
-                    {
-                      "type": "Input.ChoiceSet",
-                      "id": "LaunchTarget",
-                      "label": "Terminal",
-                      "style": "compact",
-                      "value": "${LaunchTarget}",
-                      "choices": {{terminalChoices}}
-                    }
-                  ]
-                },
-                {
-                  "type": "Column",
-                  "width": "auto",
-                  "verticalContentAlignment": "Top",
-                  "items": [
-                    {
-                      "type": "ActionSet",
-                      "actions": [
-                        {
-                          "type": "Action.Submit",
-                          "title": "ⓘ",
-                          "tooltip": "Every Windows Terminal profile on your PC — custom shells included — plus WSL and classic shells.",
-                          "associatedInputs": "none",
-                          "data": { "action": "help" }
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "TextBlock",
-              "text": "Every Windows Terminal profile on your PC — custom shells included — plus WSL and classic shells.",
-              "wrap": true,
-              "isSubtle": true,
-              "spacing": "Small"
-            },
-            {
-              "type": "ColumnSet",
-              "spacing": "Medium",
-              "columns": [
-                {
-                  "type": "Column",
-                  "width": "stretch",
-                  "items": [
-                    {
-                      "type": "Input.Toggle",
-                      "id": "RunAsAdmin",
-                      "title": "Always run as administrator",
-                      "value": "${RunAsAdmin}",
-                      "valueOn": "true",
-                      "valueOff": "false"
-                    }
-                  ]
-                },
-                {
-                  "type": "Column",
-                  "width": "auto",
-                  "verticalContentAlignment": "Center",
-                  "items": [
-                    {
-                      "type": "ActionSet",
-                      "actions": [
-                        {
-                          "type": "Action.Submit",
-                          "title": "ⓘ",
-                          "tooltip": "Launch the terminal elevated. Windows may show a UAC prompt each time.",
-                          "associatedInputs": "none",
-                          "data": { "action": "help" }
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": "Action.Submit",
-              "title": "Save shortcut",
-              "tooltip": "Save changes and return to your shortcut list.",
-              "associatedInputs": "auto"
-            },
-            {
-              "type": "Action.Submit",
-              "title": "Cancel",
-              "tooltip": "Go back without saving. You will be asked to confirm if there are unsaved changes.",
-              "data": { "action": "cancel" },
-              "associatedInputs": "none"
-            }
-          ]
-        }
-        """;
+        TemplateJson = BuildTemplateJson(FormTerminalChoicesJson());
 
         ApplyDraft(new FormDraft
         {
@@ -365,6 +153,11 @@ internal sealed partial class ShortcutForm : FormContent
             return HandlePaste(inputs);
         }
 
+        if (IsRefreshTerminalsAction(inputs, data))
+        {
+            return HandleRefreshTerminals(inputs);
+        }
+
         if (IsCancelAction(inputs, data))
         {
             return HandleCancel(inputs);
@@ -395,6 +188,11 @@ internal sealed partial class ShortcutForm : FormContent
         if (IsPasteAction(payload, null))
         {
             return HandlePaste(payload);
+        }
+
+        if (IsRefreshTerminalsAction(payload, null))
+        {
+            return HandleRefreshTerminals(payload);
         }
 
         if (IsCancelAction(payload, null))
@@ -432,6 +230,23 @@ internal sealed partial class ShortcutForm : FormContent
 
         ApplyDirectorySelection(pasted);
         return QuickShellNavigation.StayOpen();
+    }
+
+    private CommandResult HandleRefreshTerminals(string inputs)
+    {
+        MergeDraftFromInputs(inputs);
+
+        TerminalCatalog.InvalidateCache();
+        TemplateJson = BuildTemplateJson(FormTerminalChoicesJson());
+
+        var targets = TerminalCatalog.GetLaunchTargets(includeDefaultChoice: true);
+        if (!targets.Any(t => t.Id.Equals(_draft.LaunchTarget, StringComparison.OrdinalIgnoreCase)))
+        {
+            _draft.LaunchTarget = "default";
+        }
+
+        ApplyDraft(_draft);
+        return QuickShellNavigation.StayOpen("Terminal list refreshed.");
     }
 
     private void ApplyDirectorySelection(string directory)
@@ -655,7 +470,7 @@ internal sealed partial class ShortcutForm : FormContent
     private CommandResult LeaveShortcutForm(string? toastMessage = null)
     {
         _releaseForm?.Invoke();
-        return QuickShellNavigation.ReturnToShortcutsList(toastMessage);
+        return QuickShellNavigation.PopToShortcutsList(toastMessage);
     }
 
     private void ApplyDraft(FormDraft draft, bool persist = true)
@@ -799,6 +614,9 @@ internal sealed partial class ShortcutForm : FormContent
     private static bool IsPasteAction(string inputs, string? data) =>
         TryGetAction(data) == "paste" || TryGetActionFromInputs(inputs) == "paste";
 
+    private static bool IsRefreshTerminalsAction(string inputs, string? data) =>
+        TryGetAction(data) == "refreshTerminals" || TryGetActionFromInputs(inputs) == "refreshTerminals";
+
     private static string? TryGetActionFromInputs(string inputs) =>
         JsonNode.Parse(inputs)?.AsObject()?["action"]?.ToString();
 
@@ -845,6 +663,143 @@ internal sealed partial class ShortcutForm : FormContent
     private static string Normalize(string? value) => (value ?? string.Empty).Trim();
 
     private static string Escape(string? value) => (value ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    private static string BuildTemplateJson(string terminalChoices) => $$"""
+        {
+          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+          "type": "AdaptiveCard",
+          "version": "1.6",
+          "body": [
+            {
+              "type": "Input.Text",
+              "id": "OriginalName",
+              "isVisible": false,
+              "value": "${OriginalName}"
+            },
+            {
+              "type": "TextBlock",
+              "text": "Restored unsaved changes from your last edit. Save or Cancel when you are done.",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "Small",
+              "$when": "${ShowRestoredDraftNote}"
+            },
+            {{SettingsCardJson.FieldGroup("Name", "Shown in your Quick Shell list. Leave blank to use the folder name.", """
+            {
+              "type": "Input.Text",
+              "id": "Name",
+              "value": "${Name}"
+            }
+            """)}},
+            {{SettingsCardJson.FieldGroup("Home keyword (optional)", "Type this at Command Palette home to jump straight to this shortcut.", """
+            {
+              "type": "Input.Text",
+              "id": "Abbreviation",
+              "placeholder": "e.g. api",
+              "value": "${Abbreviation}"
+            }
+            """)}},
+            {
+              "type": "Container",
+              "spacing": "Medium",
+              "items": [
+                {{SettingsCardJson.FieldLabel("Folder path")}},
+                {{SettingsCardJson.FieldHelp("Folder opened when you run this shortcut.")}},
+                {
+                  "type": "Input.Text",
+                  "id": "Directory",
+                  "isRequired": true,
+                  "errorMessage": "Folder path is required",
+                  "placeholder": "Type or paste a path, e.g. C:\\Projects\\MyApp",
+                  "value": "${Directory}"
+                },
+                {
+                  "type": "ActionSet",
+                  "spacing": "Small",
+                  "actions": [
+                    {
+                      "type": "Action.Submit",
+                      "title": "Browse folder",
+                      "data": { "action": "browse" },
+                      "associatedInputs": "none"
+                    },
+                    {
+                      "type": "Action.Submit",
+                      "title": "Paste path",
+                      "data": { "action": "paste" },
+                      "associatedInputs": "none"
+                    }
+                  ]
+                }
+              ]
+            },
+            {{SettingsCardJson.FieldGroup("Command (optional)", "Optional command or script run after the terminal opens in this folder.", """
+            {
+              "type": "Input.Text",
+              "id": "Command",
+              "value": "${Command}"
+            }
+            """)}},
+            {
+              "type": "Container",
+              "spacing": "Medium",
+              "items": [
+                {{SettingsCardJson.FieldLabel("Terminal profile")}},
+                {{SettingsCardJson.FieldHelp("Profiles from Windows Terminal, WSL, and classic shells.")}},
+                {
+                  "type": "Input.ChoiceSet",
+                  "id": "LaunchTarget",
+                  "style": "compact",
+                  "value": "${LaunchTarget}",
+                  "choices": {{terminalChoices}}
+                },
+                {
+                  "type": "ActionSet",
+                  "spacing": "Small",
+                  "actions": [
+                    {
+                      "type": "Action.Submit",
+                      "title": "Refresh profile list",
+                      "tooltip": "Reload after installing a shell or editing Windows Terminal settings.",
+                      "associatedInputs": "auto",
+                      "data": { "action": "refreshTerminals" }
+                    }
+                  ]
+                }
+              ]
+            },
+            {{SettingsCardJson.FieldGroup("Administrator", "Launch elevated. Windows may show a UAC prompt each time.", """
+            {
+              "type": "Input.Toggle",
+              "id": "RunAsAdmin",
+              "title": "Always run as administrator",
+              "value": "${RunAsAdmin}",
+              "valueOn": "true",
+              "valueOff": "false"
+            }
+            """)}}
+          ],
+          "actions": [
+            {
+              "type": "Action.Submit",
+              "title": "Save shortcut",
+              "associatedInputs": "auto"
+            },
+            {
+              "type": "Action.Submit",
+              "title": "Cancel",
+              "tooltip": "Unsaved changes prompt you before leaving.",
+              "data": { "action": "cancel" },
+              "associatedInputs": "none"
+            }
+          ]
+        }
+        """;
+
+    private static string FormTerminalChoicesJson() =>
+        TerminalCatalog.BuildFormChoicesJson(
+            includeDefaultChoice: true,
+            QuickShellRuntimeServices.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal);
 
     private sealed class FormDraft
     {

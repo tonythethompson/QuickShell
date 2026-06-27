@@ -9,23 +9,37 @@ namespace QuickShell.Services;
 
 internal static class ShortcutContextCommands
 {
+    private const int HoverOrderMoveToTop = -25;
     private const int HoverOrderMoveUp = -20;
     private const int HoverOrderMoveDown = -10;
+    private const int HoverOrderMoveToBottom = -5;
+    private const int HoverOrderCreate = -3;
+    private const int HoverOrderUndo = -2;
+    private const int HoverOrderRedo = -1;
     private const int HoverOrderElevation = 0;
     private const int HoverOrderEdit = 10;
     private const int HoverOrderFavorite = 20;
     private const int HoverOrderDuplicate = 30;
     private const int HoverOrderDelete = 50;
 
+    public static CommandContextItem CreateSettingsItem(QuickShellSettingsManager settings) =>
+        new(settings.SettingsPage)
+        {
+            Title = "Quick Shell settings",
+            Icon = new IconInfo("\uE713"),
+        };
+
     public static CommandContextItem[] Build(
         TerminalShortcut shortcut,
         Action onChanged,
         QuickShellSettingsManager settings,
+        CreateShortcutCommand? createShortcutCommand = null,
         bool includeEdit = true,
-        bool showMoveUpInHover = false,
-        bool showMoveDownInHover = false)
+        PinnedMoveVisibility moveVisibility = default)
     {
         var items = new List<CommandContextItem>();
+
+        AddElevationContextCommand(items, shortcut, settings);
 
         if (includeEdit)
         {
@@ -36,12 +50,10 @@ internal static class ShortcutContextCommands
                 alt: false,
                 shift: false,
                 VirtualKey.E,
-                title: editPage.Title,
+                title: "Edit",
                 showInHoverActions: true,
                 hoverOrder: HoverOrderEdit));
         }
-
-        AddElevationContextCommand(items, shortcut, settings);
 
         var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned);
         items.Add(WithShortcut(
@@ -49,7 +61,7 @@ internal static class ShortcutContextCommands
             ctrl: true,
             alt: false,
             shift: false,
-            VirtualKey.P,
+            VirtualKey.F,
             title: favoriteCommand.Name,
             showInHoverActions: true,
             hoverOrder: HoverOrderFavorite));
@@ -65,48 +77,13 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderDuplicate));
 
-        var undoCommand = new UndoShortcutCommand(onChanged);
-        items.Add(WithShortcut(
-            undoCommand,
-            ctrl: true,
-            alt: false,
-            shift: false,
-            VirtualKey.Z,
-            title: undoCommand.Name));
-
-        var redoCommand = new RedoShortcutCommand(onChanged);
-        items.Add(WithShortcut(
-            redoCommand,
-            ctrl: true,
-            alt: false,
-            shift: false,
-            VirtualKey.Y,
-            title: redoCommand.Name));
-
         if (shortcut.IsPinned)
         {
-            var moveUpCommand = new MoveFavoriteShortcutCommand(shortcut.Name, -1, onChanged);
-            items.Add(WithShortcut(
-                moveUpCommand,
-                ctrl: true,
-                alt: true,
-                shift: false,
-                VirtualKey.Up,
-                title: moveUpCommand.Name,
-                showInHoverActions: showMoveUpInHover,
-                hoverOrder: HoverOrderMoveUp));
-
-            var moveDownCommand = new MoveFavoriteShortcutCommand(shortcut.Name, +1, onChanged);
-            items.Add(WithShortcut(
-                moveDownCommand,
-                ctrl: true,
-                alt: true,
-                shift: false,
-                VirtualKey.Down,
-                title: moveDownCommand.Name,
-                showInHoverActions: showMoveDownInHover,
-                hoverOrder: HoverOrderMoveDown));
+            AddPinnedMoveCommands(items, shortcut, onChanged, moveVisibility);
         }
+
+        AddPreSettingsCommands(items, createShortcutCommand, onChanged);
+        items.Add(CreateSettingsItem(settings));
 
         var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged);
         items.Add(WithShortcut(
@@ -126,53 +103,131 @@ internal static class ShortcutContextCommands
     public static CommandContextItem[] BuildForHomePin(
         TerminalShortcut shortcut,
         Action onChanged,
-        QuickShellSettingsManager settings)
+        QuickShellSettingsManager settings,
+        CreateShortcutCommand? createShortcutCommand = null)
     {
         var items = new List<CommandContextItem>();
 
+        AddElevationContextCommand(items, shortcut, settings);
+
         var editPage = new ShortcutFormPage(shortcut, onChanged);
-        items.Add(new CommandContextItem(editPage)
-        {
-            Title = editPage.Title,
-#if CMDPAL_HOVER_ACTIONS
-            ShowInHoverActions = true,
-            HoverOrder = HoverOrderEdit,
-#endif
-            RequestedShortcut = KeyChordHelpers.FromModifiers(
-                ctrl: true,
-                alt: false,
-                shift: false,
-                win: false,
-                vkey: VirtualKey.E),
-        });
-
-        if (!shortcut.RunAsAdmin)
-        {
-            var adminCommand = new OpenTerminalShortcutCommand(shortcut, settings, runAsAdmin: true);
-            items.Add(CreateOpenAsAdminContextItem(adminCommand, showInHoverActions: true));
-        }
-        else
-        {
-            var standardCommand = new OpenTerminalShortcutCommand(shortcut, settings, runAsStandard: true);
-            items.Add(CreateOpenWithoutAdminContextItem(standardCommand, showInHoverActions: true));
-        }
-
-        var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned);
         items.Add(WithShortcut(
-            favoriteCommand,
+            editPage,
             ctrl: true,
             alt: false,
             shift: false,
-            VirtualKey.P,
-            title: favoriteCommand.Name,
+            VirtualKey.E,
+            title: "Edit",
             showInHoverActions: true,
-            hoverOrder: HoverOrderFavorite));
+            hoverOrder: HoverOrderEdit));
+
+        AddPreSettingsCommands(items, createShortcutCommand, onChanged);
+        items.Add(CreateSettingsItem(settings));
 
         return items.ToArray();
     }
 
+    public static CommandContextItem[] BuildUndoRedoCommands(Action onChanged) =>
+    [
+        WithShortcut(
+            new UndoShortcutCommand(onChanged),
+            QuickShellKeyboardShortcuts.Undo,
+            title: "Undo",
+            showInHoverActions: true,
+            hoverOrder: HoverOrderUndo),
+        WithShortcut(
+            new RedoShortcutCommand(onChanged),
+            QuickShellKeyboardShortcuts.Redo,
+            title: "Redo",
+            showInHoverActions: true,
+            hoverOrder: HoverOrderRedo),
+    ];
+
+    private static void AddPreSettingsCommands(
+        List<CommandContextItem> items,
+        CreateShortcutCommand? createShortcutCommand,
+        Action onChanged)
+    {
+        items.AddRange(BuildUndoRedoCommands(onChanged));
+
+        if (createShortcutCommand is not null)
+        {
+            items.Add(new CommandContextItem(createShortcutCommand)
+            {
+                Title = "Create shortcut",
+                Icon = new IconInfo("\uE710"),
+                RequestedShortcut = QuickShellKeyboardShortcuts.CreateShortcut,
+#if CMDPAL_HOVER_ACTIONS
+                ShowInHoverActions = true,
+                HoverOrder = HoverOrderCreate,
+#endif
+            });
+        }
+    }
+
+    private static void AddPinnedMoveCommands(
+        List<CommandContextItem> items,
+        TerminalShortcut shortcut,
+        Action onChanged,
+        PinnedMoveVisibility moveVisibility)
+    {
+        if (moveVisibility.ShowToTop)
+        {
+            var moveToTopCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.ToTop, onChanged);
+            items.Add(WithShortcut(
+                moveToTopCommand,
+                ctrl: true,
+                alt: true,
+                shift: true,
+                VirtualKey.Home,
+                title: moveToTopCommand.Name,
+                hoverOrder: HoverOrderMoveToTop));
+        }
+
+        if (moveVisibility.ShowUp)
+        {
+            var moveUpCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.Up, onChanged);
+            items.Add(WithShortcut(
+                moveUpCommand,
+                ctrl: true,
+                alt: true,
+                shift: false,
+                VirtualKey.Up,
+                title: moveUpCommand.Name,
+                showInHoverActions: true,
+                hoverOrder: HoverOrderMoveUp));
+        }
+
+        if (moveVisibility.ShowDown)
+        {
+            var moveDownCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.Down, onChanged);
+            items.Add(WithShortcut(
+                moveDownCommand,
+                ctrl: true,
+                alt: true,
+                shift: false,
+                VirtualKey.Down,
+                title: moveDownCommand.Name,
+                showInHoverActions: true,
+                hoverOrder: HoverOrderMoveDown));
+        }
+
+        if (moveVisibility.ShowToBottom)
+        {
+            var moveToBottomCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.ToBottom, onChanged);
+            items.Add(WithShortcut(
+                moveToBottomCommand,
+                ctrl: true,
+                alt: true,
+                shift: true,
+                VirtualKey.End,
+                title: moveToBottomCommand.Name,
+                hoverOrder: HoverOrderMoveToBottom));
+        }
+    }
+
     public static void AddElevationContextCommand(
-        IList<CommandContextItem> items,
+        List<CommandContextItem> items,
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
         bool insertAtStart = true)
@@ -204,7 +259,7 @@ internal static class ShortcutContextCommands
         bool showInHoverActions = false) =>
         new(command)
         {
-            Title = "Open as administrator",
+            Title = "Run as Admin",
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = HoverOrderElevation,
@@ -222,7 +277,7 @@ internal static class ShortcutContextCommands
         bool showInHoverActions = false) =>
         new(command)
         {
-            Title = "Open without administrator",
+            Title = "Run normally",
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = HoverOrderElevation,
@@ -245,6 +300,21 @@ internal static class ShortcutContextCommands
         bool isCritical = false,
         bool showInHoverActions = false,
         int hoverOrder = 0) =>
+        WithShortcut(
+            command,
+            KeyChordHelpers.FromModifiers(ctrl, alt, shift, win: false, vkey: key),
+            title,
+            isCritical,
+            showInHoverActions,
+            hoverOrder);
+
+    private static CommandContextItem WithShortcut(
+        ICommand command,
+        KeyChord shortcut,
+        string title,
+        bool isCritical = false,
+        bool showInHoverActions = false,
+        int hoverOrder = 0) =>
         new(command)
         {
             Title = title,
@@ -253,6 +323,6 @@ internal static class ShortcutContextCommands
             ShowInHoverActions = showInHoverActions,
             HoverOrder = hoverOrder,
 #endif
-            RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl, alt, shift, win: false, vkey: key),
+            RequestedShortcut = shortcut,
         };
 }

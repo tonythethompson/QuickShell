@@ -26,10 +26,12 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
 internal sealed partial class PendingShortcutEditForm : FormContent
 {
     private readonly Action _onReload;
+    private readonly Action? _onSettingsChanged;
 
-    public PendingShortcutEditForm(Action onReload)
+    public PendingShortcutEditForm(Action onReload, Action? onSettingsChanged = null)
     {
         _onReload = onReload;
+        _onSettingsChanged = onSettingsChanged;
 
         TemplateJson = """
         {
@@ -89,28 +91,31 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         {
             QuickShellRuntimeServices.Drafts.Clear();
             _onReload();
-            return QuickShellNavigation.GoBack("Discarded unsaved shortcut changes.");
+            _onSettingsChanged?.Invoke();
+            return QuickShellNavigation.StayOnSettings("Discarded unsaved shortcut changes.");
         }
 
         if (action != "save")
         {
-            return QuickShellNavigation.StayOpen("Unable to read form values.");
+            return QuickShellNavigation.StayOnSettings("Unable to read form values.");
         }
 
         var pending = QuickShellRuntimeServices.Drafts.Pending;
         if (pending is null)
         {
             _onReload();
-            return QuickShellNavigation.GoBack("No unsaved shortcut edit is pending.");
+            _onSettingsChanged?.Invoke();
+            return QuickShellNavigation.StayOnSettings("No unsaved shortcut edit is pending.");
         }
 
         var result = QuickShellRuntimeServices.Drafts.TryCommitPending(_onReload);
         if (!result.Success)
         {
-            return QuickShellNavigation.StayOpen(result.Message);
+            return QuickShellNavigation.StayOnSettings(result.Message);
         }
 
-        return QuickShellNavigation.GoBack(result.Message);
+        _onSettingsChanged?.Invoke();
+        return QuickShellNavigation.StayOnSettings(result.Message);
     }
 
     private void ApplyPendingState()

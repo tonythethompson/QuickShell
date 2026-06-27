@@ -9,7 +9,8 @@ internal static class ShortcutListItems
     public static ListItem CreateOpen(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action? onChanged = null)
+        Action? onChanged = null,
+        CreateShortcutCommand? createShortcutCommand = null)
     {
         var item = new ListItem(new OpenTerminalShortcutCommand(shortcut, settings))
         {
@@ -25,7 +26,11 @@ internal static class ShortcutListItems
 
         if (onChanged is not null)
         {
-            item.MoreCommands = ShortcutContextCommands.BuildForHomePin(shortcut, onChanged, settings);
+            item.MoreCommands = ShortcutContextCommands.BuildForHomePin(
+                shortcut,
+                onChanged,
+                settings,
+                createShortcutCommand);
         }
 
         return item;

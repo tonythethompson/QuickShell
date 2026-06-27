@@ -6,9 +6,9 @@ namespace QuickShell;
 
 internal sealed partial class QuickShellCommandSettings : ICommandSettings
 {
-    public QuickShellCommandSettings(Settings settings)
+    public QuickShellCommandSettings(Settings settings, IContentPage settingsPage)
     {
-        SettingsPage = new QuickShellExtensionSettingsPage(settings);
+        SettingsPage = settingsPage;
     }
 
     public IContentPage SettingsPage { get; }

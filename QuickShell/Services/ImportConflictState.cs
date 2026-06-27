@@ -13,5 +13,18 @@ internal static class ImportConflictState
 
     public static void Clear() => _pending = null;
 
+    public static bool TryAbandonPending(out string message)
+    {
+        if (_pending is null)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        Clear();
+        message = "Import cancelled because you left settings.";
+        return true;
+    }
+
     internal sealed record PendingImport(string Path, int ConflictCount, int ImportCount, Action OnReload);
 }

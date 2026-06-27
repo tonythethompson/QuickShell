@@ -10,7 +10,7 @@ internal static class ShortcutFilePickerService
 
     public static string? PickExportFile()
     {
-        var defaultName = $"quickshell-shortcuts-{DateTime.Now:yyyyMMdd}.json";
+        var defaultName = $"quickshell-shortcuts-{DateTime.Now:yyyyMMdd-HHmmss}.json";
         var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>

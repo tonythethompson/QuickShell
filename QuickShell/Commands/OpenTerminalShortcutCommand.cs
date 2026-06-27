@@ -29,10 +29,10 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
                 ? $"{ShortcutCommandIds.Open(shortcut.Id)}.standard"
                 : ShortcutCommandIds.Open(shortcut.Id);
         Name = runAsAdmin
-            ? "Open as administrator"
+            ? "Run as Admin"
             : runAsStandard
-                ? "Open without administrator"
-                : shortcut.Name;
+                ? "Run normally"
+                : "Run";
         Icon = new IconInfo(runAsAdmin || (shortcut.RunAsAdmin && !runAsStandard) ? ShortcutGlyphs.AdminLaunch : ShortcutGlyphs.Terminal);
     }
 
@@ -46,7 +46,12 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 
         try
         {
-            TerminalLauncher.Open(shortcut, _settings.DefaultLaunchTargetId, _runAsAdmin, _runAsStandard);
+            TerminalLauncher.Open(
+                shortcut,
+                _settings.TerminalApplicationId,
+                _settings.DefaultProfileId,
+                _runAsAdmin,
+                _runAsStandard);
             QuickShellRuntimeServices.Shortcuts.MarkUsed(shortcut.Id);
             return CommandResult.Dismiss();
         }

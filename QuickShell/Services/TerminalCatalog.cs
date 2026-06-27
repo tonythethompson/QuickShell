@@ -9,6 +9,7 @@ internal enum LaunchTargetKind
 {
     Default,
     WindowsTerminal,
+    IntelligentTerminal,
     PowerShell,
     Pwsh,
     Cmd,
@@ -26,6 +27,8 @@ internal sealed class LaunchTarget
     public string? ProfileOrDistro { get; init; }
 
     public string? WtCommandLine { get; init; }
+
+    public string HostExecutable { get; init; } = "wt.exe";
 }
 
 internal static class TerminalCatalog
@@ -36,6 +39,7 @@ internal static class TerminalCatalog
     private static ExecutableAvailability? _executables;
     private static string? _cachedFormChoicesJson;
     private static bool _cachedFormChoicesIncludeDefault;
+    private static string? _cachedFormApplicationId;
 
     public static IReadOnlyList<LaunchTarget> GetLaunchTargets(bool includeDefaultChoice = false)
     {
@@ -71,12 +75,94 @@ internal static class TerminalCatalog
         WtProfilesService.InvalidateCache();
     }
 
-    public static List<ChoiceSetSetting.Choice> GetSettingsChoices()
+    public static List<ChoiceSetSetting.Choice> GetTerminalApplicationChoices()
     {
-        return GetLaunchTargets()
-            .Select(t => new ChoiceSetSetting.Choice(t.DisplayName, t.Id))
-            .ToList();
+        var choices = new List<ChoiceSetSetting.Choice>
+        {
+            new("Let Windows choose", TerminalHostIds.LetWindowsChoose),
+            new("Windows Terminal", TerminalHostIds.WindowsTerminal),
+            new("Windows Console Host", TerminalHostIds.WindowsConsoleHost),
+        };
+
+        if (HasTerminalApplication(TerminalHostIds.IntelligentTerminal))
+        {
+            choices.Add(new ChoiceSetSetting.Choice("Intelligent Terminal", TerminalHostIds.IntelligentTerminal));
+        }
+
+        return choices;
     }
+
+    public static List<ChoiceSetSetting.Choice> GetDefaultProfileChoices(string terminalApplicationId)
+    {
+        if (!TerminalHostIds.UsesWindowsTerminalProfiles(terminalApplicationId))
+        {
+            return GetConsoleHostProfileChoices();
+        }
+
+        var effectiveApp = TerminalHostIds.ResolveEffectiveApplication(terminalApplicationId);
+        var choices = new List<ChoiceSetSetting.Choice>
+        {
+            new("Default profile for this app", TerminalHostIds.DefaultProfile),
+        };
+
+        foreach (var profile in WtProfilesService.GetProfilesForApplication(effectiveApp))
+        {
+            choices.Add(new ChoiceSetSetting.Choice(profile.Name, profile.Name));
+        }
+
+        return choices;
+    }
+
+    private static List<ChoiceSetSetting.Choice> GetConsoleHostProfileChoices()
+    {
+        EnsureCached();
+        var choices = new List<ChoiceSetSetting.Choice>
+        {
+            new("Default profile for this app", TerminalHostIds.DefaultProfile),
+        };
+
+        if (_executables!.PowerShell)
+        {
+            choices.Add(new ChoiceSetSetting.Choice("PowerShell", "powershell"));
+        }
+
+        if (_executables.Pwsh)
+        {
+            choices.Add(new ChoiceSetSetting.Choice("PowerShell 7", "pwsh"));
+        }
+
+        if (_executables.Cmd)
+        {
+            choices.Add(new ChoiceSetSetting.Choice("Command Prompt", "cmd"));
+        }
+
+        return choices;
+    }
+
+    public static List<ChoiceSetSetting.Choice> GetSettingsChoices() =>
+        GetTerminalApplicationChoices();
+
+    public static bool HasTerminalApplication(string terminalApplicationId)
+    {
+        if (terminalApplicationId.Equals(TerminalHostIds.LetWindowsChoose, StringComparison.OrdinalIgnoreCase)
+            || terminalApplicationId.Equals(TerminalHostIds.WindowsConsoleHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (WtProfilesService.GetProfilesForApplication(terminalApplicationId).Count > 0)
+        {
+            return true;
+        }
+
+        EnsureCached();
+        return terminalApplicationId.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
+            ? _executables!.IntelligentTerminal
+            : _executables!.WindowsTerminal;
+    }
+
+    public static IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId) =>
+        WtProfilesService.GetProfilesForApplication(terminalApplicationId);
 
     public static string GetDisplayName(TerminalShortcut shortcut)
     {
@@ -101,6 +187,7 @@ internal static class TerminalCatalog
         return terminal switch
         {
             "default" => "default",
+            "it" => string.IsNullOrWhiteSpace(shortcut.WtProfile) ? "it" : $"it:{shortcut.WtProfile}",
             "wt" => string.IsNullOrWhiteSpace(shortcut.WtProfile) ? "wt" : $"wt:{shortcut.WtProfile}",
             "wsl" => string.IsNullOrWhiteSpace(shortcut.WtProfile) ? "wsl" : $"wsl:{shortcut.WtProfile}",
             "powershell" => "powershell",
@@ -130,6 +217,20 @@ internal static class TerminalCatalog
         if (id.StartsWith("wt:", StringComparison.OrdinalIgnoreCase))
         {
             shortcut.Terminal = "wt";
+            shortcut.WtProfile = id[3..];
+            return;
+        }
+
+        if (id.Equals("it", StringComparison.OrdinalIgnoreCase))
+        {
+            shortcut.Terminal = "it";
+            shortcut.WtProfile = null;
+            return;
+        }
+
+        if (id.StartsWith("it:", StringComparison.OrdinalIgnoreCase))
+        {
+            shortcut.Terminal = "it";
             shortcut.WtProfile = id[3..];
             return;
         }
@@ -173,16 +274,203 @@ internal static class TerminalCatalog
             };
     }
 
-    public static LaunchTarget ResolveForShortcut(TerminalShortcut shortcut, string defaultLaunchTargetId)
+    public static LaunchTarget ResolveForShortcut(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId)
     {
         var id = EncodeLaunchTargetId(shortcut);
         if (id.Equals("default", StringComparison.OrdinalIgnoreCase))
         {
-            id = NormalizeLaunchTargetId(defaultLaunchTargetId);
+            return ResolveDefaultTarget(terminalApplicationId, defaultProfileId);
         }
 
-        return Resolve(id);
+        if (IsProfileLaunch(id, shortcut))
+        {
+            return ResolveProfileTarget(terminalApplicationId, shortcut.WtProfile, id);
+        }
+
+        return Resolve(id.Equals("default", StringComparison.OrdinalIgnoreCase)
+            ? NormalizeLaunchTargetId(defaultProfileId)
+            : id);
     }
+
+    private static bool IsProfileLaunch(string id, TerminalShortcut shortcut) =>
+        id.Equals("wt", StringComparison.OrdinalIgnoreCase)
+        || id.StartsWith("wt:", StringComparison.OrdinalIgnoreCase)
+        || id.Equals("it", StringComparison.OrdinalIgnoreCase)
+        || id.StartsWith("it:", StringComparison.OrdinalIgnoreCase)
+        || shortcut.Terminal is "wt" or "it";
+
+    private static LaunchTarget ResolveDefaultTarget(string terminalApplicationId, string defaultProfileId)
+    {
+        if (!TerminalHostIds.UsesWindowsTerminalProfiles(terminalApplicationId))
+        {
+            if (defaultProfileId.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase))
+            {
+                return Resolve("powershell");
+            }
+
+            if (IsStandaloneShellId(defaultProfileId))
+            {
+                return Resolve(defaultProfileId);
+            }
+
+            return Resolve(NormalizeLaunchTargetId(defaultProfileId));
+        }
+
+        if (IsStandaloneShellId(defaultProfileId))
+        {
+            return Resolve(defaultProfileId);
+        }
+
+        var effectiveApp = TerminalHostIds.ResolveEffectiveApplication(terminalApplicationId);
+        var profileName = defaultProfileId.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : defaultProfileId;
+
+        var prefix = TerminalHostIds.ProfileIdPrefix(effectiveApp);
+        return ResolveProfileTarget(
+            effectiveApp,
+            profileName,
+            profileName is null ? prefix : $"{prefix}:{profileName}");
+    }
+
+    private static LaunchTarget ResolveProfileTarget(string terminalApplicationId, string? profileName, string fallbackId)
+    {
+        if (!string.IsNullOrWhiteSpace(profileName))
+        {
+            var prefix = TerminalHostIds.ProfileIdPrefix(terminalApplicationId);
+            var explicitId = $"{prefix}:{profileName}";
+            EnsureCached();
+            if (_byId!.TryGetValue(explicitId, out var explicitTarget))
+            {
+                return new LaunchTarget
+                {
+                    Id = explicitTarget.Id,
+                    DisplayName = explicitTarget.DisplayName,
+                    Kind = explicitTarget.Kind,
+                    ProfileOrDistro = explicitTarget.ProfileOrDistro,
+                    WtCommandLine = explicitTarget.WtCommandLine,
+                    HostExecutable = TerminalHostIds.HostExecutable(terminalApplicationId),
+                };
+            }
+        }
+
+        EnsureCached();
+        var hostExecutable = TerminalHostIds.HostExecutable(terminalApplicationId);
+        var kind = terminalApplicationId.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
+            ? LaunchTargetKind.IntelligentTerminal
+            : LaunchTargetKind.WindowsTerminal;
+
+        if (string.IsNullOrWhiteSpace(profileName))
+        {
+            return new LaunchTarget
+            {
+                Id = TerminalHostIds.ProfileIdPrefix(terminalApplicationId),
+                DisplayName = $"{TerminalHostIds.SourceLabel(terminalApplicationId)} (default profile)",
+                Kind = kind,
+                HostExecutable = hostExecutable,
+            };
+        }
+
+        var profile = WtProfilesService.GetProfilesForApplication(terminalApplicationId)
+            .FirstOrDefault(p => p.Name.Equals(profileName, StringComparison.OrdinalIgnoreCase));
+
+        return new LaunchTarget
+        {
+            Id = fallbackId,
+            DisplayName = profile?.Name ?? profileName,
+            Kind = kind,
+            ProfileOrDistro = profileName,
+            WtCommandLine = profile?.Commandline,
+            HostExecutable = hostExecutable,
+        };
+    }
+
+    private static bool IsStandaloneShellId(string id) =>
+        IsStandaloneShellLaunchTarget(id);
+
+    public static bool IsStandaloneShellLaunchTarget(string? launchTargetId)
+    {
+        var id = NormalizeLaunchTargetId(launchTargetId);
+        return id is "powershell" or "pwsh" or "cmd" || id.StartsWith("wsl:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string BuildFormChoicesJson(bool includeDefaultChoice, string terminalApplicationId)
+    {
+        lock (Sync)
+        {
+            if (_cachedFormChoicesJson is not null
+                && _cachedFormChoicesIncludeDefault == includeDefaultChoice
+                && string.Equals(_cachedFormApplicationId, terminalApplicationId, StringComparison.OrdinalIgnoreCase))
+            {
+                return _cachedFormChoicesJson;
+            }
+        }
+
+        var choiceTargets = new List<LaunchTarget>();
+        if (includeDefaultChoice)
+        {
+            choiceTargets.Add(new LaunchTarget
+            {
+                Id = "default",
+                DisplayName = "Default (from settings)",
+                Kind = LaunchTargetKind.Default,
+            });
+        }
+
+        var appLabel = TerminalHostIds.SourceLabel(terminalApplicationId);
+        var prefix = TerminalHostIds.ProfileIdPrefix(terminalApplicationId);
+        var profileKind = terminalApplicationId.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
+            ? LaunchTargetKind.IntelligentTerminal
+            : LaunchTargetKind.WindowsTerminal;
+
+        foreach (var profile in WtProfilesService.GetProfilesForApplication(terminalApplicationId))
+        {
+            choiceTargets.Add(new LaunchTarget
+            {
+                Id = $"{prefix}:{profile.Name}",
+                DisplayName = profile.Name,
+                Kind = profileKind,
+                ProfileOrDistro = profile.Name,
+                WtCommandLine = profile.Commandline,
+                HostExecutable = TerminalHostIds.HostExecutable(terminalApplicationId),
+            });
+        }
+
+        if (choiceTargets.Count == (includeDefaultChoice ? 1 : 0))
+        {
+            choiceTargets.Add(new LaunchTarget
+            {
+                Id = prefix,
+                DisplayName = $"{appLabel} (default profile)",
+                Kind = profileKind,
+                HostExecutable = TerminalHostIds.HostExecutable(terminalApplicationId),
+            });
+        }
+
+        EnsureCached();
+        foreach (var target in _cached!.Where(t => t.Kind is LaunchTargetKind.PowerShell or LaunchTargetKind.Pwsh or LaunchTargetKind.Cmd or LaunchTargetKind.Wsl))
+        {
+            choiceTargets.Add(target);
+        }
+
+        var choices = choiceTargets
+            .Select(t => $"{{ \"title\": \"{EscapeJson(t.DisplayName)}\", \"value\": \"{EscapeJson(t.Id)}\" }}");
+
+        var json = "[" + string.Join(',', choices) + "]";
+        lock (Sync)
+        {
+            _cachedFormChoicesIncludeDefault = includeDefaultChoice;
+            _cachedFormApplicationId = terminalApplicationId;
+            _cachedFormChoicesJson = json;
+            return _cachedFormChoicesJson;
+        }
+    }
+
+    public static LaunchTarget ResolveForShortcut(TerminalShortcut shortcut, string defaultLaunchTargetId) =>
+        ResolveForShortcut(shortcut, TerminalHostIds.WindowsTerminal, defaultLaunchTargetId);
 
     public static string NormalizeLaunchTargetId(string? launchTargetId)
     {
@@ -207,6 +495,18 @@ internal static class TerminalCatalog
             return "pwsh";
         }
 
+        if (value.Equals("intelligent-terminal", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("intelligentterminal", StringComparison.OrdinalIgnoreCase))
+        {
+            return TerminalHostIds.IntelligentTerminal;
+        }
+
+        if (value.StartsWith("it:", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("it", StringComparison.OrdinalIgnoreCase))
+        {
+            return value;
+        }
+
         if (value.StartsWith("wt:", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("wsl:", StringComparison.OrdinalIgnoreCase)
             || value is "wt" or "powershell" or "pwsh" or "cmd")
@@ -223,27 +523,8 @@ internal static class TerminalCatalog
         };
     }
 
-    public static string BuildFormChoicesJson(bool includeDefaultChoice)
-    {
-        lock (Sync)
-        {
-            if (_cachedFormChoicesJson is not null && _cachedFormChoicesIncludeDefault == includeDefaultChoice)
-            {
-                return _cachedFormChoicesJson;
-            }
-        }
-
-        var choices = GetLaunchTargets(includeDefaultChoice)
-            .Select(t => $"{{ \"title\": \"{EscapeJson(t.DisplayName)}\", \"value\": \"{EscapeJson(t.Id)}\" }}");
-
-        var json = "[" + string.Join(',', choices) + "]";
-        lock (Sync)
-        {
-            _cachedFormChoicesIncludeDefault = includeDefaultChoice;
-            _cachedFormChoicesJson = json;
-            return _cachedFormChoicesJson;
-        }
-    }
+    public static string BuildFormChoicesJson(bool includeDefaultChoice) =>
+        BuildFormChoicesJson(includeDefaultChoice, TerminalHostIds.WindowsTerminal);
 
     private static void EnsureCached()
     {
@@ -263,40 +544,43 @@ internal static class TerminalCatalog
     private static List<LaunchTarget> DiscoverLaunchTargets(ExecutableAvailability executables)
     {
         var targets = new List<LaunchTarget>();
+        var profiles = WtProfilesService.GetProfiles();
 
-        if (executables.WindowsTerminal)
+        foreach (var profile in profiles.Where(p => TerminalHostIds.IsSupportedProfilePrefix(p.IdPrefix)))
         {
-            var profiles = WtProfilesService.GetProfiles();
-            if (profiles.Count > 0)
+            targets.Add(new LaunchTarget
             {
-                targets.Add(new LaunchTarget
-                {
-                    Id = "wt",
-                    DisplayName = "Windows Terminal (default profile)",
-                    Kind = LaunchTargetKind.WindowsTerminal,
-                });
+                Id = $"{profile.IdPrefix}:{profile.Name}",
+                DisplayName = $"{profile.SourceLabel} · {profile.Name}",
+                Kind = profile.IdPrefix.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
+                    ? LaunchTargetKind.IntelligentTerminal
+                    : LaunchTargetKind.WindowsTerminal,
+                ProfileOrDistro = profile.Name,
+                WtCommandLine = profile.Commandline,
+                HostExecutable = profile.HostExecutable,
+            });
+        }
 
-                foreach (var profile in profiles)
-                {
-                    targets.Add(new LaunchTarget
-                    {
-                        Id = $"wt:{profile.Name}",
-                        DisplayName = profile.Name,
-                        Kind = LaunchTargetKind.WindowsTerminal,
-                        ProfileOrDistro = profile.Name,
-                        WtCommandLine = profile.Commandline,
-                    });
-                }
-            }
-            else
+        if (executables.WindowsTerminal || profiles.Any(p => TerminalHostIds.IsWindowsTerminalProfilePrefix(p.IdPrefix)))
+        {
+            targets.Add(new LaunchTarget
             {
-                targets.Add(new LaunchTarget
-                {
-                    Id = "wt",
-                    DisplayName = "Windows Terminal",
-                    Kind = LaunchTargetKind.WindowsTerminal,
-                });
-            }
+                Id = TerminalHostIds.WindowsTerminal,
+                DisplayName = "Windows Terminal (default profile)",
+                Kind = LaunchTargetKind.WindowsTerminal,
+                HostExecutable = "wt.exe",
+            });
+        }
+
+        if (executables.IntelligentTerminal || profiles.Any(p => p.IdPrefix == TerminalHostIds.IntelligentTerminal))
+        {
+            targets.Add(new LaunchTarget
+            {
+                Id = TerminalHostIds.IntelligentTerminal,
+                DisplayName = "Intelligent Terminal (default profile)",
+                Kind = LaunchTargetKind.IntelligentTerminal,
+                HostExecutable = "wtai.exe",
+            });
         }
 
         if (executables.PowerShell)
@@ -329,14 +613,14 @@ internal static class TerminalCatalog
             });
         }
 
-        if (!executables.WindowsTerminal)
+        if (!executables.WindowsTerminal && !executables.IntelligentTerminal)
         {
             foreach (var distro in executables.WslDistros)
             {
                 targets.Add(new LaunchTarget
                 {
                     Id = $"wsl:{distro}",
-                    DisplayName = $"WSL — {distro}",
+                    DisplayName = $"WSL · {distro}",
                     Kind = LaunchTargetKind.Wsl,
                     ProfileOrDistro = distro,
                 });
@@ -361,7 +645,7 @@ internal static class TerminalCatalog
         var terminal = (shortcut.Terminal ?? "default").Trim();
         if (!string.IsNullOrWhiteSpace(shortcut.WtProfile))
         {
-            return $"{terminal} — {shortcut.WtProfile}";
+            return $"{terminal} · {shortcut.WtProfile}";
         }
 
         return terminal;
@@ -374,6 +658,8 @@ internal static class TerminalCatalog
     {
         public bool WindowsTerminal { get; init; }
 
+        public bool IntelligentTerminal { get; init; }
+
         public bool PowerShell { get; init; }
 
         public bool Pwsh { get; init; }
@@ -384,14 +670,21 @@ internal static class TerminalCatalog
 
         public static ExecutableAvailability Discover()
         {
-            var wt = IsOnPath("wt.exe");
+            var locations = TerminalSettingsDiscovery.DiscoverLocations();
+            var wt = IsOnPath("wt.exe")
+                || locations.Any(location =>
+                    location.HostExecutable.Equals("wt.exe", StringComparison.OrdinalIgnoreCase));
+            var intelligentTerminal = IsOnPath("wtai.exe")
+                || locations.Any(location =>
+                    location.HostExecutable.Equals("wtai.exe", StringComparison.OrdinalIgnoreCase));
             return new ExecutableAvailability
             {
                 WindowsTerminal = wt,
+                IntelligentTerminal = intelligentTerminal,
                 PowerShell = IsOnPath("powershell.exe"),
                 Pwsh = IsOnPath("pwsh.exe"),
                 Cmd = IsOnPath("cmd.exe"),
-                WslDistros = wt ? [] : GetWslDistros(),
+                WslDistros = wt || intelligentTerminal ? [] : GetWslDistros(),
             };
         }
 

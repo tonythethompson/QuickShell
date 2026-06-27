@@ -13,8 +13,6 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 #endif
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
-    private readonly ImportConflictPage _importConflictPage;
-    private readonly PendingShortcutEditPage _pendingShortcutEditPage;
     private readonly CreateShortcutCommand _createShortcutCommand;
     private readonly QuickShellFallbackPage _fallbackPage;
     private readonly ICommandItem[] _commands;
@@ -23,17 +21,16 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public QuickShellCommandsProvider()
     {
-        _settingsManager = new QuickShellSettingsManager();
+        _settingsManager = new QuickShellSettingsManager(ReloadPages);
+        QuickShellRuntimeServices.Initialize(_settingsManager);
 
         DisplayName = "Quick Shell";
         Icon = new IconInfo("\uE756");
         Id = "com.quickshell";
         Settings = _settingsManager.Settings;
 
-        _importConflictPage = new ImportConflictPage(ReloadPages);
-        _pendingShortcutEditPage = new PendingShortcutEditPage(ReloadPages);
         _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
-        _page = new QuickShellPage(_settingsManager, _importConflictPage, _pendingShortcutEditPage, _createShortcutCommand);
+        _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
         _settingsChangedHandler = (_, _) => _page.Reload();
         _settingsManager.SettingsChanged += _settingsChangedHandler;
 
@@ -53,41 +50,17 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 [
                     new CommandContextItem(_createShortcutCommand)
                     {
-                        Title = "Create new shortcut",
+                        Title = "Create shortcut",
                         Icon = new IconInfo("\uE710"),
+                        RequestedShortcut = QuickShellKeyboardShortcuts.CreateShortcut,
 #if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = true,
                         HoverOrder = 0,
 #endif
                     },
-                    new CommandContextItem(new UndoShortcutCommand(ReloadPages))
-                    {
-                        RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: Windows.System.VirtualKey.Z),
-#if CMDPAL_HOVER_ACTIONS
-                        ShowInHoverActions = false,
-#endif
-                    },
-                    new CommandContextItem(new RedoShortcutCommand(ReloadPages))
-                    {
-                        RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: Windows.System.VirtualKey.Y),
-#if CMDPAL_HOVER_ACTIONS
-                        ShowInHoverActions = false,
-#endif
-                    },
-                    new CommandContextItem(new ExportShortcutsCommand())
-                    {
-#if CMDPAL_HOVER_ACTIONS
-                        ShowInHoverActions = false,
-#endif
-                    },
-                    new CommandContextItem(new ImportShortcutsCommand(ReloadPages))
-                    {
-#if CMDPAL_HOVER_ACTIONS
-                        ShowInHoverActions = false,
-#endif
-                    },
                     new CommandContextItem(settingsPage)
                     {
+                        Title = "Quick Shell settings",
                         Icon = new IconInfo("\uE713"),
 #if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = true,
@@ -109,32 +82,31 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     private void ReloadPages()
     {
         _page.Reload();
+        _settingsManager.RefreshSettingsContent();
         _fallbackPage.UpdateSearchText(string.Empty, string.Empty);
     }
 
     public override ICommandItem? GetCommandItem(string id)
     {
-        if (string.Equals(id, ImportConflictPage.PageId, StringComparison.Ordinal))
+        if (string.Equals(id, QuickShellExtensionSettingsPage.PageId, StringComparison.Ordinal) ||
+            string.Equals(id, ImportConflictPage.PageId, StringComparison.Ordinal) ||
+            string.Equals(id, PendingShortcutEditPage.PageId, StringComparison.Ordinal))
         {
-            return new CommandItem(_importConflictPage)
+            return new CommandItem(_settingsManager.SettingsPage)
             {
-                Title = _importConflictPage.Title,
-                Icon = _importConflictPage.Icon,
-            };
-        }
-
-        if (string.Equals(id, PendingShortcutEditPage.PageId, StringComparison.Ordinal))
-        {
-            return new CommandItem(_pendingShortcutEditPage)
-            {
-                Title = _pendingShortcutEditPage.Title,
-                Icon = _pendingShortcutEditPage.Icon,
+                Title = _settingsManager.SettingsPage.Title,
+                Icon = _settingsManager.SettingsPage.Icon,
             };
         }
 
         if (string.Equals(id, ShortcutCommandIds.CreateShortcut, StringComparison.Ordinal))
         {
-            return ShortcutListItems.CreateNewShortcut(_createShortcutCommand);
+            return new CommandItem(_createShortcutCommand)
+            {
+                Title = "Create new shortcut",
+                Subtitle = "Directory and optional command",
+                Icon = new IconInfo("\uE710"),
+            };
         }
 
         if (ShortcutCommandIds.TryParseOpen(id, out var openKey))
@@ -145,7 +117,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 return null;
             }
 
-            return ShortcutListItems.CreateOpen(shortcut, _settingsManager, ReloadPages);
+            return ShortcutListItems.CreateOpen(shortcut, _settingsManager, ReloadPages, _createShortcutCommand);
         }
 
         return base.GetCommandItem(id);

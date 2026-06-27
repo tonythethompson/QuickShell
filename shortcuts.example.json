@@ -7,11 +7,19 @@
     "Terminal": "wt"
   },
   {
+    "Type": "separator",
+    "Title": "Web"
+  },
+  {
     "Name": "Frontend",
     "Abbreviation": "fe",
     "Directory": "C:\\Projects\\web",
     "Command": "npm run dev",
     "Terminal": "wt"
+  },
+  {
+    "Type": "separator",
+    "Title": "Shells"
   },
   {
     "Name": "Home shell",

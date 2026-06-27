@@ -30,10 +30,12 @@ internal sealed partial class ImportConflictForm : FormContent
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
 
     private readonly Action _onReload;
+    private readonly Action? _onSettingsChanged;
 
-    public ImportConflictForm(Action onReload)
+    public ImportConflictForm(Action onReload, Action? onSettingsChanged = null)
     {
         _onReload = onReload;
+        _onSettingsChanged = onSettingsChanged;
 
         TemplateJson = """
         {
@@ -65,24 +67,34 @@ internal sealed partial class ImportConflictForm : FormContent
               "wrap": true,
               "weight": "Bolder",
               "spacing": "Large"
+            },
+            {
+              "type": "TextBlock",
+              "text": "Merge keeps your shortcuts and adds the file; duplicate names are renamed (for example \"My App Copy\"). Replace all deletes every current shortcut and loads only the file.",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "Small"
             }
           ],
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "Merge — rename duplicates",
+              "title": "Merge (rename duplicates)",
+              "tooltip": "Keep your shortcuts and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
               "data": { "action": "merge" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
               "title": "Replace all shortcuts",
+              "tooltip": "Delete every shortcut you have now (including favorites) and replace them with the imported file only.",
               "data": { "action": "replace" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
               "title": "Cancel import",
+              "tooltip": "Discard this import file and keep your shortcuts unchanged.",
               "data": { "action": "cancel" },
               "associatedInputs": "none"
             }
@@ -104,13 +116,14 @@ internal sealed partial class ImportConflictForm : FormContent
         if (action == "cancel")
         {
             ImportConflictState.Clear();
-            return QuickShellNavigation.GoBack("Import cancelled.");
+            SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+            return QuickShellNavigation.StayOnSettings("Import cancelled.");
         }
 
         var pending = ImportConflictState.Pending;
         if (pending is null)
         {
-            return QuickShellNavigation.GoBack("No import is pending.");
+            return QuickShellNavigation.StayOnSettings("No import is pending.");
         }
 
         var result = action switch
@@ -122,17 +135,18 @@ internal sealed partial class ImportConflictForm : FormContent
 
         if (result is null)
         {
-            return QuickShellNavigation.StayOpen("Unable to read form values.");
+            return QuickShellNavigation.StayOnSettings("Unable to read form values.");
         }
 
         if (!result.Success)
         {
-            return QuickShellNavigation.StayOpen(result.Message);
+            return QuickShellNavigation.StayOnSettings(result.Message);
         }
 
         ImportConflictState.Clear();
         _onReload();
-        return QuickShellNavigation.GoBack(result.Message);
+        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        return QuickShellNavigation.StayOnSettings(result.Message);
     }
 
     private void ApplyPendingState()

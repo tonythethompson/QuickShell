@@ -9,7 +9,7 @@ Save directories you use every day, open them in whichever terminal you actually
 ## What you can do
 
 - **Save shortcuts** to folders you open often, with optional **home keywords** for fast root search
-- **Any terminal you use** — every Windows Terminal profile on your PC (custom shells included), plus WSL and classic shells
+- **Any terminal you use** — Windows Terminal, Intelligent Terminal, every profile on your PC, plus WSL and classic shells
 - **Run a command on open** — start dev servers, scripts, or anything else automatically
 - **Favorite shortcuts** so they stay at the top of your list
 - **Create and edit shortcuts in Command Palette** — no hand-editing JSON required
@@ -21,9 +21,18 @@ Save directories you use every day, open them in whichever terminal you actually
 
 ## Terminals
 
-Quick Shell reads your **Windows Terminal** `settings.json` and lists **every profile** you have configured — including custom shells such as Alacritty, WezTerm, Git Bash, or Ubuntu. It also discovers **WSL** distros and classic shells on your PATH (**PowerShell**, **pwsh**, **cmd**).
+Quick Shell reads **Windows Terminal** and **Intelligent Terminal** `settings.json` files and lists **every profile** you have configured — including custom shells such as Alacritty, WezTerm, Git Bash, or Ubuntu. It also discovers **WSL** distros and classic shells on your PATH (**PowerShell**, **pwsh**, **cmd**).
 
-After you install a new terminal or edit Windows Terminal profiles, run **Refresh terminals** inside Quick Shell to update the list.
+**Quick Shell settings** splits terminal choice the same way Windows does:
+
+| Setting | What it controls |
+| --- | --- |
+| **Terminal application** | Host executable (`wt.exe` or `wtai.exe`) for Default shortcuts and profile launches |
+| **Default profile** | Profile used when a shortcut’s terminal is set to **Default** |
+
+Per-shortcut **profile** choices stay on each shortcut in the editor.
+
+After you install a new terminal or edit profiles, use **Refresh terminal list** in **Quick Shell settings** or the **↻** button next to the terminal picker when creating or editing a shortcut.
 
 ---
 
@@ -62,14 +71,17 @@ You should see **Quick Shell** with the subtitle *Open saved folders in your ter
 
 1. Open Command Palette and search **Quick Shell**
 
-   ![The Quick Shell shortcut list](QuickShell/Assets/Screenshot_1.png)
+   ![Shortcut list with context menu](QuickShell/Assets/Screenshot_1.png)
 
-2. Choose **Create new shortcut**
+2. **⋯** on any shortcut → **Edit**, or create a new shortcut
 
-   ![The shortcut editor](QuickShell/Assets/Screenshot_2.png)
+   ![Shortcut editor](QuickShell/Assets/Screenshot_2.png)
 
-3. Pick a folder, name it, and save
-4. Select the shortcut to open it in your terminal
+3. Open **Settings** from any row’s **⋯** menu (or the home **Quick Shell** menu)
+
+   ![Quick Shell settings](QuickShell/Assets/Screenshot_3.png)
+
+4. Pick a folder, name it, and save — then select a shortcut to open it in your terminal
 
 Your shortcuts are stored at:
 
@@ -81,21 +93,23 @@ The app creates this file on first run. You can edit it in any text editor, or m
 
 ## Everyday usage
 
-Open the **⋯** menu on any shortcut (or press **Ctrl+K**) for actions like edit, favorite, duplicate, and elevated launch:
-
-![Shortcut context menu](QuickShell/Assets/Screenshot_3.png)
+Open the **⋯** menu on any shortcut (or press **Ctrl+K**) for actions like edit, favorite, duplicate, and elevated launch.
 
 | What you want | How |
 | --- | --- |
 | Open a saved folder | Search **Quick Shell**, pick a shortcut |
 | Jump straight to a shortcut | Type its **home keyword** at the Command Palette home screen (e.g. `api`) |
-| Favorite a shortcut | **⋯** → **Favorite**, or **Ctrl+P** (star badge on favorited items) |
-| Reorder favorites | **⋯** → **Move favorite up** / **Move favorite down** |
-| Reload after editing JSON | Run **Refresh terminals** inside Quick Shell |
-| Back up or move shortcuts | **Export shortcuts** / **Import shortcuts** |
+| Favorite a shortcut | **⋯** → **Favorite**, or **Ctrl+F** (star badge on favorited items) |
+| Reorder favorites | **⋯** → **Move favorite up** / **Move favorite down** — or **Move favorite to top** / **Move favorite to bottom** when not already at an edge |
+| Reload after editing `shortcuts.json` by hand | Changes load automatically the next time Quick Shell reads the file |
+| Refresh terminal list after installing a shell | **Quick Shell settings** → **Refresh terminal list**, or **↻** in the shortcut editor |
+| Back up or move shortcuts | **Quick Shell settings** → **Export shortcuts** / **Import shortcuts**, or the same actions on the home **Quick Shell** **⋯** menu |
+| Finish a conflicting import | **Quick Shell settings** — merge/replace prompt appears there when needed |
+| Undo recent edits | Select any shortcut (or **Quick Shell settings**) → **Ctrl+Z** / **Ctrl+Y**, or **⋯** → **Undo** / **Redo** |
+| Create a shortcut | **⋯** on any shortcut or the home **Quick Shell** row → **Create new shortcut** |
+| Change terminal application or default profile | **Quick Shell settings**, or **⋯** → **Quick Shell settings** |
 | Open once as admin | Select a shortcut → **⋯** → **Open as administrator**, or press **Ctrl+Enter** |
 | Always open as admin | Set `"RunAsAdmin": true` on that shortcut (see below) |
-| Change default terminal | **Quick Shell** → **⋯** → **Quick Shell settings** |
 
 ---
 
@@ -109,9 +123,18 @@ Each shortcut supports these fields in `shortcuts.json`:
 | `Directory` | Yes | Folder to open |
 | `Abbreviation` | No | **Home keyword** — type at the Command Palette home screen to jump to this shortcut (e.g. `api`). JSON field name stays `Abbreviation`. |
 | `Command` | No | Command to run after opening the folder |
-| `Terminal` | No | Launch target: `default`, `wt` (Windows Terminal — pair with `WtProfile` for a specific profile), `powershell`, `pwsh`, `cmd`, or `wsl`. Shells wired through Windows Terminal appear as profiles in the picker. |
+| `Terminal` | No | Launch target: `default`, `wt` (profile — pair with `WtProfile`), `it`, `powershell`, `pwsh`, `cmd`, or `wsl`. The global **terminal application** setting chooses `wt.exe` vs `wtai.exe` for profile launches. |
 | `RunAsAdmin` | No | `true` to always launch elevated (UAC prompt); also available as a checkbox when editing in Command Palette |
 | `IsPinned` | No | `true` to favorite the shortcut (keeps it at the top of your Quick Shell list) |
+
+Mix **section headers** into the same array with shortcut objects:
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `Type` | Yes (for headers) | Set to `"separator"` for a titled section header |
+| `Title` | No | Section label shown in the list (omit for a blank divider) |
+
+Favorited shortcuts (`IsPinned`) always appear under a **Favorites** header at the top and are not repeated under layout sections.
 
 Example:
 
@@ -122,6 +145,16 @@ Example:
     "Abbreviation": "api",
     "Directory": "C:\\Projects\\MyApi",
     "Command": "dotnet run",
+    "Terminal": "wt"
+  },
+  {
+    "Type": "separator",
+    "Title": "Web"
+  },
+  {
+    "Name": "Frontend",
+    "Directory": "C:\\Projects\\web",
+    "Command": "npm run dev",
     "Terminal": "wt"
   }
 ]
