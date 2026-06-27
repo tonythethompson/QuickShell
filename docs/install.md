@@ -6,36 +6,51 @@ description: Install Quick Shell from the Microsoft Store, WinGet, or GitHub Rel
 
 # Install Quick Shell
 
-Quick Shell needs **PowerToys** with **Command Palette** turned on.
+Before installing, ensure you have **PowerToys** with **Command Palette** enabled.  
+[Install PowerToys](https://learn.microsoft.com/windows/powertoys/install){:target="_blank"} if you haven't already.
 
-## Option 1 — Microsoft Store
+## Choose your installation method
 
-Search for **Quick Shell** in the Microsoft Store, or open your listing from Partner Center after publish.
+### Microsoft Store
 
-## Option 2 — WinGet
+The easiest way to install and stay updated:
+
+1. Open the **Microsoft Store** on your PC
+2. Search for **Quick Shell**
+3. Click **Install**
+
+### WinGet (Command Line)
+
+Install from PowerShell or Command Prompt:
 
 ```powershell
 winget install tonythethompson.QuickShell
 ```
 
-## Option 3 — GitHub Releases
+### GitHub Releases
 
-Download the latest **x64** or **ARM64** installer from
-[GitHub Releases](https://github.com/tonythethompson/QuickShell/releases).
+Download the installer directly:
 
-## After installing
+1. Go to [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases){:target="_blank"}
+2. Download the latest **x64** or **ARM64** MSI installer
+3. Run the installer
 
-1. Open **PowerToys Command Palette** (default shortcut: **Win + Alt + Space**)
-2. Run **`Reload Command Palette Extension`**
-3. Search **`Quick Shell`**
+Choose **x64** for most PCs, **ARM64** only if you're on an ARM-based Windows device.
 
-You should see **Quick Shell** with the subtitle *Open saved folders in any terminal you use*.
+## Complete setup
+
+After installation, follow these steps:
+
+1. Open **PowerToys Command Palette** (press **Win + Alt + Space**)
+2. Search for **Reload Command Palette Extension** and run it
+3. Search for **Quick Shell** — you should see it in the results
 
 <div class="callout">
-  <strong>Extension missing?</strong> Confirm Command Palette is enabled in PowerToys → Command Palette,
-  then run <strong>Reload Command Palette Extension</strong> again. Restart PowerToys if needed.
+  <strong>Not showing up?</strong> Make sure Command Palette is enabled in PowerToys settings (Settings → Command Palette → enabled). 
+  Then run <strong>Reload Command Palette Extension</strong> again. If it still doesn't appear, restart PowerToys.
 </div>
 
-## Next step
+## Next steps
 
-[Get started]({{ '/getting-started/' | relative_url }}) — create your first shortcut and learn the main shortcuts.
+- **[Get started]({{ '/getting-started/' | relative_url }})** — Create your first shortcut
+- **[Support]({{ '/support/' | relative_url }})** — Troubleshooting and help

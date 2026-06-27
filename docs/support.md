@@ -6,58 +6,83 @@ description: Contact, bug reports, and feature requests for Quick Shell.
 
 # Support
 
-## Email
+## Common issues
 
-For questions that are not a good fit for a public GitHub issue, email:
+### Extension doesn't appear after installation
+
+1. Open **PowerToys Command Palette** (press **Win + Alt + Space**)
+2. Search for and run **Reload Command Palette Extension**
+3. Confirm Command Palette is enabled in PowerToys settings (Settings → Command Palette → toggle on)
+4. Try again, and restart PowerToys if needed
+
+### Shortcuts disappeared after an update
+
+A backup is automatically created:
+
+1. Open File Explorer and paste this path: `%LOCALAPPDATA%\QuickShell\`
+2. Look for `shortcuts.json.bak` — this is your backup
+3. Contact us for help restoring it
+
+### Terminal list is empty or outdated
+
+In Quick Shell, open **settings** and click **Refresh terminal list**. This detects newly installed terminals.
+
+### Duplicate Quick Shell in Windows Settings → Apps
+
+You have multiple installations (Store + WinGet, or multiple local versions). Uninstall all but one:
+
+1. Open Settings → Apps → Installed apps
+2. Search for "Quick Shell"
+3. Click the **⋮** menu and select **Uninstall**
+4. Keep only one installation method (recommend: Microsoft Store)
+
+### Command not running when folder opens
+
+- Check that the **command** field is filled correctly
+- Make sure the command works when you type it manually in the terminal
+- Some commands need the terminal to wait — test with `pause` or `Read-Host` at the end
+- For scripts, use the full path: `C:\scripts\build.bat` instead of just `build.bat`
+
+## Report a bug or request a feature
+
+### GitHub Issues (fastest response)
+
+1. Visit [github.com/tonythethompson/QuickShell/issues](https://github.com/tonythethompson/QuickShell/issues){:target="_blank"}
+2. Check existing issues first to avoid duplicates
+3. Click **New issue**
+
+**For a bug report, include:**
+- **What you expected:** What should happen?
+- **What happened:** What actually occurred?
+- **How to reproduce:** Step-by-step instructions
+- **Your system:**
+  - Windows version (e.g., Windows 11 23H2)
+  - PowerToys version (from PowerToys settings)
+  - Quick Shell version (check in App Settings → Apps)
+  - How you installed it (Microsoft Store, WinGet, or GitHub release)
+- **Error messages:** Copy any error text or screenshots
+
+**For a feature request:**
+- Describe the problem you're trying to solve
+- Explain how the feature would help you
+- Tell us if you'd be willing to test a preview version
+
+### Email support
+
+For private questions not suited for GitHub:
 
 **[{{ site.author.email }}](mailto:{{ site.author.email }})**
 
-Please include your Windows version, PowerToys version, and Quick Shell version if you know them.
+Please include:
+- Windows version
+- PowerToys version
+- Quick Shell version
+- What you're experiencing
 
-## GitHub Issues (bugs and feature requests)
+## Privacy
 
-The fastest way to report bugs or suggest features is a GitHub issue:
+Quick Shell stores **zero data in the cloud**. All shortcuts and settings stay on your PC.
 
-**[github.com/tonythethompson/QuickShell/issues](https://github.com/tonythethompson/QuickShell/issues)**
+See the full [Privacy policy]({{ '/privacy/' | relative_url }}) for details on what Quick Shell collects (spoiler: nothing).
 
-### Report a bug
-
-1. Check [existing issues](https://github.com/tonythethompson/QuickShell/issues) first
-2. Click **New issue**
-3. Choose **Bug report** if a template is available, or use a plain issue
-4. Include:
-   - What you expected to happen
-   - What actually happened
-   - Steps to reproduce
-   - Windows version (for example Windows 11 24H2)
-   - PowerToys version
-   - How you installed Quick Shell (Store, WinGet, or GitHub release)
-   - Any error messages or screenshots
-
-### Request a feature
-
-1. Open a **New issue**
-2. Describe the problem you are trying to solve and how you would use the feature
-3. Mention if you would be willing to test a preview build
-
-### Privacy-related requests
-
-For privacy questions, you can email [{{ site.author.email }}](mailto:{{ site.author.email }}) or open an issue. See the [Privacy policy]({{ '/privacy/' | relative_url }}) for what data Quick Shell stores.
-
-## Troubleshooting
-
-**Extension does not appear after install**
-
-Run **Reload Command Palette Extension** in Command Palette. Confirm Command Palette is enabled in PowerToys settings.
-
-**Shortcuts missing after an update**
-
-Check for a backup at `%LOCALAPPDATA%\QuickShell\shortcuts.json.bak`.
-
-**Terminal list is empty or outdated**
-
-Open **Quick Shell settings** → **Refresh terminal list**, or use the refresh button in the shortcut editor.
-
-**Duplicate Quick Shell entries in Settings → Apps**
-
-Uninstall older copies and keep a single install (Store, WinGet, or local MSIX — not multiple).
+Have privacy questions? Email [{{ site.author.email }}](mailto:{{ site.author.email }}).

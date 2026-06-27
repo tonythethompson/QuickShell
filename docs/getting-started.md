@@ -6,54 +6,75 @@ description: Create shortcuts, use home keywords, and manage Quick Shell from Co
 
 # Get started
 
-Open Command Palette, search **Quick Shell**, and press **Enter**.
+Let's create your first Quick Shell shortcut and learn the basics.
 
-## Create a shortcut
+## Launch Quick Shell
 
-1. In Quick Shell, choose **Create shortcut** (or press **Ctrl+N**)
-2. Enter a **name** and **folder path**
-3. Optionally set a **command**, **terminal profile**, or **run as administrator**
+Press **Win + Alt + Space** to open PowerToys Command Palette, search for **Quick Shell**, and press **Enter**.
+
+## Create your first shortcut
+
+1. In Quick Shell, select **Create shortcut** (or press **Ctrl+N**)
+2. Enter a **name** (e.g., "My Project") and the **folder path** you want to save
+3. (Optional) Set:
+   - A **command** to run when opening (e.g., `npm start`)
+   - Your preferred **terminal profile** (Windows Terminal, PowerShell, WSL, etc.)
+   - Run as administrator (if needed)
 4. Save
 
-## Open a shortcut
+That's it! Next time you open Command Palette, search "My Project" and press **Enter** to jump there.
 
-- Search **Quick Shell**, pick a shortcut, press **Enter**
-- Or type a **home keyword** at the Command Palette home screen (for example `api`) to jump there directly
+## Keyboard shortcuts
 
-## Useful shortcuts
+Use these shortcuts inside Quick Shell to work faster:
 
-| Action | How |
-| --- | --- |
-| Open the menu on a row | **Ctrl+K** or **⋯** |
-| Run | **Enter** |
-| Run as admin | **Ctrl+Enter** |
-| Edit | **Ctrl+E** |
-| Favorite | **Ctrl+F** |
-| Undo / redo | **Ctrl+Z** / **Ctrl+Y** |
-| Quick Shell settings | Settings row in the list, or **⋯** → **Quick Shell settings** |
+| Action | Keyboard |
+|--------|----------|
+| Create new shortcut | **Ctrl+N** |
+| Edit selected shortcut | **Ctrl+E** |
+| Favorite/unfavorite | **Ctrl+F** |
+| Open context menu | **Ctrl+K** or click **⋯** |
+| Run as administrator | **Ctrl+Enter** |
+| Undo / Redo | **Ctrl+Z** / **Ctrl+Y** |
+| Open settings | Click the gear icon or use **⋯** menu |
 
-## Settings
+## Quick Shell settings
 
-In **Quick Shell settings** you can:
+Click the gear icon or find "Quick Shell settings" in the list to:
 
-- Choose your default **terminal application** and **profile**
-- **Export** or **import** shortcuts (backup or another PC)
-- **Refresh terminal list** after installing a new terminal
+- Set your **default terminal** and terminal **profile**
+- **Backup shortcuts** (export them to a file)
+- **Restore shortcuts** (import from a backup or another PC)
+  - Choose **Merge** to add new ones to your existing list
+  - Choose **Replace all** to overwrite everything
+- **Refresh terminal list** after installing a new terminal app
 
-When importing, choose **Merge** to keep your shortcuts and add new ones, or **Replace all** to swap the whole file.
+## Home keywords
 
-## Where data is stored
+Make your most-used shortcuts even faster by setting a **home keyword**:
 
-Shortcuts are saved on your PC at:
+1. Edit a shortcut
+2. Set a **home keyword** (e.g., `api`, `web`, `docs`)
+3. Now press **Win + Alt + Space**, then type your keyword on the home screen to jump there directly — no searching needed
 
-`%LOCALAPPDATA%\QuickShell\shortcuts.json`
+## Where your data is stored
 
-Settings are saved at:
+Quick Shell saves everything locally on your PC (no cloud sync):
 
-`%LOCALAPPDATA%\QuickShell\settings.json`
+- **Shortcuts:** `%LOCALAPPDATA%\QuickShell\shortcuts.json`
+- **Settings:** `%LOCALAPPDATA%\QuickShell\settings.json`
 
-## More detail
+You can back these up or move them to another PC using the Export/Import feature.
 
-The full README on GitHub has advanced options (JSON fields, section headers, building from source):
+## Tips and tricks
 
-[github.com/tonythethompson/QuickShell](https://github.com/tonythethompson/QuickShell)
+- **Run startup commands:** Set a command like `npm start` or `docker-compose up` to run automatically when the folder opens
+- **Multiple profiles:** Create multiple shortcuts for the same folder with different terminals or commands
+- **WSL support:** Save WSL project paths and open them in Windows Terminal's WSL profile
+- **Admin mode:** Use **Ctrl+Enter** or check "Run as administrator" for elevated commands
+
+## Need help?
+
+- **Troubleshooting:** See the [Support]({{ '/support/' | relative_url }}) page
+- **Source code:** View the full [GitHub repository](https://github.com/tonythethompson/QuickShell){:target="_blank"}
+- **Questions:** Email [{{ site.author.email }}](mailto:{{ site.author.email }})
