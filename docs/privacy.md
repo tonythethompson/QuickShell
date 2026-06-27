@@ -51,9 +51,9 @@ Data remains on your PC until you delete it. You can:
 - Delete `%LocalAppData%\QuickShell\`
 - Uninstall the extension or app package
 
-## Children
+## Children's privacy
 
-Quick Shell is a general productivity tool and is not directed at children under 13.
+Quick Shell is a general-purpose Windows productivity tool. It is not designed for or directed at children under 13, and the developer does not knowingly collect personal information from children.
 
 ## Changes
 
