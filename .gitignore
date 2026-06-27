@@ -19,8 +19,7 @@ QuickShell/obj/
 QuickShell/setup-x64.iss
 QuickShell/setup-arm64.iss
 
-# Store screenshot workflow (generated locally; demo preset stays tracked)
-QuickShell/Assets/Screenshot_*.png
+# Store screenshot workflow (generated locally; README assets Screenshot_1–3 stay tracked)
 QuickShell/Assets/StoreScreenshots/raw/
 QuickShell/Assets/StoreScreenshots/prepared/
 QuickShell/Assets/StoreScreenshots/shortcuts-backup.json
