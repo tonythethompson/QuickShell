@@ -25,7 +25,6 @@ internal static class ShortcutLaunchFormJson
         var blocks = new List<string>();
         for (var i = 0; i < commands.Count; i++)
         {
-            var escapedCommand = Escape(commands[i]);
             var removeBlock = commands.Count > 1
                 ? $$"""
                 ,{
@@ -59,7 +58,7 @@ internal static class ShortcutLaunchFormJson
                   "type": "Input.Text",
                   "id": "LaunchCommand_{{i}}",
                   "placeholder": "Optional command or script",
-                  "value": "{{escapedCommand}}"
+                  "value": "${LaunchCommand_{{i}}}"
                 }
                 {{removeBlock}}
               ]

@@ -25,6 +25,6 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
             return QuickShellNavigation.StayOpen($"Deleted workspace '{_name}'.");
         }
 
-        return QuickShellNavigation.StayOpen($"Project '{_name}' was not found.");
+        return QuickShellNavigation.StayOpen($"Workspace '{_name}' was not found.");
     }
 }

@@ -14,7 +14,10 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
 
     private PersistedShortcutEditDraft? _cached;
     private bool _cacheLoaded;
+    private int _writeGeneration;
     private Task _fileIoQueue = Task.CompletedTask;
+
+    internal event Action<string>? Cleared;
 
     public string DraftPath => Path.Combine(_shortcuts.ConfigDirectory, "shortcut-edit-draft.json");
 
@@ -120,8 +123,20 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         });
     }
 
-    public void Clear() =>
-        WithLock(ClearLocked);
+    public void Clear()
+    {
+        string? clearedOriginalName = null;
+        WithLock(() =>
+        {
+            clearedOriginalName = _cached?.OriginalName;
+            ClearLocked();
+        });
+
+        if (!string.IsNullOrWhiteSpace(clearedOriginalName))
+        {
+            Cleared?.Invoke(clearedOriginalName);
+        }
+    }
 
     public ShortcutSaveResult TryCommitPending(Action? onSaved)
     {
@@ -248,7 +263,8 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         try
         {
             var json = JsonSerializer.Serialize(draft, ShortcutFormDraftJsonContext.Default.PersistedShortcutEditDraft);
-            EnqueueFileIoLocked(() => PersistDraftAsync(json));
+            var generation = _writeGeneration;
+            EnqueueFileIoLocked(() => PersistDraftAsync(json, generation));
         }
         catch
         {
@@ -258,8 +274,11 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
 
     private void ClearLocked()
     {
+        _writeGeneration++;
         _cached = null;
-        EnqueueFileIoLocked(DeleteDraftIfPresentAsync);
+        _cacheLoaded = false;
+        DrainFileIoQueueLocked();
+        DeleteDraftFileSync();
     }
 
     private void DrainFileIoQueueLocked()
@@ -281,12 +300,22 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
             .Unwrap();
     }
 
-    private async Task PersistDraftAsync(string json)
+    private async Task PersistDraftAsync(string json, int generation)
     {
+        if (generation != _writeGeneration)
+        {
+            return;
+        }
+
         try
         {
             Directory.CreateDirectory(_shortcuts.ConfigDirectory);
             await File.WriteAllTextAsync(DraftPath, json).ConfigureAwait(false);
+
+            if (generation != _writeGeneration)
+            {
+                DeleteDraftFileSync();
+            }
         }
         catch
         {
@@ -294,7 +323,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         }
     }
 
-    private Task DeleteDraftIfPresentAsync()
+    private void DeleteDraftFileSync()
     {
         try
         {
@@ -307,8 +336,6 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         {
             // Best-effort cleanup.
         }
-
-        return Task.CompletedTask;
     }
 
     private static bool DraftMatchesShortcut(PersistedShortcutEditDraft draft, TerminalShortcut saved)

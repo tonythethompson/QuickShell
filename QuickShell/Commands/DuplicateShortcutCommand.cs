@@ -1,31 +1,21 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Pages;
 using QuickShell.Services;
 
 namespace QuickShell.Commands;
 
-internal sealed partial class DuplicateShortcutCommand : InvokableCommand
+/// <summary>
+/// Opens the workspace editor prefilled from a duplicate. The copy is not saved until
+/// the user confirms in the form (matches PowerToys Run duplicate behavior).
+/// </summary>
+internal sealed partial class DuplicateShortcutCommand : ShortcutFormPage
 {
-    private readonly string _sourceName;
-    private readonly Action _onChanged;
-
-    public DuplicateShortcutCommand(string sourceName, Action onChanged)
+    public DuplicateShortcutCommand(string sourceName, Action onSaved)
+        : base(existing: null, onSaved, createSeed: QuickShellRuntimeServices.Shortcuts.BuildDuplicate(sourceName))
     {
-        _sourceName = sourceName;
-        _onChanged = onChanged;
+        Id = $"com.quickshell.shortcut-form.duplicate.{Guid.NewGuid():N}";
         Name = "Duplicate";
-        Icon = new IconInfo("\uE8C8");
-    }
-
-    public override CommandResult Invoke()
-    {
-        var duplicate = QuickShellRuntimeServices.Shortcuts.BuildDuplicate(_sourceName);
-        if (duplicate is null)
-        {
-            return QuickShellNavigation.StayOpen($"Project '{_sourceName}' was not found.");
-        }
-
-        QuickShellRuntimeServices.Shortcuts.Upsert(duplicate);
-        _onChanged();
-        return QuickShellNavigation.StayOpen($"Duplicated as '{duplicate.Name}'.");
+        Icon = new IconInfo(ShortcutGlyphs.Duplicate);
+        Title = "Duplicate workspace";
     }
 }

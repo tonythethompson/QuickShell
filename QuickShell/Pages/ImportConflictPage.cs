@@ -80,21 +80,21 @@ internal sealed partial class ImportConflictForm : FormContent
             {
               "type": "Action.Submit",
               "title": "Merge (rename duplicates)",
-              "tooltip": "Keep your projects and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
+              "tooltip": "Keep your workspaces and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
               "data": { "action": "merge" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
               "title": "Replace all",
-              "tooltip": "Delete every project you have now (including favorites) and replace them with the imported file only.",
+              "tooltip": "Delete every workspace you have now (including favorites) and replace them with the imported file only.",
               "data": { "action": "replace" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
               "title": "Cancel import",
-              "tooltip": "Discard this import file and keep your projects unchanged.",
+              "tooltip": "Discard this import file and keep your workspaces unchanged.",
               "data": { "action": "cancel" },
               "associatedInputs": "none"
             }
