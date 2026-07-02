@@ -111,7 +111,11 @@ jobs:
             - **x64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
             - **ARM64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
 
-            ### PowerToys Run plugin
+            Includes **Command Palette** registration and the **PowerToys Run** plugin. Restart PowerToys after install.
+
+            ### PowerToys Run plugin (ZIP only)
+
+            For Store users who want Run without the full EXE:
 
             - **x64**: `QuickShell.Run-x64.zip` → extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\QuickShell\`
             - **ARM64**: `QuickShell.Run-ARM64.zip`

@@ -4,7 +4,17 @@ Third-party plugin that reads the same shortcuts and settings as the [Quick Shel
 
 ## Install
 
-### From GitHub Releases
+### WinGet or GitHub EXE (recommended)
+
+The **WinGet** package and **GitHub EXE** installers include both the Command Palette extension and this Run plugin. Restart PowerToys after install.
+
+```powershell
+winget install tonythethompson.QuickShell
+```
+
+### Run plugin ZIP only
+
+Use this if you installed Quick Shell from the **Microsoft Store** (CmdPal only) and want Run without reinstalling:
 
 1. Download `QuickShell.Run-x64.zip` or `QuickShell.Run-ARM64.zip` from [Releases](https://github.com/tonythethompson/QuickShell/releases) (added in releases after v0.1.7.0; older tags are CmdPal installer only).
 2. Extract into:
@@ -25,9 +35,8 @@ Restart PowerToys after deploy.
 
 | Action | How |
 | --- | --- |
-| Browse shortcuts | **Alt+Space** → `qs` (optionally `qs measure`, etc.) |
-| Home keyword in Run | **Alt+Space** → `qs` + keyword (e.g. `qs measure`) — not bare `measure` |
-| Create / export / import | **Alt+Space** → `qs` → pick a utility row, or use **PowerToys Settings → PowerToys Run → Quick Shell** |
+| Browse shortcuts | **Alt+Space** → `qs` — shortcuts appear first; type more to filter (e.g. `qs measure`) |
+| Manage actions | **Alt+Space** → `qs create`, `qs export`, etc. (utilities rank high once you type a keyword) |
 | Edit shortcut | Select shortcut → **→** context menu → **Edit shortcut** |
 | Run elevated | **Ctrl+Shift+Enter**, or context menu |
 

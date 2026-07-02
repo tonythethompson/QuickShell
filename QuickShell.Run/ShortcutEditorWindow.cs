@@ -24,6 +24,10 @@ internal sealed class ShortcutEditorWindow : Window
         _existing = existing;
         _shortcuts = shortcuts;
 
+        var primaryLaunch = existing is not null
+            ? ShortcutFormSave.GetPrimaryLaunchForRunEditor(existing)
+            : null;
+
         Title = existing is null ? "Create Quick Shell shortcut" : $"Edit {existing.Name}";
         Width = 560;
         MinHeight = 420;
@@ -59,7 +63,7 @@ internal sealed class ShortcutEditorWindow : Window
         };
         root.Children.Add(browseButton);
 
-        _commandBox = AddField(root, "Command (optional)", existing?.Command ?? string.Empty);
+        _commandBox = AddField(root, "Command (optional)", primaryLaunch?.Command ?? existing?.Command ?? string.Empty);
 
         root.Children.Add(new TextBlock
         {
@@ -78,16 +82,31 @@ internal sealed class ShortcutEditorWindow : Window
             _terminalBox.Items.Add(new { choice.Id, choice.Label });
         }
 
-        _terminalBox.SelectedValue = TerminalCatalog.EncodeLaunchTargetId(existing ?? new TerminalShortcut());
+        _terminalBox.SelectedValue = primaryLaunch is not null
+            ? ShortcutFormSave.EncodeLaunchTargetForEntry(primaryLaunch)
+            : TerminalCatalog.EncodeLaunchTargetId(existing ?? new TerminalShortcut());
         root.Children.Add(_terminalBox);
 
         _adminBox = new CheckBox
         {
             Content = "Launch elevated",
-            IsChecked = existing?.RunAsAdmin ?? false,
+            IsChecked = primaryLaunch?.RunAsAdmin ?? existing?.RunAsAdmin ?? false,
             Margin = new Thickness(0, 0, 0, 12),
         };
         root.Children.Add(_adminBox);
+
+        var preserveNote = BuildPreserveNote(existing);
+        if (!string.IsNullOrWhiteSpace(preserveNote))
+        {
+            root.Children.Add(new TextBlock
+            {
+                Text = preserveNote,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 12),
+                Foreground = System.Windows.Media.Brushes.Gray,
+                FontSize = 12,
+            });
+        }
 
         var buttons = new StackPanel
         {
@@ -107,6 +126,34 @@ internal sealed class ShortcutEditorWindow : Window
         root.Children.Add(buttons);
 
         Content = root;
+    }
+
+    private static string? BuildPreserveNote(TerminalShortcut? existing)
+    {
+        if (existing is null)
+        {
+            return null;
+        }
+
+        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(existing);
+        var enabledCount = ShortcutLaunchNormalization.GetEnabledLaunches(existing).Count;
+        var parts = new List<string>();
+
+        if (enabledCount > 1)
+        {
+            parts.Add(
+                $"Command, terminal, and elevation apply to the primary launch only. {enabledCount - 1} other launch{(enabledCount == 2 ? string.Empty : "es")} are preserved.");
+        }
+
+        if (existing.OpenCompanionAppOnLaunch
+            || !string.IsNullOrWhiteSpace(existing.CompanionAppPath)
+            || !string.IsNullOrWhiteSpace(existing.DevServerUrl)
+            || !string.IsNullOrWhiteSpace(existing.RepoUrl))
+        {
+            parts.Add("Companion app and link settings are preserved. Edit those in Command Palette.");
+        }
+
+        return parts.Count == 0 ? null : string.Join(' ', parts);
     }
 
     private static TextBox AddField(StackPanel root, string label, string value)
@@ -129,7 +176,8 @@ internal sealed class ShortcutEditorWindow : Window
     private void SaveShortcut()
     {
         var launchTarget = _terminalBox.SelectedValue as string ?? "default";
-        var result = ShortcutFormSave.TrySave(
+        var result = ShortcutFormSave.TrySaveRunEditor(
+            _existing,
             _existing?.Name,
             _nameBox.Text,
             _abbreviationBox.Text,
