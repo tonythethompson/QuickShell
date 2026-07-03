@@ -74,7 +74,15 @@ internal static class CompanionAppLauncher
             return QuoteIfNeeded(workspaceDirectory);
         }
 
-        return trimmed.Replace("{folder}", QuoteIfNeeded(workspaceDirectory), StringComparison.OrdinalIgnoreCase);
+        var solution = WorkspaceCompanionSignals.TryFindSolutionFile(workspaceDirectory);
+        var expanded = trimmed
+            .Replace("{folder}", QuoteIfNeeded(workspaceDirectory), StringComparison.OrdinalIgnoreCase)
+            .Replace(
+                "{solution}",
+                QuoteIfNeeded(solution ?? workspaceDirectory),
+                StringComparison.OrdinalIgnoreCase);
+
+        return expanded;
     }
 
     private static string QuoteIfNeeded(string path) =>

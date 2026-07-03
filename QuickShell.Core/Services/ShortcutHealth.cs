@@ -47,7 +47,7 @@ internal static class ShortcutHealth
 
         if (string.IsNullOrWhiteSpace(shortcut.Directory))
         {
-            return "Choose project folder · fix in edit";
+            return "Choose workspace folder · fix in edit";
         }
 
         if (!ShortcutValidation.TryNormalizeDirectory(shortcut.Directory, out _, out _))
@@ -64,6 +64,13 @@ internal static class ShortcutHealth
             && !string.IsNullOrWhiteSpace(launchError))
         {
             return $"Invalid workspace · {launchError}";
+        }
+
+        if (shortcut.OpenCompanionAppOnLaunch
+            && !string.IsNullOrWhiteSpace(shortcut.CompanionAppPath)
+            && !CompanionAppCatalog.TryResolveExecutablePath(shortcut.CompanionAppPath, out _))
+        {
+            return $"Companion app missing · {ShortcutDisplay.BuildSubtitle(shortcut)}";
         }
 
         return ShortcutDisplay.BuildSubtitle(shortcut);

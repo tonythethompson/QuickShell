@@ -181,6 +181,103 @@ public sealed class DevServerUrlDetectionTests : IDisposable
         Assert.Null(DevServerUrlDetection.TryDetectDevServerUrl(_root));
     }
 
+    [Fact]
+    public void TryDetectDevLaunchCommand_ReturnsPackageManagerCommand()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {
+            "dev": "vite"
+          }
+        }
+        """);
+        File.WriteAllText(Path.Combine(_root, "pnpm-lock.yaml"), string.Empty);
+
+        Assert.Equal("pnpm dev", DevServerUrlDetection.TryDetectDevLaunchCommand(_root));
+        Assert.Equal("pnpm dev", DevServerUrlDetection.FormatPackageScriptCommand(_root, "dev"));
+    }
+
+    [Fact]
+    public void FormatPackageScriptCommand_UsesYarnWhenYarnLockExists()
+    {
+        File.WriteAllText(Path.Combine(_root, "yarn.lock"), string.Empty);
+
+        Assert.Equal("yarn dev", DevServerUrlDetection.FormatPackageScriptCommand(_root, "dev"));
+    }
+
+    [Fact]
+    public void TryDetectDevLaunchCommand_FallsBackToStartScript()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {
+            "start": "react-scripts start"
+          },
+          "dependencies": {
+            "react-scripts": "5.0.1"
+          }
+        }
+        """);
+
+        Assert.Equal("npm start", DevServerUrlDetection.TryDetectDevLaunchCommand(_root));
+        Assert.Equal("http://localhost:3000", DevServerUrlDetection.TryDetectDevServerUrl(_root));
+    }
+
+    [Fact]
+    public void ApplyDirectoryHints_SyncsDetectedDevCommandToLaunchEntry()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {
+            "dev": "vite"
+          }
+        }
+        """);
+
+        var seed = WorkspaceSeedFactory.ApplyDirectoryHints(new TerminalShortcut
+        {
+            Name = "sample",
+            Directory = _root,
+            Launches = [],
+        });
+
+        Assert.Equal("npm run dev", seed.Command);
+        Assert.Single(seed.Launches);
+        Assert.Equal("npm run dev", seed.Launches[0].Command);
+    }
+
+    [Fact]
+    public void ApplyDirectoryHints_UpdatesExistingBlankLaunchEntry()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {
+            "dev": "vite"
+          }
+        }
+        """);
+
+        var seed = WorkspaceSeedFactory.ApplyDirectoryHints(new TerminalShortcut
+        {
+            Name = "sample",
+            Directory = _root,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = "launch-1",
+                    Label = "Main",
+                    Terminal = "default",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+
+        Assert.Equal("npm run dev", seed.Command);
+        Assert.Equal("npm run dev", seed.Launches[0].Command);
+    }
+
     private void WritePackageJson(string contents) =>
         File.WriteAllText(Path.Combine(_root, "package.json"), contents);
 
@@ -269,6 +366,36 @@ public sealed class CompanionAppTests : IDisposable
     }
 
     [Fact]
+    public void TrySuggestFromDirectory_FallsThroughWhenHigherPriorityCompanionMissing()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".cursor"));
+        Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+
+        var cursorInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetCursor) is not null;
+        var vsCodeInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is not null;
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+
+        if (!cursorInstalled && vsCodeInstalled)
+        {
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetVsCode, suggestion!.PresetId);
+            return;
+        }
+
+        if (cursorInstalled)
+        {
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetCursor, suggestion!.PresetId);
+            return;
+        }
+
+        if (!vsCodeInstalled)
+        {
+            Assert.Null(suggestion);
+        }
+    }
+
+    [Fact]
     public void ExpandArguments_ReplacesFolderTokenAndDot()
     {
         var directory = @"C:\Projects\sample app";
@@ -278,6 +405,22 @@ public sealed class CompanionAppTests : IDisposable
             "\"C:\\Projects\\sample app\" --new-window",
             CompanionAppLauncher.ExpandArguments("{folder} --new-window", directory));
         Assert.Equal("C:\\Projects\\sample", CompanionAppLauncher.ExpandArguments(".", @"C:\Projects\sample"));
+    }
+
+    [Fact]
+    public void ExpandArguments_ReplacesSolutionToken()
+    {
+        var directory = Path.Combine(_root, "sample app");
+        Directory.CreateDirectory(directory);
+        var solutionPath = Path.Combine(directory, "Sample App.sln");
+        File.WriteAllText(solutionPath, string.Empty);
+
+        Assert.Equal(
+            $"\"{solutionPath}\"",
+            CompanionAppLauncher.ExpandArguments("{solution}", directory));
+        Assert.Equal(
+            Path.Combine(_root, "no-solution"),
+            CompanionAppLauncher.ExpandArguments("{solution}", Path.Combine(_root, "no-solution")));
     }
 
     [Fact]
