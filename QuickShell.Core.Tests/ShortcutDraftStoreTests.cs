@@ -156,16 +156,11 @@ public sealed class ShortcutDraftStoreTests : IDisposable
 
     private static void WaitForDraftFile(ShortcutDraftStore store)
     {
-        for (var attempt = 0; attempt < 50; attempt++)
+        store.FlushPendingFileIoForTests();
+
+        if (!File.Exists(store.DraftPath))
         {
-            if (File.Exists(store.DraftPath))
-            {
-                return;
-            }
-
-            Thread.Sleep(20);
+            throw new InvalidOperationException("Draft file was not written.");
         }
-
-        throw new InvalidOperationException("Draft file was not written in time.");
     }
 }

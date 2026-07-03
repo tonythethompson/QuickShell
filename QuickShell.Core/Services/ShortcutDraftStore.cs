@@ -485,6 +485,11 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         }
     }
 
+    internal void FlushPendingFileIoForTests()
+    {
+        WithLock(DrainFileIoQueueLocked);
+    }
+
     public void Dispose()
     {
         if (_disposed)
