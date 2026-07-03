@@ -162,7 +162,7 @@ internal sealed class QuickShellSettingsManager
         return TerminalHostIds.WindowsTerminal;
     }
 
-    private string EnsureValidDefaultProfile(string terminalApplicationId, string? value)
+    private static string EnsureValidDefaultProfile(string terminalApplicationId, string? value)
     {
         var normalized = string.IsNullOrWhiteSpace(value)
             ? TerminalHostIds.DefaultProfile
