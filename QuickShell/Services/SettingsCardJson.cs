@@ -45,47 +45,106 @@ internal static class SettingsCardJson
         }
         """;
 
-    public static string FieldLabel(string label) =>
-        $$"""
-        {
-          "type": "TextBlock",
-          "text": "{{Escape(label)}}",
-          "weight": "Bolder",
-          "wrap": true,
-          "spacing": "None"
-        }
-        """;
+    public static string FieldLabel(string label) => AdaptiveCardFormJson.FieldLabel(label);
 
-    public static string FieldHelp(string text) =>
-        $$"""
-        {
-          "type": "TextBlock",
-          "text": "{{Escape(text)}}",
-          "wrap": true,
-          "isSubtle": true,
-          "size": "Small",
-          "spacing": "None"
-        }
-        """;
+    public static string FieldHelp(string text) => AdaptiveCardFormJson.FieldHelp(text);
 
     public static string FieldGroup(string label, string help, string inputElementJson) =>
+        AdaptiveCardFormJson.FieldGroup(label, help, inputElementJson);
+
+    public static string ChangeActionSave(string action = "save") =>
         $$"""
+        "changeAction": {
+          "type": "Action.Submit",
+          "associatedInputs": "auto",
+          "data": { "action": "{{Escape(action)}}" }
+        }
+        """;
+
+    public static string RecentCountStepper(int count)
+    {
+        var canDecrement = count > QuickShellRecentSettings.MinCount;
+        var canIncrement = count < QuickShellRecentSettings.MaxCount;
+        return $$"""
         {
           "type": "Container",
-          "spacing": "Medium",
+          "spacing": "Small",
           "items": [
+            {{FieldLabel("Recent workspaces to show")}},
+            {{SubtleText("How many recently used workspaces appear on the QuickShell home page. Set to 0 to hide the Recent section.")}},
             {
               "type": "Container",
-              "spacing": "Small",
+              "style": "emphasis",
+              "spacing": "None",
               "items": [
-                {{FieldLabel(label)}},
-                {{FieldHelp(help)}},
-                {{inputElementJson}}
+                {
+                  "type": "ColumnSet",
+                  "spacing": "None",
+                  "columns": [
+                    {
+                      "type": "Column",
+                      "width": "auto",
+                      "verticalContentAlignment": "Center",
+                      "items": [
+                        {
+                          "type": "ActionSet",
+                          "spacing": "None",
+                          "actions": [
+                            {
+                              "type": "Action.Submit",
+                              "title": "\u2212",
+                              "tooltip": "Show fewer recent workspaces",
+                              "associatedInputs": "none",
+                              "isEnabled": {{canDecrement.ToString().ToLowerInvariant()}},
+                              "data": { "action": "recentDecrement" }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Column",
+                      "width": "stretch",
+                      "verticalContentAlignment": "Center",
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "text": "{{count}}",
+                          "horizontalAlignment": "Center",
+                          "size": "Medium",
+                          "weight": "Bolder"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Column",
+                      "width": "auto",
+                      "verticalContentAlignment": "Center",
+                      "items": [
+                        {
+                          "type": "ActionSet",
+                          "spacing": "None",
+                          "actions": [
+                            {
+                              "type": "Action.Submit",
+                              "title": "+",
+                              "tooltip": "Show more recent workspaces",
+                              "associatedInputs": "none",
+                              "isEnabled": {{canIncrement.ToString().ToLowerInvariant()}},
+                              "data": { "action": "recentIncrement" }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
               ]
             }
           ]
         }
         """;
+    }
 
     public static string BuildChoicesJson(IEnumerable<ChoiceSetSetting.Choice> choices) =>
         string.Join(",\n", choices.Select(choice =>

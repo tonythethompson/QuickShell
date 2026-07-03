@@ -59,9 +59,13 @@ After you install a new terminal or edit profiles, use **Refresh terminal list**
 winget install tonythethompson.QuickShell
 ```
 
+Includes **Command Palette** and **PowerToys Run** (`qs`). Restart PowerToys after install.
+
 ### Option 3 — Download an installer
 
-Get the latest **x64** or **ARM64** installer from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases).
+Get the latest **x64** or **ARM64** installer from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases). Same bundle as WinGet (CmdPal + Run).
+
+**Store** installs CmdPal only; use the [Run plugin ZIP](docs/powertoys-run-plugin.md) if you want Alt+Space as well.
 
 ### After installing
 
@@ -147,7 +151,7 @@ Mix **section headers** into the same array with shortcut objects:
 | `Type` | Yes (for headers) | Set to `"separator"` for a titled section header |
 | `Title` | No | Section label shown in the list (omit for a blank divider) |
 
-Favorited shortcuts (`IsPinned`) always appear under a **Favorites** header at the top and are not repeated under layout sections.
+Favorited shortcuts (`IsPinned`) appear under **Favorites** at the top, then **Recent**, then the rest under **Workspaces** (favorites and recents are not repeated in the workspace list).
 
 Example:
 

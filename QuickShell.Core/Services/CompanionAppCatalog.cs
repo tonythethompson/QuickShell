@@ -79,7 +79,10 @@ internal static class CompanionAppCatalog
 
         foreach (var definition in Definitions)
         {
-            choices.Add(new { title = definition.Title, value = definition.Id });
+            if (IsPresetInstalled(definition.Id))
+            {
+                choices.Add(new { title = definition.Title, value = definition.Id });
+            }
         }
 
         choices.Add(new { title = "Custom…", value = PresetCustom });

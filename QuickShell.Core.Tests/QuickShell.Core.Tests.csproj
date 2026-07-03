@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <RootNamespace>QuickShell.Core.Tests</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\QuickShell.Core\QuickShell.Core.csproj" />
+    <ProjectReference Include="..\QuickShell\QuickShell.csproj" />
   </ItemGroup>
 
 </Project>

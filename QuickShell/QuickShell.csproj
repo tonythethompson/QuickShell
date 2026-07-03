@@ -120,7 +120,9 @@
 
   <!-- MSIX packaging for local Visual Studio deploy -->
   <PropertyGroup Condition="'$(WinGetBuild)'!='true'">
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <_QuickShellPublishPlatform Condition="'$(Platform)' == 'x64'">x64</_QuickShellPublishPlatform>
+    <_QuickShellPublishPlatform Condition="'$(Platform)' == 'ARM64' or '$(Platform)' == 'arm64'">arm64</_QuickShellPublishPlatform>
+    <PublishProfile Condition="'$(_QuickShellPublishPlatform)' != ''">win-$(_QuickShellPublishPlatform).pubxml</PublishProfile>
   </PropertyGroup>
 
   <!-- Unpackaged self-contained EXE for WinGet / Inno Setup -->
@@ -159,5 +161,9 @@
       <PDBPayload Remove="@(PDBPayload)" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickShell.Core.Tests" />
+  </ItemGroup>
 
 </Project>
