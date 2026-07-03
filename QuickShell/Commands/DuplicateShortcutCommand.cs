@@ -1,4 +1,5 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
 
@@ -10,8 +11,8 @@ namespace QuickShell.Commands;
 /// </summary>
 internal sealed partial class DuplicateShortcutCommand : ShortcutFormPage
 {
-    public DuplicateShortcutCommand(string sourceName, Action onSaved)
-        : base(existing: null, onSaved, createSeed: QuickShellRuntimeServices.Shortcuts.BuildDuplicate(sourceName))
+    public DuplicateShortcutCommand(TerminalShortcut source, Action onSaved)
+        : base(existing: null, onSaved, createSeed: QuickShellRuntimeServices.Shortcuts.BuildDuplicateFrom(source))
     {
         Id = $"com.quickshell.shortcut-form.duplicate.{Guid.NewGuid():N}";
         Name = "Duplicate";

@@ -55,6 +55,7 @@ internal partial class ShortcutFormPage : ContentPage
         DevServerUrl = shortcut.DevServerUrl,
         RepoUrl = shortcut.RepoUrl,
         OpenCompanionAppOnLaunch = shortcut.OpenCompanionAppOnLaunch,
+        OpenDevServerOnLaunch = shortcut.OpenDevServerOnLaunch,
         CompanionAppPath = shortcut.CompanionAppPath,
         CompanionAppArguments = shortcut.CompanionAppArguments,
     };
@@ -99,6 +100,7 @@ internal sealed partial class ShortcutForm : FormContent
             Directory = initial?.Directory ?? string.Empty,
             DevServerUrl = initial?.DevServerUrl ?? string.Empty,
             RepoUrl = initial?.RepoUrl ?? string.Empty,
+            OpenDevServerOnLaunch = initial?.OpenDevServerOnLaunch ?? false,
             OpenCompanionAppOnLaunch = companion.LaunchOnWorkspaceOpen,
             CompanionAppPreset = companion.Preset,
             CompanionAppPath = companion.Path,
@@ -237,6 +239,7 @@ internal sealed partial class ShortcutForm : FormContent
             Directory = restored.Directory,
             DevServerUrl = restored.DevServerUrl,
             RepoUrl = restored.RepoUrl,
+            OpenDevServerOnLaunch = restored.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = companion.LaunchOnWorkspaceOpen,
             CompanionAppPreset = companion.Preset,
             CompanionAppPath = companion.Path,
@@ -378,12 +381,14 @@ internal sealed partial class ShortcutForm : FormContent
         var terminalApplicationId =
             QuickShellRuntimeServices.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
         var commandCount = Math.Max(1, commands.Count);
+        var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
         TemplateJson = ShortcutFormTemplateCache.GetOrBuild(
             commandCount,
             terminalApplicationId,
+            companionChoicesJson,
             () => ShortcutFormTemplateJson.BuildTemplate(
                 FormTerminalChoicesJson(),
-                CompanionAppCatalog.BuildFormChoicesJson(),
+                companionChoicesJson,
                 commands.Select(command => command.Command).ToList(),
                 QuickShellBrand.DisplayName));
     }
@@ -391,10 +396,10 @@ internal sealed partial class ShortcutForm : FormContent
     private CommandResult HandleBrowseCompanionApp(string inputs)
     {
         MergeDraftFromInputs(inputs, out _);
-        return TryBrowseCustomCompanion(_draft.CompanionAppPreset);
+        return TryBrowseCustomCompanion();
     }
 
-    private CommandResult TryBrowseCustomCompanion(string revertPreset)
+    private CommandResult TryBrowseCustomCompanion()
     {
         var selected = ShortcutFilePickerService.PickExecutableFile();
         if (selected is null)
@@ -689,7 +694,8 @@ internal sealed partial class ShortcutForm : FormContent
         ApplyCompanionFormState(CompanionAppCatalog.ReconcileForSave(
             draft.CompanionAppPreset,
             draft.CompanionAppPath,
-            draft.CompanionAppArguments));
+            draft.CompanionAppArguments,
+            draft.OpenCompanionAppOnLaunch));
 
         var result = ShortcutFormSave.TrySave(
             originalName,
@@ -705,6 +711,7 @@ internal sealed partial class ShortcutForm : FormContent
             _onSaved,
             draft.DevServerUrl,
             draft.RepoUrl,
+            draft.OpenDevServerOnLaunch,
             draft.OpenCompanionAppOnLaunch,
             draft.CompanionAppPath,
             draft.CompanionAppArguments);
@@ -790,6 +797,7 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
+            OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
@@ -1051,6 +1059,7 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
+            OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
@@ -1104,6 +1113,8 @@ internal sealed partial class ShortcutForm : FormContent
         public string Directory { get; set; } = string.Empty;
 
         public string DevServerUrl { get; set; } = string.Empty;
+
+        public bool OpenDevServerOnLaunch { get; set; }
 
         public string RepoUrl { get; set; } = string.Empty;
 

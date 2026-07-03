@@ -99,6 +99,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public TerminalShortcut? BuildDuplicate(string name) => null;
 
+    public TerminalShortcut BuildDuplicateFrom(TerminalShortcut source) => source;
+
     public IEnumerable<TerminalShortcut> Search(string query) => GetShortcuts();
 
     public IEnumerable<TerminalShortcut> SearchForRootPalette(string query) => [];

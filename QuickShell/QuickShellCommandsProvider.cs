@@ -120,15 +120,6 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             };
         }
 
-        if (string.Equals(id, ShortcutLaunchFormPage.PageId, StringComparison.Ordinal))
-        {
-            return new CommandItem(new ShortcutLaunchFormPage())
-            {
-                Title = "Edit terminal",
-                Icon = new IconInfo("\uE756"),
-            };
-        }
-
         if (ShortcutCommandIds.TryParseOpen(id, out var openKey))
         {
             var shortcut = QuickShellRuntimeServices.Shortcuts.ResolveForOpenCommand(openKey);

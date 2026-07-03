@@ -89,7 +89,7 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderFavorite));
 
-        var duplicateCommand = new DuplicateShortcutCommand(shortcut.Name, onChanged);
+        var duplicateCommand = new DuplicateShortcutCommand(shortcut, onChanged);
         items.Add(WithShortcut(
             duplicateCommand,
             ctrl: true,

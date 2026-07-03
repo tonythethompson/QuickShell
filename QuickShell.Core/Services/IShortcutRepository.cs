@@ -66,6 +66,8 @@ internal interface IShortcutRepository
 
     TerminalShortcut? BuildDuplicate(string name);
 
+    TerminalShortcut BuildDuplicateFrom(TerminalShortcut source);
+
     IEnumerable<TerminalShortcut> Search(string query);
 
     IEnumerable<TerminalShortcut> SearchForRootPalette(string query);
