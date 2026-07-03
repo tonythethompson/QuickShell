@@ -87,12 +87,18 @@ internal static class ShortcutLaunchExecutor
             return ShortcutLaunchResult.StayOpen(directoryError);
         }
 
+        var entryOptions = new ShortcutLaunchOptions(
+            options.RunAsAdmin,
+            options.RunAsStandard,
+            IncludeCompanionApp: false,
+            IncludeDevServerLink: false);
+
         return LaunchSingle(
             shortcut,
             launch,
             terminalApplicationId,
             defaultProfileId,
-            options,
+            entryOptions,
             companionAttempted: false,
             companionSucceeded: true,
             companionError: null);

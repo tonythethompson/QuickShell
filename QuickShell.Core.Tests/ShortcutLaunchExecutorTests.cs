@@ -84,4 +84,37 @@ public sealed class WorkspaceDevServerActionsTests
 
         Assert.True(WorkspaceDevServerActions.ShouldOpenOnWorkspaceLaunch(shortcut));
     }
+
+    [Fact]
+    public void LaunchEntry_DoesNotOpenDevServerWhenOptedIn()
+    {
+        var directory = Environment.CurrentDirectory;
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Dev",
+            Directory = directory,
+            DevServerUrl = "http://localhost:5173",
+            OpenDevServerOnLaunch = true,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Main",
+                    Terminal = "default",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        };
+
+        var result = ShortcutLaunchExecutor.LaunchEntry(
+            shortcut,
+            shortcut.Launches[0],
+            "wt",
+            "default");
+
+        Assert.True(result.Dismiss);
+    }
 }
