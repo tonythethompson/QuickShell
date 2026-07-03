@@ -10,6 +10,9 @@ internal static class RunQueryScoring
 {
     public const int BrowseShortcutBaseScore = 5000;
     public const int BrowseUtilityBaseScore = 100;
+    private const int BrowseMaxRecencyBonus = 40;
+    private const int BrowsePinnedMinimumBonus = BrowseMaxRecencyBonus + 1;
+    private const int BrowseUnorderedPinOrder = 100;
 
     public static int ComputeShortcutScore(
         TerminalShortcut shortcut,
@@ -24,7 +27,10 @@ internal static class RunQueryScoring
             var score = BrowseShortcutBaseScore;
             if (shortcut.IsPinned)
             {
-                score += 1000 - Math.Min(shortcut.PinOrder ?? int.MaxValue, 999);
+                var pinOrder = shortcut.PinOrder ?? BrowseUnorderedPinOrder;
+                score += Math.Max(
+                    BrowsePinnedMinimumBonus,
+                    50 + (100 - Math.Min(pinOrder, 99)));
             }
             else
             {

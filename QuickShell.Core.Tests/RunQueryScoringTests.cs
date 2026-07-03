@@ -65,6 +65,23 @@ public sealed class RunQueryScoringTests
     }
 
     [Fact]
+    public void BrowseMode_UnorderedPinnedBeatsRecentUnpinned()
+    {
+        var favorite = new TerminalShortcut { Name = "Fav", IsPinned = true, PinOrder = null };
+        var recent = new TerminalShortcut
+        {
+            Name = "Recent",
+            LastUsedUtc = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc),
+        };
+
+        var now = new DateTime(2024, 6, 1, 13, 0, 0, DateTimeKind.Utc);
+        var favoriteScore = RunQueryScoring.ComputeShortcutScore(favorite, string.Empty, directActivationBrowse: true, now);
+        var recentScore = RunQueryScoring.ComputeShortcutScore(recent, string.Empty, directActivationBrowse: true, now);
+
+        Assert.True(favoriteScore > recentScore);
+    }
+
+    [Fact]
     public void BrowseMode_UtilitiesPreserveDeclarationOrder()
     {
         var firstUtility = RunQueryScoring.ComputeUtilityScore(2000, string.Empty, utilityOrder: 0);
