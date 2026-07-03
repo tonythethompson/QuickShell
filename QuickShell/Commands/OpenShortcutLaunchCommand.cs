@@ -52,7 +52,11 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
             launch,
             _settings.TerminalApplicationId,
             _settings.DefaultProfileId,
-            new ShortcutLaunchOptions(_runAsAdmin, _runAsStandard, IncludeCompanionApp: false));
+            new ShortcutLaunchOptions(
+                _runAsAdmin,
+                _runAsStandard,
+                IncludeCompanionApp: false,
+                IncludeDevServerLink: false));
 
         if (result.MarkUsed)
         {

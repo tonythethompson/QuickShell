@@ -92,6 +92,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
+            OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
@@ -174,6 +175,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
                 onSaved,
                 pending.DevServerUrl,
                 pending.RepoUrl,
+                pending.OpenDevServerOnLaunch,
                 pending.OpenCompanionAppOnLaunch,
                 pending.CompanionAppPath,
                 pending.CompanionAppArguments);
@@ -336,6 +338,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         && string.Equals(Normalize(draft.Directory), Normalize(saved.Directory), StringComparison.Ordinal)
         && string.Equals(Normalize(draft.DevServerUrl), Normalize(saved.DevServerUrl), StringComparison.Ordinal)
         && string.Equals(Normalize(draft.RepoUrl), Normalize(saved.RepoUrl), StringComparison.Ordinal)
+        && draft.OpenDevServerOnLaunch == saved.OpenDevServerOnLaunch
         && draft.OpenCompanionAppOnLaunch == saved.OpenCompanionAppOnLaunch
         && string.Equals(Normalize(draft.CompanionAppPath), Normalize(saved.CompanionAppPath), StringComparison.Ordinal)
         && string.Equals(Normalize(draft.CompanionAppArguments), Normalize(saved.CompanionAppArguments), StringComparison.Ordinal);
@@ -363,6 +366,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         && string.Equals(Normalize(left.Directory), Normalize(right.Directory), StringComparison.Ordinal)
         && string.Equals(Normalize(left.DevServerUrl), Normalize(right.DevServerUrl), StringComparison.Ordinal)
         && string.Equals(Normalize(left.RepoUrl), Normalize(right.RepoUrl), StringComparison.Ordinal)
+        && left.OpenDevServerOnLaunch == right.OpenDevServerOnLaunch
         && left.OpenCompanionAppOnLaunch == right.OpenCompanionAppOnLaunch
         && string.Equals(Normalize(left.CompanionAppPath), Normalize(right.CompanionAppPath), StringComparison.Ordinal)
         && string.Equals(Normalize(left.CompanionAppArguments), Normalize(right.CompanionAppArguments), StringComparison.Ordinal);

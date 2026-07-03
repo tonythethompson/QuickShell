@@ -21,6 +21,8 @@ internal sealed class ShortcutFormDraftData
 
     public string RepoUrl { get; set; } = string.Empty;
 
+    public bool OpenDevServerOnLaunch { get; set; }
+
     public bool OpenCompanionAppOnLaunch { get; set; }
 
     public string CompanionAppPreset { get; set; } = CompanionAppCatalog.PresetNone;
@@ -45,6 +47,7 @@ internal sealed class ShortcutFormDraftData
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
+            OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
@@ -109,6 +112,8 @@ internal sealed class PersistedShortcutEditDraft
     public string DevServerUrl { get; set; } = string.Empty;
 
     public string RepoUrl { get; set; } = string.Empty;
+
+    public bool OpenDevServerOnLaunch { get; set; }
 
     public bool OpenCompanionAppOnLaunch { get; set; }
 
@@ -189,6 +194,7 @@ internal static class ShortcutFormSave
         Action? onSaved,
         string? devServerUrl = null,
         string? repoUrl = null,
+        bool openDevServerOnLaunch = false,
         bool openCompanionAppOnLaunch = false,
         string? companionAppPath = null,
         string? companionAppArguments = null)
@@ -229,6 +235,7 @@ internal static class ShortcutFormSave
             Directory = directory.Trim(),
             DevServerUrl = string.IsNullOrWhiteSpace(devServerUrl) ? null : devServerUrl.Trim(),
             RepoUrl = string.IsNullOrWhiteSpace(repoUrl) ? null : repoUrl.Trim(),
+            OpenDevServerOnLaunch = openDevServerOnLaunch && !string.IsNullOrWhiteSpace(devServerUrl),
             OpenCompanionAppOnLaunch = openCompanionAppOnLaunch,
             CompanionAppPath = string.IsNullOrWhiteSpace(companionAppPath) ? null : companionAppPath.Trim(),
             CompanionAppArguments = string.IsNullOrWhiteSpace(companionAppArguments) ? null : companionAppArguments.Trim(),

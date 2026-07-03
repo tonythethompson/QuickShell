@@ -101,8 +101,8 @@ internal static class WslPathResolver
 
     public static string ResolveDistro(WslLocation location, LaunchTarget target) =>
         location.Distro
-        ?? target.ProfileOrDistro
         ?? ExtractDistroFromCommandLine(target.WtCommandLine)
+        ?? target.ProfileOrDistro
         ?? "Ubuntu";
 
     private static bool TryParseUncRemainder(string remainder, string fullUnc, out WslLocation location)

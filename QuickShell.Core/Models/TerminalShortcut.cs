@@ -68,6 +68,12 @@ internal sealed class TerminalShortcut
 
 
 
+    /// <summary>When true, opens <see cref="DevServerUrl"/> whenever the full workspace runs.</summary>
+
+    public bool OpenDevServerOnLaunch { get; set; }
+
+
+
     /// <summary>Optional repository URL opened from the workspace action menu.</summary>
 
     public string? RepoUrl { get; set; }
