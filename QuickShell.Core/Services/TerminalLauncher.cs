@@ -5,6 +5,8 @@ namespace QuickShell.Services;
 
 internal static class TerminalLauncher
 {
+    internal static Func<ProcessStartInfo, bool>? StartProcessOverride { get; set; }
+
     public static void Open(
         TerminalShortcut shortcut,
         string terminalApplicationId,
@@ -58,7 +60,14 @@ internal static class TerminalLauncher
             startInfo.Verb = "runas";
         }
 
-        if (Process.Start(startInfo) is null)
+        if (StartProcessOverride is { } startOverride)
+        {
+            if (!startOverride(startInfo))
+            {
+                throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
+            }
+        }
+        else if (Process.Start(startInfo) is null)
         {
             throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
         }

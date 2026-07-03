@@ -26,7 +26,18 @@ internal static class ShortcutGlyphs
 
     public const string Add = "\uE710";
 
+    public const string Remove = "\uE738";
+
     public const string Saved = "\uE73E";
 
     public const string Workspace = "\uE8A7";
+
+    public const string Duplicate = "\uE8C8";
+
+    public const string CopyPath = "\uF413";
+
+    public const string OpenRepository = "\uE8A7";
+
+    /// <summary>Segoe MDL2 OpenWith — generic "launch/open application".</summary>
+    public const string OpenCompanionApp = "\uE7AC";
 }

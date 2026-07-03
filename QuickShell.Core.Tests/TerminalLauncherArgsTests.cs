@@ -122,4 +122,27 @@ public sealed class TerminalLauncherArgsTests
         Assert.Contains("-d \"Ubuntu\"", args, StringComparison.Ordinal);
         Assert.DoesNotContain("Dev Shell", args, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ToWslArguments_ParsesLongDistributionFlagFromWtCommandLine()
+    {
+        var shortcut = new TerminalShortcut { Directory = @"C:\Projects\App" };
+        var target = new LaunchTarget
+        {
+            Id = "wt:dev-shell",
+            DisplayName = "Dev Shell",
+            Kind = LaunchTargetKind.WindowsTerminal,
+            ProfileOrDistro = "Dev Shell",
+            WtCommandLine = "wsl.exe --distribution Debian",
+        };
+        var location = new WslPathResolver.WslLocation
+        {
+            LinuxPath = "/mnt/c/Projects/App",
+        };
+
+        var args = TerminalLauncherArgs.ToWslArguments(shortcut, target, location);
+
+        Assert.Contains("-d \"Debian\"", args, StringComparison.Ordinal);
+        Assert.DoesNotContain("Dev Shell", args, StringComparison.Ordinal);
+    }
 }

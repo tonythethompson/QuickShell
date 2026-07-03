@@ -313,7 +313,7 @@ internal static class ShortcutContextCommands
         items.Add(new CommandContextItem(new CopyShortcutPathCommand(shortcut.Id))
         {
             Title = "Copy path",
-            Icon = new IconInfo("\uE8C8"),
+            Icon = new IconInfo(ShortcutGlyphs.CopyPath),
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = true,
             HoverOrder = HoverOrderCopyPath,
@@ -338,7 +338,7 @@ internal static class ShortcutContextCommands
             items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.Repo))
             {
                 Title = "Open repository",
-                Icon = new IconInfo("\uE737"),
+                Icon = new IconInfo(ShortcutGlyphs.OpenRepository),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
                 HoverOrder = HoverOrderRepo,
@@ -351,7 +351,7 @@ internal static class ShortcutContextCommands
             items.Add(new CommandContextItem(new OpenCompanionAppCommand(shortcut))
             {
                 Title = $"Open {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}",
-                Icon = new IconInfo("\uE70F"),
+                Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath)),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
                 HoverOrder = HoverOrderCompanionApp,
