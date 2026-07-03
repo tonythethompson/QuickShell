@@ -93,4 +93,11 @@ public sealed class ShortcutDisplayTests
 
         Assert.Equal("Open folder", ShortcutDisplay.GetLaunchContextMenuTitle(entry));
     }
+
+    [Fact]
+    public void CopyPath_UsesCopyToGlyph_NotIncomingCall()
+    {
+        Assert.Equal("\uF413", ShortcutGlyphs.CopyPath);
+        Assert.NotEqual("\uE77E", ShortcutGlyphs.CopyPath);
+    }
 }

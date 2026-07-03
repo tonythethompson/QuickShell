@@ -62,8 +62,7 @@ internal sealed class TerminalShortcut
 
 
 
-    /// <summary>Optional dev server URL opened from the workspace action menu.</summary>
-
+    /// <summary>Optional dev server URL opened in the browser when the workspace runs.</summary>
     public string? DevServerUrl { get; set; }
 
 

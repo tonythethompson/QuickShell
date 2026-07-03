@@ -13,6 +13,18 @@ internal sealed class CompanionAppSuggestion
 
 internal static class CompanionAppDetection
 {
+    private static readonly string[] GitClientPresetPriority =
+    [
+        CompanionAppCatalog.PresetFork,
+        CompanionAppCatalog.PresetGitHubDesktop,
+    ];
+
+    private static readonly string[] VisualStudioPresetPriority =
+    [
+        CompanionAppCatalog.PresetVs2026,
+        CompanionAppCatalog.PresetVs2022,
+    ];
+
     public static CompanionAppSuggestion? TrySuggestFromDirectory(string directory)
     {
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
@@ -20,14 +32,48 @@ internal static class CompanionAppDetection
             return null;
         }
 
-        if (Directory.Exists(Path.Combine(directory, ".vscode")))
-        {
-            return BuildSuggestion(CompanionAppCatalog.PresetVsCode);
-        }
+        return TrySuggestFromPreset(
+                Directory.Exists(Path.Combine(directory, ".cursor")),
+                CompanionAppCatalog.PresetCursor)
+            ?? TrySuggestFromPreset(
+                Directory.Exists(Path.Combine(directory, ".vscode")),
+                CompanionAppCatalog.PresetVsCode)
+            ?? TrySuggestFromPreset(
+                Directory.Exists(Path.Combine(directory, ".obsidian")),
+                CompanionAppCatalog.PresetObsidian)
+            ?? TrySuggestFromPreset(
+                WorkspaceCompanionSignals.HasZedProject(directory),
+                CompanionAppCatalog.PresetZed)
+            ?? (WorkspaceCompanionSignals.HasJetBrainsProject(directory)
+                && WorkspaceCompanionSignals.HasDotNetProject(directory)
+                ? BuildSuggestion(CompanionAppCatalog.PresetRider)
+                : null)
+            ?? (WorkspaceCompanionSignals.HasVisualStudioSolution(directory)
+                ? BuildFirstSuggestion(VisualStudioPresetPriority)
+                : null)
+            ?? TrySuggestFromPreset(
+                WorkspaceCompanionSignals.HasJetBrainsProject(directory),
+                CompanionAppCatalog.PresetIntelliJIdea)
+            ?? TrySuggestFromPreset(
+                WorkspaceCompanionSignals.HasSublimeProject(directory),
+                CompanionAppCatalog.PresetSublime)
+            ?? (WorkspaceCompanionSignals.HasGitRepository(directory)
+                ? BuildFirstSuggestion(GitClientPresetPriority)
+                : null);
+    }
 
-        if (Directory.Exists(Path.Combine(directory, ".cursor")))
+    private static CompanionAppSuggestion? TrySuggestFromPreset(bool condition, string presetId) =>
+        condition ? BuildSuggestion(presetId) : null;
+
+    private static CompanionAppSuggestion? BuildFirstSuggestion(IEnumerable<string> presetIds)
+    {
+        foreach (var presetId in presetIds)
         {
-            return BuildSuggestion(CompanionAppCatalog.PresetCursor);
+            var suggestion = BuildSuggestion(presetId);
+            if (suggestion is not null)
+            {
+                return suggestion;
+            }
         }
 
         return null;

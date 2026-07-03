@@ -29,6 +29,16 @@ internal static class WorkspaceSeedFactory
             seed.DevServerUrl = DevServerUrlDetection.TryDetectDevServerUrl(seed.Directory);
         }
 
+        if (!HasNonemptyLaunchCommand(seed))
+        {
+            var detected = DevServerUrlDetection.TryDetectDevLaunchCommand(seed.Directory);
+            if (!string.IsNullOrWhiteSpace(detected))
+            {
+                seed.Command = detected;
+                ApplyDetectedCommandToLaunches(seed, detected);
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(seed.CompanionAppPath))
         {
             var suggestion = CompanionAppDetection.TrySuggestFromDirectory(seed.Directory);
@@ -41,5 +51,25 @@ internal static class WorkspaceSeedFactory
         }
 
         return seed;
+    }
+
+    private static bool HasNonemptyLaunchCommand(TerminalShortcut seed) =>
+        seed.Launches.Any(launch => !string.IsNullOrWhiteSpace(launch.Command))
+        || !string.IsNullOrWhiteSpace(seed.Command);
+
+    private static void ApplyDetectedCommandToLaunches(TerminalShortcut seed, string command)
+    {
+        if (seed.Launches is { Count: > 0 })
+        {
+            var first = seed.Launches.OrderBy(launch => launch.Order).First();
+            if (string.IsNullOrWhiteSpace(first.Command))
+            {
+                first.Command = command;
+            }
+
+            return;
+        }
+
+        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(seed);
     }
 }
