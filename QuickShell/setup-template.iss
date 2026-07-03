@@ -45,3 +45,4 @@ Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}}\LocalServer32"; ValueTy
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{#RunPluginDest}"

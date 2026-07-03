@@ -20,8 +20,11 @@ internal static class RunQueryScoring
             {
                 score += 1000 - Math.Min(shortcut.PinOrder ?? 0, 999);
             }
+            else
+            {
+                score += RecencyBonus(shortcut);
+            }
 
-            score += RecencyBonus(shortcut);
             return score;
         }
 
@@ -31,10 +34,10 @@ internal static class RunQueryScoring
         return result;
     }
 
-public static int ComputeUtilityScore(int rankedScore, string search, int utilityOrder) =>
-    string.IsNullOrWhiteSpace(search)
-        ? BrowseUtilityBaseScore - utilityOrder
-        : rankedScore;
+    public static int ComputeUtilityScore(int rankedScore, string search, int utilityOrder) =>
+        string.IsNullOrWhiteSpace(search)
+            ? BrowseUtilityBaseScore - utilityOrder
+            : rankedScore;
 
     public static bool ShouldIncludeUtility(string search, string[] keywords)
     {

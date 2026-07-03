@@ -164,6 +164,56 @@ public sealed class ShortcutFormSaveRunEditorTests
         Assert.Equal("updated", saved.Launches.First(e => e.Id == enabledId).Command);
     }
 
+    [Fact]
+    public void TrySaveRunEditor_Edit_RepairsInvalidLaunches()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var folder = Path.Combine(directory.Path, "Broken");
+        Directory.CreateDirectory(folder);
+
+        var existing = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Broken",
+            Directory = folder,
+            DevServerUrl = "http://localhost:5173",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = string.Empty,
+                    Command = "old",
+                    Terminal = "cmd",
+                    IsEnabled = false,
+                    Order = 0,
+                },
+            ],
+        };
+
+        var result = ShortcutFormSave.TrySaveRunEditor(
+            existing,
+            originalName: "Broken",
+            name: "Broken",
+            abbreviation: string.Empty,
+            directory: folder,
+            command: "npm run dev",
+            launchTarget: "default",
+            runAsAdmin: false,
+            repository,
+            onSaved: null);
+
+        Assert.True(result.Success);
+        var saved = repository.GetByName("Broken");
+        Assert.NotNull(saved);
+        Assert.Single(saved!.Launches);
+        Assert.Equal("Broken", saved.Launches[0].Label);
+        Assert.Equal("npm run dev", saved.Launches[0].Command);
+        Assert.True(saved.Launches[0].IsEnabled);
+        Assert.StartsWith("http://localhost:5173", saved.DevServerUrl);
+    }
+
     private sealed class TempDataDirectory : IDisposable
     {
         public TempDataDirectory()

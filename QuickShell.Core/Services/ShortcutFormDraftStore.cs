@@ -212,14 +212,24 @@ internal static class ShortcutFormSave
         shortcut.Directory = directory.Trim();
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-        var primary = GetPrimaryLaunch(shortcut);
-        primary.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
-        primary.RunAsAdmin = runAsAdmin;
+        if (!ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out _))
+        {
+            shortcut.Launches =
+            [
+                BuildRunEditorLaunch(resolvedName, command, launchTarget, runAsAdmin, order: 0),
+            ];
+        }
+        else
+        {
+            var primary = GetPrimaryLaunch(shortcut);
+            primary.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
+            primary.RunAsAdmin = runAsAdmin;
 
-        var launchScratch = new TerminalShortcut();
-        TerminalCatalog.ApplyLaunchTargetId(launchScratch, launchTarget);
-        primary.Terminal = launchScratch.Terminal;
-        primary.WtProfile = launchScratch.WtProfile;
+            var launchScratch = new TerminalShortcut();
+            TerminalCatalog.ApplyLaunchTargetId(launchScratch, launchTarget);
+            primary.Terminal = launchScratch.Terminal;
+            primary.WtProfile = launchScratch.WtProfile;
+        }
 
         ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
 
@@ -423,6 +433,30 @@ internal static class ShortcutFormSave
             .OrderBy(entry => entry.Order)
             .FirstOrDefault()
         ?? shortcut.Launches.OrderBy(entry => entry.Order).First();
+
+    private static WorkspaceEntry BuildRunEditorLaunch(
+        string name,
+        string command,
+        string launchTarget,
+        bool runAsAdmin,
+        int order)
+    {
+        var entry = new WorkspaceEntry
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Label = string.IsNullOrWhiteSpace(name) ? "Main" : name.Trim(),
+            Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim(),
+            RunAsAdmin = runAsAdmin,
+            IsEnabled = true,
+            Order = order,
+        };
+
+        var scratch = new TerminalShortcut();
+        TerminalCatalog.ApplyLaunchTargetId(scratch, launchTarget);
+        entry.Terminal = scratch.Terminal;
+        entry.WtProfile = scratch.WtProfile;
+        return entry;
+    }
 
     private static TerminalShortcut CloneShortcut(TerminalShortcut source) => new()
     {
