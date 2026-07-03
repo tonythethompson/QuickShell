@@ -151,7 +151,7 @@ internal static class TerminalLauncher
             return string.Empty;
         }
 
-        return $"cmd.exe /k \"cd /d \"{TerminalLauncherArgs.EscapeCmd(shortcut.Directory)}\" && {TerminalLauncherArgs.EscapeCmd(command)}\"";
+        return TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut);
     }
 
     private static ProcessStartInfo CreatePowerShellStartInfo(TerminalShortcut shortcut, bool usePwsh)
@@ -174,19 +174,10 @@ internal static class TerminalLauncher
             return CreateWslProcessStartInfo(shortcut, target, wslLocation);
         }
 
-        var arguments = $"/k \"cd /d \"{TerminalLauncherArgs.EscapeCmd(shortcut.Directory)}\"";
-
-        if (!string.IsNullOrWhiteSpace(shortcut.Command))
-        {
-            arguments += $" && {TerminalLauncherArgs.EscapeCmd(shortcut.Command)}";
-        }
-
-        arguments += '"';
-
         return new ProcessStartInfo
         {
             FileName = "cmd.exe",
-            Arguments = arguments,
+            Arguments = TerminalLauncherArgs.BuildCmdArguments(shortcut),
             UseShellExecute = true,
         };
     }
