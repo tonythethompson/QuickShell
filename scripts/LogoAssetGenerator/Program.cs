@@ -3,13 +3,21 @@ using Svg.Skia;
 
 if (args.Length >= 5 && args[0] == "--render")
 {
-    var svgPath = Path.GetFullPath(args[1]);
-    var outPath = Path.GetFullPath(args[2]);
-    var width = int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture);
-    var height = int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture);
-    Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
-    RenderSvgToPng(svgPath, outPath, width, height);
-    return 0;
+    try
+    {
+        var svgPath = Path.GetFullPath(args[1]);
+        var outPath = Path.GetFullPath(args[2]);
+        var width = int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture);
+        var height = int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture);
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        RenderSvgToPng(svgPath, outPath, width, height);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
 }
 
 if (args.Length < 2)
@@ -95,7 +103,7 @@ static void RenderSquareLogo(string outDir, string fileName, SKPicture picture, 
     var renderHeight = height * supersample;
 
     var info = new SKImageInfo(renderWidth, renderHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
-    using var surface = SKSurface.Create(info);
+    using var surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Failed to allocate surface {renderWidth}x{renderHeight} for {fileName}");
     var canvas = surface.Canvas;
     canvas.Clear(SKColors.Transparent);
 
@@ -539,7 +547,7 @@ static void RenderSvgToPng(string svgPath, string outPath, int width, int height
     var renderHeight = height * supersample;
 
     var info = new SKImageInfo(renderWidth, renderHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
-    using var surface = SKSurface.Create(info);
+    using var surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Failed to allocate surface {renderWidth}x{renderHeight} for {Path.GetFileName(svgPath)}");
     var canvas = surface.Canvas;
     canvas.Clear(SKColors.Transparent);
 
@@ -566,7 +574,7 @@ static void WritePng(SKSurface surface, string outPath, int width, int height)
     if (rendered.Width != width || rendered.Height != height)
     {
         var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        using var destSurface = SKSurface.Create(info);
+        using var destSurface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Failed to allocate resize surface {width}x{height} for {outPath}");
         var canvas = destSurface.Canvas;
         canvas.Clear(SKColors.Transparent);
         using var paint = new SKPaint
