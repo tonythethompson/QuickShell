@@ -242,12 +242,19 @@ internal static class CompanionAppCatalog
         string? executablePath,
         string? arguments)
     {
-        if (!openOnLaunch)
+        var path = executablePath?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
         {
             return new CompanionAppFormState(PresetNone, string.Empty, string.Empty, false);
         }
 
-        return ReconcileForForm(InferPresetFromPath(executablePath), executablePath, arguments);
+        var state = ReconcileForForm(InferPresetFromPath(path), executablePath, arguments);
+        if (string.Equals(state.Preset, PresetNone, StringComparison.OrdinalIgnoreCase))
+        {
+            return state;
+        }
+
+        return state with { LaunchOnWorkspaceOpen = openOnLaunch };
     }
 
     public static CompanionAppFormState ReconcileForForm(
@@ -319,12 +326,18 @@ internal static class CompanionAppCatalog
     public static CompanionAppFormState ReconcileForSave(
         string? presetId,
         string? executablePath,
-        string? arguments) =>
-        ReconcileForForm(presetId, executablePath, arguments) switch
+        string? arguments,
+        bool openOnLaunch)
+    {
+        var state = ReconcileForForm(presetId, executablePath, arguments);
+        if (string.Equals(state.Preset, PresetNone, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(state.Path))
         {
-            { LaunchOnWorkspaceOpen: true } state => state,
-            _ => new CompanionAppFormState(PresetNone, string.Empty, string.Empty, false),
-        };
+            return new CompanionAppFormState(PresetNone, string.Empty, string.Empty, false);
+        }
+
+        return state with { LaunchOnWorkspaceOpen = openOnLaunch };
+    }
 
     public static bool ShouldShowExecutablePath(string preset, string? path) =>
         string.Equals(preset, PresetCustom, StringComparison.OrdinalIgnoreCase)

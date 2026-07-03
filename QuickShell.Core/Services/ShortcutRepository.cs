@@ -835,11 +835,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     public TerminalShortcut? BuildDuplicate(string name)
     {
         var source = GetByName(name);
-        if (source is null)
-        {
-            return null;
-        }
+        return source is null ? null : BuildDuplicateFrom(source);
+    }
 
+    public TerminalShortcut BuildDuplicateFrom(TerminalShortcut source)
+    {
         var copy = Clone(source);
         copy.Id = Guid.NewGuid().ToString("N");
         copy.Name = GetDuplicateName(copy.Name);

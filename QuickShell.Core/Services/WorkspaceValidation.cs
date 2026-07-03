@@ -85,8 +85,8 @@ internal static class WorkspaceValidation
             {
                 needsFolderRepair = true;
                 directoryWarning = shortcut is null
-                    ? "Legacy project shortcut was not found."
-                    : "Legacy project shortcut directory could not be normalized.";
+                    ? "Legacy workspace shortcut was not found."
+                    : "Legacy workspace shortcut directory could not be normalized.";
             }
         }
         else

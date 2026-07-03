@@ -156,6 +156,122 @@ internal sealed class ShortcutSaveResult
 
 internal static class ShortcutFormSave
 {
+    /// <summary>
+    /// Saves from the PowerToys Run simple editor. Creates use a single launch; edits update
+    /// shared fields and the primary (first enabled) launch while preserving other launches
+    /// and companion/link metadata.
+    /// </summary>
+    public static ShortcutSaveResult TrySaveRunEditor(
+        TerminalShortcut? existing,
+        string? originalName,
+        string name,
+        string abbreviation,
+        string directory,
+        string command,
+        string launchTarget,
+        bool runAsAdmin,
+        IShortcutRepository shortcuts,
+        Action? onSaved)
+    {
+        if (existing is null)
+        {
+            return TrySave(
+                originalName,
+                name,
+                abbreviation,
+                directory,
+                command,
+                launchTarget,
+                runAsAdmin,
+                shortcuts,
+                onSaved);
+        }
+
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return ShortcutSaveResult.Fail("Folder path is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = DeriveNameFromDirectory(directory);
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return ShortcutSaveResult.Fail("Name is required.");
+        }
+
+        name = name.Trim();
+        var resolvedName = shortcuts.ResolveAvailableName(name, originalName);
+        var renamedForConflict = !string.Equals(resolvedName, name, StringComparison.OrdinalIgnoreCase);
+
+        var shortcut = CloneShortcut(existing);
+        shortcut.Name = resolvedName;
+        shortcut.Abbreviation = string.IsNullOrWhiteSpace(abbreviation) ? null : abbreviation.Trim();
+        shortcut.Directory = directory.Trim();
+
+        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
+        var primary = GetPrimaryLaunch(shortcut);
+        primary.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
+        primary.RunAsAdmin = runAsAdmin;
+
+        var launchScratch = new TerminalShortcut();
+        TerminalCatalog.ApplyLaunchTargetId(launchScratch, launchTarget);
+        primary.Terminal = launchScratch.Terminal;
+        primary.WtProfile = launchScratch.WtProfile;
+
+        ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
+
+        if (!ShortcutValidation.TryValidate(shortcut, out var validationError))
+        {
+            return ShortcutSaveResult.Fail(validationError);
+        }
+
+        try
+        {
+            shortcuts.Upsert(shortcut, originalName);
+            onSaved?.Invoke();
+
+            var extraLaunches = shortcut.Launches.Count(entry => entry.IsEnabled) - 1;
+            var preservedNote = extraLaunches > 0
+                ? $" ({extraLaunches} other launch{(extraLaunches == 1 ? string.Empty : "es")} preserved)"
+                : string.Empty;
+            var message = renamedForConflict
+                ? $"Saved workspace as '{resolvedName}' (name was already in use).{preservedNote}"
+                : $"Saved workspace '{resolvedName}'.{preservedNote}";
+            return ShortcutSaveResult.Ok(message);
+        }
+        catch (IOException)
+        {
+            return ShortcutSaveResult.Fail("Failed to save workspace: unable to write workspace data.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return ShortcutSaveResult.Fail("Failed to save workspace: access to workspace storage was denied.");
+        }
+        catch (InvalidOperationException)
+        {
+            return ShortcutSaveResult.Fail("Failed to save workspace: workspace data is invalid.");
+        }
+    }
+
+    public static WorkspaceEntry GetPrimaryLaunchForRunEditor(TerminalShortcut shortcut)
+    {
+        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
+        return GetPrimaryLaunch(shortcut);
+    }
+
+    public static string EncodeLaunchTargetForEntry(WorkspaceEntry entry)
+    {
+        var scratch = new TerminalShortcut
+        {
+            Terminal = entry.Terminal,
+            WtProfile = entry.WtProfile,
+        };
+        return TerminalCatalog.EncodeLaunchTargetId(scratch);
+    }
+
     public static ShortcutSaveResult TrySave(
         string? originalName,
         string name,
@@ -300,6 +416,34 @@ internal static class ShortcutFormSave
         var leaf = Path.GetFileName(trimmed);
         return string.IsNullOrWhiteSpace(leaf) ? trimmed : leaf;
     }
+
+    private static WorkspaceEntry GetPrimaryLaunch(TerminalShortcut shortcut) =>
+        shortcut.Launches
+            .Where(entry => entry.IsEnabled)
+            .OrderBy(entry => entry.Order)
+            .FirstOrDefault()
+        ?? shortcut.Launches.OrderBy(entry => entry.Order).First();
+
+    private static TerminalShortcut CloneShortcut(TerminalShortcut source) => new()
+    {
+        Id = source.Id,
+        Name = source.Name,
+        Abbreviation = source.Abbreviation,
+        Directory = source.Directory,
+        Command = source.Command,
+        Terminal = source.Terminal,
+        WtProfile = source.WtProfile,
+        RunAsAdmin = source.RunAsAdmin,
+        IsPinned = source.IsPinned,
+        PinOrder = source.PinOrder,
+        LastUsedUtc = source.LastUsedUtc,
+        Launches = source.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
+        DevServerUrl = source.DevServerUrl,
+        RepoUrl = source.RepoUrl,
+        OpenCompanionAppOnLaunch = source.OpenCompanionAppOnLaunch,
+        CompanionAppPath = source.CompanionAppPath,
+        CompanionAppArguments = source.CompanionAppArguments,
+    };
 }
 
 internal sealed class ShortcutFormLaunchInput

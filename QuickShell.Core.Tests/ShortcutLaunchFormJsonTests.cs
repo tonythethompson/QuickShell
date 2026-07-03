@@ -16,8 +16,8 @@ public sealed class ShortcutLaunchFormJsonTests
 
         Assert.Contains("LaunchCommand_0", text);
         Assert.Contains("LaunchCommand_1", text);
-        Assert.Contains("npm start", text);
-        Assert.Contains("dotnet watch", text);
+        Assert.Contains("${LaunchCommand_0}", text);
+        Assert.Contains("${LaunchCommand_1}", text);
         Assert.Contains("+ Add command", text);
     }
 

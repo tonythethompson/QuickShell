@@ -680,16 +680,31 @@ public sealed class CompanionAppTests : IDisposable
     }
 
     [Fact]
-    public void ReconcileStoredShortcut_WhenLaunchDisabled_ReturnsNone()
+    public void ReconcileStoredShortcut_WhenLaunchDisabled_PreservesCompanionPath()
     {
         var state = CompanionAppCatalog.ReconcileStoredShortcut(
             openOnLaunch: false,
-            @"C:\Apps\Code.exe",
+            @"C:\Apps\MyEditor.exe",
             ".");
 
-        Assert.Equal(CompanionAppCatalog.PresetNone, state.Preset);
+        Assert.Equal(CompanionAppCatalog.PresetCustom, state.Preset);
         Assert.False(state.LaunchOnWorkspaceOpen);
-        Assert.Equal(string.Empty, state.Path);
+        Assert.Equal(@"C:\Apps\MyEditor.exe", state.Path);
+        Assert.Equal(".", state.Arguments);
+    }
+
+    [Fact]
+    public void ReconcileForSave_PreservesCustomPathWhenLaunchDisabled()
+    {
+        var state = CompanionAppCatalog.ReconcileForSave(
+            CompanionAppCatalog.PresetCustom,
+            @"C:\Missing\MyEditor.exe",
+            ".",
+            openOnLaunch: false);
+
+        Assert.Equal(CompanionAppCatalog.PresetCustom, state.Preset);
+        Assert.False(state.LaunchOnWorkspaceOpen);
+        Assert.Equal(@"C:\Missing\MyEditor.exe", state.Path);
     }
 
     [Fact]
@@ -704,19 +719,6 @@ public sealed class CompanionAppTests : IDisposable
         Assert.False(state.LaunchOnWorkspaceOpen);
         Assert.Equal(@"C:\Missing\MyEditor.exe", state.Path);
         Assert.True(CompanionAppCatalog.ShouldShowPathWarning(state.Preset, state.Path));
-    }
-
-    [Fact]
-    public void ReconcileForSave_ClearsWhenNotLaunchable()
-    {
-        var state = CompanionAppCatalog.ReconcileForSave(
-            CompanionAppCatalog.PresetCustom,
-            @"C:\Missing\MyEditor.exe",
-            ".");
-
-        Assert.Equal(CompanionAppCatalog.PresetNone, state.Preset);
-        Assert.False(state.LaunchOnWorkspaceOpen);
-        Assert.Equal(string.Empty, state.Path);
     }
 
     [Fact]
