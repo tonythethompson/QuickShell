@@ -24,6 +24,11 @@ internal sealed class ShortcutEditorWindow : Window
         _existing = existing;
         _shortcuts = shortcuts;
 
+        if (existing is not null)
+        {
+            ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(existing);
+        }
+
         var primaryLaunch = existing is not null
             ? ShortcutFormSave.GetPrimaryLaunchForRunEditor(existing)
             : null;
@@ -135,7 +140,6 @@ internal sealed class ShortcutEditorWindow : Window
             return null;
         }
 
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(existing);
         var enabledCount = ShortcutLaunchNormalization.GetEnabledLaunches(existing).Count;
         var parts = new List<string>();
 

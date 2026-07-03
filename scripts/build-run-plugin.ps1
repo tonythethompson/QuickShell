@@ -66,10 +66,10 @@ function Copy-PluginPayload {
         try {
             Copy-Item $_.FullName -Destination $target -Force -ErrorAction Stop
         }
-        catch [System.Management.Automation.RuntimeException] {
+        catch [System.IO.IOException] {
             $lockedFiles += $relative
         }
-        catch [System.IO.IOException] {
+        catch [System.UnauthorizedAccessException] {
             $lockedFiles += $relative
         }
     }
@@ -78,6 +78,10 @@ function Copy-PluginPayload {
 }
 
 if ($Deploy) {
+    if (-not (Test-Path (Join-Path $stagingRoot 'plugin.json'))) {
+        throw "Staging directory is missing plugin.json."
+    }
+
     $running = Test-PowerToysRunning
     if ($running) {
         Write-Host "PowerToys is running. DLLs may be locked; plugin.json and images will still be copied." -ForegroundColor Yellow
@@ -100,6 +104,7 @@ if ($Deploy) {
         Write-Host "These files were locked and may still be the previous build:" -ForegroundColor Yellow
         $lockedFiles | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
         Write-Host "Quit PowerToys, rerun with -Deploy, then start PowerToys again." -ForegroundColor Yellow
+        exit 1
     }
     else {
         Write-Host "Restart PowerToys to load the plugin." -ForegroundColor Green

@@ -11,18 +11,24 @@ internal static class RunQueryScoring
     public const int BrowseShortcutBaseScore = 5000;
     public const int BrowseUtilityBaseScore = 100;
 
-    public static int ComputeShortcutScore(TerminalShortcut shortcut, string search, bool directActivationBrowse)
+    public static int ComputeShortcutScore(
+        TerminalShortcut shortcut,
+        string search,
+        bool directActivationBrowse,
+        DateTime? utcNow = null)
     {
+        var now = utcNow ?? DateTime.UtcNow;
+
         if (directActivationBrowse && string.IsNullOrWhiteSpace(search))
         {
             var score = BrowseShortcutBaseScore;
             if (shortcut.IsPinned)
             {
-                score += 1000 - Math.Min(shortcut.PinOrder ?? 0, 999);
+                score += 1000 - Math.Min(shortcut.PinOrder ?? int.MaxValue, 999);
             }
             else
             {
-                score += RecencyBonus(shortcut);
+                score += RecencyBonus(shortcut, now);
             }
 
             return score;
@@ -30,14 +36,14 @@ internal static class RunQueryScoring
 
         var result = shortcut.IsPinned ? 100 : 0;
         result += AbbreviationBonus(shortcut, search);
-        result += RecencyBonus(shortcut);
+        result += RecencyBonus(shortcut, now);
         return result;
     }
 
     public static int ComputeUtilityScore(int rankedScore, string search, int utilityOrder) =>
         string.IsNullOrWhiteSpace(search)
             ? BrowseUtilityBaseScore - utilityOrder
-            : rankedScore;
+            : rankedScore - utilityOrder;
 
     public static bool ShouldIncludeUtility(string search, string[] keywords)
     {
@@ -70,14 +76,14 @@ internal static class RunQueryScoring
         return 0;
     }
 
-    private static int RecencyBonus(TerminalShortcut shortcut)
+    private static int RecencyBonus(TerminalShortcut shortcut, DateTime utcNow)
     {
         if (shortcut.LastUsedUtc is null)
         {
             return 0;
         }
 
-        var ageHours = Math.Max(0, (DateTime.UtcNow - shortcut.LastUsedUtc.Value).TotalHours);
-        return (int)Math.Max(0, 40 - ageHours);
+        var ageHours = Math.Max(0, (utcNow - shortcut.LastUsedUtc.Value).TotalHours);
+        return (int)Math.Round(Math.Max(0, 40 - ageHours));
     }
 }

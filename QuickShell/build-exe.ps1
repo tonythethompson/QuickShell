@@ -54,11 +54,12 @@ foreach ($Platform in $Platforms) {
         throw "build-run-plugin.ps1 failed for $runPlatform with exit code $LASTEXITCODE"
     }
 
-    $runPluginSource = "..\QuickShell.Run\bin\$runPlatform\$Configuration\package"
+    $repoRoot = Split-Path -Parent $ProjectDir
+    $runPluginSource = Join-Path $repoRoot "QuickShell.Run\bin\$runPlatform\$Configuration\package"
     $setupTemplate = Get-Content (Join-Path $ProjectDir "setup-template.iss") -Raw
     $setupScript = $setupTemplate -replace '#define AppVersion ".*"', "#define AppVersion `"$Version`""
-    $setupScript = $setupScript -replace '#define RunPluginSource ".*"', "#define RunPluginSource `"$runPluginSource`""
-    $setupScript = $setupScript -replace 'OutputDir=bin\\Release\\installer', "OutputDir=bin\$Configuration\installer"
+    $setupScript = $setupScript -replace '#define RunPluginSource ".*"', "#define RunPluginSource `"$($runPluginSource.Replace('\', '\\'))`""
+    $setupScript = $setupScript -replace 'OutputDir=bin\\[^\\]+\\installer', "OutputDir=bin\$Configuration\installer"
     $setupScript = $setupScript -replace 'OutputBaseFilename=(.*?)\{#AppVersion\}', "OutputBaseFilename=`$1{#AppVersion}-$Platform"
     $setupScript = $setupScript -replace 'Source: "bin\\Release\\win-x64\\publish', "Source: `"bin\$Configuration\win-$Platform\publish"
     if ($Platform -eq "arm64") {

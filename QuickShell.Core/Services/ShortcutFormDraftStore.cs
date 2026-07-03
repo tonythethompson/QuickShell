@@ -212,23 +212,45 @@ internal static class ShortcutFormSave
         shortcut.Directory = directory.Trim();
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-        if (!ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out _))
+        var repairedLaunches = false;
+        if (!ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out var launchValidationError))
         {
-            shortcut.Launches =
-            [
-                BuildRunEditorLaunch(resolvedName, command, launchTarget, runAsAdmin, order: 0),
-            ];
+            if (shortcut.Launches.Count == 0)
+            {
+                shortcut.Launches =
+                [
+                    BuildRunEditorLaunch(resolvedName, command, launchTarget, runAsAdmin, order: 0),
+                ];
+            }
+            else
+            {
+                var primary = GetPrimaryLaunch(shortcut);
+                ApplyRunEditorFieldsToLaunch(primary, resolvedName, command, launchTarget, runAsAdmin);
+                if (string.IsNullOrWhiteSpace(primary.Label))
+                {
+                    primary.Label = resolvedName;
+                }
+
+                if (!shortcut.Launches.Any(entry => entry.IsEnabled))
+                {
+                    primary.IsEnabled = true;
+                }
+
+                foreach (var entry in shortcut.Launches)
+                {
+                    if (string.IsNullOrWhiteSpace(entry.Label))
+                    {
+                        entry.Label = entry.IsEnabled ? "Launch" : "Disabled";
+                    }
+                }
+            }
+
+            repairedLaunches = true;
         }
         else
         {
             var primary = GetPrimaryLaunch(shortcut);
-            primary.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
-            primary.RunAsAdmin = runAsAdmin;
-
-            var launchScratch = new TerminalShortcut();
-            TerminalCatalog.ApplyLaunchTargetId(launchScratch, launchTarget);
-            primary.Terminal = launchScratch.Terminal;
-            primary.WtProfile = launchScratch.WtProfile;
+            ApplyRunEditorFieldsToLaunch(primary, resolvedName, command, launchTarget, runAsAdmin);
         }
 
         ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
@@ -247,9 +269,12 @@ internal static class ShortcutFormSave
             var preservedNote = extraLaunches > 0
                 ? $" ({extraLaunches} other launch{(extraLaunches == 1 ? string.Empty : "es")} preserved)"
                 : string.Empty;
+            var repairNote = repairedLaunches && !string.IsNullOrWhiteSpace(launchValidationError)
+                ? " Repaired invalid launch entries."
+                : string.Empty;
             var message = renamedForConflict
-                ? $"Saved workspace as '{resolvedName}' (name was already in use).{preservedNote}"
-                : $"Saved workspace '{resolvedName}'.{preservedNote}";
+                ? $"Saved workspace as '{resolvedName}' (name was already in use).{preservedNote}{repairNote}"
+                : $"Saved workspace '{resolvedName}'.{preservedNote}{repairNote}";
             return ShortcutSaveResult.Ok(message);
         }
         catch (IOException)
@@ -451,11 +476,29 @@ internal static class ShortcutFormSave
             Order = order,
         };
 
-        var scratch = new TerminalShortcut();
-        TerminalCatalog.ApplyLaunchTargetId(scratch, launchTarget);
-        entry.Terminal = scratch.Terminal;
-        entry.WtProfile = scratch.WtProfile;
+        ApplyRunEditorFieldsToLaunch(entry, name, command, launchTarget, runAsAdmin);
         return entry;
+    }
+
+    private static void ApplyRunEditorFieldsToLaunch(
+        WorkspaceEntry launch,
+        string name,
+        string command,
+        string launchTarget,
+        bool runAsAdmin)
+    {
+        launch.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
+        launch.RunAsAdmin = runAsAdmin;
+
+        var launchScratch = new TerminalShortcut();
+        TerminalCatalog.ApplyLaunchTargetId(launchScratch, launchTarget);
+        launch.Terminal = launchScratch.Terminal;
+        launch.WtProfile = launchScratch.WtProfile;
+
+        if (string.IsNullOrWhiteSpace(launch.Label))
+        {
+            launch.Label = string.IsNullOrWhiteSpace(name) ? "Main" : name.Trim();
+        }
     }
 
     private static TerminalShortcut CloneShortcut(TerminalShortcut source) => new()

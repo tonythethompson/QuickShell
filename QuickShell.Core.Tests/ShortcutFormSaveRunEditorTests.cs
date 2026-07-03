@@ -143,6 +143,7 @@ public sealed class ShortcutFormSaveRunEditorTests
                 },
             ],
         };
+        ShortcutLaunchNormalization.NormalizeShortcut(existing);
         repository.Upsert(existing);
 
         var result = ShortcutFormSave.TrySaveRunEditor(
@@ -214,6 +215,66 @@ public sealed class ShortcutFormSaveRunEditorTests
         Assert.StartsWith("http://localhost:5173", saved.DevServerUrl);
     }
 
+    [Fact]
+    public void TrySaveRunEditor_Edit_RepairsPrimaryWithoutDroppingSecondaryLaunches()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var folder = Path.Combine(directory.Path, "RepairPrimary");
+        Directory.CreateDirectory(folder);
+
+        var secondaryId = Guid.NewGuid().ToString("N");
+        var existing = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "RepairPrimary",
+            Directory = folder,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = string.Empty,
+                    Command = "old",
+                    Terminal = "cmd",
+                    IsEnabled = false,
+                    Order = 0,
+                },
+                new WorkspaceEntry
+                {
+                    Id = secondaryId,
+                    Label = "Agents",
+                    Command = "claude",
+                    Terminal = "wt",
+                    IsEnabled = true,
+                    Order = 1,
+                },
+            ],
+        };
+
+        var result = ShortcutFormSave.TrySaveRunEditor(
+            existing,
+            originalName: "RepairPrimary",
+            name: "RepairPrimary",
+            abbreviation: string.Empty,
+            directory: folder,
+            command: "npm run dev",
+            launchTarget: "default",
+            runAsAdmin: false,
+            repository,
+            onSaved: null);
+
+        Assert.True(result.Success);
+        Assert.Contains("Repaired", result.Message, StringComparison.OrdinalIgnoreCase);
+
+        var saved = repository.GetByName("RepairPrimary");
+        Assert.NotNull(saved);
+        Assert.Equal(2, saved!.Launches.Count);
+        Assert.Equal("npm run dev", saved.Launches.First(e => e.Id == secondaryId).Command);
+        Assert.Equal("old", saved.Launches.First(e => e.Order == 0).Command);
+        Assert.Equal("Disabled", saved.Launches.First(e => e.Order == 0).Label);
+    }
+
     private sealed class TempDataDirectory : IDisposable
     {
         public TempDataDirectory()
@@ -233,7 +294,7 @@ public sealed class ShortcutFormSaveRunEditorTests
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch
+            catch (IOException)
             {
             }
         }
