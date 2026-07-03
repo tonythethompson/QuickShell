@@ -5,18 +5,24 @@ using System.Globalization;
 internal static class QuickShellRecentSettings
 {
     public const string SettingKey = "recentWorkspaceCount";
-    public const int DefaultCount = 8;
+    public const int EnabledCount = 8;
+    public const int DefaultCount = EnabledCount;
     public const int MinCount = 0;
-    public const int MaxCount = 100;
+
+    public static bool IsEnabled(int count) => NormalizeCount(count) > MinCount;
+
+    public static int FromEnabled(bool enabled) => enabled ? EnabledCount : MinCount;
 
     public static int NormalizeCount(int? value) =>
         value switch
         {
             null => DefaultCount,
-            < MinCount => MinCount,
-            > MaxCount => MaxCount,
-            _ => value.Value,
+            <= MinCount => MinCount,
+            _ => EnabledCount,
         };
+
+    public static int ClampDisplayCount(int maxCount) =>
+        maxCount <= MinCount ? MinCount : Math.Min(maxCount, EnabledCount);
 
     public static string FormatCount(int count) =>
         NormalizeCount(count).ToString(CultureInfo.InvariantCulture);

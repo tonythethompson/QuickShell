@@ -7,10 +7,12 @@ namespace QuickShell.Pages;
 
 internal sealed partial class HomeDisplaySettingsForm : FormContent
 {
+    private const string ShowRecentsField = "showRecents";
+
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly Action? _onReload;
     private readonly Action? _onSettingsChanged;
-    private int _pendingRecentCount;
+    private bool _pendingShowRecents;
 
     public HomeDisplaySettingsForm(
         QuickShellSettingsManager settingsManager,
@@ -20,7 +22,7 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
         _settingsManager = settingsManager;
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
-        _pendingRecentCount = settingsManager.RecentWorkspaceCount;
+        _pendingShowRecents = QuickShellRecentSettings.IsEnabled(settingsManager.RecentWorkspaceCount);
         RebuildTemplate();
     }
 
@@ -31,42 +33,28 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
         return action switch
         {
-            "recentDecrement" => AdjustRecentCount(-1),
-            "recentIncrement" => AdjustRecentCount(1),
+            "saveRecents" => SaveFromInputs(inputs, data),
             _ => CommandResult.KeepOpen(),
         };
     }
 
-    private CommandResult AdjustRecentCount(int delta)
+    private CommandResult SaveFromInputs(string inputs, string data)
     {
-        var next = QuickShellRecentSettings.NormalizeCount(_pendingRecentCount + delta);
-        if (next == _pendingRecentCount)
+        var values = ParseValues(inputs, data);
+        var showRecents = ParseToggleBool(values?[ShowRecentsField]?.ToString(), _pendingShowRecents);
+        var nextCount = QuickShellRecentSettings.FromEnabled(showRecents);
+
+        if (nextCount != _settingsManager.RecentWorkspaceCount)
         {
-            return CommandResult.KeepOpen();
+            _settingsManager.UpdateRecentWorkspaceCount(nextCount);
+            _onReload?.Invoke();
+            _onSettingsChanged?.Invoke();
+            QuickShellStatus.ShowToast("Saved");
         }
 
-        _pendingRecentCount = next;
+        _pendingShowRecents = showRecents;
         RebuildTemplate();
-        ScheduleDebouncedCommit();
         return CommandResult.KeepOpen();
-    }
-
-    private void ScheduleDebouncedCommit()
-    {
-        SettingsFormHelpers.ScheduleDebouncedReload(CommitPendingRecentCount);
-    }
-
-    private void CommitPendingRecentCount()
-    {
-        if (_pendingRecentCount == _settingsManager.RecentWorkspaceCount)
-        {
-            return;
-        }
-
-        _settingsManager.UpdateRecentWorkspaceCount(_pendingRecentCount);
-        _onReload?.Invoke();
-        _onSettingsChanged?.Invoke();
-        QuickShellStatus.ShowToast("Saved");
     }
 
     private void RebuildTemplate()
@@ -74,7 +62,7 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
         var bodyParts = new List<string>
         {
             SettingsCardJson.SectionHeader("Home display"),
-            SettingsCardJson.RecentCountStepper(_pendingRecentCount),
+            SettingsCardJson.RecentEnabledToggle(_pendingShowRecents),
         };
 
         var bodyJson = string.Join(",\n                ", bodyParts);
@@ -97,4 +85,37 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
 
     private static string? TryGetActionFromInputs(string inputs) =>
         JsonNode.Parse(inputs)?.AsObject()?["action"]?.ToString();
+
+    private static JsonObject? ParseValues(string inputs, string data)
+    {
+        JsonObject? merged = null;
+
+        if (!string.IsNullOrWhiteSpace(inputs))
+        {
+            merged = JsonNode.Parse(inputs)?.AsObject();
+        }
+
+        if (!string.IsNullOrWhiteSpace(data))
+        {
+            var dataObject = JsonNode.Parse(data)?.AsObject();
+            if (dataObject is not null)
+            {
+                merged ??= new JsonObject();
+                foreach (var property in dataObject)
+                {
+                    merged[property.Key] = property.Value?.DeepClone();
+                }
+            }
+        }
+
+        return merged;
+    }
+
+    private static bool ParseToggleBool(string? value, bool fallback) =>
+        value switch
+        {
+            "true" => true,
+            "false" => false,
+            _ => fallback,
+        };
 }

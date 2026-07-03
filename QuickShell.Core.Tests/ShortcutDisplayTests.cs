@@ -95,9 +95,17 @@ public sealed class ShortcutDisplayTests
     }
 
     [Fact]
-    public void CopyPath_UsesCopyToGlyph_NotIncomingCall()
+    public void CopyPath_UsesCopyGlyph_NotCopyTo()
     {
-        Assert.Equal("\uF413", ShortcutGlyphs.CopyPath);
+        Assert.Equal("\uE8C8", ShortcutGlyphs.CopyPath);
+        Assert.NotEqual("\uF413", ShortcutGlyphs.CopyPath);
         Assert.NotEqual("\uE77E", ShortcutGlyphs.CopyPath);
+    }
+
+    [Fact]
+    public void Duplicate_UsesCopyToGlyph()
+    {
+        Assert.Equal("\uF413", ShortcutGlyphs.Duplicate);
+        Assert.NotEqual("\uE8C8", ShortcutGlyphs.Duplicate);
     }
 }

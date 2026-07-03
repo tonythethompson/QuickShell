@@ -145,18 +145,27 @@ public sealed class ShortcutRecentsTests
     [Theory]
     [InlineData(-5, 0)]
     [InlineData(0, 0)]
+    [InlineData(1, 8)]
     [InlineData(8, 8)]
-    [InlineData(100, 100)]
-    [InlineData(150, 100)]
-    public void NormalizeCount_ClampsToRange(int input, int expected) =>
+    [InlineData(100, 8)]
+    [InlineData(150, 8)]
+    public void NormalizeCount_EnablesFixedCapOrDisables(int input, int expected) =>
         Assert.Equal(expected, QuickShellRecentSettings.NormalizeCount(input));
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(3, 3)]
+    [InlineData(8, 8)]
+    [InlineData(12, 8)]
+    public void ClampDisplayCount_LimitsToEnabledCap(int input, int expected) =>
+        Assert.Equal(expected, QuickShellRecentSettings.ClampDisplayCount(input));
 
     [Fact]
     public void TryParseCount_PrefersInvariantCultureDigits()
     {
         Assert.True(QuickShellRecentSettings.TryParseCount("12", out var parsed));
-        Assert.Equal(12, parsed);
-        Assert.Equal("12", QuickShellRecentSettings.FormatCount(12));
+        Assert.Equal(8, parsed);
+        Assert.Equal("8", QuickShellRecentSettings.FormatCount(12));
     }
 
     [Fact]

@@ -135,7 +135,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
                 "Workspaces",
                 "Export, import, or reset saved workspace folders and favorites.",
                 BuildWorkspaceTransferActionSet(),
-                topSpacing: "Medium"));
+                topSpacing: "Small"));
         }
 
         var conflictBlock = BuildImportConflictBlock();
@@ -216,7 +216,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
     private static string BuildImportConflictActionSet() => """
         {
           "type": "ActionSet",
-          "spacing": "Medium",
+          "spacing": "Small",
           "actions": [
             {
               "type": "Action.Submit",

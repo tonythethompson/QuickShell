@@ -42,8 +42,8 @@ internal sealed class QuickShellSettingsManager
 
         _recentWorkspaceCountSetting = new TextSetting(
             RecentWorkspaceCountSettingId,
-            "Recent workspaces to show",
-            "How many recently used workspaces to show on the home page (0 hides the section).",
+            "Show recent workspaces",
+            $"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page (0 hides the section).",
             QuickShellRecentSettings.DefaultCount.ToString(CultureInfo.InvariantCulture));
 
         _settings.Add(_terminalApplicationSetting);

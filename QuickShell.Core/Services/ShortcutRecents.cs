@@ -10,7 +10,7 @@ internal static class ShortcutRecents
         IReadOnlyList<TerminalShortcut> shortcuts,
         int maxCount = QuickShellRecentSettings.DefaultCount)
     {
-        var limit = QuickShellRecentSettings.NormalizeCount(maxCount);
+        var limit = QuickShellRecentSettings.ClampDisplayCount(maxCount);
         if (limit == 0)
         {
             return [];
