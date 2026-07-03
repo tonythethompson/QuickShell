@@ -39,8 +39,33 @@ public sealed class TerminalLauncherArgsTests
 
         var args = TerminalLauncherArgs.BuildCmdArguments(shortcut);
 
-        Assert.Contains(@"C:\My Projects\App", args, StringComparison.Ordinal);
-        Assert.Contains("dir", args, StringComparison.Ordinal);
+        Assert.Equal("/k \"cd /d \"\"C:\\My Projects\\App\"\" && dir\"", args);
+    }
+
+    [Fact]
+    public void BuildCmdArguments_OmitsCommandWhenEmpty()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Directory = @"C:\My Projects\App",
+        };
+
+        var args = TerminalLauncherArgs.BuildCmdArguments(shortcut);
+
+        Assert.Equal("/k \"cd /d \"\"C:\\My Projects\\App\"\"\"", args);
+    }
+
+    [Fact]
+    public void BuildWindowsTerminalCmdSuffix_OmitsTrailingAndWhenCommandEmpty()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Directory = @"C:\My Projects\App",
+        };
+
+        var args = TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut);
+
+        Assert.Equal("cmd.exe /k \"cd /d \"\"C:\\My Projects\\App\"\"\"", args);
     }
 
     [Fact]

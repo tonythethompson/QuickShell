@@ -34,10 +34,9 @@ internal static class ShortcutLaunchExecutor
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
 
-        if (!ShortcutValidation.DirectoryExists(shortcut.Directory))
+        if (!TryGetLaunchDirectory(shortcut.Directory, out _, out var directoryError))
         {
-            return ShortcutLaunchResult.StayOpen(
-                $"Workspace could not launch: folder not found at {shortcut.Directory}.");
+            return ShortcutLaunchResult.StayOpen(directoryError);
         }
 
         var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
@@ -83,10 +82,9 @@ internal static class ShortcutLaunchExecutor
         string defaultProfileId,
         ShortcutLaunchOptions options = default)
     {
-        if (!ShortcutValidation.DirectoryExists(shortcut.Directory))
+        if (!TryGetLaunchDirectory(shortcut.Directory, out _, out var directoryError))
         {
-            return ShortcutLaunchResult.StayOpen(
-                $"Workspace could not launch: folder not found at {shortcut.Directory}.");
+            return ShortcutLaunchResult.StayOpen(directoryError);
         }
 
         return LaunchSingle(
@@ -167,7 +165,8 @@ internal static class ShortcutLaunchExecutor
                     launchShortcut,
                     terminalApplicationId,
                     defaultProfileId,
-                    launch.RunAsAdmin);
+                    options.RunAsAdmin,
+                    options.RunAsStandard);
                 opened++;
             }
             catch (DirectoryNotFoundException)
@@ -242,6 +241,24 @@ internal static class ShortcutLaunchExecutor
         return ShortcutLaunchResult.StayOpen(
             $"{successPrefix}, but {string.Join(" ", warnings)}",
             markUsed: true);
+    }
+
+    private static bool TryGetLaunchDirectory(string? directory, out string normalizedDirectory, out string error)
+    {
+        if (!ShortcutValidation.TryNormalizeDirectory(directory ?? string.Empty, out normalizedDirectory, out error))
+        {
+            error = $"Workspace could not launch: {error}";
+            return false;
+        }
+
+        if (!ShortcutValidation.DirectoryExists(normalizedDirectory))
+        {
+            error = $"Workspace could not launch: folder not found at {normalizedDirectory}.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
     }
 
     private static string FormatLaunchWarning(string summary, string? detail) =>

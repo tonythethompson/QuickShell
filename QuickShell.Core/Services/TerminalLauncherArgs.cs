@@ -64,7 +64,7 @@ internal static class TerminalLauncherArgs
 
     public static string BuildCmdArguments(TerminalShortcut shortcut)
     {
-        var arguments = $"/k \"cd /d \"{EscapeCmd(shortcut.Directory)}\"";
+        var arguments = $"/k \"cd /d \"\"{EscapeCmd(shortcut.Directory)}\"\"";
 
         if (!string.IsNullOrWhiteSpace(shortcut.Command))
         {
@@ -75,6 +75,16 @@ internal static class TerminalLauncherArgs
         return arguments;
     }
 
-    public static string BuildWindowsTerminalCmdSuffix(TerminalShortcut shortcut) =>
-        $"cmd.exe /k \"cd /d \"{EscapeCmd(shortcut.Directory)}\" && {EscapeCmd(shortcut.Command ?? string.Empty)}\"";
+    public static string BuildWindowsTerminalCmdSuffix(TerminalShortcut shortcut)
+    {
+        var arguments = $"/k \"cd /d \"\"{EscapeCmd(shortcut.Directory)}\"\"";
+
+        if (!string.IsNullOrWhiteSpace(shortcut.Command))
+        {
+            arguments += $" && {EscapeCmd(shortcut.Command)}";
+        }
+
+        arguments += '"';
+        return $"cmd.exe {arguments}";
+    }
 }
