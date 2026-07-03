@@ -312,8 +312,13 @@ internal static class ShortcutFormTemplateJson
         }
         """;
 
-    private static string Escape(string? value) =>
-        (value ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
+private static string Escape(string? value)
+{
+    var encoded = global::System.Text.Json.JsonSerializer.Serialize(
+        value ?? string.Empty,
+        global::QuickShell.QuickShellJsonContext.Default.String);
+    return encoded.Length >= 2 ? encoded[1..^1] : string.Empty;
+}
 
     /// <summary>
     /// Choice arrays and command rows must be interpolated in the outer template scope.
