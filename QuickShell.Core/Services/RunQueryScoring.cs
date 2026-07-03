@@ -31,10 +31,10 @@ internal static class RunQueryScoring
         return result;
     }
 
-    public static int ComputeUtilityScore(int rankedScore, string search, int utilityOrder) =>
-        string.IsNullOrWhiteSpace(search)
-            ? BrowseUtilityBaseScore + utilityOrder
-            : rankedScore;
+public static int ComputeUtilityScore(int rankedScore, string search, int utilityOrder) =>
+    string.IsNullOrWhiteSpace(search)
+        ? BrowseUtilityBaseScore - utilityOrder
+        : rankedScore;
 
     public static bool ShouldIncludeUtility(string search, string[] keywords)
     {
