@@ -58,9 +58,9 @@ foreach ($Platform in $Platforms) {
     $setupTemplate = Get-Content (Join-Path $ProjectDir "setup-template.iss") -Raw
     $setupScript = $setupTemplate -replace '#define AppVersion ".*"', "#define AppVersion `"$Version`""
     $setupScript = $setupScript -replace '#define RunPluginSource ".*"', "#define RunPluginSource `"$runPluginSource`""
+    $setupScript = $setupScript -replace 'OutputDir=bin\\Release\\installer', "OutputDir=bin\$Configuration\installer"
     $setupScript = $setupScript -replace 'OutputBaseFilename=(.*?)\{#AppVersion\}', "OutputBaseFilename=`$1{#AppVersion}-$Platform"
-    $setupScript = $setupScript -replace 'Source: "bin\\Release\\win-x64\\publish', "Source: `"bin\Release\win-$Platform\publish"
-
+    $setupScript = $setupScript -replace 'Source: "bin\\Release\\win-x64\\publish', "Source: `"bin\$Configuration\win-$Platform\publish"
     if ($Platform -eq "arm64") {
         $setupScript = $setupScript -replace '(\[Setup\][^\[]*)(MinVersion=)', "`$1ArchitecturesAllowed=arm64`r`nArchitecturesInstallIn64BitMode=arm64`r`n`$2"
     }
