@@ -3,13 +3,21 @@ using Svg.Skia;
 
 if (args.Length >= 5 && args[0] == "--render")
 {
-    var svgPath = Path.GetFullPath(args[1]);
-    var outPath = Path.GetFullPath(args[2]);
-    var width = int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture);
-    var height = int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture);
-    Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
-    RenderSvgToPng(svgPath, outPath, width, height);
-    return 0;
+    try
+    {
+        var svgPath = Path.GetFullPath(args[1]);
+        var outPath = Path.GetFullPath(args[2]);
+        var width = int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture);
+        var height = int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture);
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        RenderSvgToPng(svgPath, outPath, width, height);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
 }
 
 if (args.Length < 2)
