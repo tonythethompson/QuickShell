@@ -32,21 +32,28 @@ internal sealed class LaunchTarget
 
 internal static class TerminalCatalog
 {
+    private sealed class CatalogSnapshot
+    {
+        public required IReadOnlyList<LaunchTarget> Targets { get; init; }
+
+        public required Dictionary<string, LaunchTarget> ById { get; init; }
+
+        public required ExecutableAvailability Executables { get; init; }
+    }
+
     private static readonly object Sync = new();
-    private static IReadOnlyList<LaunchTarget>? _cached;
-    private static Dictionary<string, LaunchTarget>? _byId;
-    private static ExecutableAvailability? _executables;
+    private static CatalogSnapshot? _snapshot;
     private static string? _cachedFormChoicesJson;
     private static bool _cachedFormChoicesIncludeDefault;
     private static string? _cachedFormApplicationId;
 
     public static IReadOnlyList<LaunchTarget> GetLaunchTargets(bool includeDefaultChoice = false)
     {
-        EnsureCached();
+        var snapshot = EnsureCached();
 
         if (!includeDefaultChoice)
         {
-            return _cached!;
+            return snapshot.Targets;
         }
 
         return
@@ -57,7 +64,7 @@ internal static class TerminalCatalog
                 DisplayName = "Default (from settings)",
                 Kind = LaunchTargetKind.Default,
             },
-            .. _cached!,
+            .. snapshot.Targets,
         ];
     }
 
@@ -65,9 +72,7 @@ internal static class TerminalCatalog
     {
         lock (Sync)
         {
-            _cached = null;
-            _byId = null;
-            _executables = null;
+            _snapshot = null;
             _cachedFormChoicesJson = null;
         }
 
@@ -93,20 +98,20 @@ internal static class TerminalCatalog
 
     private static List<string> GetConsoleHostProfileIds()
     {
-        EnsureCached();
+        var snapshot = EnsureCached();
         var ids = new List<string> { TerminalHostIds.DefaultProfile };
 
-        if (_executables!.PowerShell)
+        if (snapshot.Executables.PowerShell)
         {
             ids.Add("powershell");
         }
 
-        if (_executables.Pwsh)
+        if (snapshot.Executables.Pwsh)
         {
             ids.Add("pwsh");
         }
 
-        if (_executables.Cmd)
+        if (snapshot.Executables.Cmd)
         {
             ids.Add("cmd");
         }
@@ -127,10 +132,10 @@ internal static class TerminalCatalog
             return true;
         }
 
-        EnsureCached();
+        var snapshot = EnsureCached();
         return terminalApplicationId.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
-            ? _executables!.IntelligentTerminal
-            : _executables!.WindowsTerminal;
+            ? snapshot.Executables.IntelligentTerminal
+            : snapshot.Executables.WindowsTerminal;
     }
 
     public static IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId) =>
@@ -144,8 +149,8 @@ internal static class TerminalCatalog
             return "Default";
         }
 
-        EnsureCached();
-        if (_byId!.TryGetValue(id, out var target))
+        var snapshot = EnsureCached();
+        if (snapshot.ById.TryGetValue(id, out var target))
         {
             return target.DisplayName;
         }
@@ -230,13 +235,13 @@ internal static class TerminalCatalog
             id = "wt";
         }
 
-        EnsureCached();
-        if (_byId!.TryGetValue(id, out var target))
+        var snapshot = EnsureCached();
+        if (snapshot.ById.TryGetValue(id, out var target))
         {
             return target;
         }
 
-        return _byId.TryGetValue("wt", out var fallback)
+        return snapshot.ById.TryGetValue("wt", out var fallback)
             ? fallback
             : new LaunchTarget
             {
@@ -314,8 +319,8 @@ internal static class TerminalCatalog
         {
             var prefix = TerminalHostIds.ProfileIdPrefix(terminalApplicationId);
             var explicitId = $"{prefix}:{profileName}";
-            EnsureCached();
-            if (_byId!.TryGetValue(explicitId, out var explicitTarget))
+            var explicitSnapshot = EnsureCached();
+            if (explicitSnapshot.ById.TryGetValue(explicitId, out var explicitTarget))
             {
                 return new LaunchTarget
                 {
@@ -329,7 +334,6 @@ internal static class TerminalCatalog
             }
         }
 
-        EnsureCached();
         var hostExecutable = TerminalHostIds.HostExecutable(terminalApplicationId);
         var kind = terminalApplicationId.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
             ? LaunchTargetKind.IntelligentTerminal
@@ -422,8 +426,8 @@ internal static class TerminalCatalog
             });
         }
 
-        EnsureCached();
-        foreach (var target in _cached!.Where(t => t.Kind is LaunchTargetKind.PowerShell or LaunchTargetKind.Pwsh or LaunchTargetKind.Cmd or LaunchTargetKind.Wsl))
+        var snapshot = EnsureCached();
+        foreach (var target in snapshot.Targets.Where(t => t.Kind is LaunchTargetKind.PowerShell or LaunchTargetKind.Pwsh or LaunchTargetKind.Cmd or LaunchTargetKind.Wsl))
         {
             choiceTargets.Add(target);
         }
@@ -498,18 +502,20 @@ internal static class TerminalCatalog
     public static string BuildFormChoicesJson(bool includeDefaultChoice) =>
         BuildFormChoicesJson(includeDefaultChoice, TerminalHostIds.WindowsTerminal);
 
-    private static void EnsureCached()
+    private static CatalogSnapshot EnsureCached()
     {
         lock (Sync)
         {
-            if (_cached is not null)
+            if (_snapshot is not null)
             {
-                return;
+                return _snapshot;
             }
 
-            _executables ??= ExecutableAvailability.Discover();
-            _cached = DiscoverLaunchTargets(_executables);
-            _byId = _cached.ToDictionary(t => t.Id, StringComparer.OrdinalIgnoreCase);
+            var executables = ExecutableAvailability.Discover();
+            var targets = DiscoverLaunchTargets(executables);
+            var byId = targets.ToDictionary(t => t.Id, StringComparer.OrdinalIgnoreCase);
+            _snapshot = new CatalogSnapshot { Targets = targets, ById = byId, Executables = executables };
+            return _snapshot;
         }
     }
 

@@ -75,6 +75,7 @@ internal sealed partial class ShortcutForm : FormContent
     private bool _baselineReady;
     private bool _showRestoredDraftNote;
     private bool _subscribedToDraftCleared;
+    private Action<string>? _draftClearedHandler;
     private int _templateCommandCount = -1;
 
     public ShortcutForm(TerminalShortcut? existing, TerminalShortcut? createSeed, Action? onSaved, Action? releaseForm = null)
@@ -115,7 +116,25 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (_originalName is not null)
         {
-            QuickShellRuntimeServices.Drafts.Cleared += OnDraftStoreCleared;
+            // Subscribe via a weak-reference trampoline: the static Drafts.Cleared event
+            // outlives this form, and the only guaranteed unsubscribe path is explicit
+            // Save/Cancel. If the form is abandoned any other way (Escape, navigating
+            // away), a direct `+= OnDraftStoreCleared` would root this instance forever.
+            var weakSelf = new WeakReference<ShortcutForm>(this);
+            Action<string>? handler = null;
+            handler = originalName =>
+            {
+                if (weakSelf.TryGetTarget(out var self))
+                {
+                    self.OnDraftStoreCleared(originalName);
+                }
+                else
+                {
+                    QuickShellRuntimeServices.Drafts.Cleared -= handler;
+                }
+            };
+            _draftClearedHandler = handler;
+            QuickShellRuntimeServices.Drafts.Cleared += handler;
             _subscribedToDraftCleared = true;
         }
     }
@@ -177,7 +196,11 @@ internal sealed partial class ShortcutForm : FormContent
             return;
         }
 
-        QuickShellRuntimeServices.Drafts.Cleared -= OnDraftStoreCleared;
+        if (_draftClearedHandler is not null)
+        {
+            QuickShellRuntimeServices.Drafts.Cleared -= _draftClearedHandler;
+        }
+
         _subscribedToDraftCleared = false;
     }
 

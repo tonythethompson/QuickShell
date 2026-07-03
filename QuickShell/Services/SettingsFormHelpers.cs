@@ -49,7 +49,21 @@ internal static class SettingsFormHelpers
 
             await Task.Delay(delayMs).ConfigureAwait(false);
 
-            refresh();
+            try
+
+            {
+
+                refresh();
+
+            }
+
+            catch
+
+            {
+
+                // Best effort; the settings page may have been torn down before this fired.
+
+            }
 
         });
 

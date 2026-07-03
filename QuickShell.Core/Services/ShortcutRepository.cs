@@ -1858,6 +1858,18 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
         _disposed = true;
 
+        if (_persistTimer is not null)
+        {
+            // Timer.Dispose(WaitHandle) blocks until any in-flight callback has
+            // finished, so the timer can never fire (or still be running) against
+            // _sync/_fileMutex after this returns. Plain Dispose() gives no such
+            // guarantee and left a shutdown race where a callback in flight could
+            // call _sync.Wait() on an already-disposed semaphore.
+            using var timerStopped = new ManualResetEvent(false);
+            _persistTimer.Dispose(timerStopped);
+            timerStopped.WaitOne();
+        }
+
         try
         {
             WithLock(FlushPendingPersistLocked);
@@ -1867,7 +1879,6 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             // Best effort flush during shutdown.
         }
 
-        _persistTimer?.Dispose();
         _sync.Dispose();
         _fileMutex.Dispose();
         GC.SuppressFinalize(this);
