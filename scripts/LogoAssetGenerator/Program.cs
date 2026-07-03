@@ -95,7 +95,7 @@ static void RenderSquareLogo(string outDir, string fileName, SKPicture picture, 
     var renderHeight = height * supersample;
 
     var info = new SKImageInfo(renderWidth, renderHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
-    using var surface = SKSurface.Create(info);
+    using var surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Failed to allocate surface {renderWidth}x{renderHeight} for {fileName}");
     var canvas = surface.Canvas;
     canvas.Clear(SKColors.Transparent);
 
