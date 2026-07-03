@@ -36,21 +36,29 @@ internal static class DiscoverGitRepoListItems
 
         if (unsaved.Count > 0)
         {
-            yield return new Separator(NotSavedSectionTitle);
-            foreach (var candidate in unsaved.OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase))
+            foreach (var item in SectionListItems.InSection(
+                         NotSavedSectionTitle,
+                         unsaved
+                             .OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+                             .Select(candidate => CreateNew(candidate, onSaved))))
             {
-                yield return CreateNew(candidate, onSaved);
+                yield return item;
             }
         }
 
         if (saved.Count > 0)
         {
-            yield return new Separator(SavedSectionTitle);
-            foreach (var (candidate, matchingShortcuts) in saved.OrderBy(
-                         entry => entry.Candidate.Name,
-                         StringComparer.OrdinalIgnoreCase))
+            foreach (var item in SectionListItems.InSection(
+                         SavedSectionTitle,
+                         saved
+                             .OrderBy(entry => entry.Candidate.Name, StringComparer.OrdinalIgnoreCase)
+                             .Select(entry => CreateSaved(
+                                 entry.Candidate,
+                                 onSaved,
+                                 entry.Shortcuts,
+                                 settings))))
             {
-                yield return CreateSaved(candidate, onSaved, matchingShortcuts, settings);
+                yield return item;
             }
         }
     }

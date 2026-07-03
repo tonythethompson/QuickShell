@@ -79,7 +79,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public void Reload()
     {
-        GitRepoIndex.Invalidate();
         _searchDebouncer.FlushNow();
         RefreshItems(_query);
     }
@@ -185,50 +184,37 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         List<TerminalShortcut> pinnedInOrder)
     {
         var allShortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
-        var recents = ShortcutRecents.GetRecentWorkspaces(allShortcuts);
+        var recents = ShortcutRecents.GetRecentWorkspaces(allShortcuts, _settings.RecentWorkspaceCount);
         var recentIds = recents
             .Select(shortcut => shortcut.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasFavorites = layout.Any(entry =>
+            entry.Kind == ShortcutLayoutEntryKind.Shortcut && entry.Shortcut?.IsPinned == true);
+
+        foreach (var item in ShortcutLayoutDisplay.BuildFavoriteItems(
+                     layout,
+                     shortcut => BuildShortcutItem(shortcut, pinnedInOrder)))
+        {
+            yield return item;
+        }
 
         if (recents.Count > 0)
         {
-            yield return new Separator(ShortcutRecents.SectionTitle);
-            foreach (var shortcut in recents)
+            foreach (var item in SectionListItems.InSection(
+                         ShortcutRecents.SectionTitle,
+                         recents.Select(shortcut => BuildShortcutItem(shortcut, pinnedInOrder))))
             {
-                yield return BuildShortcutItem(shortcut, pinnedInOrder);
+                yield return item;
             }
         }
 
-        var pinnedShortcuts = layout
-            .Where(entry => entry.Kind == ShortcutLayoutEntryKind.Shortcut && entry.Shortcut?.IsPinned == true)
-            .Select(entry => entry.Shortcut!)
-            .OrderBy(shortcut => shortcut.PinOrder ?? int.MaxValue)
-            .ThenBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (pinnedShortcuts.Count > 0)
+        foreach (var item in ShortcutLayoutDisplay.BuildWorkspaceItems(
+                     layout,
+                     shortcut => BuildShortcutItem(shortcut, pinnedInOrder),
+                     recentIds,
+                     showDefaultWorkspacesHeader: hasFavorites))
         {
-            yield return new Separator(ShortcutLayoutDisplay.FavoritesSectionTitle);
-            foreach (var shortcut in pinnedShortcuts)
-            {
-                yield return BuildShortcutItem(shortcut, pinnedInOrder);
-            }
-
-            yield return new Separator(ShortcutLayoutDisplay.ShortcutsSectionTitle);
-        }
-
-        foreach (var entry in layout)
-        {
-            switch (entry.Kind)
-            {
-                case ShortcutLayoutEntryKind.Separator:
-                    yield return new Separator(entry.SeparatorTitle ?? string.Empty);
-                    break;
-                case ShortcutLayoutEntryKind.Shortcut when entry.Shortcut is { IsPinned: false } shortcut
-                    && !recentIds.Contains(shortcut.Id):
-                    yield return BuildShortcutItem(shortcut, pinnedInOrder);
-                    break;
-            }
+            yield return item;
         }
     }
 }

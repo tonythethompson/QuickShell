@@ -1,5 +1,6 @@
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
@@ -108,6 +109,39 @@ public sealed class ShortcutRecentsTests
         Assert.Single(recents);
         Assert.Equal("Recent", recents[0].Name);
     }
+
+    [Theory]
+    [InlineData(-5, 0)]
+    [InlineData(0, 0)]
+    [InlineData(8, 8)]
+    [InlineData(100, 100)]
+    [InlineData(150, 100)]
+    public void NormalizeCount_ClampsToRange(int input, int expected) =>
+        Assert.Equal(expected, QuickShellRecentSettings.NormalizeCount(input));
+
+    [Fact]
+    public void TryParseCount_PrefersInvariantCultureDigits()
+    {
+        Assert.True(QuickShellRecentSettings.TryParseCount("12", out var parsed));
+        Assert.Equal(12, parsed);
+        Assert.Equal("12", QuickShellRecentSettings.FormatCount(12));
+    }
+
+    [Fact]
+    public void GetRecentWorkspaces_RespectsMaxCount()
+    {
+        var shortcuts = Enumerable.Range(1, 12)
+            .Select(index => new TerminalShortcut
+            {
+                Id = index.ToString(),
+                Name = $"Workspace {index}",
+                LastUsedUtc = DateTime.UtcNow.AddMinutes(-index),
+            })
+            .ToList();
+
+        Assert.Equal(3, ShortcutRecents.GetRecentWorkspaces(shortcuts, maxCount: 3).Count);
+        Assert.Empty(ShortcutRecents.GetRecentWorkspaces(shortcuts, maxCount: 0));
+    }
 }
 
 public sealed class WorkspaceLinkValidationTests
@@ -182,7 +216,21 @@ public sealed class DevServerUrlDetectionTests : IDisposable
     }
 
     [Fact]
-    public void TryDetectDevLaunchCommand_ReturnsPackageManagerCommand()
+    public void TryDetectDevLaunchCommand_UsesNpmByDefault()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {
+            "dev": "vite"
+          }
+        }
+        """);
+
+        Assert.Equal("npm run dev", DevServerUrlDetection.TryDetectDevLaunchCommand(_root));
+    }
+
+    [Fact]
+    public void TryDetectDevLaunchCommand_UsesPnpmWhenLockfilePresent()
     {
         WritePackageJson("""
         {
@@ -194,7 +242,6 @@ public sealed class DevServerUrlDetectionTests : IDisposable
         File.WriteAllText(Path.Combine(_root, "pnpm-lock.yaml"), string.Empty);
 
         Assert.Equal("pnpm dev", DevServerUrlDetection.TryDetectDevLaunchCommand(_root));
-        Assert.Equal("pnpm dev", DevServerUrlDetection.FormatPackageScriptCommand(_root, "dev"));
     }
 
     [Fact]
@@ -224,6 +271,18 @@ public sealed class DevServerUrlDetectionTests : IDisposable
     }
 
     [Fact]
+    public void TryDetectDevLaunchCommand_ReturnsNullWhenNoScripts()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {}
+        }
+        """);
+
+        Assert.Null(DevServerUrlDetection.TryDetectDevLaunchCommand(_root));
+    }
+
+    [Fact]
     public void ApplyDirectoryHints_SyncsDetectedDevCommandToLaunchEntry()
     {
         WritePackageJson("""
@@ -243,38 +302,6 @@ public sealed class DevServerUrlDetectionTests : IDisposable
 
         Assert.Equal("npm run dev", seed.Command);
         Assert.Single(seed.Launches);
-        Assert.Equal("npm run dev", seed.Launches[0].Command);
-    }
-
-    [Fact]
-    public void ApplyDirectoryHints_UpdatesExistingBlankLaunchEntry()
-    {
-        WritePackageJson("""
-        {
-          "scripts": {
-            "dev": "vite"
-          }
-        }
-        """);
-
-        var seed = WorkspaceSeedFactory.ApplyDirectoryHints(new TerminalShortcut
-        {
-            Name = "sample",
-            Directory = _root,
-            Launches =
-            [
-                new WorkspaceEntry
-                {
-                    Id = "launch-1",
-                    Label = "Main",
-                    Terminal = "default",
-                    IsEnabled = true,
-                    Order = 0,
-                },
-            ],
-        });
-
-        Assert.Equal("npm run dev", seed.Command);
         Assert.Equal("npm run dev", seed.Launches[0].Command);
     }
 
@@ -408,19 +435,92 @@ public sealed class CompanionAppTests : IDisposable
     }
 
     [Fact]
-    public void ExpandArguments_ReplacesSolutionToken()
+    public void ExpandArguments_ReplacesSolutionTokenWithSlnOrFolder()
     {
         var directory = Path.Combine(_root, "sample app");
         Directory.CreateDirectory(directory);
-        var solutionPath = Path.Combine(directory, "Sample App.sln");
+        var solutionPath = Path.Combine(directory, "App.sln");
         File.WriteAllText(solutionPath, string.Empty);
 
+        Assert.Equal($"\"{solutionPath}\"", CompanionAppLauncher.ExpandArguments("{solution}", directory));
+        Assert.Equal(_root, CompanionAppLauncher.ExpandArguments("{solution}", _root));
+    }
+
+    [Fact]
+    public void BuildFormChoicesJson_AlwaysIncludesExplorerOnWindows()
+    {
+        using var document = JsonDocument.Parse(CompanionAppCatalog.BuildFormChoicesJson());
+        var values = document.RootElement
+            .EnumerateArray()
+            .Select(choice => choice.GetProperty("value").GetString())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Contains(CompanionAppCatalog.PresetExplorer, values);
+    }
+
+    [Fact]
+    public void BuildFormChoicesJson_OnlyIncludesInstalledPresets()
+    {
+        using var document = JsonDocument.Parse(CompanionAppCatalog.BuildFormChoicesJson());
+        var values = document.RootElement
+            .EnumerateArray()
+            .Select(choice => choice.GetProperty("value").GetString())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Contains(CompanionAppCatalog.PresetNone, values);
+        Assert.Contains(CompanionAppCatalog.PresetCustom, values);
+
+        if (CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
+        {
+            Assert.Contains(CompanionAppCatalog.PresetVsCode, values);
+        }
+        else
+        {
+            Assert.DoesNotContain(CompanionAppCatalog.PresetVsCode, values);
+        }
+    }
+
+    [Fact]
+    public void NormalizePresetForForm_FallsBackWhenCatalogPresetMissing()
+    {
+        if (CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
+        {
+            Assert.Equal(
+                CompanionAppCatalog.PresetVsCode,
+                CompanionAppCatalog.NormalizePresetForForm(
+                    CompanionAppCatalog.PresetVsCode,
+                    @"C:\Apps\Code.exe"));
+            return;
+        }
+
         Assert.Equal(
-            $"\"{solutionPath}\"",
-            CompanionAppLauncher.ExpandArguments("{solution}", directory));
+            CompanionAppCatalog.PresetCustom,
+            CompanionAppCatalog.NormalizePresetForForm(
+                CompanionAppCatalog.PresetVsCode,
+                @"C:\Apps\Code.exe"));
         Assert.Equal(
-            Path.Combine(_root, "no-solution"),
-            CompanionAppLauncher.ExpandArguments("{solution}", Path.Combine(_root, "no-solution")));
+            CompanionAppCatalog.PresetNone,
+            CompanionAppCatalog.NormalizePresetForForm(
+                CompanionAppCatalog.PresetVsCode,
+                executablePath: null));
+    }
+
+    [Fact]
+    public void GetContextMenuIcon_UsesCodeIconForCursor()
+    {
+        Assert.Equal(
+            "\uE90F",
+            CompanionAppCatalog.GetContextMenuIcon(
+                @"C:\Users\me\AppData\Local\Programs\cursor\Cursor.exe"));
+    }
+
+    [Fact]
+    public void GetContextMenuIcon_UsesOpenWithForUnknownCustomExe()
+    {
+        Assert.Equal(
+            ShortcutGlyphs.OpenCompanionApp,
+            CompanionAppCatalog.GetContextMenuIcon(@"C:\Tools\MyCustomApp.exe"));
+        Assert.Equal("\uE7AC", ShortcutGlyphs.OpenCompanionApp);
     }
 
     [Fact]
@@ -444,8 +544,208 @@ public sealed class CompanionAppTests : IDisposable
             CompanionAppCatalog.PresetVsCode,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Microsoft VS Code\Code.exe"));
         Assert.Equal(
+            CompanionAppCatalog.PresetFork,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Fork\Fork.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetRider,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\JetBrains\Rider\bin\rider64.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetIntelliJIdea,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\JetBrains\IntelliJ IDEA\bin\idea64.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetZed,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Zed\zed.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetNotepadPlusPlus,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Program Files\Notepad++\notepad++.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetVs2022,
+            CompanionAppCatalog.InferPresetFromPath(
+                @"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.exe"));
+        Assert.Equal(
             CompanionAppCatalog.PresetCustom,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\MyEditor.exe"));
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersObsidianWhenVaultMarkerExists()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".obsidian"));
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+
+        if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetObsidian) is null)
+        {
+            Assert.Null(suggestion);
+            return;
+        }
+
+        Assert.Equal(CompanionAppCatalog.PresetObsidian, suggestion!.PresetId);
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersGitClientWhenRepositoryExists()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".git"));
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        if (suggestion is null)
+        {
+            Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetFork)
+                || CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetGitHubDesktop));
+            return;
+        }
+
+        Assert.True(
+            suggestion.PresetId is CompanionAppCatalog.PresetFork or CompanionAppCatalog.PresetGitHubDesktop);
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersVisualStudioWhenSolutionExists()
+    {
+        File.WriteAllText(Path.Combine(_root, "App.sln"), string.Empty);
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        if (suggestion is null)
+        {
+            Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVs2022)
+                && CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVs2026));
+            return;
+        }
+
+        Assert.True(
+            suggestion.PresetId is CompanionAppCatalog.PresetVs2022 or CompanionAppCatalog.PresetVs2026);
+        Assert.Equal("{solution}", suggestion.Arguments);
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersRiderForDotNetIdeaProjects()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "App.csproj"), "<Project />");
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        if (suggestion is null)
+        {
+            Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetRider));
+            return;
+        }
+
+        Assert.Equal(CompanionAppCatalog.PresetRider, suggestion.PresetId);
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersIntelliJForIdeaProjectsWithoutDotNet()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "pom.xml"), "<project />");
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        if (suggestion is null)
+        {
+            Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetIntelliJIdea));
+            return;
+        }
+
+        Assert.Equal(CompanionAppCatalog.PresetIntelliJIdea, suggestion.PresetId);
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersZedWhenZedMarkerExists()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".zed"));
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        if (suggestion is null)
+        {
+            Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetZed));
+            return;
+        }
+
+        Assert.Equal(CompanionAppCatalog.PresetZed, suggestion.PresetId);
+    }
+
+    [Fact]
+    public void CreateStateFromPreset_Explorer_UsesFolderArgument()
+    {
+        if (!CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetExplorer))
+        {
+            return;
+        }
+
+        var state = CompanionAppCatalog.CreateStateFromPreset(CompanionAppCatalog.PresetExplorer);
+
+        Assert.True(state.LaunchOnWorkspaceOpen);
+        Assert.Equal("{folder}", state.Arguments);
+    }
+
+    [Fact]
+    public void ReconcileStoredShortcut_WhenLaunchDisabled_ReturnsNone()
+    {
+        var state = CompanionAppCatalog.ReconcileStoredShortcut(
+            openOnLaunch: false,
+            @"C:\Apps\Code.exe",
+            ".");
+
+        Assert.Equal(CompanionAppCatalog.PresetNone, state.Preset);
+        Assert.False(state.LaunchOnWorkspaceOpen);
+        Assert.Equal(string.Empty, state.Path);
+    }
+
+    [Fact]
+    public void ReconcileForForm_StaleCustomPath_DisablesLaunch()
+    {
+        var state = CompanionAppCatalog.ReconcileForForm(
+            CompanionAppCatalog.PresetCustom,
+            @"C:\Missing\MyEditor.exe",
+            ".");
+
+        Assert.Equal(CompanionAppCatalog.PresetCustom, state.Preset);
+        Assert.False(state.LaunchOnWorkspaceOpen);
+        Assert.Equal(@"C:\Missing\MyEditor.exe", state.Path);
+        Assert.True(CompanionAppCatalog.ShouldShowPathWarning(state.Preset, state.Path));
+    }
+
+    [Fact]
+    public void ReconcileForSave_ClearsWhenNotLaunchable()
+    {
+        var state = CompanionAppCatalog.ReconcileForSave(
+            CompanionAppCatalog.PresetCustom,
+            @"C:\Missing\MyEditor.exe",
+            ".");
+
+        Assert.Equal(CompanionAppCatalog.PresetNone, state.Preset);
+        Assert.False(state.LaunchOnWorkspaceOpen);
+        Assert.Equal(string.Empty, state.Path);
+    }
+
+    [Fact]
+    public void CreateStateFromPreset_None_ClearsCompanion()
+    {
+        var state = CompanionAppCatalog.CreateStateFromPreset(CompanionAppCatalog.PresetNone);
+
+        Assert.False(state.LaunchOnWorkspaceOpen);
+        Assert.Equal(string.Empty, state.Path);
+        Assert.Equal(string.Empty, state.Arguments);
+    }
+
+    [Fact]
+    public void ReconcileForForm_CatalogPreset_ReResolvesWhenInstalled()
+    {
+        if (!CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
+        {
+            return;
+        }
+
+        var state = CompanionAppCatalog.ReconcileForForm(
+            CompanionAppCatalog.PresetVsCode,
+            @"C:\Stale\Code.exe",
+            "--old");
+
+        Assert.Equal(CompanionAppCatalog.PresetVsCode, state.Preset);
+        Assert.True(state.LaunchOnWorkspaceOpen);
+        Assert.True(CompanionAppCatalog.TryResolveExecutablePath(state.Path, out _));
+        Assert.Equal(".", state.Arguments);
     }
 
     public void Dispose()
@@ -513,6 +813,22 @@ public sealed class ShortcutHealthTests : IDisposable
 
         Assert.False(ShortcutHealth.NeedsRepair(shortcut));
         Assert.Equal(ShortcutGlyphs.AdminLaunch, ShortcutHealth.GetListGlyph(shortcut));
+    }
+
+    [Fact]
+    public void BuildListSubtitle_WarnsWhenCompanionAppMissing()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "Missing companion",
+            Directory = _root,
+            OpenCompanionAppOnLaunch = true,
+            CompanionAppPath = @"C:\Missing\Code.exe",
+            Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
+        };
+
+        Assert.False(ShortcutHealth.NeedsRepair(shortcut));
+        Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut), StringComparison.Ordinal);
     }
 
     public void Dispose()

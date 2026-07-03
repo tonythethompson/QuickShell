@@ -85,7 +85,6 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     {
         GitRepoIndex.Invalidate();
         _page.Reload();
-        _settingsManager.RefreshSettingsContent();
         _fallbackPage.ClearResults();
     }
 

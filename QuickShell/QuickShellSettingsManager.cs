@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Services;
+using System.Globalization;
 using System.Text.Json;
 
 namespace QuickShell;
@@ -9,11 +10,13 @@ internal sealed class QuickShellSettingsManager
 {
     private const string TerminalApplicationSettingId = "terminalApplication";
     private const string DefaultProfileSettingId = "defaultProfile";
+    private const string RecentWorkspaceCountSettingId = QuickShellRecentSettings.SettingKey;
 
     private readonly QuickShellJsonSettingsStore _settingsStore;
     private readonly Settings _settings;
     private readonly ChoiceSetSetting _terminalApplicationSetting;
     private readonly ChoiceSetSetting _defaultProfileSetting;
+    private readonly TextSetting _recentWorkspaceCountSetting;
     private readonly Pages.QuickShellExtensionSettingsPage _settingsPage;
 
     public QuickShellSettingsManager(Action? onReload = null)
@@ -26,7 +29,7 @@ internal sealed class QuickShellSettingsManager
             TerminalCatalogChoices.GetTerminalApplicationChoices())
         {
             Label = "Terminal application",
-            Description = "The terminal host used for Default projects and profile launches. Matches Windows Terminal's \"Default terminal application\" setting.",
+            Description = "The terminal host used for Default workspaces and profile launches. Matches Windows Terminal's \"Default terminal application\" setting.",
         };
 
         _defaultProfileSetting = new ChoiceSetSetting(
@@ -34,11 +37,18 @@ internal sealed class QuickShellSettingsManager
             TerminalCatalogChoices.GetDefaultProfileChoices(TerminalHostIds.WindowsTerminal))
         {
             Label = "Default profile",
-            Description = "Profile used when a project is set to Default. Per-project profile choices stay on each project.",
+            Description = "Profile used when a workspace is set to Default. Per-workspace profile choices stay on each workspace.",
         };
+
+        _recentWorkspaceCountSetting = new TextSetting(
+            RecentWorkspaceCountSettingId,
+            "Recent workspaces to show",
+            "How many recently used workspaces to show on the home page (0 hides the section).",
+            QuickShellRecentSettings.DefaultCount.ToString(CultureInfo.InvariantCulture));
 
         _settings.Add(_terminalApplicationSetting);
         _settings.Add(_defaultProfileSetting);
+        _settings.Add(_recentWorkspaceCountSetting);
         _settingsStore.LoadSettings();
 
         var usedLegacyDefaults = false;
@@ -54,8 +64,9 @@ internal sealed class QuickShellSettingsManager
         initialApp = EnsureValidTerminalApplication(initialApp);
         _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(initialApp);
         initialProfile = EnsureValidDefaultProfile(initialApp, initialProfile);
+        var initialRecentCount = ReadRecentWorkspaceCount();
 
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}"}""");
+        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}"}""");
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
         {
@@ -81,12 +92,21 @@ internal sealed class QuickShellSettingsManager
     public string DefaultProfileId =>
         EnsureValidDefaultProfile(TerminalApplicationId, _settings.GetSetting<string>(DefaultProfileSettingId));
 
+    public int RecentWorkspaceCount => ReadRecentWorkspaceCount();
+
     internal void UpdateTerminalDefaults(string app, string profile)
     {
         app = EnsureValidTerminalApplication(app);
         profile = EnsureValidDefaultProfile(app, profile);
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
         RefreshTerminalChoices();
+        PersistSettings();
+    }
+
+    internal void UpdateRecentWorkspaceCount(int count)
+    {
+        count = QuickShellRecentSettings.NormalizeCount(count);
+        _settings.Update($$"""{"{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(count)}}"}""");
         PersistSettings();
     }
 
@@ -249,4 +269,12 @@ internal sealed class QuickShellSettingsManager
 
     private static string EscapeJson(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    private int ReadRecentWorkspaceCount()
+    {
+        var raw = _settings.GetSetting<string>(RecentWorkspaceCountSettingId);
+        return QuickShellRecentSettings.TryParseCount(raw, out var parsed)
+            ? parsed
+            : QuickShellRecentSettings.DefaultCount;
+    }
 }

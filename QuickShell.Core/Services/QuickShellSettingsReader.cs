@@ -28,11 +28,14 @@ internal sealed class QuickShellSettingsReader
         var profile = EnsureValidDefaultProfile(app, defaultProfileId);
         var directory = Path.GetDirectoryName(SettingsPath)!;
         Directory.CreateDirectory(directory);
+        var recentCount = ReadRecentWorkspaceCount();
         var json =
-            $$"""{"terminalApplication":"{{EscapeJson(app)}}","defaultProfile":"{{EscapeJson(profile)}}"}""";
+            $$"""{"terminalApplication":"{{EscapeJson(app)}}","defaultProfile":"{{EscapeJson(profile)}}","{{QuickShellRecentSettings.SettingKey}}":"{{QuickShellRecentSettings.FormatCount(recentCount)}}"}""";
         File.WriteAllText(SettingsPath, json);
         TerminalCatalog.InvalidateCache();
     }
+
+    public int ReadRecentWorkspaceCount() => ReadRecentWorkspaceCountFromFile(SettingsPath);
 
     public string ConfigDirectory =>
         Path.GetDirectoryName(SettingsPath)!;
@@ -214,5 +217,40 @@ internal sealed class QuickShellSettingsReader
         {
             return TerminalHostIds.WindowsTerminal;
         }
+    }
+
+    internal static int ReadRecentWorkspaceCountFromFile(string settingsPath)
+    {
+        try
+        {
+            if (!File.Exists(settingsPath))
+            {
+                return QuickShellRecentSettings.DefaultCount;
+            }
+
+            using var stream = File.OpenRead(settingsPath);
+            using var document = JsonDocument.Parse(stream);
+            if (!document.RootElement.TryGetProperty(QuickShellRecentSettings.SettingKey, out var value))
+            {
+                return QuickShellRecentSettings.DefaultCount;
+            }
+
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
+            {
+                return QuickShellRecentSettings.NormalizeCount(number);
+            }
+
+            if (value.ValueKind == JsonValueKind.String
+                && QuickShellRecentSettings.TryParseCount(value.GetString(), out var parsed))
+            {
+                return parsed;
+            }
+        }
+        catch
+        {
+            return QuickShellRecentSettings.DefaultCount;
+        }
+
+        return QuickShellRecentSettings.DefaultCount;
     }
 }
