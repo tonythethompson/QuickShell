@@ -72,9 +72,12 @@ internal static class TerminalProfileIconResolver
     }
 
     /// <summary>
-    /// Command Palette icons render Segoe glyphs and emoji, not PNG paths or packaged URIs
-    /// resolved from Windows Terminal profile settings.
+    /// True when the profile icon is an emoji or Segoe glyph stored inline in WT settings,
+    /// as opposed to a PNG path resolved from packaged or on-disk profile icon assets.
     /// </summary>
+    public static bool IsInlineGlyphIcon(string? value) =>
+        IsCmdPalGlyphIcon(value);
+
     public static bool IsCmdPalGlyphIcon(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))

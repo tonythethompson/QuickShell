@@ -158,6 +158,68 @@ internal static class TerminalCatalog
         return FormatFallback(shortcut);
     }
 
+    /// <summary>
+    /// Profile-only label for workspace list subtitles (no terminal host name).
+    /// </summary>
+    public static string GetProfileLabel(TerminalShortcut shortcut)
+    {
+        var id = EncodeLaunchTargetId(shortcut);
+        if (id.Equals("default", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Default";
+        }
+
+        if (id.Equals("pwsh", StringComparison.OrdinalIgnoreCase)
+            || id.Equals("powershell7", StringComparison.OrdinalIgnoreCase))
+        {
+            return "PowerShell 7";
+        }
+
+        if (id.Equals("powershell", StringComparison.OrdinalIgnoreCase))
+        {
+            return "PowerShell";
+        }
+
+        if (id.Equals("cmd", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Command Prompt";
+        }
+
+        if (TryParsePrefixedProfileId(id, out var profileName))
+        {
+            return profileName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(shortcut.WtProfile))
+        {
+            return shortcut.WtProfile;
+        }
+
+        var snapshot = EnsureCached();
+        if (snapshot.ById.TryGetValue(id, out var target)
+            && !string.IsNullOrWhiteSpace(target.ProfileOrDistro))
+        {
+            return target.ProfileOrDistro;
+        }
+
+        return FormatFallback(shortcut);
+    }
+
+    private static bool TryParsePrefixedProfileId(string id, out string profileName)
+    {
+        foreach (var prefix in new[] { "wt:", "it:", "wsl:" })
+        {
+            if (id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                profileName = id[prefix.Length..];
+                return !string.IsNullOrWhiteSpace(profileName);
+            }
+        }
+
+        profileName = string.Empty;
+        return false;
+    }
+
     public static string EncodeLaunchTargetId(TerminalShortcut shortcut)
     {
         var terminal = (shortcut.Terminal ?? "default").Trim().ToLowerInvariant();

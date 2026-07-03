@@ -85,9 +85,21 @@ internal static class CompanionAppCatalog
             }
         }
 
-        choices.Add(new { title = "Custom…", value = PresetCustom });
-
         return JsonSerializer.Serialize(choices);
+    }
+
+    /// <summary>
+    /// Custom apps are chosen with the browse button; the dropdown only lists None and catalog presets.
+    /// </summary>
+    public static string ToFormPresetValue(string presetId, string? executablePath)
+    {
+        if (string.Equals(presetId, PresetCustom, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(executablePath))
+        {
+            return PresetNone;
+        }
+
+        return presetId;
     }
 
     public static string InferPresetFromPath(string? executablePath)
@@ -152,23 +164,8 @@ internal static class CompanionAppCatalog
         return FindDefinition(preset).Title;
     }
 
-    public static string GetContextMenuIcon(string? executablePath)
-    {
-        var preset = InferPresetFromPath(executablePath);
-        return preset switch
-        {
-            PresetExplorer => "\uE838",
-            PresetVsCode or PresetCursor => "\uE90F",
-            PresetVs2022 or PresetVs2026 => "\uEB4D",
-            PresetGitHubDesktop or PresetFork => "\uE8C8",
-            PresetObsidian or PresetSublime or PresetNotepadPlusPlus => "\uE8A5",
-            PresetRider or PresetIntelliJIdea => "\uE90F",
-            PresetZed or PresetNeovide or PresetGvim => "\uE90F",
-            PresetAzureDataStudio => "\uE943",
-            PresetNone or PresetCustom => ShortcutGlyphs.OpenCompanionApp,
-            _ => ShortcutGlyphs.OpenCompanionApp,
-        };
-    }
+    public static string GetContextMenuIcon(string? executablePath) =>
+        ShortcutGlyphs.OpenCompanionApp;
 
     public static bool TryApplyPreset(string presetId, out string? executablePath, out string arguments)
     {

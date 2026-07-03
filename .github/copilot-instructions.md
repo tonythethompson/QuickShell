@@ -4,27 +4,37 @@ Concise guidance for AI-assisted development of this Command Palette extension.
 
 ## Project Structure
 
-| Folder | Purpose |
-|--------|---------|
-| `Pages/` | Extension pages (ListPage, ContentPage, DynamicListPage implementations) |
-| `Assets/` | Icons and images (StoreLogo.png, etc.) |
-| `Properties/` | Launch settings and publish profiles |
-| Root `.cs` files | Extension entry point, COM server (Program.cs), and CommandsProvider |
+| Folder / project | Purpose |
+|------------------|---------|
+| `QuickShell/` | CmdPal extension — `Pages/`, `Commands/`, `Services/`, `Assets/`, `Program.cs`, `QuickShellCommandsProvider.cs` |
+| `QuickShell.Core/` | Shared models and services — `ShortcutRepository`, terminal discovery, JSON, launch logic |
+| `QuickShell.Run/` | PowerToys Run plugin (`qs` keyword) |
+| `QuickShell.Core.Tests/` | Unit tests for core services |
+| `scripts/` | Build, deploy, store, and asset scripts (`deploy.ps1`, `run-cmdpal-dev.ps1`, etc.) |
+| `docs/` | GitHub Pages site (Jekyll) |
+| `cmdpal-gallery/` | CmdPal Extension Gallery submission package |
 
 ## Key Conventions
 
 - Extensions run **out-of-process** via COM server registration
-- `Program.cs` hosts the COM server — do not modify the hosting pattern
-- The `CommandProvider` subclass is the entry point for all commands
+- `QuickShell/Program.cs` hosts the COM server — do not modify the hosting pattern
+- `QuickShellCommandsProvider` is the CmdPal entry point for all commands
 - Pages are **ICommand** implementations — they can be used anywhere commands are used
+- UI term is **workspace**; on-disk file remains `%LOCALAPPDATA%\QuickShell\shortcuts.json`
 - Always **Deploy** (not just Build) to register the MSIX package
 - After deploying, use the **Reload** command in Command Palette to refresh
 
 ## Build & Deploy
 
-1. In Visual Studio, use **Build > Deploy** (not just Build)
-2. In Command Palette, run `Reload` → select "Reload Command Palette extensions"
-3. For debugging, run in Debug configuration (F5) and check Output window (Ctrl+Alt+O)
+```powershell
+# Default dev loop: stop CmdPal → build/install MSIX → start CmdPal
+.\scripts\deploy.ps1
+
+# Local PowerToys CmdPal SDK (sibling PowerToys checkout)
+.\scripts\run-cmdpal-dev.ps1 -UseLocalSdk
+```
+
+In Visual Studio: **Build > Deploy** (not just Build), then run **Reload Command Palette Extension** in CmdPal.
 
 ## Source Control
 
@@ -40,14 +50,6 @@ This project includes Copilot skills for common workflows:
 - **add-dock-band** — Add persistent toolbar widgets
 - **add-fallback-commands** — Add catch-all search commands
 - **publish-extension** — Publish to Microsoft Store or WinGet
-
-## Remediation Process
-
-When remediating findings in this repo, execute in this order:
-- Password cleanup
-- Preview SDK decision
-- Sanitize user-facing errors
-- Lock/static refactor planning
 
 ## Documentation
 

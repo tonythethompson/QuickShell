@@ -16,8 +16,6 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     public static string PluginID => PluginIdValue;
 
-    private const string IconFont = "Segoe MDL2 Assets";
-
     static Main()
     {
         var pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -385,12 +383,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private Result CreateShortcutResult(TerminalShortcut shortcut, string search, bool directActivationBrowse)
     {
         var needsRepair = ShortcutHealth.NeedsRepair(shortcut);
-        return new Result
+        var result = new Result
         {
             Title = shortcut.Name,
             SubTitle = ShortcutHealth.BuildListSubtitle(shortcut),
-            Glyph = ShortcutHealth.GetListGlyph(shortcut),
-            FontFamily = IconFont,
             Score = RunQueryScoring.ComputeShortcutScore(shortcut, search, directActivationBrowse),
             ContextData = new RunContextData(RunContextKind.Shortcut, shortcut.Id),
             Action = action =>
@@ -406,6 +402,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
                 return true;
             },
         };
+
+        RunResultIcons.ApplyToResult(result, ShortcutHealth.GetListGlyph(shortcut));
+        return result;
     }
 
     private IEnumerable<TerminalShortcut> MergeSearchResults(string search)
@@ -465,14 +464,17 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             : "Images\\quickshell.dark.png";
     }
 
-    private static ContextMenuResult CreateContextMenu(string title, string glyph, Func<ActionContext, bool> action) =>
-        new()
+    private static ContextMenuResult CreateContextMenu(string title, string glyph, Func<ActionContext, bool> action)
+    {
+        var (resolvedGlyph, fontFamily) = RunResultIcons.ResolveGlyph(glyph);
+        return new ContextMenuResult
         {
             Title = title,
-            Glyph = glyph,
-            FontFamily = IconFont,
+            Glyph = resolvedGlyph,
+            FontFamily = fontFamily,
             Action = action,
         };
+    }
 
     private static bool OpenContainingFolder(string directory)
     {

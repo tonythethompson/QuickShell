@@ -15,6 +15,16 @@ internal static class TerminalLaunchGlyphs
     {
         var profile = TerminalProfileResolver.ResolveForLaunch(launch);
 
+        if (profile is not null && IsWslProfile(profile))
+        {
+            if (TryGetInlineProfileIcon(profile, out var inlineIcon))
+            {
+                return inlineIcon;
+            }
+
+            return ShortcutGlyphs.Linux;
+        }
+
         if (TryGetProfileIcon(profile, out var profileIcon))
         {
             return profileIcon;
@@ -32,18 +42,34 @@ internal static class TerminalLaunchGlyphs
             return false;
         }
 
-        if (IsWslProfile(profile))
-        {
-            return false;
-        }
-
         var resolved = TerminalProfileIconResolver.ResolveEffectiveIcon(profile);
-        if (!TerminalProfileIconResolver.IsCmdPalGlyphIcon(resolved))
+        if (string.IsNullOrWhiteSpace(resolved))
         {
             return false;
         }
 
-        icon = resolved!;
+        icon = resolved;
+        return true;
+    }
+
+    /// <summary>
+    /// Emoji or Segoe glyph stored directly on the profile (not a PNG path).
+    /// </summary>
+    private static bool TryGetInlineProfileIcon(WtProfileInfo profile, out string icon)
+    {
+        icon = string.Empty;
+        var resolved = TerminalProfileIconResolver.ResolveEffectiveIcon(profile);
+        if (string.IsNullOrWhiteSpace(resolved))
+        {
+            return false;
+        }
+
+        if (!TerminalProfileIconResolver.IsInlineGlyphIcon(resolved))
+        {
+            return false;
+        }
+
+        icon = resolved;
         return true;
     }
 

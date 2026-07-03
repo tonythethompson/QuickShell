@@ -35,7 +35,7 @@ internal static class ShortcutDisplay
 
     public static string BuildDirectorySubtitle(TerminalShortcut shortcut)
     {
-        return string.Join(" · ", ShortenPath(shortcut.Directory), TerminalCatalog.GetDisplayName(shortcut));
+        return string.Join(" · ", ShortenPath(shortcut.Directory), TerminalCatalog.GetProfileLabel(shortcut));
     }
 
     public static string BuildSubtitle(TerminalShortcut shortcut)
@@ -45,28 +45,37 @@ internal static class ShortcutDisplay
         var parts = new List<string> { ShortenPath(shortcut.Directory) };
 
         var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
-        if (enabledLaunches.Count > 1)
+        foreach (var launch in enabledLaunches)
         {
-            parts.Add(string.Join(" · ", enabledLaunches.Select(launch => GetLaunchContextMenuTitle(launch, enabledLaunches))));
-        }
-        else if (enabledLaunches.Count == 1)
-        {
-            var launch = enabledLaunches[0];
-            parts.Add(TerminalCatalog.GetDisplayName(new TerminalShortcut
+            parts.Add(TerminalCatalog.GetProfileLabel(new TerminalShortcut
             {
                 Terminal = launch.Terminal,
                 WtProfile = launch.WtProfile,
             }));
 
-            if (!string.IsNullOrWhiteSpace(launch.Command))
+            var command = CollapseToSingleLine(launch.Command);
+            if (!string.IsNullOrWhiteSpace(command))
             {
-                parts.Add(launch.Command);
+                parts.Add(command.Trim());
+            }
+            else if (enabledLaunches.Count > 1 && AnyLaunchHasCommand(enabledLaunches))
+            {
+                parts.Add("Open folder only");
+            }
+            else if (!string.IsNullOrWhiteSpace(launch.Label))
+            {
+                parts.Add(launch.Label.Trim());
             }
         }
 
         if (!string.IsNullOrWhiteSpace(shortcut.Abbreviation))
         {
             parts.Add($"home · {shortcut.Abbreviation}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(shortcut.CompanionAppPath))
+        {
+            parts.Add(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath));
         }
 
         if (shortcut.LastUsedUtc is not null)
@@ -131,7 +140,7 @@ internal static class ShortcutDisplay
     {
         var parts = new List<string>
         {
-            TerminalCatalog.GetDisplayName(new TerminalShortcut
+            TerminalCatalog.GetProfileLabel(new TerminalShortcut
             {
                 Terminal = entry.Terminal,
                 WtProfile = entry.WtProfile,

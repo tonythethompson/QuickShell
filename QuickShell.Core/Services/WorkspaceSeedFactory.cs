@@ -39,17 +39,6 @@ internal static class WorkspaceSeedFactory
             }
         }
 
-        if (string.IsNullOrWhiteSpace(seed.CompanionAppPath))
-        {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(seed.Directory);
-            if (suggestion is not null)
-            {
-                seed.CompanionAppPath = suggestion.ExecutablePath;
-                seed.CompanionAppArguments = suggestion.Arguments;
-                seed.OpenCompanionAppOnLaunch = suggestion.EnableOnLaunch;
-            }
-        }
-
         return seed;
     }
 

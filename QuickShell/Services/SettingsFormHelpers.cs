@@ -13,14 +13,14 @@ internal static class SettingsFormHelpers
 
     private const int DefaultRefreshDelayMs = 50;
 
-
+    /// <summary>
+    /// Delay before refreshing list UI after form navigation (GoBack) completes.
+    /// </summary>
+    internal const int PostNavigationRefreshDelayMs = 1;
 
     /// <summary>
-
     /// Defers settings UI refresh so CmdPal can show a page-level toast first.
-
     /// </summary>
-
     internal static void ScheduleRefresh(Action? refresh, int delayMs = DefaultRefreshDelayMs)
 
     {
@@ -62,6 +62,9 @@ internal static class SettingsFormHelpers
         });
 
     }
+
+    internal static void SchedulePostNavigationRefresh(Action? refresh) =>
+        ScheduleRefresh(refresh, PostNavigationRefreshDelayMs);
 
 }
 

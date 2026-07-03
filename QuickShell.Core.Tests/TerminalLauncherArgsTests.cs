@@ -77,6 +77,77 @@ public sealed class TerminalLauncherArgsTests
     }
 
     [Fact]
+    public void BuildWindowsTerminalCmdSuffix_RunsNpmThroughCmd()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Directory = @"A:\Trackdub",
+            Command = "npm run dev",
+        };
+
+        var args = TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut);
+
+        Assert.Equal("cmd.exe /k \"cd /d \"\"A:\\Trackdub\"\" && npm run dev\"", args);
+    }
+
+    [Fact]
+    public void BuildWindowsTerminalCmdSuffix_OmitsDirectoryWhenWtProvidesStartingDirectory()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Directory = @"A:\Trackdub\frontend",
+            Command = "npm run dev",
+        };
+
+        var args = TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut, omitDirectoryChange: true);
+
+        Assert.Equal("cmd.exe /k \"npm run dev\"", args);
+    }
+
+    [Fact]
+    public void ToWindowsTerminalNushellSuffix_RunsCommandInProfileShell()
+    {
+        var shortcut = new TerminalShortcut { Command = "npm run dev" };
+
+        var args = TerminalLauncherArgs.ToWindowsTerminalNushellSuffix(
+            shortcut,
+            @"C:\Program Files\nu\nu.exe");
+
+        Assert.Equal(@"C:\Program Files\nu\nu.exe -c 'npm run dev'", args);
+    }
+
+    [Fact]
+    public void IsPackageManagerCommand_DetectsCommonPackageTools()
+    {
+        Assert.True(TerminalLauncherArgs.IsPackageManagerCommand("npm run dev"));
+        Assert.True(TerminalLauncherArgs.IsPackageManagerCommand("pnpm dev"));
+        Assert.False(TerminalLauncherArgs.IsPackageManagerCommand("claude"));
+    }
+
+    [Fact]
+    public void ToWindowsTerminalPowerShellSuffix_OmitsSetLocationWhenDirectoryAlreadyProvided()
+    {
+        var shortcut = new TerminalShortcut { Command = "dotnet watch" };
+
+        var args = TerminalLauncherArgs.ToWindowsTerminalPowerShellSuffix(
+            shortcut,
+            @"C:\Program Files\PowerShell\7\pwsh.exe");
+
+        Assert.Equal(
+            @"C:\Program Files\PowerShell\7\pwsh.exe -NoExit -Command ""dotnet watch""",
+            args);
+    }
+
+    [Fact]
+    public void TryExtractExecutableFromCommandLine_ReadsQuotedProfilePath()
+    {
+        var executable = TerminalLauncherArgs.TryExtractExecutableFromCommandLine(
+            @"""C:\Program Files\PowerShell\7\pwsh.exe"" -NoLogo");
+
+        Assert.Equal(@"C:\Program Files\PowerShell\7\pwsh.exe", executable);
+    }
+
+    [Fact]
     public void ToWslArguments_IncludesDistroCdAndCommand()
     {
         var shortcut = new TerminalShortcut { Command = "ls -la" };

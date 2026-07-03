@@ -87,14 +87,16 @@ internal static class TerminalLauncher
             arguments.Add($"-p \"{TerminalLauncherArgs.EscapeWindowsTerminalArg(target.ProfileOrDistro)}\"");
         }
 
+        var omitDirectoryChange = false;
         if (!IsWslProfile(target))
         {
             arguments.Add($"-d \"{TerminalLauncherArgs.EscapeWindowsTerminalArg(shortcut.Directory)}\"");
+            omitDirectoryChange = true;
         }
 
         if (!string.IsNullOrWhiteSpace(shortcut.Command) || IsWslProfile(target))
         {
-            arguments.Add(BuildWindowsTerminalCommandSuffix(shortcut, target));
+            arguments.Add(BuildWindowsTerminalCommandSuffix(shortcut, target, omitDirectoryChange));
         }
 
         return CreateWtStartInfo(arguments, target.HostExecutable);
@@ -129,7 +131,10 @@ internal static class TerminalLauncher
         return CreateWtStartInfo(arguments, target.HostExecutable);
     }
 
-    private static string BuildWindowsTerminalCommandSuffix(TerminalShortcut shortcut, LaunchTarget target)
+    private static string BuildWindowsTerminalCommandSuffix(
+        TerminalShortcut shortcut,
+        LaunchTarget target,
+        bool omitDirectoryChange = false)
     {
         var command = shortcut.Command?.Trim();
 
@@ -140,19 +145,11 @@ internal static class TerminalLauncher
 
         if (IsWslProfile(target))
         {
-            return ToWslExecutableCommand(shortcut, target, CreateLocationFromWindowsPath(shortcut.Directory, target), interactiveShell: string.IsNullOrWhiteSpace(command));
-        }
-
-        var commandLine = target.WtCommandLine ?? string.Empty;
-
-        if (commandLine.Contains("pwsh", StringComparison.OrdinalIgnoreCase))
-        {
-            return TerminalLauncherArgs.ToPowerShellExecutableCommand(shortcut, "pwsh.exe", shortcut.Directory);
-        }
-
-        if (commandLine.Contains("powershell", StringComparison.OrdinalIgnoreCase))
-        {
-            return TerminalLauncherArgs.ToPowerShellExecutableCommand(shortcut, "powershell.exe", shortcut.Directory);
+            return ToWslExecutableCommand(
+                shortcut,
+                target,
+                WslPathResolver.CreateLocationFromWindowsDirectory(shortcut.Directory, target),
+                interactiveShell: string.IsNullOrWhiteSpace(command));
         }
 
         if (string.IsNullOrWhiteSpace(command))
@@ -160,7 +157,32 @@ internal static class TerminalLauncher
             return string.Empty;
         }
 
-        return TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut);
+        var commandLine = target.WtCommandLine ?? string.Empty;
+
+        if (commandLine.Contains("pwsh", StringComparison.OrdinalIgnoreCase))
+        {
+            var executable = TerminalLauncherArgs.TryExtractExecutableFromCommandLine(commandLine) ?? "pwsh.exe";
+            return TerminalLauncherArgs.ToWindowsTerminalPowerShellSuffix(shortcut, executable);
+        }
+
+        if (commandLine.Contains("powershell", StringComparison.OrdinalIgnoreCase))
+        {
+            var executable = TerminalLauncherArgs.TryExtractExecutableFromCommandLine(commandLine) ?? "powershell.exe";
+            return TerminalLauncherArgs.ToWindowsTerminalPowerShellSuffix(shortcut, executable);
+        }
+
+        if (IsNushellProfile(target))
+        {
+            var executable = TerminalLauncherArgs.TryExtractExecutableFromCommandLine(commandLine) ?? "nu.exe";
+            return TerminalLauncherArgs.ToWindowsTerminalNushellSuffix(shortcut, executable);
+        }
+
+        if (TerminalLauncherArgs.IsPackageManagerCommand(command))
+        {
+            return TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut, omitDirectoryChange);
+        }
+
+        return TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut, omitDirectoryChange);
     }
 
     private static ProcessStartInfo CreatePowerShellStartInfo(TerminalShortcut shortcut, bool usePwsh)
@@ -198,7 +220,7 @@ internal static class TerminalLauncher
             return CreateWslProcessStartInfo(shortcut, target, wslLocation);
         }
 
-        return CreateWslProcessStartInfo(shortcut, target, CreateLocationFromWindowsPath(shortcut.Directory, target));
+        return CreateWslProcessStartInfo(shortcut, target, WslPathResolver.CreateLocationFromWindowsDirectory(shortcut.Directory, target));
     }
 
     private static ProcessStartInfo CreateWslProcessStartInfo(
@@ -218,12 +240,6 @@ internal static class TerminalLauncher
         WslPathResolver.WslLocation wslLocation,
         bool interactiveShell = false) =>
         TerminalLauncherArgs.ToWslExecutableCommand(shortcut, target, wslLocation, interactiveShell);
-
-    private static WslPathResolver.WslLocation CreateLocationFromWindowsPath(string directory, LaunchTarget target) =>
-        new()
-        {
-            LinuxPath = directory,
-        };
 
     private static string ResolveDirectoryForPowerShell(string directory)
     {
@@ -265,6 +281,13 @@ internal static class TerminalLauncher
         var commandLine = target.WtCommandLine ?? string.Empty;
         return commandLine.Contains("pwsh", StringComparison.OrdinalIgnoreCase)
             || commandLine.Contains("powershell", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsNushellProfile(LaunchTarget target)
+    {
+        var commandLine = target.WtCommandLine ?? string.Empty;
+        return commandLine.Contains("nu.exe", StringComparison.OrdinalIgnoreCase)
+            || commandLine.Contains("nushell", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetPowerShellPathForProfile(LaunchTarget target) =>

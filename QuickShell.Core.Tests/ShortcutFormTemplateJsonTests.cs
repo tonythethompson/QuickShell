@@ -12,6 +12,7 @@ public sealed class ShortcutFormTemplateJsonTests
       "Name",
       "Abbreviation",
       "DevServerUrl",
+      "OpenDevServerOnLaunch",
       "RepoUrl",
       "CompanionAppPreset",
       "LaunchTarget",

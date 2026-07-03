@@ -515,18 +515,6 @@ internal sealed partial class ShortcutForm : FormContent
 
         TryAutofillLaunchCommand(normalized);
 
-        if (string.IsNullOrWhiteSpace(_draft.CompanionAppPath))
-        {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(normalized);
-            if (suggestion is not null)
-            {
-                ApplyCompanionFormState(CompanionAppCatalog.ReconcileForForm(
-                    suggestion.PresetId,
-                    suggestion.ExecutablePath,
-                    suggestion.Arguments));
-            }
-        }
-
         ApplyDraft(_draft);
     }
 
@@ -731,7 +719,7 @@ internal sealed partial class ShortcutForm : FormContent
                 draft.LaunchTarget,
                 draft.RunAsAdmin),
             QuickShellRuntimeServices.Shortcuts,
-            _onSaved,
+            onSaved: null,
             draft.DevServerUrl,
             draft.RepoUrl,
             draft.OpenDevServerOnLaunch,
@@ -746,6 +734,7 @@ internal sealed partial class ShortcutForm : FormContent
         }
 
         QuickShellRuntimeServices.Drafts.Clear();
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_onSaved);
         return LeaveShortcutForm(result.Message);
     }
 
@@ -787,6 +776,7 @@ internal sealed partial class ShortcutForm : FormContent
                 RepoUrl = draft.RepoUrl,
                 CompanionAppPreset = draft.CompanionAppPreset,
                 CompanionAppPath = draft.CompanionAppPath,
+                OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
                 RunAsAdmin = draft.RunAsAdmin,
                 ShowRestoredDraftNote = _showRestoredDraftNote,
             },
@@ -859,6 +849,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         var previousPreset = _draft.CompanionAppPreset;
         var mergedPreset = data["CompanionAppPreset"]?.ToString() ?? _draft.CompanionAppPreset;
+        mergedPreset = ResolveCompanionPresetFromForm(previousPreset, mergedPreset, _draft.CompanionAppPath);
 
         _draft = new FormDraft
         {
@@ -872,6 +863,9 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = data["LaunchTarget"]?.ToString() ?? _draft.LaunchTarget,
             DevServerUrl = data["DevServerUrl"]?.ToString() ?? _draft.DevServerUrl,
             RepoUrl = data["RepoUrl"]?.ToString() ?? _draft.RepoUrl,
+            OpenDevServerOnLaunch = ParseToggleBool(
+                data["OpenDevServerOnLaunch"]?.ToString(),
+                _draft.OpenDevServerOnLaunch),
             OpenCompanionAppOnLaunch = _draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = mergedPreset,
             CompanionAppPath = _draft.CompanionAppPath,
@@ -891,13 +885,27 @@ internal sealed partial class ShortcutForm : FormContent
             return false;
         }
 
-        if (string.Equals(mergedPreset, CompanionAppCatalog.PresetCustom, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
         ApplyCompanionFormState(CompanionAppCatalog.CreateStateFromPreset(mergedPreset));
         return true;
+    }
+
+    private static string ResolveCompanionPresetFromForm(
+        string previousPreset,
+        string mergedPreset,
+        string? companionAppPath)
+    {
+        if (!string.Equals(mergedPreset, CompanionAppCatalog.PresetNone, StringComparison.OrdinalIgnoreCase))
+        {
+            return mergedPreset;
+        }
+
+        if (string.Equals(previousPreset, CompanionAppCatalog.PresetCustom, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(companionAppPath))
+        {
+            return CompanionAppCatalog.PresetCustom;
+        }
+
+        return CompanionAppCatalog.PresetNone;
     }
 
     private static bool IsBrowseCompanionAppAction(string inputs, string? data) =>

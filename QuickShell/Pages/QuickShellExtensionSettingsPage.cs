@@ -99,7 +99,12 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
 
 
-    public void RefreshContent() => RaiseItemsChanged();
+    public void RefreshContent()
+    {
+        _terminalDefaultsForm?.SyncFromSettings();
+        _homeDisplayForm?.SyncFromSettings();
+        RaiseItemsChanged();
+    }
 
 
 

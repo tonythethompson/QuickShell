@@ -6,6 +6,13 @@ description: Contact, bug reports, and feature requests for Quick Shell.
 
 # Support
 
+<div class="callout">
+  <strong>Get Quick Shell:</strong>
+  <a href="https://apps.microsoft.com/detail/9PC8S6LNRT3R" target="_blank" rel="noopener">Quick Shell for CmdPal in the Microsoft Store</a>
+  (Store ID: <code>9PC8S6LNRT3R</code>) —
+  or see <a href="{{ '/install/' | relative_url }}">Install</a> for WinGet and GitHub releases.
+</div>
+
 ## Common issues
 
 ### Extension doesn't appear after installation
@@ -81,7 +88,7 @@ Please include:
 
 ## Privacy
 
-Quick Shell stores **zero data in the cloud**. All shortcuts and settings stay on your PC.
+Quick Shell stores **zero data in the cloud**. All workspaces and settings stay on your PC.
 
 See the full [Privacy policy]({{ '/privacy/' | relative_url }}) for details on what Quick Shell collects (spoiler: nothing).
 

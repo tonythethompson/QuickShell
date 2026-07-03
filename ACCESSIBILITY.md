@@ -26,12 +26,12 @@ Test each flow with **keyboard only**, then again with **Narrator** on.
 
 | # | Scenario | Pass criteria |
 |---|----------|---------------|
-| 1 | Search and open a shortcut | Arrow keys select a row; Enter launches the terminal |
-| 2 | Create a new shortcut | Enter on **Create new shortcut**; Tab through all fields; Save works |
+| 1 | Search and open a workspace | Arrow keys select a row; Enter launches the terminal |
+| 2 | Create a new workspace | Enter on **Create workspace**; Tab through all fields; **Save workspace** works |
 | 3 | Edit / favorite / duplicate / delete | Context shortcuts below work on a selected row; **Ctrl+K** opens full More menu |
 | 4 | Open as administrator | Available in More actions when not always-admin |
 | 5 | Browse for folder | Browse button activatable; folder picker usable with keyboard |
-| 6 | Reload shortcuts | **Refresh terminals** runs without error |
+| 6 | Refresh terminal list | **Refresh terminal list** in Quick Shell settings runs without error |
 
 ## Keyboard navigation (Command Palette)
 
@@ -41,27 +41,27 @@ Test each flow with **keyboard only**, then again with **Narrator** on.
 | Arrow keys | Move selection in the results list |
 | `Enter` | Run the selected command |
 | `Ctrl+Enter` | Open as administrator (when available) |
-| `Ctrl+E` | Edit shortcut (main list only) |
-| `Ctrl+P` | Favorite or unfavorite shortcut |
-| `Ctrl+Shift+D` | Duplicate shortcut |
+| `Ctrl+E` | Edit workspace (main list only) |
+| `Ctrl+F` | Favorite or unfavorite workspace |
+| `Ctrl+Shift+D` | Duplicate workspace |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Y` | Redo |
-| `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | Move favorite shortcut up or down |
-| `Ctrl+Delete` | Delete shortcut |
+| `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | Move favorite workspace up or down |
+| `Ctrl+Delete` | Delete workspace |
 | `Ctrl+K` | **More** menu (all actions) |
 | `Tab` (in More menu) | Move focus from search box into the action list (required for Narrator to read each item) |
 | `Esc` | Go back / close |
 
-**Note:** `Shift+F10` opens the context menu for the **focused** control. If focus is in the search box, you will see Paste/Undo — not shortcut actions. Use arrow keys to select a list item, then `Ctrl+K` for extension actions.
+**Note:** `Shift+F10` opens the context menu for the **focused** control. If focus is in the search box, you will see Paste/Undo — not workspace actions. Use arrow keys to select a list item, then `Ctrl+K` for extension actions.
 
 ## Narrator
 
 Turn on Narrator (`Win+Ctrl+Enter`) and verify:
 
-- [ ] Shortcut **Title** is announced clearly (the shortcut name)
+- [ ] Workspace **Title** is announced clearly (the workspace name)
 - [ ] **Subtitle** adds useful context without being unreadable noise
-- [ ] Form fields announce their **labels** (Name, Search keyword, Folder path, Command, Terminal)
-- [ ] **Browse folder** and **Save shortcut** are identifiable by name
+- [ ] Form fields announce their **labels** (Name, Home keyword, Folder path, Command, Terminal)
+- [ ] **Browse folder** and **Save workspace** are identifiable by name
 - [ ] Save/delete/favorite actions give understandable feedback (toast or list update)
 
 ### More menu (`Ctrl+K`) and Narrator
@@ -72,9 +72,9 @@ When the More menu opens, focus starts in the **Search commands...** box at the 
 
 **Other options (no menu required)**
 
-Direct shortcuts on a selected shortcut row still work without opening More:
+Direct shortcuts on a selected workspace row still work without opening More:
 
-- `Ctrl+E` edit, `Ctrl+P` favorite, `Ctrl+Shift+D` duplicate, `Ctrl+Delete` delete, `Ctrl+Enter` open as admin, `Ctrl+Z` / `Ctrl+Y` undo/redo
+- `Ctrl+E` edit, `Ctrl+F` favorite, `Ctrl+Shift+D` duplicate, `Ctrl+Delete` delete, `Ctrl+Enter` open as admin, `Ctrl+Z` / `Ctrl+Y` undo/redo
 
 You can also highlight a row and press `Enter` from the filter box to run it, even if Narrator has not read the name yet.
 
@@ -97,10 +97,10 @@ Command Palette list UI runs inside PowerToys; you cannot attach Insights to it 
 
 ## Extension content checklist
 
-- [ ] Every shortcut has a descriptive **Name** (not only an abbreviation)
+- [ ] Every workspace has a descriptive **Name** (not only a home keyword)
 - [ ] Adaptive Card inputs have **labels** and **errorMessage** on required fields
 - [ ] Folder picker can be completed without a mouse
-- [ ] More actions reachable via **Ctrl+K** on a selected shortcut
+- [ ] More actions reachable via **Ctrl+K** on a selected workspace
 - [ ] Primary scenarios tested with Narrator
 - [ ] Primary scenarios tested at increased DPI and one high-contrast theme
 
@@ -110,7 +110,7 @@ In **Notes for certification**, include:
 
 1. Requires **Microsoft PowerToys** with **Command Palette** enabled.
 2. Install Quick Shell, run **Reload Command Palette Extension**, search **Quick Shell**.
-3. Test create shortcut, open shortcut, and **Ctrl+K** More actions.
+3. Test create workspace, open workspace, and **Ctrl+K** More actions.
 
 Declare accessibility only for **your extension content** (names, forms, picker). You are not certifying all of Command Palette — that shell is owned by PowerToys.
 

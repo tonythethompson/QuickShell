@@ -42,11 +42,18 @@ description: Quick Shell opens saved project folders from PowerToys Command Pale
       <span class="card-arrow">How it works &rarr;</span>
     </div>
   </a>
-  <a class="card-link" href="{{ '/getting-started/' | relative_url }}#create-your-first-shortcut">
+  <a class="card-link" href="{{ '/getting-started/' | relative_url }}#create-your-first-workspace">
     <div class="card">
       <h3>Auto-run commands</h3>
-      <p>Automatically execute dev servers, build scripts, or setup commands when opening a folder.</p>
+      <p>Run dev servers, build scripts, or multiple terminals from one workspace.</p>
       <span class="card-arrow">Set it up &rarr;</span>
+    </div>
+  </a>
+  <a class="card-link" href="{{ '/getting-started/' | relative_url }}#discover-git-repos">
+    <div class="card">
+      <h3>Discover git repos</h3>
+      <p>Scan local folders and add repositories as workspaces without typing paths.</p>
+      <span class="card-arrow">Learn more &rarr;</span>
     </div>
   </a>
   <a class="card-link" href="{{ '/getting-started/' | relative_url }}#home-keywords">
@@ -58,8 +65,8 @@ description: Quick Shell opens saved project folders from PowerToys Command Pale
   </a>
   <a class="card-link" href="{{ '/getting-started/' | relative_url }}#quick-shell-settings">
     <div class="card">
-      <h3>Backup and sync</h3>
-      <p>Export and import shortcuts to back up your setup or move it to another PC in seconds.</p>
+      <h3>Backup and transfer</h3>
+      <p>Export and import workspaces to back up your setup or move it to another PC in seconds.</p>
       <span class="card-arrow">Export guide &rarr;</span>
     </div>
   </a>
@@ -94,7 +101,7 @@ description: Quick Shell opens saved project folders from PowerToys Command Pale
   </div>
   <div class="card">
     <h3>Get going</h3>
-    <p><a href="{{ '/install/' | relative_url }}">Install now</a> and create your first shortcut in under two minutes.</p>
+    <p><a href="{{ '/install/' | relative_url }}">Install now</a> and create your first workspace in under two minutes.</p>
   </div>
   <div class="card">
     <h3>Questions?</h3>

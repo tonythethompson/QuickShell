@@ -51,6 +51,40 @@ internal static class WslPathResolver
         return false;
     }
 
+    public static WslLocation CreateLocationFromWindowsDirectory(string directory, LaunchTarget target)
+    {
+        if (TryParse(directory, out var parsed))
+        {
+            return parsed;
+        }
+
+        return new WslLocation
+        {
+            LinuxPath = ConvertWindowsPathToLinuxPath(directory),
+        };
+    }
+
+    internal static string ConvertWindowsPathToLinuxPath(string directory)
+    {
+        var trimmed = directory.Trim();
+        if (trimmed.StartsWith('/') && !trimmed.StartsWith("//", StringComparison.Ordinal))
+        {
+            return trimmed.TrimEnd('/');
+        }
+
+        var normalized = trimmed.Replace('/', '\\');
+        if (normalized.Length >= 2 && normalized[1] == ':')
+        {
+            var drive = char.ToLowerInvariant(normalized[0]);
+            var remainder = normalized[2..].TrimStart('\\').Replace('\\', '/').TrimEnd('/');
+            return string.IsNullOrEmpty(remainder)
+                ? $"/mnt/{drive}"
+                : $"/mnt/{drive}/{remainder}";
+        }
+
+        return trimmed;
+    }
+
     public static bool DirectoryExists(WslLocation location)
     {
         if (!string.IsNullOrWhiteSpace(location.UncPath) && Directory.Exists(location.UncPath))

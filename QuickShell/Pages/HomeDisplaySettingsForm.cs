@@ -38,6 +38,12 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
         };
     }
 
+    internal void SyncFromSettings()
+    {
+        _pendingShowRecents = QuickShellRecentSettings.IsEnabled(_settingsManager.RecentWorkspaceCount);
+        RebuildTemplate();
+    }
+
     private CommandResult SaveFromInputs(string inputs, string data)
     {
         var values = ParseValues(inputs, data);

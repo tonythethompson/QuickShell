@@ -18,6 +18,8 @@ internal static class ShortcutFormTemplateJson
 
         public string DevServerUrl { get; init; } = string.Empty;
 
+        public bool OpenDevServerOnLaunch { get; init; }
+
         public string RepoUrl { get; init; } = string.Empty;
 
         public string CompanionAppPreset { get; init; } = CompanionAppCatalog.PresetNone;
@@ -110,6 +112,16 @@ internal static class ShortcutFormTemplateJson
               "type": "Input.Text",
               "id": "DevServerUrl",
               "value": "${DevServerUrl}"
+            }
+            """)}},
+            {{AdaptiveCardFormJson.FieldGroup("Dev server on launch", "When enabled, opens the URL above in your browser whenever you run the full workspace.", """
+            {
+              "type": "Input.Toggle",
+              "id": "OpenDevServerOnLaunch",
+              "title": "Open dev server in browser",
+              "value": "${OpenDevServerOnLaunch}",
+              "valueOn": "true",
+              "valueOff": "false"
             }
             """)}},
             {{AdaptiveCardFormJson.FieldGroup("Repository URL (optional)", "Opens from the workspace action menu, e.g. your GitHub repo page.", """
@@ -264,8 +276,9 @@ internal static class ShortcutFormTemplateJson
           "Directory": "{{Escape(draft.Directory)}}",
           "LaunchTarget": "{{Escape(draft.LaunchTarget)}}",
           "DevServerUrl": "{{Escape(draft.DevServerUrl)}}",
+          "OpenDevServerOnLaunch": "{{(draft.OpenDevServerOnLaunch ? "true" : "false")}}",
           "RepoUrl": "{{Escape(draft.RepoUrl)}}",
-          "CompanionAppPreset": "{{Escape(draft.CompanionAppPreset)}}",
+          "CompanionAppPreset": "{{Escape(CompanionAppCatalog.ToFormPresetValue(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
           "CompanionAppPathDisplay": "{{Escape(draft.CompanionAppPath)}}",
           "ShowCompanionExecutablePath": {{(CompanionAppCatalog.ShouldShowExecutablePath(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
           "ShowCompanionPathWarning": {{(CompanionAppCatalog.ShouldShowPathWarning(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},

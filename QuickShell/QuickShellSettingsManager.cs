@@ -66,6 +66,7 @@ internal sealed class QuickShellSettingsManager
         var initialRecentCount = ReadRecentWorkspaceCount();
 
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}"}""");
+        SyncDefaultProfileChoices();
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
         {
@@ -98,7 +99,8 @@ internal sealed class QuickShellSettingsManager
         app = EnsureValidTerminalApplication(app);
         profile = EnsureValidDefaultProfile(app, profile);
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-        RefreshTerminalChoices();
+        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
+        SyncDefaultProfileChoices();
         PersistSettings();
     }
 

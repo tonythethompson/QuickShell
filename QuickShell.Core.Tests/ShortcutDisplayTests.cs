@@ -108,4 +108,107 @@ public sealed class ShortcutDisplayTests
         Assert.Equal("\uF413", ShortcutGlyphs.Duplicate);
         Assert.NotEqual("\uE8C8", ShortcutGlyphs.Duplicate);
     }
+
+    [Fact]
+    public void BuildSubtitle_IncludesCompanionAppDisplayName()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "Sample",
+            Directory = @"C:\Projects\Sample",
+            Terminal = "default",
+            CompanionAppPath = @"C:\Apps\Discord\Discord.exe",
+            Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
+        };
+
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+        Assert.Contains("Discord", subtitle, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BuildSubtitle_UsesProfileNameWithoutTerminalHost()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "frontend Copy",
+            Directory = @"A:\Trackdub\frontend",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Label = "Main",
+                    Terminal = "it",
+                    WtProfile = "Nushell",
+                    Command = "npm run dev",
+                    IsEnabled = true,
+                },
+            ],
+        };
+
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+
+        Assert.Contains("Nushell", subtitle, StringComparison.Ordinal);
+        Assert.DoesNotContain("Intelligent Terminal", subtitle, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildSubtitle_StandalonePwsh_ShowsPowerShell7()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "frontend",
+            Directory = @"A:\Trackdub\frontend",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Label = "Main",
+                    Terminal = "pwsh",
+                    Command = "npm run dev",
+                    IsEnabled = true,
+                },
+            ],
+        };
+
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+
+        Assert.Contains("PowerShell 7", subtitle, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildSubtitle_MultipleLaunches_IncludesProfileForEachCommand()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "frontend",
+            Directory = @"A:\Trackdub\frontend",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Label = "Dev server",
+                    Terminal = "pwsh",
+                    Command = "npm run dev",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+                new WorkspaceEntry
+                {
+                    Label = "Claude",
+                    Terminal = "it",
+                    WtProfile = "Nushell",
+                    Command = "claude",
+                    IsEnabled = true,
+                    Order = 1,
+                },
+            ],
+        };
+
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+
+        Assert.Contains("PowerShell 7", subtitle, StringComparison.Ordinal);
+        Assert.Contains("npm run dev", subtitle, StringComparison.Ordinal);
+        Assert.Contains("Nushell", subtitle, StringComparison.Ordinal);
+        Assert.Contains("claude", subtitle, StringComparison.Ordinal);
+    }
 }

@@ -509,7 +509,7 @@ public sealed class CompanionAppTests : IDisposable
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         Assert.Contains(CompanionAppCatalog.PresetNone, values);
-        Assert.Contains(CompanionAppCatalog.PresetCustom, values);
+        Assert.DoesNotContain(CompanionAppCatalog.PresetCustom, values);
 
         if (CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
         {
@@ -547,17 +547,12 @@ public sealed class CompanionAppTests : IDisposable
     }
 
     [Fact]
-    public void GetContextMenuIcon_UsesCodeIconForCursor()
+    public void GetContextMenuIcon_UsesOpenWithForAllApps()
     {
         Assert.Equal(
-            "\uE90F",
+            ShortcutGlyphs.OpenCompanionApp,
             CompanionAppCatalog.GetContextMenuIcon(
                 @"C:\Users\me\AppData\Local\Programs\cursor\Cursor.exe"));
-    }
-
-    [Fact]
-    public void GetContextMenuIcon_UsesOpenWithForUnknownCustomExe()
-    {
         Assert.Equal(
             ShortcutGlyphs.OpenCompanionApp,
             CompanionAppCatalog.GetContextMenuIcon(@"C:\Tools\MyCustomApp.exe"));

@@ -45,8 +45,72 @@ internal static class TerminalLauncherArgs
         return arguments;
     }
 
+    /// <summary>
+    /// Windows Terminal already receives <c>-d</c> for the workspace folder, so only run the command.
+    /// </summary>
+    public static string ToWindowsTerminalPowerShellSuffix(TerminalShortcut shortcut, string executable)
+    {
+        var command = shortcut.Command?.Trim();
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return executable;
+        }
+
+        return $"{executable} -NoExit -Command \"{EscapePowerShellInline(command)}\"";
+    }
+
+    public static string ToWindowsTerminalNushellSuffix(TerminalShortcut shortcut, string executable)
+    {
+        var command = shortcut.Command?.Trim();
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return executable;
+        }
+
+        return $"{executable} -c '{EscapeSingleQuotedNushell(command)}'";
+    }
+
+    public static string EscapeSingleQuotedNushell(string value) => value.Replace("'", "''");
+
     public static string ToPowerShellExecutableCommand(TerminalShortcut shortcut, string executable, string directory) =>
         $"{executable} {ToPowerShellArguments(shortcut, directory)}";
+
+    public static bool IsPackageManagerCommand(string? command)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return false;
+        }
+
+        var trimmed = command.Trim();
+        var space = trimmed.IndexOf(' ');
+        var tool = space < 0 ? trimmed : trimmed[..space];
+
+        return tool.Equals("npm", StringComparison.OrdinalIgnoreCase)
+            || tool.Equals("pnpm", StringComparison.OrdinalIgnoreCase)
+            || tool.Equals("yarn", StringComparison.OrdinalIgnoreCase)
+            || tool.Equals("npx", StringComparison.OrdinalIgnoreCase)
+            || tool.Equals("bun", StringComparison.OrdinalIgnoreCase)
+            || tool.Equals("bunx", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string? TryExtractExecutableFromCommandLine(string? commandLine)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine))
+        {
+            return null;
+        }
+
+        var expanded = Environment.ExpandEnvironmentVariables(commandLine.Trim());
+        if (expanded.StartsWith('"'))
+        {
+            var endQuote = expanded.IndexOf('"', 1);
+            return endQuote > 1 ? expanded[1..endQuote] : null;
+        }
+
+        var space = expanded.IndexOf(' ');
+        return space < 0 ? expanded : expanded[..space];
+    }
 
     public static string ToWslArguments(
         TerminalShortcut shortcut,
@@ -92,8 +156,20 @@ internal static class TerminalLauncherArgs
         return arguments;
     }
 
-    public static string BuildWindowsTerminalCmdSuffix(TerminalShortcut shortcut)
+    public static string BuildWindowsTerminalCmdSuffix(TerminalShortcut shortcut, bool omitDirectoryChange = false)
     {
+        var command = shortcut.Command?.Trim();
+
+        if (omitDirectoryChange)
+        {
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                return "cmd.exe";
+            }
+
+            return $"cmd.exe /k \"{EscapeCmd(command)}\"";
+        }
+
         var arguments = $"/k \"cd /d \"\"{EscapeCmd(shortcut.Directory)}\"\"";
 
         if (!string.IsNullOrWhiteSpace(shortcut.Command))

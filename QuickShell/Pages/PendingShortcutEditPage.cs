@@ -108,12 +108,13 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings("No unsaved workspace edit is pending.");
         }
 
-        var result = QuickShellRuntimeServices.Drafts.TryCommitPending(_onReload);
+        var result = QuickShellRuntimeServices.Drafts.TryCommitPending(onSaved: null);
         if (!result.Success)
         {
             return QuickShellNavigation.StayOnSettings(result.Message);
         }
 
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
         _onSettingsChanged?.Invoke();
         return QuickShellNavigation.StayOnSettings(result.Message);
     }

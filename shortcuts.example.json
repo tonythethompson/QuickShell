@@ -11,6 +11,30 @@
     "Title": "Web"
   },
   {
+    "Name": "Full stack",
+    "Abbreviation": "fs",
+    "Directory": "C:\\Projects\\fullstack",
+    "Launches": [
+      {
+        "Label": "API",
+        "Terminal": "wt",
+        "Command": "dotnet run",
+        "IsEnabled": true,
+        "Order": 0
+      },
+      {
+        "Label": "Web",
+        "Terminal": "wt",
+        "Command": "npm run dev",
+        "IsEnabled": true,
+        "Order": 1
+      }
+    ],
+    "DevServerUrl": "http://localhost:5173",
+    "OpenDevServerOnLaunch": true,
+    "RepoUrl": "https://github.com/example/fullstack"
+  },
+  {
     "Name": "Frontend",
     "Abbreviation": "fe",
     "Directory": "C:\\Projects\\web",
@@ -34,6 +58,7 @@
     "Directory": "C:\\Windows\\System32",
     "Command": "",
     "Terminal": "wt",
-    "RunAsAdmin": true
+    "RunAsAdmin": true,
+    "IsPinned": true
   }
 ]
