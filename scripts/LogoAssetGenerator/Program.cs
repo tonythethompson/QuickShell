@@ -539,7 +539,7 @@ static void RenderSvgToPng(string svgPath, string outPath, int width, int height
     var renderHeight = height * supersample;
 
     var info = new SKImageInfo(renderWidth, renderHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
-    using var surface = SKSurface.Create(info);
+    using var surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Failed to allocate surface {renderWidth}x{renderHeight} for {Path.GetFileName(svgPath)}");
     var canvas = surface.Canvas;
     canvas.Clear(SKColors.Transparent);
 
