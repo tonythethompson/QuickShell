@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 
@@ -48,11 +49,13 @@ internal static class SettingsFormHelpers
 
             }
 
-            catch
+            catch (Exception ex) when (ex is ObjectDisposedException or COMException)
 
             {
 
-                // Best effort; the settings page may have been torn down before this fired.
+                // Best effort; the settings page/COM host may have been torn down
+
+                // before this fired. Anything else is a real bug and should surface.
 
             }
 

@@ -77,16 +77,34 @@ internal static class GitRepoIndex
             refreshTask = _refreshInFlight;
         }
 
-        var discovered = refreshTask.GetAwaiter().GetResult();
-
-        lock (Sync)
+        try
         {
-            if (ReferenceEquals(_refreshInFlight, refreshTask))
+            var discovered = refreshTask.GetAwaiter().GetResult();
+
+            lock (Sync)
             {
-                _cache = discovered;
-                _refreshedUtc = DateTime.UtcNow;
-                _refreshInFlight = null;
+                if (ReferenceEquals(_refreshInFlight, refreshTask))
+                {
+                    _cache = discovered;
+                    _refreshedUtc = DateTime.UtcNow;
+                    _refreshInFlight = null;
+                }
             }
+        }
+        catch
+        {
+            // If the scan faulted, drop the faulted task so the next call
+            // starts a fresh one instead of reusing (and re-throwing from)
+            // this one forever.
+            lock (Sync)
+            {
+                if (ReferenceEquals(_refreshInFlight, refreshTask))
+                {
+                    _refreshInFlight = null;
+                }
+            }
+
+            throw;
         }
     }
 
