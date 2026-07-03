@@ -45,7 +45,4 @@ Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}}\LocalServer32"; ValueTy
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
-Type: files; Name: "{#RunPluginDest}\QuickShell.Run.dll"
-Type: files; Name: "{#RunPluginDest}\QuickShell.Core.dll"
-Type: files; Name: "{#RunPluginDest}\plugin.json"
-Type: filesandordirs; Name: "{#RunPluginDest}\Images"
+Type: filesandordirs; Name: "{#RunPluginDest}"

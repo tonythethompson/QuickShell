@@ -128,9 +128,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             : MergeSearchResults(search);
 
         results.AddRange(shortcuts
-            .Select(shortcut => CreateShortcutResult(shortcut, search, directActivationBrowse))
-            .OrderByDescending(result => result.Score)
-            .ThenBy(result => result.Title, StringComparer.OrdinalIgnoreCase));
+            .Select(shortcut => CreateShortcutResult(shortcut, search, directActivationBrowse)));
 
         return results
             .OrderByDescending(result => result.Score)
