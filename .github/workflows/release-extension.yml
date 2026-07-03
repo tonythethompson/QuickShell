@@ -1,6 +1,9 @@
 name: Release WinGet installers
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -12,11 +15,17 @@ on:
         required: false
         default: Quick Shell release for PowerToys Command Palette.
         type: string
+      submit_winget:
+        description: Open a WinGet manifest update PR after release
+        required: false
+        default: true
+        type: boolean
 
 env:
   DISPLAY_NAME: Quick Shell
   EXTENSION_NAME: QuickShell
   GITHUB_REPO_URL: https://github.com/tonythethompson/QuickShell
+  WINGET_PACKAGE_ID: tonythethompson.QuickShell
 
 jobs:
   build:
@@ -24,6 +33,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      tag: v${{ steps.version.outputs.VERSION }}
 
     steps:
       - name: Checkout code
@@ -41,7 +53,9 @@ jobs:
       - name: Get version
         id: version
         run: |
-          if ("${{ github.event.inputs.version }}" -ne "") {
+          if ("${{ github.event_name }}" -eq "push") {
+            $version = "${{ github.ref_name }}" -replace '^v', ''
+          } elseif ("${{ github.event.inputs.version }}" -ne "") {
             $version = "${{ github.event.inputs.version }}"
           } else {
             $projectFile = "QuickShell/QuickShell.csproj"
@@ -86,6 +100,7 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: Quick Shell v${{ steps.version.outputs.VERSION }}
+          generate_release_notes: true
           body: |
             ## Quick Shell v${{ steps.version.outputs.VERSION }}
 
@@ -108,7 +123,7 @@ jobs:
             ## WinGet
 
             ```powershell
-            winget install tonythethompson.QuickShell
+            winget install ${{ env.WINGET_PACKAGE_ID }}
             ```
           files: |
             QuickShell/bin/Release/installer/*.exe
@@ -118,3 +133,52 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  winget-update:
+    needs: build
+    runs-on: windows-latest
+    if: >-
+      needs.build.result == 'success' &&
+      (
+        github.event_name == 'push' ||
+        github.event.inputs.submit_winget != 'false'
+      )
+
+    steps:
+      - name: Install WingetCreate
+        run: |
+          winget install --id Microsoft.WingetCreate -e `
+            --accept-source-agreements --accept-package-agreements --disable-interactivity
+          $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
+          wingetcreate --version
+        shell: pwsh
+
+      - name: Submit WinGet manifest update
+        run: |
+          $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
+
+          if (-not $env:WINGET_PAT) {
+            Write-Warning "WINGET_PAT secret is not configured. Skipping WinGet submission."
+            exit 0
+          }
+
+          $version = "${{ needs.build.outputs.version }}"
+          $tag = "${{ needs.build.outputs.tag }}"
+          $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $x64Url = "$baseUrl/QuickShell-Setup-$version-x64.exe"
+          $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
+
+          Write-Host "Submitting WinGet update for $version"
+          Write-Host "  x64:   $x64Url"
+          Write-Host "  arm64: $arm64Url"
+
+          wingetcreate update "${{ env.WINGET_PACKAGE_ID }}" `
+            --version $version `
+            --urls $x64Url $arm64Url `
+            --submit `
+            --token $env:WINGET_PAT
+        shell: pwsh
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}

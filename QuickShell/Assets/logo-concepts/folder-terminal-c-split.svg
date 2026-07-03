@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell: folder to terminal, split tile">
+  <title>Folder to Terminal - Split Tile</title>
+  <defs>
+    <linearGradient id="c-tile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1084E8"/>
+      <stop offset="100%" stop-color="#005A9E"/>
+    </linearGradient>
+    <linearGradient id="c-panel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8EDF4"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#c-tile)"/>
+  <rect x="56" y="96" width="400" height="320" rx="40" fill="url(#c-panel)"/>
+  <rect x="248" y="128" width="6" height="256" rx="3" fill="#0078D4" opacity="0.2"/>
+  <path fill="#0078D4" d="M238 256 L262 240 L262 252 L286 252 L286 260 L262 260 L262 272 Z"/>
+
+  <g transform="translate(96 196)">
+    <path fill="#0078D4" d="M0 28C0 12.5 12.5 0 28 0h56l28 28h76c15.5 0 28 12.5 28 28v84c0 15.5-12.5 28-28 28H28C12.5 168 0 155.5 0 140V28z"/>
+    <path fill="#50A0FF" fill-opacity="0.45" d="M0 36h28l28-28h56l14 28H0z"/>
+  </g>
+
+  <g transform="translate(272 168)">
+    <rect width="168" height="128" rx="16" fill="#1A1F28"/>
+    <rect x="0" y="0" width="168" height="28" rx="16" fill="#252830"/>
+    <rect y="14" width="168" height="14" fill="#1A1F28"/>
+    <circle cx="18" cy="14" r="4" fill="#FF5F57"/>
+    <circle cx="32" cy="14" r="4" fill="#FFBD2E"/>
+    <circle cx="46" cy="14" r="4" fill="#28CA41"/>
+    <path fill="#4EC9B0" d="M22 92 L22 68 L44 80 Z"/>
+    <rect x="52" y="76" width="36" height="8" rx="2" fill="#4EC9B0"/>
+  </g>
+</svg>

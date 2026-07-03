@@ -22,6 +22,6 @@ internal sealed partial class UndoShortcutCommand : InvokableCommand
         }
 
         _onChanged();
-        return QuickShellNavigation.StayOpen("Undid the last shortcut change.");
+        return QuickShellNavigation.StayOpen("Undid the last workspace change.");
     }
 }

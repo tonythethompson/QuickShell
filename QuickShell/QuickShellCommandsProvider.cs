@@ -14,6 +14,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private readonly CreateShortcutCommand _createShortcutCommand;
+    private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly QuickShellFallbackPage _fallbackPage;
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
@@ -24,14 +25,14 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         _settingsManager = new QuickShellSettingsManager(ReloadPages);
         QuickShellRuntimeServices.Initialize(_settingsManager);
 
-        DisplayName = "Quick Shell";
-        Icon = new IconInfo("\uE756");
+        DisplayName = QuickShellBrand.DisplayName;
+        Icon = QuickShellBrandIcons.App;
         Id = "com.quickshell";
         Settings = _settingsManager.Settings;
 
         _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
-        var createWorkspaceCommand = new CreateWorkspaceCommand(ReloadPages);
-        _page = new QuickShellPage(_settingsManager, _createShortcutCommand, createWorkspaceCommand);
+        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
+        _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
         _settingsChangedHandler = (_, _) => _page.Reload();
         _settingsManager.SettingsChanged += _settingsChangedHandler;
 
@@ -43,7 +44,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             {
                 Title = DisplayName,
                 Subtitle = "Open saved folders in any terminal you use",
-                Icon = new IconInfo("\uE756"),
+                Icon = QuickShellBrandIcons.App,
 #if CMDPAL_HOVER_ACTIONS
                 HomeHoverActionsMode = HoverActionsMode.Explicit,
 #endif
@@ -51,7 +52,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 [
                     new CommandContextItem(_createShortcutCommand)
                     {
-                        Title = "Create shortcut",
+                        Title = "Create workspace",
                         Icon = new IconInfo("\uE710"),
                         RequestedShortcut = QuickShellKeyboardShortcuts.CreateShortcut,
 #if CMDPAL_HOVER_ACTIONS
@@ -61,7 +62,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                     },
                     new CommandContextItem(settingsPage)
                     {
-                        Title = "Quick Shell settings",
+                        Title = QuickShellBrand.SettingsTitle,
                         Icon = new IconInfo("\uE713"),
 #if CMDPAL_HOVER_ACTIONS
                         ShowInHoverActions = true,
@@ -72,8 +73,8 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             },
         ];
 
-        _fallbackPage = new QuickShellFallbackPage(_settingsManager);
-        _fallbacks = [new QuickShellFallback(_fallbackPage, _settingsManager)];
+        _fallbackPage = new QuickShellFallbackPage(_settingsManager, ReloadPages);
+        _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand)];
     }
 
     public override ICommandItem[] TopLevelCommands() => _commands;
@@ -82,9 +83,9 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     private void ReloadPages()
     {
+        GitRepoIndex.Invalidate();
         _page.Reload();
-        _settingsManager.RefreshSettingsContent();
-        _fallbackPage.UpdateSearchText(string.Empty, string.Empty);
+        _fallbackPage.ClearResults();
     }
 
     public override ICommandItem? GetCommandItem(string id)
@@ -102,60 +103,21 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
         if (string.Equals(id, ShortcutCommandIds.CreateShortcut, StringComparison.Ordinal))
         {
-            return new CommandItem(_createShortcutCommand)
+            return new CommandItem(new CreateShortcutCommand(ReloadPages))
             {
-                Title = "Create new shortcut",
-                Subtitle = "Directory and optional command",
+                Title = "Create workspace",
+                Subtitle = "Folder and terminal launches",
                 Icon = new IconInfo("\uE710"),
             };
         }
 
-        if (string.Equals(id, WorkspaceCommandIds.CreateWorkspace, StringComparison.Ordinal))
+        if (string.Equals(id, DiscoverGitReposPage.PageId, StringComparison.Ordinal))
         {
-            return new CommandItem(new CreateWorkspaceCommand(ReloadPages))
+            return new CommandItem(new OpenDiscoverGitReposCommand(ReloadPages))
             {
-                Title = "Create workspace",
-                Subtitle = "Multi-terminal project environment",
-                Icon = new IconInfo(WorkspaceListItems.WorkspaceIcon),
+                Title = "Discover git repos",
+                Icon = new IconInfo(ShortcutGlyphs.Discover),
             };
-        }
-
-        if (string.Equals(id, WorkspaceEditorPage.PageId, StringComparison.Ordinal))
-        {
-            return new CommandItem(new WorkspaceEditorPage())
-            {
-                Title = "Edit workspace",
-                Icon = new IconInfo(WorkspaceListItems.WorkspaceIcon),
-            };
-        }
-
-        if (string.Equals(id, ProjectShortcutPickerPage.PageId, StringComparison.Ordinal))
-        {
-            return new CommandItem(new ProjectShortcutPickerPage())
-            {
-                Title = "Choose project shortcut",
-                Icon = new IconInfo(WorkspaceListItems.WorkspaceIcon),
-            };
-        }
-
-        if (string.Equals(id, WorkspaceEntryFormPage.PageId, StringComparison.Ordinal))
-        {
-            return new CommandItem(new WorkspaceEntryFormPage())
-            {
-                Title = "Edit launch entry",
-                Icon = new IconInfo("\uE756"),
-            };
-        }
-
-        if (WorkspaceCommandIds.TryParseOpen(id, out var workspaceId))
-        {
-            var workspace = QuickShellRuntimeServices.Workspaces.GetById(workspaceId);
-            if (workspace is null)
-            {
-                return null;
-            }
-
-            return WorkspaceListItems.CreateOpen(workspace, _settingsManager, ReloadPages, _createShortcutCommand);
         }
 
         if (ShortcutCommandIds.TryParseOpen(id, out var openKey))

@@ -5,6 +5,34 @@ namespace QuickShell.Services;
 
 internal static class ShortcutDisplay
 {
+    public static string GetLaunchContextMenuTitle(WorkspaceEntry entry) =>
+        GetLaunchContextMenuTitle(entry, siblingLaunches: null);
+
+    public static string GetLaunchContextMenuTitle(
+        WorkspaceEntry entry,
+        IEnumerable<WorkspaceEntry>? siblingLaunches)
+    {
+        var command = CollapseToSingleLine(entry.Command);
+        if (!string.IsNullOrWhiteSpace(command))
+        {
+            return command.Trim();
+        }
+
+        var launches = siblingLaunches?.ToList() ?? [entry];
+        if (AnyLaunchHasCommand(launches))
+        {
+            return "Open folder only";
+        }
+
+        var label = (entry.Label ?? string.Empty).Trim();
+        if (!string.IsNullOrWhiteSpace(label))
+        {
+            return label;
+        }
+
+        return "Open folder";
+    }
+
     public static string BuildDirectorySubtitle(TerminalShortcut shortcut)
     {
         return string.Join(" · ", ShortenPath(shortcut.Directory), TerminalCatalog.GetDisplayName(shortcut));
@@ -12,13 +40,28 @@ internal static class ShortcutDisplay
 
     public static string BuildSubtitle(TerminalShortcut shortcut)
     {
+        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
+
         var parts = new List<string> { ShortenPath(shortcut.Directory) };
 
-        parts.Add(TerminalCatalog.GetDisplayName(shortcut));
-
-        if (!string.IsNullOrWhiteSpace(shortcut.Command))
+        var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
+        if (enabledLaunches.Count > 1)
         {
-            parts.Add(shortcut.Command);
+            parts.Add(string.Join(" · ", enabledLaunches.Select(launch => GetLaunchContextMenuTitle(launch, enabledLaunches))));
+        }
+        else if (enabledLaunches.Count == 1)
+        {
+            var launch = enabledLaunches[0];
+            parts.Add(TerminalCatalog.GetDisplayName(new TerminalShortcut
+            {
+                Terminal = launch.Terminal,
+                WtProfile = launch.WtProfile,
+            }));
+
+            if (!string.IsNullOrWhiteSpace(launch.Command))
+            {
+                parts.Add(launch.Command);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(shortcut.Abbreviation))
@@ -48,7 +91,15 @@ internal static class ShortcutDisplay
         return path;
     }
 
+    private static bool AnyLaunchHasCommand(IEnumerable<WorkspaceEntry> launches) =>
+        launches.Any(launch => !string.IsNullOrWhiteSpace(CollapseToSingleLine(launch.Command)));
+
     private static string ShortenPath(string path) => ShortenPathForDisplay(path);
+
+    private static string CollapseToSingleLine(string? value) =>
+        string.Join(
+            ' ',
+            (value ?? string.Empty).Split(['\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     private static string FormatRelativeTime(DateTime utc)
     {
@@ -74,5 +125,29 @@ internal static class ShortcutDisplay
         }
 
         return utc.ToLocalTime().ToString("MMM d", CultureInfo.InvariantCulture);
+    }
+
+    public static string BuildLaunchEntrySubtitle(WorkspaceEntry entry)
+    {
+        var parts = new List<string>
+        {
+            TerminalCatalog.GetDisplayName(new TerminalShortcut
+            {
+                Terminal = entry.Terminal,
+                WtProfile = entry.WtProfile,
+            }),
+        };
+
+        if (!string.IsNullOrWhiteSpace(entry.Command))
+        {
+            parts.Add(entry.Command);
+        }
+
+        if (!entry.IsEnabled)
+        {
+            parts.Add("disabled");
+        }
+
+        return string.Join(" · ", parts);
     }
 }

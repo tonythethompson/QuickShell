@@ -42,6 +42,8 @@ internal interface IShortcutRepository
 
     Task<ShortcutTransferResult> ImportReplaceAsync(string path, CancellationToken cancellationToken = default);
 
+    ShortcutTransferResult ResetAll();
+
     bool CanUndo { get; }
 
     bool CanRedo { get; }
@@ -63,6 +65,8 @@ internal interface IShortcutRepository
     void MarkUsed(string shortcutId);
 
     TerminalShortcut? BuildDuplicate(string name);
+
+    TerminalShortcut BuildDuplicateFrom(TerminalShortcut source);
 
     IEnumerable<TerminalShortcut> Search(string query);
 

@@ -332,6 +332,74 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
 
 
+        if (ShortcutHealth.NeedsRepair(shortcut))
+
+        {
+
+            var repairMenus = new List<ContextMenuResult>
+
+            {
+
+                CreateContextMenu("Edit shortcut", "\uE70F", _ =>
+
+                {
+
+                    ExecuteManageShortcutEdit(shortcut);
+
+                    return false;
+
+                }),
+
+            };
+
+            if (shortcut.IsPinned)
+
+            {
+
+                repairMenus.Add(CreateContextMenu("Unfavorite", "\uE735", _ =>
+
+                {
+
+                    Shortcuts.TogglePinned(shortcut.Name);
+
+                    NotifyStatus($"Removed '{shortcut.Name}' from favorites.");
+
+                    RefreshResults();
+
+                    return false;
+
+                }));
+
+            }
+
+            repairMenus.Add(CreateContextMenu("Delete shortcut", "\uE74D", _ =>
+
+            {
+
+                if (!Shortcuts.Delete(shortcut.Name))
+
+                {
+
+                    return false;
+
+                }
+
+
+
+                NotifyStatus($"Deleted shortcut '{shortcut.Name}'.");
+
+                RefreshResults();
+
+                return false;
+
+            }));
+
+            return repairMenus;
+
+        }
+
+
+
         return
 
         [
@@ -680,15 +748,19 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     {
 
+        var needsRepair = ShortcutHealth.NeedsRepair(shortcut);
+
         return new Result
 
         {
 
             Title = shortcut.Name,
 
-            SubTitle = ShortcutDisplay.BuildSubtitle(shortcut),
+            SubTitle = ShortcutHealth.BuildListSubtitle(shortcut),
 
-            IcoPath = _iconPath,
+            Glyph = ShortcutHealth.GetListGlyph(shortcut),
+
+            FontFamily = IconFont,
 
             Score = ComputeScore(shortcut, search),
 
@@ -697,6 +769,18 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             Action = action =>
 
             {
+
+                if (needsRepair)
+
+                {
+
+                    ExecuteManageShortcutEdit(shortcut);
+
+                    return false;
+
+                }
+
+
 
                 var forceAdmin = action.SpecialKeyState.CtrlPressed && action.SpecialKeyState.ShiftPressed;
 
@@ -787,37 +871,22 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
 
     private void Launch(TerminalShortcut shortcut, bool runAsAdmin = false, bool runAsStandard = false)
-
     {
+        var result = ShortcutLaunchExecutor.Launch(
+            shortcut,
+            Settings!.TerminalApplicationId,
+            Settings.DefaultProfileId,
+            new ShortcutLaunchOptions(runAsAdmin, runAsStandard));
 
-        try
-
+        if (result.MarkUsed)
         {
-
-            TerminalLauncher.Open(
-
-                shortcut,
-
-                Settings.TerminalApplicationId,
-
-                Settings.DefaultProfileId,
-
-                runAsAdmin,
-
-                runAsStandard);
-
-            Shortcuts.MarkUsed(shortcut.Id);
-
+            Shortcuts!.MarkUsed(shortcut.Id);
         }
 
-        catch (Exception ex)
-
+        if (!result.Dismiss && !string.IsNullOrWhiteSpace(result.StayOpenMessage))
         {
-
-            _context?.API.ShowMsg("Quick Shell", ex.Message, string.Empty);
-
+            _context?.API.ShowMsg("Quick Shell", result.StayOpenMessage, string.Empty);
         }
-
     }
 
 

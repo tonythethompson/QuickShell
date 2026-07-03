@@ -8,14 +8,15 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     private readonly Dictionary<string, TerminalShortcut> _byId;
     private readonly Dictionary<string, TerminalShortcut> _byName;
 
-    public FakeShortcutRepository(IEnumerable<TerminalShortcut> shortcuts)
+    public FakeShortcutRepository(IEnumerable<TerminalShortcut> shortcuts, string? configDirectory = null)
     {
         var list = shortcuts.ToList();
         _byId = list.ToDictionary(shortcut => shortcut.Id, StringComparer.OrdinalIgnoreCase);
         _byName = list.ToDictionary(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase);
+        ConfigDirectory = configDirectory ?? string.Empty;
     }
 
-    public string ConfigDirectory => string.Empty;
+    public string ConfigDirectory { get; }
 
     public string ConfigPath => string.Empty;
 
@@ -70,6 +71,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public Task<ShortcutTransferResult> ImportReplaceAsync(string path, CancellationToken cancellationToken = default) =>
         Task.FromResult(new ShortcutTransferResult());
 
+    public ShortcutTransferResult ResetAll() => new() { Success = true, Message = "No workspaces to reset." };
+
     public bool CanUndo => false;
 
     public bool CanRedo => false;
@@ -95,6 +98,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     }
 
     public TerminalShortcut? BuildDuplicate(string name) => null;
+
+    public TerminalShortcut BuildDuplicateFrom(TerminalShortcut source) => source;
 
     public IEnumerable<TerminalShortcut> Search(string query) => GetShortcuts();
 

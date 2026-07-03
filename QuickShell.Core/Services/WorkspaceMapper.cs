@@ -4,20 +4,6 @@ namespace QuickShell.Services;
 
 internal static class WorkspaceMapper
 {
-    public static WorkspaceWriteRecord ToWriteRecord(Workspace workspace) => new()
-    {
-        Id = workspace.Id,
-        Name = workspace.Name,
-        Abbreviation = workspace.Abbreviation,
-        Directory = workspace.Directory,
-        IsPinned = workspace.IsPinned,
-        PinOrder = workspace.PinOrder,
-        Entries = workspace.Entries.Select(CloneEntry).ToList(),
-    };
-
-    public static List<WorkspaceWriteRecord> ToWriteRecords(IEnumerable<Workspace> workspaces) =>
-        workspaces.Select(ToWriteRecord).ToList();
-
     public static Workspace CloneWorkspace(Workspace workspace) => new()
     {
         Id = workspace.Id,

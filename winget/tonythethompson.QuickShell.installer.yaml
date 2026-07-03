@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
 
 PackageIdentifier: tonythethompson.QuickShell
-PackageVersion: 0.1.6.0
+PackageVersion: 0.1.7.0
 MinimumOSVersion: 10.0.19041.0
 InstallerType: inno
 Scope: user
@@ -20,10 +20,10 @@ InstallationMetadata:
   DefaultInstallLocation: '%LOCALAPPDATA%\Programs\QuickShell'
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/tonythethompson/QuickShell/releases/download/v0.1.6.0/QuickShell-Setup-0.1.6.0-x64.exe
+  InstallerUrl: https://github.com/tonythethompson/QuickShell/releases/download/v0.1.7.0/QuickShell-Setup-0.1.7.0-x64.exe
   InstallerSha256: 5739DBEE0EC1F21DEBB58E776A53E706C2EF8CF774BA3A4D880DCEFF83B57A4E
 - Architecture: arm64
-  InstallerUrl: https://github.com/tonythethompson/QuickShell/releases/download/v0.1.6.0/QuickShell-Setup-0.1.6.0-arm64.exe
+  InstallerUrl: https://github.com/tonythethompson/QuickShell/releases/download/v0.1.7.0/QuickShell-Setup-0.1.7.0-arm64.exe
   InstallerSha256: E559D785E340FA168AF710CD206C2A605D12E9BED846FC25B3D0FB70DCCD394D
 ManifestType: installer
 ManifestVersion: 1.9.0

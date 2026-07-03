@@ -32,7 +32,7 @@ In Quick Shell, open **settings** and click **Refresh terminal list**. This dete
 You have multiple installations (Store + WinGet, or multiple local versions). Uninstall all but one:
 
 1. Open Settings → Apps → Installed apps
-2. Search for "Quick Shell"
+2. Search for "Quick Shell" or "Quick Shell for CmdPal"
 3. Click the **⋮** menu and select **Uninstall**
 4. Keep only one installation method (recommend: Microsoft Store)
 

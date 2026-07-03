@@ -1,6 +1,8 @@
+using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Models;
+using QuickShell.Pages;
 
 namespace QuickShell.Services;
 
@@ -12,10 +14,16 @@ internal static class ShortcutListItems
         Action? onChanged = null,
         CreateShortcutCommand? createShortcutCommand = null)
     {
-        var item = new ListItem(new OpenTerminalShortcutCommand(shortcut, settings))
+        var needsRepair = ShortcutHealth.NeedsRepair(shortcut);
+        ICommand primaryCommand = needsRepair
+            ? new ShortcutFormPage(shortcut, onChanged)
+            : new OpenTerminalShortcutCommand(shortcut, settings);
+
+        var item = new ListItem(primaryCommand)
         {
             Title = shortcut.Name,
-            Subtitle = ShortcutDisplay.BuildSubtitle(shortcut),
+            Subtitle = ShortcutHealth.BuildListSubtitle(shortcut),
+            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
         };
 
         var tags = ShortcutDisplayTags.BuildTags(shortcut);
@@ -26,11 +34,15 @@ internal static class ShortcutListItems
 
         if (onChanged is not null)
         {
-            item.MoreCommands = ShortcutContextCommands.BuildForHomePin(
-                shortcut,
-                onChanged,
-                settings,
-                createShortcutCommand);
+            item.MoreCommands = needsRepair
+                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged)
+                : createShortcutCommand is not null
+                    ? ShortcutContextCommands.BuildForHomePin(
+                        shortcut,
+                        onChanged,
+                        settings,
+                        createShortcutCommand)
+                    : item.MoreCommands;
         }
 
         return item;
@@ -39,7 +51,7 @@ internal static class ShortcutListItems
     public static ListItem CreateNewShortcut(CreateShortcutCommand command) =>
         new(command)
         {
-            Title = "Create new shortcut",
+            Title = "Create new workspace",
             Subtitle = "Directory and optional command",
         };
 }

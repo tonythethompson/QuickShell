@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell: folder to terminal, bold minimal diagonal">
+  <title>Folder to Terminal - Bold Minimal</title>
+  <defs>
+    <linearGradient id="a-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c2028"/>
+      <stop offset="100%" stop-color="#0e1016"/>
+    </linearGradient>
+    <linearGradient id="a-folder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3AA0FF"/>
+      <stop offset="100%" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#a-bg)"/>
+
+  <!-- Folder: top-left -->
+  <g transform="translate(24 28)">
+    <path fill="url(#a-folder)" d="M0 48C0 21.5 21.5 0 48 0h112l56 56h156c26.5 0 48 21.5 48 48v144c0 26.5-21.5 48-48 48H48C21.5 296 0 274.5 0 248V48z"/>
+    <path fill="#FFFFFF" fill-opacity="0.22" d="M0 64h56l56-56h96l32 56H0z"/>
+  </g>
+
+  <!-- Terminal: bottom-right -->
+  <g transform="translate(132 242)">
+    <rect width="356" height="258" rx="26" fill="#252830" stroke="#4A5260" stroke-width="8"/>
+    <path fill="#4EC9B0" d="M48 168 L48 118 L104 142 Z"/>
+    <rect x="116" y="132" width="88" height="16" rx="4" fill="#4EC9B0"/>
+  </g>
+
+  <!-- Lightning bolt: exact asset pasted by user (Icons8 96px) -->
+  <image
+    href="lightning-bolt-exact.png"
+    x="116"
+    y="130"
+    width="280"
+    height="280"
+    preserveAspectRatio="xMidYMid meet"/>
+</svg>

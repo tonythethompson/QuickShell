@@ -73,8 +73,18 @@ if ($LASTEXITCODE -ne 0) {
 
 
 
+$cmdPalIcon = Join-Path $repoRoot 'cmdpal-gallery\extensions\tonythethompson\quickshell\icon.png'
+$appTile300 = Join-Path $assetsDir 'StoreListing\AppTile_300x300.png'
+if (-not (Test-Path $appTile300)) {
+    throw "Missing store listing icon source: $appTile300"
+}
+
+New-Item -ItemType Directory -Force -Path (Split-Path $cmdPalIcon -Parent) | Out-Null
+Copy-Item -Force $appTile300 $cmdPalIcon
+
 Write-Host "Quick Shell assets generated from logo-micro.svg:"
 Write-Host "  MSIX: $assetsDir"
 Write-Host "  Store listing (Partner Center): $(Join-Path $assetsDir 'StoreListing')"
 Write-Host "  Run:  $runImagesDir"
+Write-Host "  CmdPal gallery: $cmdPalIcon"
 

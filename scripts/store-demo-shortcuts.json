@@ -1,0 +1,21 @@
+[
+  {
+    "Name": "My App Admin",
+    "Abbreviation": "admin",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "claude",
+    "Terminal": "default",
+    "RunAsAdmin": true,
+    "IsPinned": true,
+    "PinOrder": 0
+  },
+  {
+    "Name": "My App",
+    "Abbreviation": "app",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "claude",
+    "Terminal": "default",
+    "IsPinned": true,
+    "PinOrder": 1
+  }
+]

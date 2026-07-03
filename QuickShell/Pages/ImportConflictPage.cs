@@ -45,7 +45,7 @@ internal sealed partial class ImportConflictForm : FormContent
           "body": [
             {
               "type": "TextBlock",
-              "text": "Duplicate shortcut names",
+              "text": "Duplicate names in import file",
               "weight": "Bolder",
               "size": "Large"
             },
@@ -70,7 +70,7 @@ internal sealed partial class ImportConflictForm : FormContent
             },
             {
               "type": "TextBlock",
-              "text": "Merge keeps your shortcuts and adds the file; duplicate names are renamed (for example \"My App Copy\"). Replace all deletes every current shortcut and loads only the file.",
+              "text": "Merge keeps your existing items and adds the file; duplicate names are renamed. Replace all deletes every current item of that type and loads only the file.",
               "wrap": true,
               "isSubtle": true,
               "spacing": "Small"
@@ -80,21 +80,21 @@ internal sealed partial class ImportConflictForm : FormContent
             {
               "type": "Action.Submit",
               "title": "Merge (rename duplicates)",
-              "tooltip": "Keep your shortcuts and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
+              "tooltip": "Keep your workspaces and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
               "data": { "action": "merge" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "Replace all shortcuts",
-              "tooltip": "Delete every shortcut you have now (including favorites) and replace them with the imported file only.",
+              "title": "Replace all",
+              "tooltip": "Delete every workspace you have now (including favorites) and replace them with the imported file only.",
               "data": { "action": "replace" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
               "title": "Cancel import",
-              "tooltip": "Discard this import file and keep your shortcuts unchanged.",
+              "tooltip": "Discard this import file and keep your workspaces unchanged.",
               "data": { "action": "cancel" },
               "associatedInputs": "none"
             }
@@ -128,8 +128,8 @@ internal sealed partial class ImportConflictForm : FormContent
 
         var result = action switch
         {
-            "merge" => ExecuteImportAction(token => QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, token)),
-            "replace" => ExecuteImportAction(token => QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, token)),
+            "merge" => ExecuteImportAction(pending, merge: true),
+            "replace" => ExecuteImportAction(pending, merge: false),
             _ => null,
         };
 
@@ -165,7 +165,8 @@ internal sealed partial class ImportConflictForm : FormContent
 
         var fileName = Path.GetFileName(pending.Path);
         var conflictLabel = pending.ConflictCount == 1 ? "name" : "names";
-        var importLabel = pending.ImportCount == 1 ? "shortcut" : "shortcuts";
+        var itemLabel = "workspace";
+        var importLabel = pending.ImportCount == 1 ? itemLabel : $"{itemLabel}s";
         var description =
             $"The file contains {pending.ConflictCount} duplicate {conflictLabel} " +
             $"among {pending.ImportCount} {importLabel}.";
@@ -178,10 +179,16 @@ internal sealed partial class ImportConflictForm : FormContent
         """;
     }
 
-    private static ShortcutTransferResult ExecuteImportAction(Func<CancellationToken, Task<ShortcutTransferResult>> action)
+    private static ShortcutTransferResult ExecuteImportAction(ImportConflictState.PendingImport pending, bool merge)
     {
         using var cancellation = new CancellationTokenSource(IoTimeout);
-        return action(cancellation.Token).GetAwaiter().GetResult();
+        return pending.Kind switch
+        {
+            ImportTransferKind.Projects => merge
+                ? QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult()
+                : QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult(),
+            _ => new ShortcutTransferResult { Success = false, Message = "Unknown import type." },
+        };
     }
 
     private static string? TryGetActionFromInputs(string inputs) =>

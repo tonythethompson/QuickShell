@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Folder to terminal with lightning bolt">
+  <title>Folder to Terminal with Lightning Bolt</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c2028"/>
+      <stop offset="100%" stop-color="#0e1016"/>
+    </linearGradient>
+    <linearGradient id="folder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3AA0FF"/>
+      <stop offset="100%" stop-color="#0078D4"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF6A3"/>
+      <stop offset="50%" stop-color="#FFD84C"/>
+      <stop offset="100%" stop-color="#FFB31A"/>
+    </linearGradient>
+    <clipPath id="boltClip">
+      <path d="M130 14 25 167h87l-20 103 116-159h-80z"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Folder: top-left -->
+  <g transform="translate(24 28)">
+    <path fill="url(#folder)" d="M0 48C0 21.5 21.5 0 48 0h112l56 56h156c26.5 0 48 21.5 48 48v144c0 26.5-21.5 48-48 48H48C21.5 296 0 274.5 0 248V48z"/>
+    <path fill="#FFFFFF" fill-opacity="0.22" d="M0 64h56l56-56h96l32 56H0z"/>
+  </g>
+
+  <!-- Terminal: brought inward so its corner stays inside the rounded canvas -->
+  <g transform="translate(136 242)">
+    <rect width="332" height="238" rx="26" fill="#252830" stroke="#4A5260" stroke-width="8"/>
+    <path fill="#4EC9B0" d="M46 156V110l54 23z"/>
+    <rect x="112" y="124" width="84" height="16" rx="4" fill="#4EC9B0"/>
+  </g>
+
+  <!-- Lightning bolt: fill and facets first; the same outline is drawn last so no facet can thin or tint it. -->
+  <g transform="translate(166 105) rotate(9 104 151)">
+    <path d="M130 14 25 167h87l-20 103 116-159h-80z" fill="url(#bolt)"/>
+    <g clip-path="url(#boltClip)">
+      <path d="M130 14 25 167h87l-20 103 17-91 91-67h-73z" fill="#FFF4B4" fill-opacity="0.45"/>
+      <path d="M25 167h87l-20 103 116-159-78 109-89-18z" fill="#FFC42A" fill-opacity="0.5"/>
+      <path d="M92 270 208 111l-81 153-35 38z" fill="#FFF8C9" fill-opacity="0.35"/>
+    </g>
+    <path d="M130 14 25 167h87l-20 103 116-159h-80z" fill="none" stroke="#0B1320" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>

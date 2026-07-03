@@ -20,11 +20,7 @@ internal static class ShortcutDisplayTags
 
         if (shortcut.IsPinned)
         {
-            tags.Add(new Tag(string.Empty)
-            {
-                Icon = new IconInfo(ShortcutGlyphs.FavoriteFilled),
-                ToolTip = "Favorite",
-            });
+            tags.Add(FavoriteTagStyle.CreateFavoriteTag());
         }
 
         return tags.Count == 0 ? null : tags.ToArray();

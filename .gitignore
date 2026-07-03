@@ -19,9 +19,8 @@ QuickShell/obj/
 QuickShell/setup-x64.iss
 QuickShell/setup-arm64.iss
 
-# Store screenshot workflow (local only; README assets Screenshot_1–3 stay tracked)
+# Store screenshot scratch (raw/prepared captures, local backup); README Screenshot_1-3 stay in Assets/
 QuickShell/Assets/StoreScreenshots/
-scripts/store-screenshots.ps1
 dev-shortcuts.json
 QuickShell/BundleArtifacts/
 
@@ -32,3 +31,4 @@ _msbuild_bundle/
 _msix_inspect/
 _upload_inspect/
 _upload.zip
+*.graphql

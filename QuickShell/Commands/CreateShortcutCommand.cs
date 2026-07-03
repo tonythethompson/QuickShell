@@ -1,3 +1,4 @@
+using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
 
@@ -13,5 +14,14 @@ internal sealed partial class CreateShortcutCommand : ShortcutFormPage
         : base(existing: null, onSaved)
     {
         Id = ShortcutCommandIds.CreateShortcut;
+    }
+
+    /// <summary>
+    /// Create form prefilled from a seed (e.g. discovered git repo). Keeps a unique page id
+    /// so multiple seeded create rows can coexist in a list page.
+    /// </summary>
+    public CreateShortcutCommand(Action onSaved, TerminalShortcut createSeed)
+        : base(existing: null, onSaved, createSeed)
+    {
     }
 }

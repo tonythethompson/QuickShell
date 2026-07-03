@@ -40,9 +40,11 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
     private readonly QuickShellSettingsManager _settingsManager;
 
-
-
     private readonly Action _onReload;
+
+    private TerminalDefaultsSettingsForm? _terminalDefaultsForm;
+    private HomeDisplaySettingsForm? _homeDisplayForm;
+    private ShortcutTransferSettingsForm? _transferForm;
 
 
 
@@ -82,7 +84,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
 
 
-        Title = "Quick Shell settings";
+        Title = QuickShellBrand.SettingsTitle;
 
 
 
@@ -126,30 +128,15 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
 
         if (QuickShellRuntimeServices.Drafts.HasPending)
-
-
-
         {
-
-
-
             content.Add(new PendingShortcutEditForm(_onReload, refreshSettings));
-
-
-
         }
 
+        content.Add(_terminalDefaultsForm ??= new TerminalDefaultsSettingsForm(_settingsManager, _onReload, refreshSettings));
 
+        content.Add(_homeDisplayForm ??= new HomeDisplaySettingsForm(_settingsManager, _onReload, refreshSettings));
 
-
-
-
-
-        content.Add(new TerminalDefaultsSettingsForm(_settingsManager, _onReload, refreshSettings));
-
-
-
-        content.Add(new ShortcutTransferSettingsForm(_onReload, refreshSettings));
+        content.Add(_transferForm ??= new ShortcutTransferSettingsForm(_onReload, refreshSettings));
 
 
 

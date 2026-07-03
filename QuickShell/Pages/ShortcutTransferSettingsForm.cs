@@ -29,14 +29,9 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
         var result = action switch
         {
-            "export" => RunExport(),
             "exportWorkspaces" => RunWorkspaceExport(),
-            "importWorkspacesMerge" => RunWorkspaceImport(merge: true),
-            "importWorkspacesReplace" => RunWorkspaceImport(merge: false),
-            "import" => new ImportShortcutsCommand(
-                _onReload ?? (() => { }),
-                stayOnSettings: true,
-                onSettingsRefresh: _onSettingsChanged).Invoke(),
+            "importWorkspaces" => RunWorkspaceImport(),
+            "resetWorkspaces" => ConfirmResetWorkspaces(),
             "merge" => ResolveImportConflict(merge: true),
             "replace" => ResolveImportConflict(merge: false),
             "cancel" => CancelImportConflict(),
@@ -46,28 +41,43 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         return result;
     }
 
-    private CommandResult RunExport()
+    private CommandResult RunWorkspaceExport()
     {
         var result = new ExportShortcutsCommand(stayOnSettings: true).Invoke();
         RebuildTemplate();
         return result;
     }
 
-    private CommandResult RunWorkspaceExport()
+    private CommandResult RunWorkspaceImport()
     {
-        var result = new ExportWorkspacesCommand(stayOnSettings: true).Invoke();
+        var result = new ImportShortcutsCommand(
+            _onReload ?? (() => { }),
+            stayOnSettings: true,
+            onSettingsRefresh: _onSettingsChanged).Invoke();
         RebuildTemplate();
         return result;
     }
 
-    private CommandResult RunWorkspaceImport(bool merge)
+    private CommandResult ConfirmResetWorkspaces()
     {
-        var result = merge
-            ? new ImportWorkspacesMergeCommand(stayOnSettings: true).Invoke()
-            : new ImportWorkspacesReplaceCommand(stayOnSettings: true).Invoke();
-        RebuildTemplate();
-        _onReload?.Invoke();
-        return result;
+        var count = QuickShellRuntimeServices.Shortcuts.GetShortcuts().Count;
+        return CommandResult.Confirm(new ConfirmationArgs
+        {
+            Title = "Reset all workspaces?",
+            Description = BuildResetDescription("workspace", count, QuickShellRuntimeServices.Shortcuts.ConfigPath),
+            PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged),
+        });
+    }
+
+    private static string BuildResetDescription(string itemLabel, int count, string configPath)
+    {
+        var itemsLabel = count == 1 ? itemLabel : $"{itemLabel}s";
+        var countLine = count == 0
+            ? $"You have no saved {itemsLabel}."
+            : $"This deletes {count} saved {itemsLabel}.";
+
+        var backupName = Path.GetFileName(configPath) + ".bak";
+        return $"{countLine} A backup from your last save remains as {backupName} in the same folder.";
     }
 
     private CommandResult ResolveImportConflict(bool merge)
@@ -78,9 +88,13 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             return Finish("No import is pending.");
         }
 
-        var transferResult = ExecuteImportAction(token => merge
-            ? QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, token)
-            : QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, token));
+        var transferResult = pending.Kind switch
+        {
+            ImportTransferKind.Projects => ExecuteProjectImportAction(token => merge
+                ? QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, token)
+                : QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, token)),
+            _ => new ImportTransferResult(false, "Unknown import type."),
+        };
 
         if (!transferResult.Success)
         {
@@ -113,10 +127,16 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var bodyParts = new List<string>
         {
             SettingsCardJson.SectionHeader("Backup & transfer"),
-            SettingsCardJson.SubtleText("Export your shortcuts or import a backup file."),
-            SettingsCardJson.SectionHeader("Workspaces"),
-            SettingsCardJson.SubtleText("Export or import workspace definitions separately from shortcuts."),
         };
+
+        if (!hasConflict)
+        {
+            bodyParts.Add(SettingsCardJson.TransferRow(
+                "Workspaces",
+                "Export, import, or reset saved workspace folders and favorites.",
+                BuildWorkspaceTransferActionSet(),
+                topSpacing: "Medium"));
+        }
 
         var conflictBlock = BuildImportConflictBlock();
         if (!string.IsNullOrWhiteSpace(conflictBlock))
@@ -126,69 +146,51 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
         if (hasConflict)
         {
-            bodyParts.Add(SettingsCardJson.SubtleText(
-                "Merge keeps every shortcut you already have and adds the file. Names that clash are renamed (for example \"My App Copy\"). " +
-                "Replace all deletes all current shortcuts and favorites, then loads only what is in the file."));
+            bodyParts.Add(SettingsCardJson.SubtleText(BuildImportConflictHelpText()));
             bodyParts.Add(BuildImportConflictActionSet());
         }
 
         var bodyJson = string.Join(",\n                ", bodyParts);
-        var primaryActions = hasConflict ? string.Empty : """
-            "actions": [
-                {
-                  "type": "Action.Submit",
-                  "title": "Export",
-                  "associatedInputs": "none",
-                  "data": { "action": "export" }
-                },
-                {
-                  "type": "Action.Submit",
-                  "title": "Import",
-                  "associatedInputs": "none",
-                  "data": { "action": "import" }
-                },
-                {
-                  "type": "Action.Submit",
-                  "title": "Export workspaces",
-                  "associatedInputs": "none",
-                  "data": { "action": "exportWorkspaces" }
-                },
-                {
-                  "type": "Action.Submit",
-                  "title": "Import workspaces (merge)",
-                  "associatedInputs": "none",
-                  "data": { "action": "importWorkspacesMerge" }
-                },
-                {
-                  "type": "Action.Submit",
-                  "title": "Import workspaces (replace)",
-                  "associatedInputs": "none",
-                  "data": { "action": "importWorkspacesReplace" }
-                }
-              ]
-            """;
 
-        TemplateJson = hasConflict
-            ? $$"""
-                {
-                  "type": "AdaptiveCard",
-                  "version": "1.6",
-                  "body": [
-                    {{bodyJson}}
-                  ]
-                }
-                """
-            : $$"""
-                {
-                  "type": "AdaptiveCard",
-                  "version": "1.6",
-                  "body": [
-                    {{bodyJson}}
-                  ],
-                  {{primaryActions}}
-                }
-                """;
+        TemplateJson = $$"""
+            {
+              "type": "AdaptiveCard",
+              "version": "1.6",
+              "body": [
+                {{bodyJson}}
+              ]
+            }
+            """;
     }
+
+    private static string BuildWorkspaceTransferActionSet() =>
+        SettingsCardJson.TransferActionRow(
+            """
+            {
+              "type": "Action.Submit",
+              "title": "Export",
+              "associatedInputs": "none",
+              "data": { "action": "exportWorkspaces" }
+            }
+            """,
+            """
+            {
+              "type": "Action.Submit",
+              "title": "Import",
+              "associatedInputs": "none",
+              "data": { "action": "importWorkspaces" }
+            }
+            """,
+            """
+            {
+              "type": "Action.Submit",
+              "title": "Reset",
+              "style": "destructive",
+              "tooltip": "Delete every workspace you have saved. Use Undo (Ctrl+Z) to restore.",
+              "associatedInputs": "none",
+              "data": { "action": "resetWorkspaces" }
+            }
+            """);
 
     private static string BuildImportConflictBlock()
     {
@@ -199,16 +201,19 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         }
 
         var fileName = Path.GetFileName(pending.Path);
+        var itemsLabel = pending.ImportCount == 1 ? "workspace" : "workspaces";
         var conflictLabel = pending.ConflictCount == 1 ? "name" : "names";
-        var importLabel = pending.ImportCount == 1 ? "shortcut" : "shortcuts";
         var summary =
-            $"Import paused: {pending.ConflictCount} duplicate {conflictLabel} in {fileName} ({pending.ImportCount} {importLabel}). Choose how to finish.";
+            $"Import paused: {pending.ConflictCount} duplicate {conflictLabel} in {fileName} ({pending.ImportCount} {itemsLabel}). Choose how to finish.";
 
         return SettingsCardJson.StatusText(summary, SettingsFeedbackTone.Warning);
     }
 
-    private static string BuildImportConflictActionSet() =>
-        """
+    private static string BuildImportConflictHelpText() =>
+        "Merge keeps every workspace you already have and adds the file. Names that clash are renamed (for example \"My App (2)\"). " +
+        "Replace all deletes all current workspaces and favorites, then loads only what is in the file.";
+
+    private static string BuildImportConflictActionSet() => """
         {
           "type": "ActionSet",
           "spacing": "Medium",
@@ -216,21 +221,18 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             {
               "type": "Action.Submit",
               "title": "Merge (rename duplicates)",
-              "tooltip": "Keep your shortcuts and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
               "associatedInputs": "none",
               "data": { "action": "merge" }
             },
             {
               "type": "Action.Submit",
-              "title": "Replace all",
-              "tooltip": "Delete every shortcut you have now (including favorites) and replace them with the imported file only.",
+              "title": "Replace all workspaces",
               "associatedInputs": "none",
               "data": { "action": "replace" }
             },
             {
               "type": "Action.Submit",
               "title": "Cancel import",
-              "tooltip": "Discard this import file and keep your shortcuts unchanged.",
               "associatedInputs": "none",
               "data": { "action": "cancel" }
             }
@@ -238,10 +240,12 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         }
         """;
 
-    private static ShortcutTransferResult ExecuteImportAction(Func<CancellationToken, Task<ShortcutTransferResult>> action)
+    private static ImportTransferResult ExecuteProjectImportAction(
+        Func<CancellationToken, Task<ShortcutTransferResult>> action)
     {
         using var cancellation = new CancellationTokenSource(IoTimeout);
-        return action(cancellation.Token).GetAwaiter().GetResult();
+        var result = action(cancellation.Token).GetAwaiter().GetResult();
+        return new ImportTransferResult(result.Success, result.Message);
     }
 
     private static string? TryGetAction(string? data) =>
@@ -251,4 +255,6 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private static string? TryGetActionFromInputs(string inputs) =>
         JsonNode.Parse(inputs)?.AsObject()?["action"]?.ToString();
+
+    private readonly record struct ImportTransferResult(bool Success, string Message);
 }

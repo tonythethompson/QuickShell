@@ -1,5 +1,6 @@
 using Microsoft.PowerToys.Settings.UI.Library;
 using QuickShell.Services;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -97,6 +98,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         SetStatus(string.Empty);
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance method reserved for future settings-panel wiring.")]
     public void UpdateSettings(PowerLauncherPluginSettings settings)
     {
         _ = settings;

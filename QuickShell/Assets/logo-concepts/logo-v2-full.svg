@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell full logo v2: folder to terminal with lightning bolt">
+  <title>Full Logo v2</title>
+  <defs>
+    <linearGradient id="v2-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c2028"/>
+      <stop offset="100%" stop-color="#0e1016"/>
+    </linearGradient>
+    <linearGradient id="v2-folder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3AA0FF"/>
+      <stop offset="100%" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#v2-bg)"/>
+
+  <g transform="translate(40 48)">
+    <path fill="url(#v2-folder)" d="M0 44C0 20 20 0 44 0h104l52 52h144c24 0 44 20 44 44v132c0 24-20 44-44 44H44C20 272 0 252 0 228V44z"/>
+    <path fill="#FFFFFF" fill-opacity="0.22" d="M0 56h52l52-52h88l28 52H0z"/>
+  </g>
+
+  <g transform="translate(148 248)">
+    <rect width="300" height="212" rx="24" fill="#2A3038" stroke="#6B7585" stroke-width="10"/>
+    <path fill="#4EC9B0" d="M44 140V100l48 20z"/>
+    <rect x="108" y="112" width="76" height="14" rx="4" fill="#4EC9B0"/>
+  </g>
+
+  <g transform="translate(178 108) rotate(6 96 132)">
+    <path fill="#FFD84C" d="M118 12L22 158h78l-18 96 108-148h-74z"/>
+    <path fill="#FFF4B0" fill-opacity="0.35" d="M118 12L22 158h78l-18 96 14-76 82-60h-66z"/>
+    <path fill="none" stroke="#0B1320" stroke-width="14" stroke-linejoin="round" d="M118 12L22 158h78l-18 96 108-148h-74z"/>
+  </g>
+</svg>

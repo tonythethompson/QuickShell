@@ -27,6 +27,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private const int MaxConfigBytes = 2 * 1024 * 1024;
     private const int MaxHistoryEntries = 50;
 
+    private readonly string? _configDirectoryOverride;
+
     private readonly SemaphoreSlim _sync = new(1, 1);
     private readonly Mutex _fileMutex = new(false, @"Global\QuickShell_shortcuts_json");
 
@@ -41,8 +43,19 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private System.Threading.Timer? _persistTimer;
     private bool _disposed;
 
+    public ShortcutRepository()
+        : this(configDirectory: null)
+    {
+    }
+
+    internal ShortcutRepository(string? configDirectory)
+    {
+        _configDirectoryOverride = configDirectory;
+    }
+
     public string ConfigDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QuickShell");
+        _configDirectoryOverride
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QuickShell");
 
     public string ConfigPath => Path.Combine(ConfigDirectory, "shortcuts.json");
 
@@ -508,6 +521,32 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             };
         });
 
+    public ShortcutTransferResult ResetAll() =>
+        WithLock(() =>
+        {
+            EnsureLoaded();
+            if (CountValidShortcuts(_layout) == 0)
+            {
+                return new ShortcutTransferResult
+                {
+                    Success = true,
+                    Message = "No workspaces to reset.",
+                };
+            }
+
+            CancelPendingPersist();
+            var previous = CloneLayout(_layout);
+            var empty = new List<ShortcutLayoutEntry>();
+            RecordHistoryLayoutLocked(previous, empty);
+            SaveLayoutLocked(empty);
+
+            return new ShortcutTransferResult
+            {
+                Success = true,
+                Message = "Reset all workspaces. Use Undo (Ctrl+Z) if you change your mind.",
+            };
+        });
+
     public bool CanUndo =>
         WithLock(() =>
         {
@@ -562,6 +601,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public void Upsert(TerminalShortcut shortcut, string? originalName = null)
     {
+        ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
+
         if (!ShortcutValidation.TryValidate(shortcut, out var validationError))
         {
             throw new InvalidOperationException(validationError);
@@ -579,6 +620,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             var previous = CloneLayout(_layout);
             var layout = CloneLayout(_layout);
             var cloned = Clone(shortcut);
+            ShortcutLaunchNormalization.NormalizeShortcut(cloned);
 
             var existingEntry = FindShortcutEntry(layout, cloned.Name)
                 ?? (string.IsNullOrWhiteSpace(originalName) ? null : FindShortcutEntry(layout, originalName));
@@ -793,11 +835,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     public TerminalShortcut? BuildDuplicate(string name)
     {
         var source = GetByName(name);
-        if (source is null)
-        {
-            return null;
-        }
+        return source is null ? null : BuildDuplicateFrom(source);
+    }
 
+    public TerminalShortcut BuildDuplicateFrom(TerminalShortcut source)
+    {
         var copy = Clone(source);
         copy.Id = Guid.NewGuid().ToString("N");
         copy.Name = GetDuplicateName(copy.Name);
@@ -902,6 +944,48 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         _layout = NormalizeLayout(CloneLayout(loaded));
         SyncShortcutsFromLayout(_layout);
         _lastGoodLayout = CloneLayout(_layout);
+        TryMigrateLegacyWorkspacesLocked();
+    }
+
+    private void TryMigrateLegacyWorkspacesLocked()
+    {
+        if (!WorkspaceLegacyMigration.TryReadLegacyWorkspaces(ConfigDirectory, this, out var imported, out _))
+        {
+            return;
+        }
+
+        if (imported.Count == 0)
+        {
+            WorkspaceLegacyMigration.ArchiveWorkspacesFile(ConfigDirectory);
+            return;
+        }
+
+        var layout = CloneLayout(_layout);
+        var shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout).ToList();
+        var changed = false;
+
+        foreach (var migrated in imported)
+        {
+            if (shortcuts.Any(existing => existing.Name.Equals(migrated.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                migrated.Name = WorkspaceLegacyMigration.ResolveAvailableName(migrated.Name, shortcuts);
+            }
+
+            ShortcutLaunchNormalization.NormalizeShortcut(migrated);
+            AssignShortcutId(migrated, shortcuts);
+            shortcuts.Add(migrated);
+            layout.Add(ShortcutLayoutEntry.FromShortcut(Clone(migrated)));
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            WorkspaceLegacyMigration.ArchiveWorkspacesFile(ConfigDirectory);
+            return;
+        }
+
+        SaveLayoutLocked(layout);
+        WorkspaceLegacyMigration.ArchiveWorkspacesFile(ConfigDirectory);
     }
 
     private void EnsureConfigExists()
@@ -1151,6 +1235,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             var shortcut = Clone(entry.Shortcut);
+            ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
             Normalize(shortcut);
             normalized.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
         }
@@ -1399,8 +1484,28 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
         }
 
-        return !string.IsNullOrWhiteSpace(shortcut.Command) &&
-               shortcut.Command.Contains(query, StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(shortcut.Command) &&
+            shortcut.Command.Contains(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (var launch in shortcut.Launches)
+        {
+            if (!string.IsNullOrWhiteSpace(launch.Label)
+                && launch.Label.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(launch.Command)
+                && launch.Command.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool MatchesForRootPalette(TerminalShortcut shortcut, string query)
@@ -1421,6 +1526,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     private static TerminalShortcut Normalize(TerminalShortcut shortcut)
     {
+        ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
+
         var terminal = (shortcut.Terminal ?? string.Empty).Trim().ToLowerInvariant();
         shortcut.Terminal = terminal switch
         {
@@ -1458,7 +1565,41 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         left.RunAsAdmin == right.RunAsAdmin &&
         left.IsPinned == right.IsPinned &&
         left.PinOrder == right.PinOrder &&
-        left.LastUsedUtc == right.LastUsedUtc;
+        left.LastUsedUtc == right.LastUsedUtc &&
+        string.Equals(left.DevServerUrl, right.DevServerUrl, StringComparison.Ordinal) &&
+        left.OpenDevServerOnLaunch == right.OpenDevServerOnLaunch &&
+        string.Equals(left.RepoUrl, right.RepoUrl, StringComparison.Ordinal) &&
+        left.OpenCompanionAppOnLaunch == right.OpenCompanionAppOnLaunch &&
+        string.Equals(left.CompanionAppPath, right.CompanionAppPath, StringComparison.Ordinal) &&
+        string.Equals(left.CompanionAppArguments, right.CompanionAppArguments, StringComparison.Ordinal) &&
+        LaunchListsEqual(left.Launches, right.Launches);
+
+    private static bool LaunchListsEqual(List<WorkspaceEntry> left, List<WorkspaceEntry> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            var a = left[i];
+            var b = right[i];
+            if (!string.Equals(a.Id, b.Id, StringComparison.Ordinal)
+                || !string.Equals(a.Label, b.Label, StringComparison.Ordinal)
+                || !string.Equals(a.Terminal, b.Terminal, StringComparison.Ordinal)
+                || !string.Equals(a.WtProfile, b.WtProfile, StringComparison.Ordinal)
+                || !string.Equals(a.Command, b.Command, StringComparison.Ordinal)
+                || a.RunAsAdmin != b.RunAsAdmin
+                || a.IsEnabled != b.IsEnabled
+                || a.Order != b.Order)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static TerminalShortcut Clone(TerminalShortcut shortcut) => new()
     {
@@ -1473,6 +1614,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         IsPinned = shortcut.IsPinned,
         PinOrder = shortcut.PinOrder,
         LastUsedUtc = shortcut.LastUsedUtc,
+        Launches = shortcut.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
+        DevServerUrl = shortcut.DevServerUrl,
+        OpenDevServerOnLaunch = shortcut.OpenDevServerOnLaunch,
+        RepoUrl = shortcut.RepoUrl,
+        OpenCompanionAppOnLaunch = shortcut.OpenCompanionAppOnLaunch,
+        CompanionAppPath = shortcut.CompanionAppPath,
+        CompanionAppArguments = shortcut.CompanionAppArguments,
     };
 
     private void WithLock(Action action)

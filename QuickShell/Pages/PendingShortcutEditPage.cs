@@ -16,7 +16,7 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
-        Title = "Unsaved shortcut changes";
+        Title = "Unsaved workspace changes";
         Name = "Resume edit";
     }
 
@@ -41,7 +41,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
           "body": [
             {
               "type": "TextBlock",
-              "text": "Unsaved shortcut changes",
+              "text": "Unsaved workspace changes",
               "weight": "Bolder",
               "size": "Large"
             },
@@ -53,7 +53,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             },
             {
               "type": "TextBlock",
-              "text": "Save applies the same validation as the edit form. If required fields are missing, fix them by editing the shortcut again.",
+              "text": "Save applies the same validation as the edit form. If required fields are missing, fix them by editing the workspace again.",
               "wrap": true,
               "isSubtle": true,
               "spacing": "Medium"
@@ -92,7 +92,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             QuickShellRuntimeServices.Drafts.Clear();
             _onReload();
             _onSettingsChanged?.Invoke();
-            return QuickShellNavigation.StayOnSettings("Discarded unsaved shortcut changes.");
+            return QuickShellNavigation.StayOnSettings("Discarded unsaved workspace changes.");
         }
 
         if (action != "save")
@@ -105,7 +105,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         {
             _onReload();
             _onSettingsChanged?.Invoke();
-            return QuickShellNavigation.StayOnSettings("No unsaved shortcut edit is pending.");
+            return QuickShellNavigation.StayOnSettings("No unsaved workspace edit is pending.");
         }
 
         var result = QuickShellRuntimeServices.Drafts.TryCommitPending(_onReload);
@@ -125,7 +125,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         {
             DataJson = """
             {
-              "Description": "No unsaved shortcut edit is waiting for a decision."
+              "Description": "No unsaved workspace edit is waiting for a decision."
             }
             """;
             return;
@@ -133,7 +133,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
 
         var description =
             $"You left editing \"{pending.OriginalName}\" with unsaved changes. " +
-            "Save them to your shortcuts, or discard them.";
+            "Save them to your workspaces, or discard them.";
 
         DataJson = $$"""
         {

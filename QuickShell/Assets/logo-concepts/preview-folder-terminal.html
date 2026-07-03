@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Shell — Folder → Terminal Refinements</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0d0f14;
+      color: #e8eaed;
+      padding: 2rem;
+    }
+    h1 { font-weight: 600; margin-bottom: 0.25rem; }
+    p.lead { color: #9aa0a6; margin-top: 0; margin-bottom: 0.5rem; }
+    p.note { color: #6b7280; font-size: 0.875rem; margin-bottom: 2rem; }
+    a { color: #50a0ff; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+    }
+    .card {
+      background: #1a1d24;
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .card h2 { font-size: 1rem; margin: 0 0 0.35rem; }
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      color: #9aa0a6;
+      background: #252830;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+    .card p { font-size: 0.875rem; color: #9aa0a6; margin: 0 0 1rem; line-height: 1.45; }
+    .sizes { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+    .size-label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.35rem; }
+    .on-light {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f3f4f6;
+      border-radius: 8px;
+    }
+    img { display: block; }
+    .original {
+      max-width: 1200px;
+      margin-bottom: 2rem;
+      padding: 1.25rem;
+      background: #1a1d24;
+      border: 1px dashed #3a4150;
+      border-radius: 12px;
+    }
+    .original h2 { font-size: 0.875rem; color: #9aa0a6; margin: 0 0 1rem; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <h1>Folder → Terminal refinements</h1>
+  <p class="lead">Three iterations on the original concept — compare at 44px for MSIX / Command Palette.</p>
+  <p class="note"><a href="preview.html">← All logo concepts</a></p>
+
+  <div class="original">
+    <h2>Original concept</h2>
+    <div class="sizes">
+      <div>
+        <div class="size-label">512px</div>
+        <img src="concept-folder-terminal.svg" width="256" height="256" alt="">
+      </div>
+      <div>
+        <div class="size-label">44px</div>
+        <img src="concept-folder-terminal.svg" width="44" height="44" alt="">
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <article class="card">
+      <h2>A — Bold Minimal</h2>
+      <span class="tag">Best for small tiles</span>
+      <p>Diagonal layout: folder top-left, wide terminal bottom-right, lightning bolt connector. Large shapes, vector prompt, no window chrome.</p>
+      <div class="sizes">
+        <div>
+          <div class="size-label">512px</div>
+          <img src="folder-terminal-a-bold.svg" width="256" height="256" alt="">
+        </div>
+        <div>
+          <div class="size-label">64px</div>
+          <img src="folder-terminal-a-bold.svg" width="64" height="64" alt="">
+        </div>
+        <div>
+          <div class="size-label">44px</div>
+          <img src="folder-terminal-a-bold.svg" width="44" height="44" alt="">
+        </div>
+      </div>
+      <div class="on-light">
+        <div class="size-label">On light background</div>
+        <img src="folder-terminal-a-bold.svg" width="96" height="96" alt="">
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>B — Flow Launch</h2>
+      <span class="tag">Motion / speed</span>
+      <p>Diagonal curve from folder to terminal with gradient trail. Reads as “launch” rather than static link.</p>
+      <div class="sizes">
+        <div>
+          <div class="size-label">512px</div>
+          <img src="folder-terminal-b-flow.svg" width="256" height="256" alt="">
+        </div>
+        <div>
+          <div class="size-label">64px</div>
+          <img src="folder-terminal-b-flow.svg" width="64" height="64" alt="">
+        </div>
+        <div>
+          <div class="size-label">44px</div>
+          <img src="folder-terminal-b-flow.svg" width="44" height="44" alt="">
+        </div>
+      </div>
+      <div class="on-light">
+        <div class="size-label">On light background</div>
+        <img src="folder-terminal-b-flow.svg" width="96" height="96" alt="">
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>C — Split Tile</h2>
+      <span class="tag">Microsoft Store</span>
+      <p>Blue app tile with split panel — folder left, terminal right, divider arrow. Familiar Store icon language.</p>
+      <div class="sizes">
+        <div>
+          <div class="size-label">512px</div>
+          <img src="folder-terminal-c-split.svg" width="256" height="256" alt="">
+        </div>
+        <div>
+          <div class="size-label">64px</div>
+          <img src="folder-terminal-c-split.svg" width="64" height="64" alt="">
+        </div>
+        <div>
+          <div class="size-label">44px</div>
+          <img src="folder-terminal-c-split.svg" width="44" height="44" alt="">
+        </div>
+      </div>
+      <div class="on-light">
+        <div class="size-label">On light background</div>
+        <img src="folder-terminal-c-split.svg" width="96" height="96" alt="">
+      </div>
+    </article>
+  </div>
+</body>
+</html>

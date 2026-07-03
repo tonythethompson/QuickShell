@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell micro: blue tile folder and bolt">
+  <title>Micro Blue Tile Folder Bolt</title>
+  <rect width="512" height="512" rx="96" fill="#0078D4"/>
+  <path fill="#FFFFFF" fill-opacity="0.92" d="M96 176c0-18 14-32 32-32h72l36 36h124c18 0 32 14 32 32v140c0 18-14 32-32 32H128c-18 0-32-14-32-32V176z"/>
+  <path fill="#0078D4" fill-opacity="0.35" d="M96 188h36l36-36h64l20 36H96z"/>
+  <path fill="#FFD84C" stroke="#0B1320" stroke-width="10" stroke-linejoin="round" d="M300 88L176 288h84l-24 104 128-176h-88z"/>
+</svg>

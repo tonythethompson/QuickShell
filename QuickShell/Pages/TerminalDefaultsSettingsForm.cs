@@ -35,17 +35,24 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
             return RefreshTerminals();
         }
 
+        return SaveFromInputs(inputs, data);
+    }
+
+    private CommandResult SaveFromInputs(string inputs, string data)
+    {
         var values = ParseValues(inputs, data);
         var app = values?[TerminalApplicationField]?.ToString() ?? _settingsManager.TerminalApplicationId;
         var profile = values?[DefaultProfileField]?.ToString() ?? _settingsManager.DefaultProfileId;
 
         if (string.IsNullOrWhiteSpace(app) || string.IsNullOrWhiteSpace(profile))
         {
-            return Finish("Pick a terminal application and profile.");
+            return QuickShellNavigation.StayOnSettings("Pick a terminal application and profile.");
         }
 
         _settingsManager.UpdateTerminalDefaults(app, profile);
-        return Finish("Terminal defaults saved.");
+        RebuildTemplate();
+        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        return CommandResult.KeepOpen();
     }
 
     private CommandResult RefreshTerminals()
@@ -53,18 +60,8 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
         TerminalDiscovery.Refresh(_settingsManager);
         _onReload?.Invoke();
         RebuildTemplate();
-        return Finish("Terminal list refreshed.", refreshContent: false);
-    }
-
-    private CommandResult Finish(string message, bool refreshContent = true)
-    {
-        RebuildTemplate();
-        if (refreshContent)
-        {
-            SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
-        }
-
-        return QuickShellNavigation.StayOnSettings(message);
+        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        return QuickShellNavigation.StayOnSettings("Terminal list refreshed.");
     }
 
     private void RebuildTemplate()
@@ -76,7 +73,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
         var bodyParts = new List<string>
         {
             SettingsCardJson.SectionHeader("Terminal defaults"),
-            SettingsCardJson.SubtleText("Default host and profile for shortcuts set to Default."),
+            SettingsCardJson.SubtleText("Default host and profile for workspaces set to Default. Changes save when you pick a value."),
             """
             {
               "type": "ActionSet",
@@ -100,6 +97,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
               "style": "compact",
               "spacing": "Small",
               "value": "{{EscapeJson(app)}}",
+              {{SettingsCardJson.ChangeActionSave("saveTerminalDefaults")}},
               "choices": [
                 {{appChoices}}
               ]
@@ -113,6 +111,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
               "style": "compact",
               "spacing": "Small",
               "value": "{{EscapeJson(profile)}}",
+              {{SettingsCardJson.ChangeActionSave("saveTerminalDefaults")}},
               "choices": [
                 {{profileChoices}}
               ]
@@ -128,13 +127,6 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
               "version": "1.6",
               "body": [
                 {{bodyJson}}
-              ],
-              "actions": [
-                {
-                  "type": "Action.Submit",
-                  "title": "Save",
-                  "associatedInputs": "auto"
-                }
               ]
             }
             """;

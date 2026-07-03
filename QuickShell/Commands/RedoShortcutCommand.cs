@@ -22,6 +22,6 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
         }
 
         _onChanged();
-        return QuickShellNavigation.StayOpen("Redid the last shortcut change.");
+        return QuickShellNavigation.StayOpen("Redid the last workspace change.");
     }
 }

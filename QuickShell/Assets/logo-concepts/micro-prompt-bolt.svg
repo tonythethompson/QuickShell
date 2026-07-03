@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell micro: terminal prompt and lightning bolt">
+  <title>Micro Prompt Bolt</title>
+  <rect width="512" height="512" rx="96" fill="#161920"/>
+  <rect x="88" y="112" width="336" height="288" rx="32" fill="#252830" stroke="#5A6474" stroke-width="12"/>
+  <path fill="#4EC9B0" d="M128 312V216l80 48z"/>
+  <rect x="232" y="276" width="72" height="20" rx="6" fill="#4EC9B0"/>
+  <path fill="#FFD84C" d="M328 88L264 208h48l-24 72 88-120h-48z"/>
+</svg>

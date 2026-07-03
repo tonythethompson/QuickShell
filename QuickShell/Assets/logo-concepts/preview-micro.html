@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Shell — Micro &amp; Full Logo Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0d0f14;
+      color: #e8eaed;
+      padding: 2rem;
+    }
+    h1 { font-weight: 600; margin-bottom: 0.25rem; }
+    p.lead { color: #9aa0a6; margin-top: 0; margin-bottom: 2rem; max-width: 720px; line-height: 1.5; }
+    h2 { font-size: 1.125rem; margin: 2.5rem 0 1rem; border-bottom: 1px solid #2a2f3a; padding-bottom: 0.5rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+      max-width: 1280px;
+    }
+    .card {
+      background: #1a1d24;
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .card h3 { font-size: 0.95rem; margin: 0 0 0.35rem; }
+    .card .note { font-size: 0.8125rem; color: #9aa0a6; margin: 0 0 1rem; line-height: 1.45; }
+    .sizes { display: flex; align-items: flex-end; gap: 0.75rem; flex-wrap: wrap; }
+    .size-cell { text-align: center; }
+    .size-label { font-size: 0.6875rem; color: #6b7280; margin-bottom: 0.35rem; }
+    img { display: block; image-rendering: auto; }
+
+    /* CmdPal-like list row mock */
+    .cmdpal-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      margin-top: 1rem;
+      max-width: 520px;
+    }
+    .cmdpal-row img { flex-shrink: 0; border-radius: 4px; }
+    .cmdpal-text strong { display: block; font-size: 0.9375rem; }
+    .cmdpal-text span { font-size: 0.8125rem; color: #9aa0a6; }
+    .cmdpal-kbd {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #9aa0a6;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .compare-full {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      max-width: 900px;
+    }
+    .compare-full .card { text-align: center; }
+    .compare-full img { margin: 0 auto; }
+
+    .rec { border-color: #0078D4; box-shadow: 0 0 0 1px rgba(0,120,212,0.35); }
+    .badge {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #4EC9B0;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Micro icons &amp; full logo v2</h1>
+  <p class="lead">
+    Micro variants are designed for Command Palette list rows (16–24px).
+    Compare against the current production logo. Squint at the CmdPal row mocks — the icon should read instantly.
+  </p>
+
+  <h2>Micro variants (CmdPal / 16–50px)</h2>
+  <div class="grid">
+
+    <article class="card rec">
+      <span class="badge">Locked in</span>
+      <h3>A - Terminal + Folder + Bolt (production micro)</h3>
+      <p class="note">Source: <code>Assets/logo-micro.svg</code>. Used for StoreLogo and CmdPal.</p>
+      <div class="sizes">
+        <div class="size-cell"><div class="size-label">16</div><img src="../logo-micro.svg" width="16" height="16" alt=""></div>
+        <div class="size-cell"><div class="size-label">20</div><img src="../logo-micro.svg" width="20" height="20" alt=""></div>
+        <div class="size-cell"><div class="size-label">24</div><img src="../logo-micro.svg" width="24" height="24" alt=""></div>
+        <div class="size-cell"><div class="size-label">32</div><img src="../logo-micro.svg" width="32" height="32" alt=""></div>
+        <div class="size-cell"><div class="size-label">50</div><img src="../logo-micro.svg" width="50" height="50" alt=""></div>
+      </div>
+      <div class="cmdpal-row">
+        <img src="../logo-micro.svg" width="20" height="20" alt="">
+        <div class="cmdpal-text"><strong>Quick Shell</strong><span>Open saved folders in any terminal you use</span></div>
+        <span class="cmdpal-kbd">qs</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>B — Blue tile + Folder + Bolt</h3>
+      <p class="note">Higher pop on dark UI. White folder on accent blue tile.</p>
+      <div class="sizes">
+        <div class="size-cell"><div class="size-label">16</div><img src="micro-folder-bolt-inverted.svg" width="16" height="16" alt=""></div>
+        <div class="size-cell"><div class="size-label">20</div><img src="micro-folder-bolt-inverted.svg" width="20" height="20" alt=""></div>
+        <div class="size-cell"><div class="size-label">24</div><img src="micro-folder-bolt-inverted.svg" width="24" height="24" alt=""></div>
+        <div class="size-cell"><div class="size-label">32</div><img src="micro-folder-bolt-inverted.svg" width="32" height="32" alt=""></div>
+        <div class="size-cell"><div class="size-label">50</div><img src="micro-folder-bolt-inverted.svg" width="50" height="50" alt=""></div>
+      </div>
+      <div class="cmdpal-row">
+        <img src="micro-folder-bolt-inverted.svg" width="20" height="20" alt="">
+        <div class="cmdpal-text"><strong>Quick Shell</strong><span>Open saved folders in any terminal you use</span></div>
+        <span class="cmdpal-kbd">qs</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>C — Bolt only</h3>
+      <p class="note">Maximum legibility. Loses folder/terminal story but reads “fast.”</p>
+      <div class="sizes">
+        <div class="size-cell"><div class="size-label">16</div><img src="micro-bolt-only.svg" width="16" height="16" alt=""></div>
+        <div class="size-cell"><div class="size-label">20</div><img src="micro-bolt-only.svg" width="20" height="20" alt=""></div>
+        <div class="size-cell"><div class="size-label">24</div><img src="micro-bolt-only.svg" width="24" height="24" alt=""></div>
+        <div class="size-cell"><div class="size-label">32</div><img src="micro-bolt-only.svg" width="32" height="32" alt=""></div>
+        <div class="size-cell"><div class="size-label">50</div><img src="micro-bolt-only.svg" width="50" height="50" alt=""></div>
+      </div>
+      <div class="cmdpal-row">
+        <img src="micro-bolt-only.svg" width="20" height="20" alt="">
+        <div class="cmdpal-text"><strong>Quick Shell</strong><span>Open saved folders in any terminal you use</span></div>
+        <span class="cmdpal-kbd">qs</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>D — Prompt + Bolt</h3>
+      <p class="note">Terminal frame + chevron. More detail — test if 16px still works.</p>
+      <div class="sizes">
+        <div class="size-cell"><div class="size-label">16</div><img src="micro-prompt-bolt.svg" width="16" height="16" alt=""></div>
+        <div class="size-cell"><div class="size-label">20</div><img src="micro-prompt-bolt.svg" width="20" height="20" alt=""></div>
+        <div class="size-cell"><div class="size-label">24</div><img src="micro-prompt-bolt.svg" width="24" height="24" alt=""></div>
+        <div class="size-cell"><div class="size-label">32</div><img src="micro-prompt-bolt.svg" width="32" height="32" alt=""></div>
+        <div class="size-cell"><div class="size-label">50</div><img src="micro-prompt-bolt.svg" width="50" height="50" alt=""></div>
+      </div>
+      <div class="cmdpal-row">
+        <img src="micro-prompt-bolt.svg" width="20" height="20" alt="">
+        <div class="cmdpal-text"><strong>Quick Shell</strong><span>Open saved folders in any terminal you use</span></div>
+        <span class="cmdpal-kbd">qs</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Current production</h3>
+      <p class="note">Full-detail logo scaled down — reference for the “crushed” problem.</p>
+      <div class="sizes">
+        <div class="size-cell"><div class="size-label">16</div><img src="../logo.svg" width="16" height="16" alt=""></div>
+        <div class="size-cell"><div class="size-label">20</div><img src="../logo.svg" width="20" height="20" alt=""></div>
+        <div class="size-cell"><div class="size-label">24</div><img src="../logo.svg" width="24" height="24" alt=""></div>
+        <div class="size-cell"><div class="size-label">32</div><img src="../logo.svg" width="32" height="32" alt=""></div>
+        <div class="size-cell"><div class="size-label">50</div><img src="../logo.svg" width="50" height="50" alt=""></div>
+      </div>
+      <div class="cmdpal-row">
+        <img src="../logo.svg" width="20" height="20" alt="">
+        <div class="cmdpal-text"><strong>Quick Shell</strong><span>Open saved folders in any terminal you use</span></div>
+        <span class="cmdpal-kbd">qs</span>
+      </div>
+    </article>
+  </div>
+
+  <h2>Full-size logo v2 (store / splash / 150×150)</h2>
+  <p class="lead" style="margin-bottom: 1rem;">Keeps folder → terminal → bolt story with simplified bolt, brighter terminal border, and more inset margins.</p>
+  <div class="compare-full">
+    <article class="card">
+      <h3>Current</h3>
+      <img src="../logo.svg" width="256" height="256" alt="">
+      <div class="sizes" style="justify-content: center; margin-top: 1rem;">
+        <div class="size-cell"><div class="size-label">64</div><img src="../logo.svg" width="64" height="64" alt=""></div>
+        <div class="size-cell"><div class="size-label">44</div><img src="../logo.svg" width="44" height="44" alt=""></div>
+      </div>
+    </article>
+    <article class="card rec">
+      <span class="badge">Proposed v2</span>
+      <h3>Full v2</h3>
+      <img src="logo-v2-full.svg" width="256" height="256" alt="">
+      <div class="sizes" style="justify-content: center; margin-top: 1rem;">
+        <div class="size-cell"><div class="size-label">64</div><img src="logo-v2-full.svg" width="64" height="64" alt=""></div>
+        <div class="size-cell"><div class="size-label">44</div><img src="logo-v2-full.svg" width="44" height="44" alt=""></div>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

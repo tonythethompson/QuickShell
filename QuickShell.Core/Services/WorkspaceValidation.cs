@@ -4,7 +4,6 @@ namespace QuickShell.Services;
 
 internal static class WorkspaceValidation
 {
-    public const int MaxWorkspaceCount = 200;
     public const int MaxEntryCount = 50;
     public const int MaxLabelLength = 120;
 
@@ -86,8 +85,8 @@ internal static class WorkspaceValidation
             {
                 needsFolderRepair = true;
                 directoryWarning = shortcut is null
-                    ? "Legacy project shortcut was not found."
-                    : "Legacy project shortcut directory could not be normalized.";
+                    ? "Legacy workspace shortcut was not found."
+                    : "Legacy workspace shortcut directory could not be normalized.";
             }
         }
         else
@@ -109,78 +108,6 @@ internal static class WorkspaceValidation
         WorkspaceMapper.NormalizeEntryOrders(workspace);
 
         return new WorkspaceLoadResult(workspace, requiresPersistence, needsFolderRepair, directoryWarning);
-    }
-
-    public static bool TryValidateForSave(
-        Workspace workspace,
-        IShortcutRepository shortcuts,
-        IWorkspaceRepository workspaces,
-        string? originalName,
-        out string error)
-    {
-        if (!TryValidateStructural(workspace, out error))
-        {
-            return false;
-        }
-
-        if (!TryValidateUniqueName(workspace.Name, originalName, workspaces, out error))
-        {
-            return false;
-        }
-
-        if (!TryValidateAbbreviationForSave(workspace, shortcuts, workspaces.GetWorkspaces(), originalName, out error))
-        {
-            return false;
-        }
-
-        if (!WorkspacePath.TryNormalizeLexical(workspace.Directory, out var normalizedDirectory, out error))
-        {
-            return false;
-        }
-
-        workspace.Directory = normalizedDirectory;
-
-        if (!WorkspacePath.DirectoryExists(workspace.Directory))
-        {
-            error = $"Directory not found: {workspace.Directory}";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    public static bool TryValidateForImport(
-        Workspace workspace,
-        IShortcutRepository shortcuts,
-        IReadOnlyList<Workspace> existingWorkspaces,
-        out string error)
-    {
-        if (!TryValidateStructural(workspace, out error))
-        {
-            return false;
-        }
-
-        if (!TryValidateAbbreviationForSave(workspace, shortcuts, existingWorkspaces, replacingOriginalName: null, out error))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(workspace.Directory)
-            && !WorkspacePath.TryNormalizeLexical(workspace.Directory, out var normalizedDirectory, out error))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(workspace.Directory))
-        {
-            workspace.Directory = WorkspacePath.TryNormalizeLexical(workspace.Directory, out var normalized, out _)
-                ? normalized
-                : workspace.Directory.Trim();
-        }
-
-        error = string.Empty;
-        return true;
     }
 
     public static bool TryValidateEntry(WorkspaceEntry entry, out string error)
@@ -209,154 +136,6 @@ internal static class WorkspaceValidation
 
         error = string.Empty;
         return true;
-    }
-
-    public static bool TryValidateUniqueName(
-        string name,
-        string? originalName,
-        IWorkspaceRepository workspaces,
-        out string error)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            error = "Workspace name is required.";
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(originalName)
-            && name.Equals(originalName, StringComparison.OrdinalIgnoreCase))
-        {
-            error = string.Empty;
-            return true;
-        }
-
-        if (workspaces.GetByName(name) is not null)
-        {
-            error = $"A workspace named '{name}' already exists.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    public static bool TryValidateUniqueAbbreviation(
-        string abbreviation,
-        string workspaceName,
-        IShortcutRepository shortcuts,
-        IReadOnlyList<Workspace> existingWorkspaces,
-        string? replacingOriginalName,
-        out string error)
-    {
-        if (string.IsNullOrWhiteSpace(abbreviation))
-        {
-            error = string.Empty;
-            return true;
-        }
-
-        var shortcutConflict = shortcuts.GetShortcuts()
-            .FirstOrDefault(shortcut => !string.IsNullOrWhiteSpace(shortcut.Abbreviation)
-                && shortcut.Abbreviation.Equals(abbreviation, StringComparison.OrdinalIgnoreCase));
-        if (shortcutConflict is not null)
-        {
-            error = $"Home keyword '{abbreviation}' is already used by shortcut '{shortcutConflict.Name}'.";
-            return false;
-        }
-
-        var workspaceConflict = existingWorkspaces
-            .FirstOrDefault(workspace => !IsSameWorkspace(workspace, workspaceName, replacingOriginalName)
-                && !string.IsNullOrWhiteSpace(workspace.Abbreviation)
-                && workspace.Abbreviation.Equals(abbreviation, StringComparison.OrdinalIgnoreCase));
-        if (workspaceConflict is not null)
-        {
-            error = $"Home keyword '{abbreviation}' is already used by workspace '{workspaceConflict.Name}'.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static bool IsSameWorkspace(Workspace workspace, string workspaceName, string? replacingOriginalName) =>
-        workspace.Name.Equals(workspaceName, StringComparison.OrdinalIgnoreCase)
-        || (!string.IsNullOrWhiteSpace(replacingOriginalName)
-            && workspace.Name.Equals(replacingOriginalName, StringComparison.OrdinalIgnoreCase));
-
-    private static bool TryValidateStructural(Workspace workspace, out string error)
-    {
-        if (string.IsNullOrWhiteSpace(workspace.Name))
-        {
-            error = "Workspace name is required.";
-            return false;
-        }
-
-        if (workspace.Name.Length > ShortcutValidation.MaxNameLength)
-        {
-            error = $"Workspace name must be {ShortcutValidation.MaxNameLength} characters or fewer.";
-            return false;
-        }
-
-        var enabledEntries = workspace.Entries.Where(entry => entry.IsEnabled).ToList();
-        if (enabledEntries.Count == 0)
-        {
-            error = "At least one enabled launch entry is required.";
-            return false;
-        }
-
-        if (workspace.Entries.Count > MaxEntryCount)
-        {
-            error = $"At most {MaxEntryCount} launch entries are supported.";
-            return false;
-        }
-
-        if (!TryNormalizeEntriesStructure(workspace.Entries, out var normalizedEntries, out error))
-        {
-            return false;
-        }
-
-        workspace.Entries = normalizedEntries;
-        WorkspaceMapper.NormalizeEntryOrders(workspace);
-
-        var labels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in workspace.Entries)
-        {
-            if (!TryValidateEntry(entry, out error))
-            {
-                return false;
-            }
-
-            if (!labels.Add(entry.Label))
-            {
-                error = $"Duplicate launch label '{entry.Label}'.";
-                return false;
-            }
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static bool TryValidateAbbreviationForSave(
-        Workspace workspace,
-        IShortcutRepository shortcuts,
-        IReadOnlyList<Workspace> existingWorkspaces,
-        string? replacingOriginalName,
-        out string error)
-    {
-        if (!string.IsNullOrWhiteSpace(workspace.Abbreviation)
-            && workspace.Abbreviation.Length > ShortcutValidation.MaxAbbreviationLength)
-        {
-            error = $"Home keyword must be {ShortcutValidation.MaxAbbreviationLength} characters or fewer.";
-            return false;
-        }
-
-        return TryValidateUniqueAbbreviation(
-            workspace.Abbreviation ?? string.Empty,
-            workspace.Name,
-            shortcuts,
-            existingWorkspaces,
-            replacingOriginalName,
-            out error);
     }
 
     private static bool TryNormalizeEntriesStructure(

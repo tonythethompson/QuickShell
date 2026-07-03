@@ -1,0 +1,124 @@
+[
+  {
+    "Name": "My App Admin",
+    "Abbreviation": "admin",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "claude",
+    "Terminal": "default",
+    "RunAsAdmin": true,
+    "IsPinned": true,
+    "PinOrder": 0,
+    "LastUsedUtc": "2026-06-30T14:05:00Z"
+  },
+  {
+    "Name": "My App",
+    "Abbreviation": "app",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "claude",
+    "Terminal": "default",
+    "IsPinned": true,
+    "PinOrder": 1,
+    "LastUsedUtc": "2026-06-30T15:20:00Z",
+    "RepoUrl": "https://github.com/example/my-app"
+  },
+  {
+    "Type": "separator",
+    "Title": "Terminal icons"
+  },
+  {
+    "Name": "Default shell",
+    "Abbreviation": "def",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "",
+    "Terminal": "default",
+    "LastUsedUtc": "2026-06-30T12:00:00Z"
+  },
+  {
+    "Name": "Windows Terminal",
+    "Abbreviation": "wt",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "npm run dev",
+    "Terminal": "wt",
+    "WtProfile": "PowerShell",
+    "LastUsedUtc": "2026-06-30T11:45:00Z",
+    "DevServerUrl": "http://localhost:5173"
+  },
+  {
+    "Name": "PowerShell 7",
+    "Abbreviation": "pwsh",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "dotnet watch",
+    "Terminal": "pwsh"
+  },
+  {
+    "Name": "Command Prompt",
+    "Abbreviation": "cmd",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "",
+    "Terminal": "cmd"
+  },
+  {
+    "Name": "Intelligent Terminal",
+    "Abbreviation": "it",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "git status",
+    "Terminal": "it"
+  },
+  {
+    "Name": "Ubuntu (WSL path)",
+    "Abbreviation": "wsl",
+    "Directory": "\\\\wsl.localhost\\Ubuntu\\mnt\\wslg\\distro\\home\\tonyt\\Projects\\My App",
+    "Command": "claude",
+    "Terminal": "wsl"
+  },
+  {
+    "Name": "WT Ubuntu profile",
+    "Abbreviation": "ubu",
+    "Directory": "C:\\Projects\\My App",
+    "Command": "npm install",
+    "Terminal": "wt",
+    "WtProfile": "Ubuntu"
+  },
+  {
+    "Type": "separator",
+    "Title": "Multi-launch"
+  },
+  {
+    "Name": "Dev stack",
+    "Abbreviation": "dev",
+    "Directory": "C:\\Projects\\My App",
+    "Launches": [
+      {
+        "Id": "a1b2c3d4e5f6478990a1b2c3d4e5f601",
+        "Label": "My App",
+        "Terminal": "wt",
+        "WtProfile": "Ubuntu",
+        "Command": "npm run dev",
+        "RunAsAdmin": false,
+        "IsEnabled": true,
+        "Order": 0
+      },
+      {
+        "Id": "b2c3d4e5f6478990a1b2c3d4e5f60201",
+        "Label": "Shell",
+        "Terminal": "pwsh",
+        "Command": "",
+        "RunAsAdmin": false,
+        "IsEnabled": true,
+        "Order": 1
+      }
+    ],
+    "LastUsedUtc": "2026-06-30T10:30:00Z"
+  },
+  {
+    "Type": "separator",
+    "Title": "Needs attention"
+  },
+  {
+    "Name": "Archived project",
+    "Abbreviation": "old",
+    "Directory": "C:\\Projects\\My App (missing)",
+    "Command": "npm run dev",
+    "Terminal": "default"
+  }
+]

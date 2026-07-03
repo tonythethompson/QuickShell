@@ -6,7 +6,15 @@ internal sealed class WtProfileInfo
 {
     public required string Name { get; init; }
 
+    public string? Guid { get; init; }
+
     public string? Commandline { get; init; }
+
+    public string? Icon { get; init; }
+
+    public string? ProfileSource { get; init; }
+
+    public required string SettingsPath { get; init; }
 
     public bool IsDefault { get; init; }
 
@@ -35,6 +43,8 @@ internal static class WtProfilesService
             _writeTimes.Clear();
             _locations = [];
         }
+
+        WindowsTerminalInstallDiscovery.InvalidateCache();
     }
 
     private static TerminalSettingsLocation[] GetLocations()
@@ -58,6 +68,85 @@ internal static class WtProfilesService
 
     public static IReadOnlyList<string> GetProfileNames() =>
         GetProfiles().Select(p => p.Name).ToArray();
+
+    public static WtProfileInfo? FindProfileForLaunch(string? terminal, string? profileName)
+    {
+        if (string.IsNullOrWhiteSpace(profileName))
+        {
+            return null;
+        }
+
+        var prefixes = GetIdPrefixesForTerminal(terminal);
+        if (prefixes.Length == 0)
+        {
+            return null;
+        }
+
+        var trimmedName = profileName.Trim();
+        return GetProfiles().FirstOrDefault(profile =>
+            prefixes.Contains(profile.IdPrefix, StringComparer.OrdinalIgnoreCase)
+            && profile.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static WtProfileInfo? FindProfileByNameAcrossHosts(string profileName)
+    {
+        if (string.IsNullOrWhiteSpace(profileName))
+        {
+            return null;
+        }
+
+        var trimmedName = profileName.Trim();
+        return GetProfiles().FirstOrDefault(profile =>
+            profile.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static WtProfileInfo? FindDefaultProfile(string hostTerminal)
+    {
+        var prefixes = GetIdPrefixesForTerminal(hostTerminal);
+        if (prefixes.Length == 0)
+        {
+            return null;
+        }
+
+        foreach (var location in GetLocations())
+        {
+            if (!prefixes.Contains(location.IdPrefix, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var defaultGuid = ReadDefaultProfileGuid(location.SettingsPath);
+            if (string.IsNullOrWhiteSpace(defaultGuid))
+            {
+                continue;
+            }
+
+            var match = GetProfiles().FirstOrDefault(profile =>
+                profile.IdPrefix.Equals(location.IdPrefix, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(profile.Guid)
+                && profile.Guid.Equals(defaultGuid, StringComparison.OrdinalIgnoreCase));
+
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        return GetProfiles().FirstOrDefault(profile =>
+            prefixes.Contains(profile.IdPrefix, StringComparer.OrdinalIgnoreCase)
+            && profile.IsDefault);
+    }
+
+    public static WtProfileInfo? FindProfileForStandaloneShell(string shellId)
+    {
+        var normalized = (shellId ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "powershell7" => "pwsh",
+            _ => (shellId ?? string.Empty).Trim().ToLowerInvariant(),
+        };
+
+        return GetProfiles().FirstOrDefault(profile => MatchesStandaloneShell(profile, normalized));
+    }
 
     public static IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId)
     {
@@ -119,6 +208,47 @@ internal static class WtProfilesService
             .OrderByDescending(p => p.IsDefault)
             .ThenBy(p => p.SourceLabel, StringComparer.OrdinalIgnoreCase)
             .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _cached = MergeIconsAcrossProfiles(_cached);
+    }
+
+    private static WtProfileInfo[] MergeIconsAcrossProfiles(WtProfileInfo[] profiles)
+    {
+        var iconsByGuid = profiles
+            .Where(profile => !string.IsNullOrWhiteSpace(profile.Guid) && !string.IsNullOrWhiteSpace(profile.Icon))
+            .GroupBy(profile => NormalizeGuid(profile.Guid!), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Icon!, StringComparer.OrdinalIgnoreCase);
+
+        if (iconsByGuid.Count == 0)
+        {
+            return profiles;
+        }
+
+        return profiles
+            .Select(profile =>
+            {
+                if (!string.IsNullOrWhiteSpace(profile.Icon)
+                    || string.IsNullOrWhiteSpace(profile.Guid)
+                    || !iconsByGuid.TryGetValue(NormalizeGuid(profile.Guid), out var icon))
+                {
+                    return profile;
+                }
+
+                return new WtProfileInfo
+                {
+                    Name = profile.Name,
+                    Guid = profile.Guid,
+                    Commandline = profile.Commandline,
+                    Icon = icon,
+                    ProfileSource = profile.ProfileSource,
+                    SettingsPath = profile.SettingsPath,
+                    IsDefault = profile.IsDefault,
+                    Source = profile.Source,
+                    HostExecutable = profile.HostExecutable,
+                    IdPrefix = profile.IdPrefix,
+                    SourceLabel = profile.SourceLabel,
+                };
+            })
             .ToArray();
     }
 
@@ -213,11 +343,21 @@ internal static class WtProfilesService
         var commandline = element.TryGetProperty("commandline", out var commandNode)
             ? commandNode.GetString()
             : null;
+        var icon = element.TryGetProperty("icon", out var iconNode)
+            ? iconNode.GetString()
+            : null;
+        var profileSource = element.TryGetProperty("source", out var sourceNode)
+            ? sourceNode.GetString()
+            : null;
 
         return new WtProfileInfo
         {
             Name = name.Trim(),
+            Guid = guid,
             Commandline = commandline,
+            Icon = icon,
+            ProfileSource = profileSource,
+            SettingsPath = location.SettingsPath,
             IsDefault = !string.IsNullOrWhiteSpace(defaultGuid)
                 && !string.IsNullOrWhiteSpace(guid)
                 && defaultGuid.Equals(guid, StringComparison.OrdinalIgnoreCase),
@@ -227,4 +367,69 @@ internal static class WtProfilesService
             SourceLabel = location.DisplayPrefix,
         };
     }
+
+    private static string[] GetIdPrefixesForTerminal(string? terminal) =>
+        (terminal ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "it" or "intelligent-terminal" => [TerminalHostIds.IntelligentTerminal],
+            "wt" or "windows-terminal" =>
+            [
+                TerminalHostIds.WindowsTerminal,
+                "wtu",
+                "wtp",
+            ],
+            _ => [],
+        };
+
+    private static string? ReadDefaultProfileGuid(string settingsPath)
+    {
+        try
+        {
+            if (!File.Exists(settingsPath))
+            {
+                return null;
+            }
+
+            using var stream = File.OpenRead(settingsPath);
+            using var document = JsonDocument.Parse(stream);
+            if (document.RootElement.TryGetProperty("defaultProfile", out var topLevel)
+                && topLevel.ValueKind == JsonValueKind.String)
+            {
+                return topLevel.GetString();
+            }
+
+            if (document.RootElement.TryGetProperty("profiles", out var profilesNode)
+                && profilesNode.TryGetProperty("defaultProfile", out var nested)
+                && nested.ValueKind == JsonValueKind.String)
+            {
+                return nested.GetString();
+            }
+        }
+        catch
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static bool MatchesStandaloneShell(WtProfileInfo profile, string shellId) =>
+        shellId switch
+        {
+            "pwsh" => ContainsIgnoreCase(profile.Commandline, "pwsh")
+                || ContainsIgnoreCase(profile.Name, "PowerShell 7")
+                || ContainsIgnoreCase(profile.ProfileSource, "PowershellCore"),
+            "powershell" => ContainsIgnoreCase(profile.Commandline, "powershell.exe")
+                || profile.Name.Equals("Windows PowerShell", StringComparison.OrdinalIgnoreCase)
+                || ContainsIgnoreCase(profile.ProfileSource, "Windows.Terminal.Powershell"),
+            "cmd" => ContainsIgnoreCase(profile.Commandline, "cmd.exe")
+                || profile.Name.Equals("Command Prompt", StringComparison.OrdinalIgnoreCase),
+            _ => false,
+        };
+
+    private static bool ContainsIgnoreCase(string? value, string fragment) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.Contains(fragment, StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeGuid(string guid) => guid.Trim('{', '}');
 }

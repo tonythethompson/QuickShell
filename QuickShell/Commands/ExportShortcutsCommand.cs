@@ -13,7 +13,7 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
     public ExportShortcutsCommand(bool stayOnSettings = true)
     {
         _stayOnSettings = stayOnSettings;
-        Name = "Export shortcuts";
+        Name = "Export workspaces";
         Icon = new IconInfo("\uE896");
     }
 
@@ -32,7 +32,7 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
             return Finish($"Export failed: {result.Error}");
         }
 
-        return Finish($"Exported shortcuts to {path}.");
+        return Finish($"Exported workspaces to {path}.");
     }
 
     private CommandResult Finish(string? message) =>

@@ -1,10 +1,46 @@
 #Requires -Version 5.1
+<#
+.SYNOPSIS
+    Build, sign, install the Quick Shell dev MSIX, and restart Command Palette.
+
+.DESCRIPTION
+    Dev deploy loop:
+      1. Stop Command Palette / PowerToys (unless -NoRestartCmdPal)
+      2. Build and install the signed MSIX
+      3. Start Command Palette again
+
+    Elevation runs only when the dev signing certificate is not yet trusted.
+    After the first successful install, a normal terminal is enough — no UAC
+    relaunch and no hidden second window.
+
+.PARAMETER SkipElevation
+    Never relaunch as administrator. Trusts the cert in CurrentUser\TrustedPeople
+    when needed. Use this if you prefer to avoid UAC entirely.
+
+.PARAMETER NoRestartCmdPal
+    Do not stop or start Command Palette (build/install only).
+
+.PARAMETER UseDevCmdPal
+    After install, start a local PowerToys dev CmdPal build (sibling PowerToys checkout).
+    Default is retail PowerToys.
+
+.EXAMPLE
+    .\scripts\deploy.ps1
+
+.EXAMPLE
+    .\scripts\deploy.ps1 -SkipElevation
+
+.EXAMPLE
+    .\scripts\run-cmdpal-dev.ps1
+#>
 param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
     [switch]$SkipElevation,
     [switch]$RecreateCertificate,
-    [switch]$UseLocalCmdPalSdk
+    [switch]$UseLocalCmdPalSdk,
+    [switch]$NoRestartCmdPal,
+    [switch]$UseDevCmdPal
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,9 +52,27 @@ $CertSubject = 'CN=QuickShell Dev'
 $CertPassword = 'QuickShell'
 $CodeSigningEku = '1.3.6.1.5.5.7.3.3'
 
+. (Join-Path $PSScriptRoot 'CmdPalLifecycle.ps1')
+
 function Test-IsAdmin {
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Test-DevCertificateTrusted {
+    param([string]$Thumbprint)
+
+    foreach ($store in @('Cert:\LocalMachine\TrustedPeople', 'Cert:\CurrentUser\TrustedPeople')) {
+        $trusted = Get-ChildItem $store -ErrorAction SilentlyContinue |
+            Where-Object { $_.Thumbprint -eq $Thumbprint } |
+            Select-Object -First 1
+
+        if ($trusted) {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function Test-CertificateCanSign {
@@ -34,10 +88,7 @@ function Test-CertificateCanSign {
 
     # MSIX packaging can sign via thumbprint even when the PFX lacks the
     # code-signing EKU (common for older dev self-signed certs).
-    $inTrustedPeople = Get-ChildItem Cert:\LocalMachine\TrustedPeople -ErrorAction SilentlyContinue |
-        Where-Object { $_.Thumbprint -eq $Certificate.Thumbprint }
-
-    if ($inTrustedPeople) {
+    if (Test-DevCertificateTrusted -Thumbprint $Certificate.Thumbprint) {
         return $true
     }
 
@@ -132,8 +183,15 @@ function Ensure-DevCertificate {
 }
 
 function Install-DevCertificateTrust {
+    param([string]$Thumbprint)
+
     if (-not (Test-Path $CerPath)) {
         throw "Missing certificate file: $CerPath"
+    }
+
+    if (Test-DevCertificateTrusted -Thumbprint $Thumbprint) {
+        Write-Host 'Dev certificate already trusted; skipping import.'
+        return
     }
 
     if (Test-IsAdmin) {
@@ -170,8 +228,29 @@ function Get-PackageFolder {
     return $folders[0].FullName
 }
 
-if (-not $SkipElevation -and -not (Test-IsAdmin)) {
-    Write-Host 'Re-launching deploy script as administrator to trust the dev certificate...'
+function Test-NeedsAdminElevation {
+    if ($SkipElevation -or (Test-IsAdmin)) {
+        return $false
+    }
+
+    if ($RecreateCertificate) {
+        return $true
+    }
+
+    if (-not (Test-Path $PfxPath)) {
+        return $true
+    }
+
+    try {
+        $cert = Get-PfxCertificate -Path $PfxPath
+        return -not (Test-DevCertificateTrusted -Thumbprint $cert.Thumbprint)
+    }
+    catch {
+        return $true
+    }
+}
+
+function Get-DeployArgumentList {
     $argList = @(
         '-NoProfile',
         '-ExecutionPolicy', 'Bypass',
@@ -179,23 +258,37 @@ if (-not $SkipElevation -and -not (Test-IsAdmin)) {
         '-Configuration', $Configuration,
         '-SkipElevation'
     )
-    if ($RecreateCertificate) {
-        $argList += '-RecreateCertificate'
-    }
-    Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $argList -Wait
+
+    if ($RecreateCertificate) { $argList += '-RecreateCertificate' }
+    if ($UseLocalCmdPalSdk) { $argList += '-UseLocalCmdPalSdk' }
+    if ($NoRestartCmdPal) { $argList += '-NoRestartCmdPal' }
+    if ($UseDevCmdPal) { $argList += '-UseDevCmdPal' }
+
+    return $argList
+}
+
+if (Test-NeedsAdminElevation) {
+    Write-Host 'Administrator approval required once to trust the dev signing certificate.'
+    Write-Host 'Approve the UAC prompt. Build and install run in the elevated window that opens.' -ForegroundColor Yellow
+    Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList (Get-DeployArgumentList) -Wait
     exit $LASTEXITCODE
 }
 
 Push-Location $ProjectRoot
 try {
+    if (-not $NoRestartCmdPal) {
+        Write-Host 'Stopping Command Palette before build/install...'
+        Stop-CmdPalProcesses
+    }
+
     Write-Host 'Generating MSIX logo assets...'
     & (Join-Path $PSScriptRoot 'generate-assets.ps1')
 
     $thumbprint = Ensure-DevCertificate
-    Install-DevCertificateTrust
+    Install-DevCertificateTrust -Thumbprint $thumbprint
 
     $msbuild = Get-MsBuildPath
-    $powerToysRoot = Join-Path (Split-Path $ProjectRoot -Parent) 'PowerToys'
+    $powerToysRoot = Get-CmdPalPowerToysRoot -ProjectRoot $ProjectRoot
     $localToolkit = Join-Path $powerToysRoot 'src\modules\cmdpal\extensionsdk\Microsoft.CommandPalette.Extensions.Toolkit\Microsoft.CommandPalette.Extensions.Toolkit.csproj'
     $useLocalSdk = $UseLocalCmdPalSdk.IsPresent
     if ($useLocalSdk) {
@@ -255,7 +348,7 @@ QuickShell will use NuGet Microsoft.CommandPalette.Extensions.
     }
 
     try {
-        Add-AppxPackage -Path $msix.FullName -ForceApplicationShutdown
+        Add-AppxPackage -Path $msix.FullName
     }
     catch {
         throw @"
@@ -269,7 +362,14 @@ Original error: $($_.Exception.Message)
     }
 
     Write-Host ''
-    Write-Host 'Quick Shell installed.'
+    Write-Host 'Quick Shell installed.' -ForegroundColor Green
+
+    if (-not $NoRestartCmdPal) {
+        Write-Host 'Starting Command Palette...'
+        Start-CommandPalette -ProjectRoot $ProjectRoot -Configuration $Configuration -UseDevCmdPal:$UseDevCmdPal
+    }
+
+    Write-Host ''
     Write-Host "Next: open Command Palette and run 'Reload Command Palette Extension', then search 'Quick Shell'."
 }
 finally {

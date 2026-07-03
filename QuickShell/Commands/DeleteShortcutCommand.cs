@@ -22,9 +22,9 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
         if (deleted)
         {
             _onDeleted();
-            return QuickShellNavigation.StayOpen($"Deleted shortcut '{_name}'.");
+            return QuickShellNavigation.StayOpen($"Deleted workspace '{_name}'.");
         }
 
-        return QuickShellNavigation.StayOpen($"Shortcut '{_name}' was not found.");
+        return QuickShellNavigation.StayOpen($"Workspace '{_name}' was not found.");
     }
 }

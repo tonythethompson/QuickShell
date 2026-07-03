@@ -9,14 +9,13 @@
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 
-    <AppxPackageVersion>0.1.7.0</AppxPackageVersion>
+    <AppxPackageVersion>$(AppVersion)</AppxPackageVersion>
     <AppxPackageIdentityName>tonythethompson.536944BA0D095</AppxPackageIdentityName>
     <AppxPackagePublisher>CN=31D3C278-3D55-4A42-BA6A-24E16D15B863</AppxPackagePublisher>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <WindowsSdkPackageVersion>10.0.26100.68-preview</WindowsSdkPackageVersion>
   </PropertyGroup>
 
   <!-- Local dev PFX password: override via QuickShellPackageCertificatePassword env/user prop -->
@@ -30,8 +29,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Assets\**\*" />
+    <Content Include="Assets\**\*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
+
+  <Target Name="GenerateLogoAssets" BeforeTargets="PrepareForBuild"
+          Inputs="$(MSBuildProjectDirectory)\Assets\logo-micro.svg;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1;$(MSBuildProjectDirectory)\..\scripts\LogoAssetGenerator\Program.cs"
+          Outputs="$(MSBuildProjectDirectory)\Assets\StoreLogo.png">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)\.."
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1&quot;" />
+  </Target>
 
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
@@ -90,6 +98,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <!-- dotnet build without -p:Platform=x64 still needs an RID when RuntimeIdentifiers is set (NETSDK1097). -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
     <!-- In Debug builds, trimming is disabled by default, but all the trim & 
          AOT warnings are enabled. This gives debug builds a tighter inner loop,
          while at least warning about future trim violations -->
@@ -110,7 +120,9 @@
 
   <!-- MSIX packaging for local Visual Studio deploy -->
   <PropertyGroup Condition="'$(WinGetBuild)'!='true'">
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <_QuickShellPublishPlatform Condition="'$(Platform)' == 'x64'">x64</_QuickShellPublishPlatform>
+    <_QuickShellPublishPlatform Condition="'$(Platform)' == 'ARM64' or '$(Platform)' == 'arm64'">arm64</_QuickShellPublishPlatform>
+    <PublishProfile Condition="'$(_QuickShellPublishPlatform)' != ''">win-$(_QuickShellPublishPlatform).pubxml</PublishProfile>
   </PropertyGroup>
 
   <!-- Unpackaged self-contained EXE for WinGet / Inno Setup -->
@@ -149,5 +161,9 @@
       <PDBPayload Remove="@(PDBPayload)" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickShell.Core.Tests" />
+  </ItemGroup>
 
 </Project>

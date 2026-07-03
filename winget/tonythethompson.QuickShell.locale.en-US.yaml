@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
 
 PackageIdentifier: tonythethompson.QuickShell
-PackageVersion: 0.1.6.0
+PackageVersion: 0.1.7.0
 PackageLocale: en-US
 Publisher: Tony Thompson
 PublisherUrl: https://github.com/tonythethompson

@@ -20,7 +20,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         _onReload = onReload;
         _stayOnSettings = stayOnSettings;
         _onSettingsRefresh = onSettingsRefresh;
-        Name = "Import shortcuts";
+        Name = "Import workspaces";
         Icon = new IconInfo("\uE898");
     }
 
@@ -43,7 +43,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         var conflicts = QuickShellRuntimeServices.Shortcuts.CountImportNameConflicts(imported);
         if (conflicts > 0)
         {
-            ImportConflictState.Set(path, conflicts, imported.Length, _onReload);
+            ImportConflictState.Set(ImportTransferKind.Projects, path, conflicts, imported.Length, _onReload);
             SettingsFormHelpers.ScheduleRefresh(_onSettingsRefresh);
             return _stayOnSettings
                 ? QuickShellNavigation.StayOnSettings()

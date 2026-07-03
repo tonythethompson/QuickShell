@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell micro: lightning bolt">
+  <title>Micro Bolt Only</title>
+  <rect width="512" height="512" rx="96" fill="#0078D4"/>
+  <path fill="#FFD84C" d="M288 72L128 312h104l-36 128 196-268h-104z"/>
+</svg>

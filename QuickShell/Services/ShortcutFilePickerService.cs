@@ -10,14 +10,14 @@ internal static class ShortcutFilePickerService
 
     public static string? PickExportFile()
     {
-        var defaultName = $"quickshell-shortcuts-{DateTime.Now:yyyyMMdd-HHmmss}.json";
+        var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
         var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
             using var dialog = new System.Windows.Forms.SaveFileDialog
             {
-                Title = "Export Quick Shell shortcuts",
+                Title = $"Export {QuickShellBrand.DisplayName} workspaces",
                 Filter = JsonFilter,
                 DefaultExt = "json",
                 AddExtension = true,
@@ -42,11 +42,86 @@ internal static class ShortcutFilePickerService
         {
             using var dialog = new System.Windows.Forms.OpenFileDialog
             {
-                Title = "Import Quick Shell shortcuts",
+                Title = $"Import {QuickShellBrand.DisplayName} workspaces",
                 Filter = JsonFilter,
                 DefaultExt = "json",
                 CheckFileExists = true,
                 Multiselect = false,
+            };
+
+            if (Directory.Exists(initialDirectory))
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            return ShowDialog(dialog);
+        });
+    }
+
+    public static string? PickImportWorkspacesFile()
+    {
+        var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
+
+        return RunOnStaThread(() =>
+        {
+            using var dialog = new System.Windows.Forms.OpenFileDialog
+            {
+                Title = $"Import {QuickShellBrand.DisplayName} workspaces",
+                Filter = JsonFilter,
+                DefaultExt = "json",
+                CheckFileExists = true,
+                Multiselect = false,
+            };
+
+            if (Directory.Exists(initialDirectory))
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            return ShowDialog(dialog);
+        });
+    }
+
+    public static string? PickExecutableFile()
+    {
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var initialDirectory = Directory.Exists(programFiles) ? programFiles : null;
+
+        return RunOnStaThread(() =>
+        {
+            using var dialog = new System.Windows.Forms.OpenFileDialog
+            {
+                Title = "Choose companion app",
+                Filter = "Applications (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|All files (*.*)|*.*",
+                DefaultExt = "exe",
+                CheckFileExists = true,
+                Multiselect = false,
+            };
+
+            if (initialDirectory is not null)
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            return ShowDialog(dialog);
+        });
+    }
+
+    public static string? PickExportWorkspacesFile()
+    {
+        var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
+        var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
+
+        return RunOnStaThread(() =>
+        {
+            using var dialog = new System.Windows.Forms.SaveFileDialog
+            {
+                Title = $"Export {QuickShellBrand.DisplayName} workspaces",
+                Filter = JsonFilter,
+                DefaultExt = "json",
+                AddExtension = true,
+                FileName = defaultName,
+                OverwritePrompt = true,
             };
 
             if (Directory.Exists(initialDirectory))

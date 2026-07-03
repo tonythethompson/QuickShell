@@ -1,8 +1,6 @@
-using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Models;
 using QuickShell.Services;
-using System.ComponentModel;
 
 namespace QuickShell.Commands;
 
@@ -33,7 +31,24 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
             : runAsStandard
                 ? "Run normally"
                 : "Run";
-        Icon = new IconInfo(runAsAdmin || (shortcut.RunAsAdmin && !runAsStandard) ? ShortcutGlyphs.AdminLaunch : ShortcutGlyphs.Terminal);
+        Icon = new IconInfo(ResolveLaunchIcon(shortcut, runAsAdmin, runAsStandard));
+    }
+
+    private static string ResolveLaunchIcon(TerminalShortcut shortcut, bool runAsAdmin, bool runAsStandard)
+    {
+        if (runAsStandard)
+        {
+            return ShortcutHealth.NeedsRepair(shortcut)
+                ? ShortcutGlyphs.IncidentTriangle
+                : TerminalLaunchGlyphs.GetForShortcut(shortcut);
+        }
+
+        if (runAsAdmin || shortcut.RunAsAdmin)
+        {
+            return ShortcutGlyphs.AdminLaunch;
+        }
+
+        return ShortcutHealth.GetListGlyph(shortcut);
     }
 
     public override CommandResult Invoke()
@@ -41,31 +56,27 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That shortcut was not found.");
+            return QuickShellNavigation.StayOpen("That workspace was not found.");
         }
 
-        try
+        var result = ShortcutLaunchExecutor.Launch(
+            shortcut,
+            _settings.TerminalApplicationId,
+            _settings.DefaultProfileId,
+            new ShortcutLaunchOptions(_runAsAdmin, _runAsStandard));
+
+        return ToCommandResult(result);
+    }
+
+    private CommandResult ToCommandResult(ShortcutLaunchResult result)
+    {
+        if (result.MarkUsed)
         {
-            TerminalLauncher.Open(
-                shortcut,
-                _settings.TerminalApplicationId,
-                _settings.DefaultProfileId,
-                _runAsAdmin,
-                _runAsStandard);
-            QuickShellRuntimeServices.Shortcuts.MarkUsed(shortcut.Id);
-            return CommandResult.Dismiss();
+            QuickShellRuntimeServices.Shortcuts.MarkUsed(_shortcutId);
         }
-        catch (DirectoryNotFoundException)
-        {
-            return QuickShellNavigation.StayOpen("Failed to open terminal: the folder path could not be found.");
-        }
-        catch (InvalidOperationException)
-        {
-            return QuickShellNavigation.StayOpen("Failed to open terminal: check the shortcut settings and try again.");
-        }
-        catch (Win32Exception)
-        {
-            return QuickShellNavigation.StayOpen("Failed to open terminal: launch was canceled or blocked by the system.");
-        }
+
+        return result.Dismiss
+            ? CommandResult.Dismiss()
+            : QuickShellNavigation.StayOpen(result.StayOpenMessage ?? "Launch failed.");
     }
 }

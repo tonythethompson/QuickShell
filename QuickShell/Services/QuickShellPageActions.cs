@@ -1,7 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
-using QuickShell.Models;
+using QuickShell.Pages;
 using QuickShell.Services;
 
 namespace QuickShell.Services;
@@ -10,13 +10,13 @@ internal static class QuickShellPageActions
 {
     public static IEnumerable<IListItem> BuildItems(
         CreateShortcutCommand createShortcutCommand,
-        CreateWorkspaceCommand createWorkspaceCommand,
+        OpenDiscoverGitReposCommand discoverGitReposCommand,
         QuickShellSettingsManager settings,
         Action onReload)
     {
         yield return new ListItem(createShortcutCommand)
         {
-            Title = "Create shortcut",
+            Title = "Create workspace",
             Subtitle = "Ctrl+N",
             Icon = new IconInfo("\uE710"),
             MoreCommands =
@@ -26,11 +26,11 @@ internal static class QuickShellPageActions
             ],
         };
 
-        yield return new ListItem(createWorkspaceCommand)
+        yield return new ListItem(discoverGitReposCommand)
         {
-            Title = "Create workspace",
-            Subtitle = "Multi-terminal project environment",
-            Icon = new IconInfo(WorkspaceListItems.WorkspaceIcon),
+            Title = "Discover git repos",
+            Subtitle = "Scan local folders and add as workspaces",
+            Icon = new IconInfo(ShortcutGlyphs.Discover),
             MoreCommands =
             [
                 ..ShortcutContextCommands.BuildUndoRedoCommands(onReload),
@@ -46,7 +46,7 @@ internal static class QuickShellPageActions
         Action onReload) =>
         new(settings.SettingsPage)
         {
-            Title = "Quick Shell settings",
+            Title = QuickShellBrand.SettingsTitle,
             Subtitle = "Terminal, import/export, undo (Ctrl+Z) / redo (Ctrl+Y)",
             Icon = new IconInfo("\uE713"),
             MoreCommands = ShortcutContextCommands.BuildUndoRedoCommands(onReload),

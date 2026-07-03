@@ -9,6 +9,9 @@ internal static class ShortcutValidation
     public const int MaxDirectoryLength = 1024;
     public const int MaxCommandLength = 4000;
     public const int MaxWtProfileLength = 120;
+    public const int MaxLinkUrlLength = 2048;
+    public const int MaxCompanionAppPathLength = 1024;
+    public const int MaxCompanionAppArgumentsLength = 2048;
     public const int MaxShortcutCount = 500;
 
     public static bool TryValidate(TerminalShortcut shortcut, out string error) =>
@@ -63,6 +66,41 @@ internal static class ShortcutValidation
             return false;
         }
 
+        if (!ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out error))
+        {
+            return false;
+        }
+
+        if (!TryValidateOptionalLinkUrl(shortcut.DevServerUrl, out error, out var normalizedDevServer))
+        {
+            return false;
+        }
+
+        shortcut.DevServerUrl = normalizedDevServer;
+
+        if (!TryValidateOptionalLinkUrl(shortcut.RepoUrl, out error, out var normalizedRepo))
+        {
+            return false;
+        }
+
+        shortcut.RepoUrl = normalizedRepo;
+
+        if (shortcut.OpenDevServerOnLaunch && string.IsNullOrWhiteSpace(shortcut.DevServerUrl))
+        {
+            error = "Dev server URL is required when open on launch is enabled.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(shortcut.DevServerUrl))
+        {
+            shortcut.OpenDevServerOnLaunch = false;
+        }
+
+        if (!TryValidateCompanionApp(shortcut, out error))
+        {
+            return false;
+        }
+
         if (!requireDirectoryExists)
         {
             error = string.Empty;
@@ -100,7 +138,7 @@ internal static class ShortcutValidation
         var existing = shortcuts.GetByName(name);
         if (existing is not null)
         {
-            error = $"A shortcut named '{name}' already exists.";
+            error = $"A workspace named '{name}' already exists.";
             return false;
         }
 
@@ -215,6 +253,93 @@ internal static class ShortcutValidation
             return false;
         }
 
+        return true;
+    }
+
+    public static bool TryValidateOptionalLinkUrl(string? url, out string error, out string? normalized)
+    {
+        normalized = null;
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            error = string.Empty;
+            return true;
+        }
+
+        var trimmed = url.Trim();
+        if (trimmed.Length > MaxLinkUrlLength)
+        {
+            error = $"Link URL must be {MaxLinkUrlLength} characters or fewer.";
+            return false;
+        }
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            error = "Link URL must start with http:// or https://.";
+            return false;
+        }
+
+        normalized = uri.ToString();
+        error = string.Empty;
+        return true;
+    }
+
+    public static bool TryValidateCompanionApp(TerminalShortcut shortcut, out string error)
+    {
+        if (shortcut.OpenCompanionAppOnLaunch && string.IsNullOrWhiteSpace(shortcut.CompanionAppPath))
+        {
+            error = "Companion app path is required when open on launch is enabled.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(shortcut.CompanionAppPath))
+        {
+            shortcut.CompanionAppPath = null;
+            shortcut.CompanionAppArguments = string.IsNullOrWhiteSpace(shortcut.CompanionAppArguments)
+                ? null
+                : shortcut.CompanionAppArguments.Trim();
+            error = string.Empty;
+            return true;
+        }
+
+        var path = shortcut.CompanionAppPath.Trim();
+        if (path.Length > MaxCompanionAppPathLength)
+        {
+            error = $"Companion app path must be {MaxCompanionAppPathLength} characters or fewer.";
+            return false;
+        }
+
+        if (!CompanionAppCatalog.TryResolveExecutablePath(path, out var resolvedPath))
+        {
+            error = $"Companion app not found: {path}";
+            return false;
+        }
+
+        shortcut.CompanionAppPath = resolvedPath;
+
+        if (string.IsNullOrWhiteSpace(shortcut.CompanionAppArguments))
+        {
+            shortcut.CompanionAppArguments = null;
+        }
+        else
+        {
+            var arguments = shortcut.CompanionAppArguments.Trim();
+            if (arguments.Length > MaxCompanionAppArgumentsLength)
+            {
+                error = $"Companion app arguments must be {MaxCompanionAppArgumentsLength} characters or fewer.";
+                return false;
+            }
+
+            if (arguments.IndexOfAny(['\r', '\n', '\0']) >= 0)
+            {
+                error = "Companion app arguments cannot contain line breaks.";
+                return false;
+            }
+
+            shortcut.CompanionAppArguments = arguments;
+        }
+
+        error = string.Empty;
         return true;
     }
 }

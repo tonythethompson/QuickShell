@@ -9,23 +9,69 @@ namespace QuickShell.Pages;
 internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposable
 {
     private readonly QuickShellSettingsManager _settings;
+    private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
+    private readonly Action _onReload;
     private readonly SearchDebouncer _searchDebouncer;
     private IListItem[] _items = [];
     private string _query = string.Empty;
+    private TerminalShortcut[] _shortcuts = [];
+    private IReadOnlyList<GitRepoCandidate> _gitRepos = [];
+    private bool _showDiscoverEntry;
 
-    public QuickShellFallbackPage(QuickShellSettingsManager settings)
+    public QuickShellFallbackPage(QuickShellSettingsManager settings, Action onReload)
     {
         _settings = settings;
+        _onReload = onReload;
+        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(onReload);
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
-        Icon = new IconInfo("\uE756");
-        Title = "Saved shortcut";
+        Icon = QuickShellBrandIcons.App;
+        Title = "Saved workspace";
         Name = "Open";
+    }
+
+    public void SetWorkspaceResults(string query, TerminalShortcut[] shortcuts)
+    {
+        _query = query ?? string.Empty;
+        _shortcuts = shortcuts;
+        _gitRepos = [];
+        _showDiscoverEntry = false;
+        RefreshItems();
+    }
+
+    public void SetGitRepoResults(string query, IReadOnlyList<GitRepoCandidate> gitRepos)
+    {
+        _query = query ?? string.Empty;
+        _shortcuts = [];
+        _gitRepos = gitRepos;
+        _showDiscoverEntry = false;
+        RefreshItems();
+    }
+
+    public void SetDiscoverEntry(string query)
+    {
+        _query = query ?? string.Empty;
+        _shortcuts = [];
+        _gitRepos = [];
+        _showDiscoverEntry = true;
+        RefreshItems();
+    }
+
+    public void ClearResults()
+    {
+        _query = string.Empty;
+        _shortcuts = [];
+        _gitRepos = [];
+        _showDiscoverEntry = false;
+        RefreshItems();
     }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
         var normalized = newSearch ?? string.Empty;
-        if (string.Equals(_query, normalized, StringComparison.Ordinal))
+        if (string.Equals(_query, normalized, StringComparison.Ordinal)
+            && _shortcuts.Length == 0
+            && _gitRepos.Count == 0
+            && !_showDiscoverEntry)
         {
             return;
         }
@@ -50,47 +96,66 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private void RefreshItems()
     {
-        var shortcuts = QuickShellRuntimeServices.Shortcuts.SearchForRootPalette(_query).ToArray();
-        var workspaces = QuickShellRuntimeServices.Workspaces
-            .SearchForRootPalette(_query)
-            .ToArray();
+        var items = new List<IListItem>();
 
-        if (shortcuts.Length == 0 && workspaces.Length == 0)
+        if (_showDiscoverEntry)
         {
-            _items = [];
+            items.Add(new ListItem(_discoverGitReposCommand)
+            {
+                Title = "Discover git repos",
+                Subtitle = "Scan local folders and add as workspaces",
+                Icon = new IconInfo(ShortcutGlyphs.Discover),
+            });
+
+            items.AddRange(BuildGitRepoItems(GetDiscoverPreviewRepos()));
         }
         else
         {
-            var items = new List<IListItem>();
-            items.AddRange(shortcuts.Select(BuildShortcutItem));
-            items.AddRange(workspaces.Select(BuildWorkspaceItem));
-            _items = items.ToArray();
+            items.AddRange(_shortcuts.Select(BuildShortcutItem));
+            items.AddRange(BuildGitRepoItems(_gitRepos));
         }
 
+        _items = items.ToArray();
         RaiseItemsChanged();
     }
 
-    private void Reload()
+    private static List<GitRepoCandidate> GetDiscoverPreviewRepos()
     {
-        _searchDebouncer.FlushNow();
-        RefreshItems();
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(QuickShellRuntimeServices.Shortcuts.GetShortcuts());
+        var savedDirectories = QuickShellRuntimeServices.Shortcuts.GetShortcuts()
+            .Select(shortcut => shortcut.Directory)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return GitRepoIndex.GetAll(extraRoots)
+            .Where(candidate => !savedDirectories.Contains(candidate.Directory))
+            .Take(8)
+            .ToList();
+    }
+
+    private IEnumerable<IListItem> BuildGitRepoItems(IReadOnlyList<GitRepoCandidate> gitRepos)
+    {
+        foreach (var candidate in gitRepos)
+        {
+            yield return DiscoverGitRepoListItems.CreateNew(candidate, OnGitRepoAdded, title: $"Add {candidate.Name}");
+        }
+    }
+
+    private void OnGitRepoAdded()
+    {
+        GitRepoIndex.Invalidate();
+        _onReload();
     }
 
     private ListItem BuildShortcutItem(TerminalShortcut shortcut)
     {
-        var item = ShortcutListItems.CreateOpen(shortcut, _settings);
+        var item = ShortcutListItems.CreateOpen(shortcut, _settings, _onReload);
+        if (ShortcutHealth.NeedsRepair(shortcut))
+        {
+            return item;
+        }
+
         item.Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcut);
-
-        var moreCommands = new List<CommandContextItem>(ShortcutContextCommands.Build(shortcut, Reload, _settings, includeEdit: false));
-
-        item.MoreCommands = moreCommands.ToArray();
-        return item;
-    }
-
-    private ListItem BuildWorkspaceItem(Workspace workspace)
-    {
-        var item = WorkspaceListItems.CreateOpen(workspace, _settings, Reload);
-        item.Subtitle = WorkspaceDisplay.BuildSearchSubtitle(workspace);
+        item.MoreCommands = ShortcutContextCommands.Build(shortcut, _onReload, _settings, includeEdit: false);
         return item;
     }
 }

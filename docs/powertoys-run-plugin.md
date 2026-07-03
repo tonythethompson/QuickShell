@@ -1,6 +1,6 @@
 # Quick Shell for PowerToys Run
 
-Third-party plugin that reads the same shortcuts and settings as the [Quick Shell Command Palette extension](https://github.com/tonythethompson/QuickShell).
+Third-party plugin that reads the same shortcuts and settings as the [Quick Shell extension](https://github.com/tonythethompson/QuickShell).
 
 ## Install
 
@@ -38,7 +38,7 @@ Shared data lives in `%LOCALAPPDATA%\QuickShell\` (`shortcuts.json`, `settings.j
 Open a PR to [microsoft/PowerToys `doc/thirdPartyRunPlugins.md`](https://github.com/microsoft/PowerToys/blob/main/doc/thirdPartyRunPlugins.md) with:
 
 ```markdown
-| [Quick Shell](https://github.com/tonythethompson/QuickShell) | [tonythethompson](https://github.com/tonythethompson) | Open saved project folders in any terminal — shared shortcuts with the Quick Shell Command Palette extension |
+| [Quick Shell](https://github.com/tonythethompson/QuickShell) | [tonythethompson](https://github.com/tonythethompson) | Open saved project folders in any terminal — shared shortcuts with the Quick Shell extension |
 ```
 
 Link the release ZIP in the PR description.

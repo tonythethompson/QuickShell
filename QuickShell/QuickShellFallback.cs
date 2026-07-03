@@ -1,101 +1,265 @@
 using Microsoft.CommandPalette.Extensions;
+
 using Microsoft.CommandPalette.Extensions.Toolkit;
+
 using QuickShell.Models;
+
 using QuickShell.Pages;
+
 using QuickShell.Services;
+
+using QuickShell.Commands;
+
+
 
 namespace QuickShell;
 
+
+
 internal sealed partial class QuickShellFallback : FallbackCommandItem
+
 {
+
     private const string CommandId = "com.quickshell.fallback";
+
     private static readonly NoOpCommand BaseCommand = new() { Id = CommandId };
 
+
+
     private readonly QuickShellFallbackPage _listPage;
+
+    private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
+
     private string _lastQuery = string.Empty;
 
-    public QuickShellFallback(QuickShellFallbackPage listPage, QuickShellSettingsManager settings)
-        : base(BaseCommand, "Saved shortcut", CommandId)
+
+
+    public QuickShellFallback(QuickShellFallbackPage listPage, OpenDiscoverGitReposCommand discoverGitReposCommand)
+
+        : base(BaseCommand, "Saved workspace", CommandId)
+
     {
-        _ = settings;
+
         _listPage = listPage;
+
+        _discoverGitReposCommand = discoverGitReposCommand;
+
         Title = string.Empty;
+
         Subtitle = string.Empty;
-        Icon = new IconInfo("\uE756");
+
+        Icon = QuickShellBrandIcons.App;
+
     }
+
+
 
     public override void UpdateQuery(string query)
+
     {
+
         _lastQuery = query ?? string.Empty;
 
+
+
         if (ShouldSuppress(query))
+
         {
+
             ClearResult();
+
             return;
+
         }
+
+
 
         var shortcuts = QuickShellRuntimeServices.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
-        var workspaces = QuickShellRuntimeServices.Workspaces.SearchForRootPalette(_lastQuery).ToArray();
-        if (shortcuts.Length == 0 && workspaces.Length == 0)
+
+        if (shortcuts.Length > 0)
+
         {
-            ClearResult();
+
+            _listPage.SetWorkspaceResults(_lastQuery, shortcuts);
+
+            ApplyWorkspaceResult(shortcuts);
+
             return;
+
         }
 
-        _listPage.UpdateSearchText(string.Empty, _lastQuery);
-        ApplyListResult(shortcuts, workspaces);
+
+
+        if (GitRepoIndex.IsDiscoverQuery(_lastQuery))
+
+        {
+
+            _listPage.SetDiscoverEntry(_lastQuery);
+
+            ApplyDiscoverResult();
+
+            return;
+
+        }
+
+
+
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(QuickShellRuntimeServices.Shortcuts.GetShortcuts());
+
+        var savedDirectories = QuickShellRuntimeServices.Shortcuts.GetShortcuts()
+
+            .Select(shortcut => shortcut.Directory)
+
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var gitRepos = GitRepoIndex.Search(_lastQuery, extraRoots, savedDirectories).ToArray();
+
+        if (gitRepos.Length > 0)
+
+        {
+
+            _listPage.SetGitRepoResults(_lastQuery, gitRepos);
+
+            ApplyGitRepoResult(gitRepos);
+
+            return;
+
+        }
+
+
+
+        ClearResult();
+
     }
 
-    private void ApplyListResult(TerminalShortcut[] shortcuts, Workspace[] workspaces)
+
+
+    private void ApplyWorkspaceResult(TerminalShortcut[] shortcuts)
+
     {
-        if (shortcuts.Length == 1 && workspaces.Length == 0)
+
+        if (shortcuts.Length == 1)
+
         {
+
             Title = shortcuts[0].Name;
+
             Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcuts[0]);
+
         }
-        else if (workspaces.Length == 1 && shortcuts.Length == 0)
-        {
-            Title = workspaces[0].Name;
-            Subtitle = WorkspaceDisplay.BuildFavoriteSubtitle(workspaces[0]);
-        }
+
         else
+
         {
-            var parts = new List<string>();
-            if (shortcuts.Length > 0)
-            {
-                parts.Add($"{shortcuts.Length} shortcut{(shortcuts.Length == 1 ? string.Empty : "s")}");
-            }
 
-            if (workspaces.Length > 0)
-            {
-                parts.Add($"{workspaces.Length} workspace{(workspaces.Length == 1 ? string.Empty : "s")}");
-            }
+            Title = $"{shortcuts.Length} workspaces";
 
-            Title = string.Join(" · ", parts);
             Subtitle = $"Matching \"{_lastQuery}\"";
+
         }
 
-        Icon = new IconInfo("\uE756");
+
+
+        Icon = QuickShellBrandIcons.App;
+
         Command = _listPage;
+
         MoreCommands = [];
+
     }
+
+
+
+    private void ApplyGitRepoResult(GitRepoCandidate[] gitRepos)
+
+    {
+
+        if (gitRepos.Length == 1)
+
+        {
+
+            Title = $"Add {gitRepos[0].Name}";
+
+            Subtitle = ShortcutDisplay.ShortenPathForDisplay(gitRepos[0].Directory);
+
+        }
+
+        else
+
+        {
+
+            Title = $"{gitRepos.Length} git repos";
+
+            Subtitle = $"Matching \"{_lastQuery}\"";
+
+        }
+
+
+
+        Icon = new IconInfo(ShortcutGlyphs.Discover);
+
+        Command = _listPage;
+
+        MoreCommands = [];
+
+    }
+
+
+
+    private void ApplyDiscoverResult()
+
+    {
+
+        Title = "Discover git repos";
+
+        Subtitle = "Scan local folders and add as workspaces";
+
+        Icon = new IconInfo(ShortcutGlyphs.Discover);
+
+        Command = _discoverGitReposCommand;
+
+        MoreCommands = [];
+
+    }
+
+
 
     private static bool ShouldSuppress(string? query)
+
     {
+
         if (string.IsNullOrWhiteSpace(query))
+
         {
+
             return true;
+
         }
 
+
+
         return query.Contains("quick shell", StringComparison.OrdinalIgnoreCase);
+
     }
 
+
+
     private void ClearResult()
+
     {
+
         Title = string.Empty;
+
         Subtitle = string.Empty;
+
         Command = BaseCommand;
+
         MoreCommands = [];
-        _listPage.UpdateSearchText(string.Empty, string.Empty);
+
+        _listPage.ClearResults();
+
     }
+
 }
+
+

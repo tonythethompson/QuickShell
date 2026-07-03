@@ -5,15 +5,15 @@
 
 .DESCRIPTION
     Default dev loop for the refactored QuickShell extension:
-      1. Build + sign + install Quick Shell MSIX (scripts/deploy.ps1)
-      2. Restart Command Palette (PowerToys dev build when available)
-      3. Remind you to reload extensions
+      1. Stop Command Palette
+      2. Build + sign + install Quick Shell MSIX (scripts/deploy.ps1)
+      3. Start Command Palette again
 
     Shortcut data lives at %LOCALAPPDATA%\QuickShell\shortcuts.json (unchanged by refactor).
 
 .PARAMETER UseLocalSdk
     Build Quick Shell against the local PowerToys CmdPal SDK.
-    Requires A:\PowerToys checkout. Do not use with retail PowerToys CmdPal.
+    Requires a sibling PowerToys checkout. Do not use with retail PowerToys CmdPal.
 
 .PARAMETER SkipDeploy
     Skip Quick Shell build/install; only restart Command Palette.
@@ -21,8 +21,8 @@
 .PARAMETER DeployOnly
     Build/install Quick Shell only; do not restart Command Palette.
 
-.PARAMETER UseRetailCmdPal
-    Do not launch the PowerToys dev CmdPal build; restart retail PowerToys instead.
+.PARAMETER UseDevCmdPal
+    Start a local PowerToys dev CmdPal build after deploy. Default is retail PowerToys.
 
 .EXAMPLE
     .\scripts\run-cmdpal-dev.ps1
@@ -39,7 +39,7 @@ param(
     [switch]$UseLocalSdk,
     [switch]$SkipDeploy,
     [switch]$DeployOnly,
-    [switch]$UseRetailCmdPal,
+    [switch]$UseDevCmdPal,
     [switch]$SkipElevation,
     [switch]$RecreateCertificate
 )
@@ -47,69 +47,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $DeployScript = Join-Path $PSScriptRoot 'deploy.ps1'
-$PowerToysRoot = Join-Path (Split-Path $ProjectRoot -Parent) 'PowerToys'
-$PowerToysDevScript = Join-Path $PowerToysRoot 'tools\build\run-cmdpal-dev.ps1'
 
-function Get-CmdPalDevExecutable {
-    param([string]$Configuration)
-
-    $candidates = @(
-        Join-Path $PowerToysRoot "x64\$Configuration\WinUI3Apps\CmdPal\Microsoft.CmdPal.UI.exe"
-        Join-Path $PowerToysRoot "src\x64\$Configuration\WinUI3Apps\CmdPal\Microsoft.CmdPal.UI.exe"
-    )
-
-    foreach ($path in $candidates) {
-        if (Test-Path $path) {
-            return $path
-        }
-    }
-
-    return $null
-}
-
-function Stop-CmdPalProcesses {
-    foreach ($name in @('Microsoft.CmdPal.UI', 'PowerToys')) {
-        Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
-            Write-Host "Stopping $($_.ProcessName) (PID $($_.Id))..." -ForegroundColor Yellow
-            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    Start-Sleep -Milliseconds 500
-}
-
-function Start-DevCommandPalette {
-    param(
-        [string]$Configuration,
-        [switch]$UseRetailCmdPal
-    )
-
-    if (-not $UseRetailCmdPal -and (Test-Path $PowerToysDevScript)) {
-        Write-Host 'Restarting dev Command Palette (PowerToys run-cmdpal-dev.ps1)...' -ForegroundColor Cyan
-        & $PowerToysDevScript -Configuration $Configuration -NoKill
-        return
-    }
-
-    $devExe = Get-CmdPalDevExecutable -Configuration $Configuration
-    if (-not $UseRetailCmdPal -and $devExe) {
-        Write-Host "Launching dev CmdPal: $devExe" -ForegroundColor Cyan
-        Start-Process -FilePath $devExe -WorkingDirectory (Split-Path $devExe -Parent)
-        return
-    }
-
-    $powerToysExe = @(
-        "${env:ProgramFiles}\PowerToys\PowerToys.exe"
-        "${env:LocalAppData}\Microsoft\PowerToys\PowerToys.exe"
-    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-    if ($powerToysExe) {
-        Write-Host "Launching retail PowerToys: $powerToysExe" -ForegroundColor Cyan
-        Start-Process -FilePath $powerToysExe
-        return
-    }
-
-    Write-Warning 'Could not find Command Palette. Install PowerToys or build CmdPal from A:\PowerToys.'
-}
+. (Join-Path $PSScriptRoot 'CmdPalLifecycle.ps1')
 
 Push-Location $ProjectRoot
 try {
@@ -118,6 +57,8 @@ try {
             Configuration       = $Configuration
             SkipElevation       = $SkipElevation
             RecreateCertificate = $RecreateCertificate
+            NoRestartCmdPal     = $DeployOnly
+            UseDevCmdPal         = $UseDevCmdPal
         }
         if ($UseLocalSdk) {
             $deployArgs.UseLocalCmdPalSdk = $true
@@ -131,16 +72,12 @@ try {
     }
     else {
         Write-Host 'Skipping Quick Shell deploy (-SkipDeploy).' -ForegroundColor DarkGray
+        if (-not $DeployOnly) {
+            Write-Host '=== Command Palette: restart ===' -ForegroundColor Cyan
+            Stop-CmdPalProcesses
+            Start-CommandPalette -ProjectRoot $ProjectRoot -Configuration $Configuration -UseDevCmdPal:$UseDevCmdPal
+        }
     }
-
-    if ($DeployOnly) {
-        Write-Host 'DeployOnly: skipping Command Palette restart.' -ForegroundColor DarkGray
-        return
-    }
-
-    Write-Host '=== Command Palette: restart ===' -ForegroundColor Cyan
-    Stop-CmdPalProcesses
-    Start-DevCommandPalette -Configuration $Configuration -UseRetailCmdPal:$UseRetailCmdPal
 
     Write-Host ''
     Write-Host 'Dev loop ready.' -ForegroundColor Green

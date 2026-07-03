@@ -1,4 +1,4 @@
-# Quick Shell
+# Quick Shell for CmdPal
 
 **Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) — in one search.**
 
@@ -51,7 +51,7 @@ After you install a new terminal or edit profiles, use **Refresh terminal list**
 
 ### Option 1 — Microsoft Store (recommended)
 
-[Get Quick Shell from the Microsoft Store](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`).
+[Get Quick Shell for CmdPal from the Microsoft Store](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`). In Command Palette, search **Quick Shell**.
 
 ### Option 2 — WinGet
 
@@ -59,9 +59,13 @@ After you install a new terminal or edit profiles, use **Refresh terminal list**
 winget install tonythethompson.QuickShell
 ```
 
+Includes **Command Palette** and **PowerToys Run** (`qs`). Restart PowerToys after install.
+
 ### Option 3 — Download an installer
 
-Get the latest **x64** or **ARM64** installer from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases).
+Get the latest **x64** or **ARM64** installer from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases). Same bundle as WinGet (CmdPal + Run).
+
+**Store** installs CmdPal only; use the [Run plugin ZIP](docs/powertoys-run-plugin.md) if you want Alt+Space as well.
 
 ### After installing
 
@@ -147,7 +151,7 @@ Mix **section headers** into the same array with shortcut objects:
 | `Type` | Yes (for headers) | Set to `"separator"` for a titled section header |
 | `Title` | No | Section label shown in the list (omit for a blank divider) |
 
-Favorited shortcuts (`IsPinned`) always appear under a **Favorites** header at the top and are not repeated under layout sections.
+Favorited shortcuts (`IsPinned`) appear under **Favorites** at the top, then **Recent**, then the rest under **Workspaces** (favorites and recents are not repeated in the workspace list).
 
 Example:
 
@@ -200,13 +204,17 @@ For contributors and local MSIX installs (recommended for development):
 **Prerequisites:** Windows 11, .NET 10 SDK, Visual Studio 2022 (Windows workload), PowerToys with Command Palette enabled.
 
 ```powershell
-# MSIX install (dev-signed, full Command Palette integration)
+# Default dev loop: stop CmdPal → build/install MSIX → start CmdPal
 .\scripts\deploy.ps1
 
-# WinGet-style EXE installers (x64 + ARM64)
-cd QuickShell
-.\build-exe.ps1 -Version 0.1.6.0
+# Same, with local PowerToys CmdPal SDK (sibling PowerToys checkout)
+.\scripts\run-cmdpal-dev.ps1 -UseLocalSdk
+
+# Skip UAC entirely (trusts cert in CurrentUser\TrustedPeople)
+.\scripts\deploy.ps1 -SkipElevation
 ```
+
+After the first successful install, `deploy.ps1` stays in your current terminal — it only elevates when the dev certificate is not trusted yet. Approve UAC once if prompted; later runs skip elevation automatically.
 
 Then run **Reload Command Palette Extension** in Command Palette.
 

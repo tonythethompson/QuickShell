@@ -15,10 +15,10 @@ Before installing, ensure you have **PowerToys** with **Command Palette** enable
 
 The easiest way to install and stay updated:
 
-1. Open [**Quick Shell in the Microsoft Store**](https://apps.microsoft.com/detail/9PC8S6LNRT3R){:target="_blank"} (Store ID: `9PC8S6LNRT3R`)
+1. Open [**Quick Shell for CmdPal in the Microsoft Store**](https://apps.microsoft.com/detail/9PC8S6LNRT3R){:target="_blank"} (Store ID: `9PC8S6LNRT3R`)
 2. Click **Install**
 
-Or search **Quick Shell** in the Store app.
+Or search **Quick Shell for CmdPal** in the Store app (listing title). After install, open Command Palette and search **Quick Shell**.
 
 <div class="callout">
   <strong>Command Palette extensions in the Store:</strong> You can also browse related extensions with the
