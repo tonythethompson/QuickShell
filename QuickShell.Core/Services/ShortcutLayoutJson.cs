@@ -21,6 +21,27 @@ internal static class ShortcutLayoutJson
         }
     }
 
+    public static async Task<(bool Success, List<ShortcutLayoutEntry> Layout)> TryParseAsync(
+        Stream stream,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return TryParseRoot(document.RootElement, out var layout)
+                ? (true, layout)
+                : (false, []);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return (false, []);
+        }
+    }
+
     public static bool TryParseRoot(JsonElement root, out List<ShortcutLayoutEntry> layout)
     {
         layout = [];

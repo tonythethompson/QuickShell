@@ -53,12 +53,34 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     public void Init(PluginInitContext context)
     {
-        _shortcuts = new ShortcutRepository();
-        _settings = new QuickShellSettingsReader();
-        _context = context;
-        UpdateIconPath(context.API.GetCurrentTheme());
-        context.API.ThemeChanged += OnThemeChanged;
-        _shortcuts.Reload();
+        using var startupTrace = StartupPerformanceTrace.Measure("Run plugin init");
+        using (StartupPerformanceTrace.Measure("Run services setup"))
+        {
+            _shortcuts = new ShortcutRepository();
+            _settings = new QuickShellSettingsReader();
+            _context = context;
+            UpdateIconPath(context.API.GetCurrentTheme());
+            context.API.ThemeChanged += OnThemeChanged;
+        }
+
+        using (StartupPerformanceTrace.Measure("Run shortcut preload kickoff"))
+        {
+            BeginShortcutPreload(_shortcuts);
+        }
+    }
+
+    private static void BeginShortcutPreload(ShortcutRepository shortcuts) => _ = PreloadShortcutsAsync(shortcuts);
+
+    private static async Task PreloadShortcutsAsync(ShortcutRepository shortcuts)
+    {
+        try
+        {
+            await shortcuts.PreloadAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            // Best effort warm-up; synchronous queries still load on demand.
+        }
     }
 
     public void Dispose()

@@ -22,6 +22,11 @@ internal static class TerminalCatalogChoices
         return choices;
     }
 
+    public static List<ChoiceSetSetting.Choice> GetMinimalDefaultProfileChoices() =>
+    [
+        new("Default profile for this app", TerminalHostIds.DefaultProfile),
+    ];
+
     public static List<ChoiceSetSetting.Choice> GetDefaultProfileChoices(string terminalApplicationId) =>
         TerminalCatalog.GetDefaultProfileIds(terminalApplicationId)
             .Select(id => id.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase)

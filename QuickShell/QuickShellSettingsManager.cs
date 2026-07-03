@@ -34,7 +34,7 @@ internal sealed class QuickShellSettingsManager
 
         _defaultProfileSetting = new ChoiceSetSetting(
             DefaultProfileSettingId,
-            TerminalCatalogChoices.GetDefaultProfileChoices(TerminalHostIds.WindowsTerminal))
+            TerminalCatalogChoices.GetMinimalDefaultProfileChoices())
         {
             Label = "Default profile",
             Description = "Profile used when a workspace is set to Default. Per-workspace profile choices stay on each workspace.",
@@ -62,8 +62,7 @@ internal sealed class QuickShellSettingsManager
         }
 
         initialApp = EnsureValidTerminalApplication(initialApp);
-        _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(initialApp);
-        initialProfile = EnsureValidDefaultProfile(initialApp, initialProfile);
+        initialProfile = NormalizeStoredDefaultProfile(initialProfile);
         var initialRecentCount = ReadRecentWorkspaceCount();
 
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}"}""");
@@ -186,13 +185,19 @@ internal sealed class QuickShellSettingsManager
             return profileName;
         }
 
-        if (_defaultProfileSetting.Choices.Any(c => c.Value.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
+        if (TerminalCatalogChoices.GetDefaultProfileChoices(terminalApplicationId)
+                .Any(c => c.Value.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
         {
             return normalized;
         }
 
         return TerminalHostIds.DefaultProfile;
     }
+
+    private static string NormalizeStoredDefaultProfile(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? TerminalHostIds.DefaultProfile
+            : value.Trim();
 
     private static (string App, string Profile) LoadLegacyTerminalDefaults()
     {

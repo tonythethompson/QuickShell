@@ -1,3 +1,5 @@
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
 [mcp_servers.tessl]
 type = "stdio"
 command = "tessl"

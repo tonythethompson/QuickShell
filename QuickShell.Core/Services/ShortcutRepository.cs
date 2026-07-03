@@ -25,7 +25,7 @@ internal readonly record struct ShortcutImportReadResult(bool Success, TerminalS
 internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposable
 {
     private const int MaxConfigBytes = 2 * 1024 * 1024;
-    private const int MaxHistoryEntries = 50;
+    private const int MaxHistoryEntries = 25;
 
     private readonly string? _configDirectoryOverride;
 
@@ -35,6 +35,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private TerminalShortcut[] _shortcuts = [];
     private List<ShortcutLayoutEntry> _layout = [];
     private List<ShortcutLayoutEntry> _lastGoodLayout = [];
+    private readonly Dictionary<string, TerminalShortcut> _shortcutsByName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TerminalShortcut> _shortcutsById = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<List<ShortcutLayoutEntry>> _undoHistory = [];
     private readonly List<List<ShortcutLayoutEntry>> _redoHistory = [];
     private DateTime _lastWriteTimeUtc = DateTime.MinValue;
@@ -83,8 +85,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return WithLock(() =>
         {
             EnsureLoaded();
-            var shortcut = _shortcuts.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            return shortcut is null ? null : Clone(shortcut);
+            return _shortcutsByName.TryGetValue(name, out var shortcut) ? Clone(shortcut) : null;
         });
     }
 
@@ -98,8 +99,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return WithLock(() =>
         {
             EnsureLoaded();
-            var shortcut = _shortcuts.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
-            return shortcut is null ? null : Clone(shortcut);
+            return _shortcutsById.TryGetValue(id, out var shortcut) ? Clone(shortcut) : null;
         });
     }
 
@@ -110,18 +110,22 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             return null;
         }
 
-        var byId = GetById(key);
-        if (byId is not null)
+        return WithLock(() =>
         {
-            return byId;
-        }
+            EnsureLoaded();
+            if (_shortcutsById.TryGetValue(key, out var shortcut))
+            {
+                return Clone(shortcut);
+            }
 
-        if (ShortcutCommandIds.TryDecodeLegacyNameKey(key, out var legacyName))
-        {
-            return GetByName(legacyName);
-        }
+            if (ShortcutCommandIds.TryDecodeLegacyNameKey(key, out var legacyName) &&
+                _shortcutsByName.TryGetValue(legacyName, out shortcut))
+            {
+                return Clone(shortcut);
+            }
 
-        return null;
+            return null;
+        });
     }
 
     public void Reload() =>
@@ -131,6 +135,17 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             _lastWriteTimeUtc = DateTime.MinValue;
             EnsureLoaded(force: true);
         });
+
+    public Task PreloadAsync(CancellationToken cancellationToken = default) =>
+        WithLockAsync(() => EnsureLoadedAsync(force: false, cancellationToken), cancellationToken);
+
+    public Task ReloadAsync(CancellationToken cancellationToken = default) =>
+        WithLockAsync(async () =>
+        {
+            CancelPendingPersist();
+            _lastWriteTimeUtc = DateTime.MinValue;
+            await EnsureLoadedAsync(force: true, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
 
     public void FlushPendingWrites() =>
         WithLock(FlushPendingPersistLocked);
@@ -250,11 +265,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             return 0;
         }
 
-        var existingNames = GetShortcuts()
-            .Select(s => s.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        return imported.Count(shortcut => existingNames.Contains(shortcut.Name));
+        return WithLock(() =>
+        {
+            EnsureLoaded();
+            return imported.Count(shortcut =>
+                !string.IsNullOrWhiteSpace(shortcut.Name) &&
+                _shortcutsByName.ContainsKey(shortcut.Name));
+        });
     }
 
     public ShortcutTransferResult ImportMerge(string path)
@@ -851,38 +868,83 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public IEnumerable<TerminalShortcut> Search(string query)
     {
-        var shortcuts = GetShortcuts();
         if (string.IsNullOrWhiteSpace(query))
         {
-            return shortcuts;
+            return GetShortcuts();
         }
 
-        return shortcuts.Where(shortcut => Matches(shortcut, query.Trim()));
+        _ = TryGetTrimmedQueryRange(query, out var queryStart, out var queryLength);
+        _sync.Wait();
+        try
+        {
+            EnsureLoaded();
+            List<TerminalShortcut>? matches = null;
+            foreach (var shortcut in _shortcuts)
+            {
+                if (!Matches(shortcut, query, queryStart, queryLength))
+                {
+                    continue;
+                }
+
+                matches ??= [];
+                matches.Add(Clone(shortcut));
+            }
+
+            return matches is null ? [] : matches.ToArray();
+        }
+        finally
+        {
+            _sync.Release();
+        }
     }
 
     public IEnumerable<TerminalShortcut> SearchForRootPalette(string query)
     {
-        var trimmed = query.Trim();
-        if (string.IsNullOrWhiteSpace(trimmed))
+        if (!TryGetTrimmedQueryRange(query, out var queryStart, out var queryLength))
         {
             return [];
         }
 
-        var shortcuts = GetShortcuts();
-        var abbreviationMatches = shortcuts
-            .Where(shortcut => !string.IsNullOrWhiteSpace(shortcut.Abbreviation)
-                && shortcut.Abbreviation.Contains(trimmed, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(shortcut => shortcut.Abbreviation!.Equals(trimmed, StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(shortcut => shortcut.Abbreviation!.StartsWith(trimmed, StringComparison.OrdinalIgnoreCase))
-            .ThenBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        if (abbreviationMatches.Length > 0)
+        _sync.Wait();
+        try
         {
-            return abbreviationMatches;
-        }
+            EnsureLoaded();
+            List<TerminalShortcut>? abbreviationMatches = null;
+            foreach (var shortcut in _shortcuts)
+            {
+                if (!ContainsText(shortcut.Abbreviation, query, queryStart, queryLength))
+                {
+                    continue;
+                }
 
-        return shortcuts.Where(shortcut => MatchesForRootPalette(shortcut, trimmed));
+                abbreviationMatches ??= [];
+                abbreviationMatches.Add(shortcut);
+            }
+
+            if (abbreviationMatches is not null)
+            {
+                abbreviationMatches.Sort((left, right) => CompareAbbreviationMatch(left, right, query, queryStart, queryLength));
+                return CloneAll(abbreviationMatches);
+            }
+
+            List<TerminalShortcut>? matches = null;
+            foreach (var shortcut in _shortcuts)
+            {
+                if (!MatchesForRootPalette(shortcut, query, queryStart, queryLength))
+                {
+                    continue;
+                }
+
+                matches ??= [];
+                matches.Add(Clone(shortcut));
+            }
+
+            return matches is null ? [] : matches.ToArray();
+        }
+        finally
+        {
+            _sync.Release();
+        }
     }
 
     private void EnsureLoaded(bool force = false)
@@ -927,6 +989,53 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
     }
 
+    private async Task EnsureLoadedAsync(bool force, CancellationToken cancellationToken)
+    {
+        EnsureConfigExists();
+
+        var writeTime = File.GetLastWriteTimeUtc(ConfigPath);
+        if (!force && writeTime == _lastWriteTimeUtc)
+        {
+            return;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(ConfigPath);
+            if (fileInfo.Length > MaxConfigBytes)
+            {
+                RestoreLastGoodLayout();
+                _lastWriteTimeUtc = writeTime;
+                return;
+            }
+
+            var (loaded, layout) = await TryLoadLayoutFromFileAsync(ConfigPath, cancellationToken).ConfigureAwait(false);
+            if (!loaded)
+            {
+                throw new InvalidDataException("Shortcut file could not be read.");
+            }
+
+            ApplyLoadedLayout(layout);
+            _lastWriteTimeUtc = writeTime;
+
+            if (AssignMissingShortcutIds(_shortcuts))
+            {
+                WriteLayoutAtomic(_layout);
+                _lastGoodLayout = CloneLayout(_layout);
+                _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            RestoreLastGoodLayout();
+            _lastWriteTimeUtc = writeTime;
+        }
+    }
+
     private void RestoreLastGoodLayout()
     {
         if (_lastGoodLayout.Count > 0)
@@ -937,6 +1046,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
         _layout = [];
         _shortcuts = [];
+        RebuildShortcutIndexes();
     }
 
     private void ApplyLoadedLayout(List<ShortcutLayoutEntry> loaded)
@@ -1012,6 +1122,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             _lastGoodLayout = [];
             _layout = [];
             _shortcuts = [];
+            RebuildShortcutIndexes();
             _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
         }
 
@@ -1103,9 +1214,15 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 return (false, []);
             }
 
-            await using var stream = File.OpenRead(path);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!ShortcutLayoutJson.TryParse(stream, out var layout))
+            await using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                bufferSize: 16 * 1024,
+                useAsync: true);
+            var (parsed, layout) = await ShortcutLayoutJson.TryParseAsync(stream, cancellationToken).ConfigureAwait(false);
+            if (!parsed)
             {
                 return (false, []);
             }
@@ -1247,6 +1364,26 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private void SyncShortcutsFromLayout(List<ShortcutLayoutEntry> layout)
     {
         _shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout).Select(Clone).ToArray();
+        RebuildShortcutIndexes();
+    }
+
+    private void RebuildShortcutIndexes()
+    {
+        _shortcutsByName.Clear();
+        _shortcutsById.Clear();
+
+        foreach (var shortcut in _shortcuts)
+        {
+            if (!string.IsNullOrWhiteSpace(shortcut.Name))
+            {
+                _shortcutsByName.TryAdd(shortcut.Name, shortcut);
+            }
+
+            if (!string.IsNullOrWhiteSpace(shortcut.Id))
+            {
+                _shortcutsById.TryAdd(shortcut.Id, shortcut);
+            }
+        }
     }
 
     private static int CountValidShortcuts(IEnumerable<ShortcutLayoutEntry> layout) =>
@@ -1363,9 +1500,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     public string ResolveAvailableName(string desiredName, string? replacingOriginalName = null)
     {
         var trimmed = desiredName.Trim();
-        var existingNames = GetShortcuts()
-            .Select(s => s.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existingNames = WithLock(() =>
+        {
+            EnsureLoaded();
+            return _shortcutsByName.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        });
 
         if (!string.IsNullOrWhiteSpace(replacingOriginalName))
         {
@@ -1464,42 +1603,31 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         while (!usedIds.Add(shortcut.Id));
     }
 
-    private static bool Matches(TerminalShortcut shortcut, string query)
+    private static bool Matches(TerminalShortcut shortcut, string query, int queryStart, int queryLength)
     {
-        if (MatchesForRootPalette(shortcut, query))
+        if (MatchesForRootPalette(shortcut, query, queryStart, queryLength))
         {
             return true;
         }
 
-        if (!string.IsNullOrWhiteSpace(shortcut.Abbreviation))
+        if (ContainsText(shortcut.Abbreviation, query, queryStart, queryLength))
         {
-            if (shortcut.Abbreviation.Equals(query, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (shortcut.Abbreviation.Contains(query, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+            return true;
         }
 
-        if (!string.IsNullOrWhiteSpace(shortcut.Command) &&
-            shortcut.Command.Contains(query, StringComparison.OrdinalIgnoreCase))
+        if (ContainsText(shortcut.Command, query, queryStart, queryLength))
         {
             return true;
         }
 
         foreach (var launch in shortcut.Launches)
         {
-            if (!string.IsNullOrWhiteSpace(launch.Label)
-                && launch.Label.Contains(query, StringComparison.OrdinalIgnoreCase))
+            if (ContainsText(launch.Label, query, queryStart, queryLength))
             {
                 return true;
             }
 
-            if (!string.IsNullOrWhiteSpace(launch.Command)
-                && launch.Command.Contains(query, StringComparison.OrdinalIgnoreCase))
+            if (ContainsText(launch.Command, query, queryStart, queryLength))
             {
                 return true;
             }
@@ -1508,20 +1636,79 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return false;
     }
 
-    private static bool MatchesForRootPalette(TerminalShortcut shortcut, string query)
+    private static bool MatchesForRootPalette(TerminalShortcut shortcut, string query, int queryStart, int queryLength)
     {
-        if (shortcut.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+        if (ContainsText(shortcut.Name, query, queryStart, queryLength))
         {
             return true;
         }
 
-        if (shortcut.Directory.Contains(query, StringComparison.OrdinalIgnoreCase))
+        if (ContainsText(shortcut.Directory, query, queryStart, queryLength))
         {
             return true;
         }
 
-        return !string.IsNullOrWhiteSpace(shortcut.WtProfile) &&
-               shortcut.WtProfile.Contains(query, StringComparison.OrdinalIgnoreCase);
+        return ContainsText(shortcut.WtProfile, query, queryStart, queryLength);
+    }
+
+    private static int CompareAbbreviationMatch(
+        TerminalShortcut left,
+        TerminalShortcut right,
+        string query,
+        int queryStart,
+        int queryLength)
+    {
+        var querySpan = query.AsSpan(queryStart, queryLength);
+        var leftAbbreviation = left.Abbreviation.AsSpan();
+        var rightAbbreviation = right.Abbreviation.AsSpan();
+        var leftExact = leftAbbreviation.Equals(querySpan, StringComparison.OrdinalIgnoreCase);
+        var rightExact = rightAbbreviation.Equals(querySpan, StringComparison.OrdinalIgnoreCase);
+        if (leftExact != rightExact)
+        {
+            return leftExact ? -1 : 1;
+        }
+
+        var leftStarts = leftAbbreviation.StartsWith(querySpan, StringComparison.OrdinalIgnoreCase);
+        var rightStarts = rightAbbreviation.StartsWith(querySpan, StringComparison.OrdinalIgnoreCase);
+        if (leftStarts != rightStarts)
+        {
+            return leftStarts ? -1 : 1;
+        }
+
+        return string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ContainsText(string? value, string query, int queryStart, int queryLength) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        value.AsSpan().Contains(query.AsSpan(queryStart, queryLength), StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryGetTrimmedQueryRange(string? query, out int start, out int length)
+    {
+        start = 0;
+        length = 0;
+        if (string.IsNullOrEmpty(query))
+        {
+            return false;
+        }
+
+        var end = query.Length - 1;
+        while (start <= end && char.IsWhiteSpace(query[start]))
+        {
+            start++;
+        }
+
+        while (end >= start && char.IsWhiteSpace(query[end]))
+        {
+            end--;
+        }
+
+        if (start > end)
+        {
+            return false;
+        }
+
+        length = end - start + 1;
+        return true;
     }
 
     private static TerminalShortcut Normalize(TerminalShortcut shortcut)
@@ -1642,6 +1829,19 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         try
         {
             return action();
+        }
+        finally
+        {
+            _sync.Release();
+        }
+    }
+
+    private async Task WithLockAsync(Func<Task> action, CancellationToken cancellationToken)
+    {
+        await _sync.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await action().ConfigureAwait(false);
         }
         finally
         {

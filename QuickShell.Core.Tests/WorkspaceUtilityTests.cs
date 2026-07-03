@@ -59,6 +59,38 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Assert.Equal("outer", discovered[0].Name);
     }
 
+    [Fact]
+    public void Discover_WithBoundedParallelism_FindsRepositoriesAcrossSiblingBranches()
+    {
+        var frontendRepo = Path.Combine(_root, "apps", "frontend");
+        var backendRepo = Path.Combine(_root, "services", "backend");
+        Directory.CreateDirectory(Path.Combine(frontendRepo, ".git"));
+        Directory.CreateDirectory(Path.Combine(backendRepo, ".git"));
+
+        var discovered = GitRepoDiscovery.Discover([_root], maxDegreeOfParallelism: 2);
+
+        Assert.Contains(discovered, candidate =>
+            string.Equals(candidate.Directory, frontendRepo, StringComparison.OrdinalIgnoreCase)
+            && candidate.Name == "frontend");
+        Assert.Contains(discovered, candidate =>
+            string.Equals(candidate.Directory, backendRepo, StringComparison.OrdinalIgnoreCase)
+            && candidate.Name == "backend");
+    }
+
+    [Fact]
+    public void Discover_WithBoundedParallelism_KeepsStableNameOrdering()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, "zeta", ".git"));
+        Directory.CreateDirectory(Path.Combine(_root, "alpha", ".git"));
+
+        var discovered = GitRepoDiscovery.Discover([_root], maxDegreeOfParallelism: 4);
+
+        Assert.Collection(
+            discovered,
+            candidate => Assert.Equal("alpha", candidate.Name),
+            candidate => Assert.Equal("zeta", candidate.Name));
+    }
+
     public void Dispose()
     {
         try
