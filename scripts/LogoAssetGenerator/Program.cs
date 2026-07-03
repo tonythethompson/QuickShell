@@ -566,7 +566,7 @@ static void WritePng(SKSurface surface, string outPath, int width, int height)
     if (rendered.Width != width || rendered.Height != height)
     {
         var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        using var destSurface = SKSurface.Create(info);
+        using var destSurface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Failed to allocate resize surface {width}x{height} for {outPath}");
         var canvas = destSurface.Canvas;
         canvas.Clear(SKColors.Transparent);
         using var paint = new SKPaint
