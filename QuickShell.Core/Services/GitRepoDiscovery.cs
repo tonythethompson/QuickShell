@@ -235,15 +235,42 @@ internal static partial class GitRepoDiscovery
         return roots;
     }
 
-    private static string[] GetChildDirectories(string directory)
+    private static IEnumerable<string> GetChildDirectories(string directory)
     {
+        // Streamed (not ToArray()'d) so a caller that breaks early on
+        // ShouldStop()/MaxDirectoriesScanned doesn't first pay the cost of
+        // enumerating and materializing every entry in a very wide directory.
+        IEnumerator<string> enumerator;
         try
         {
-            return Directory.EnumerateDirectories(directory).ToArray();
+            enumerator = Directory.EnumerateDirectories(directory).GetEnumerator();
         }
         catch
         {
-            return [];
+            yield break;
+        }
+
+        using (enumerator)
+        {
+            while (true)
+            {
+                string current;
+                try
+                {
+                    if (!enumerator.MoveNext())
+                    {
+                        yield break;
+                    }
+
+                    current = enumerator.Current;
+                }
+                catch
+                {
+                    yield break;
+                }
+
+                yield return current;
+            }
         }
     }
 

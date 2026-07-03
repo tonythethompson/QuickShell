@@ -1,5 +1,7 @@
-sandbox_mode = "danger-full-access"
-approval_policy = "never"
+# sandbox_mode/approval_policy are intentionally left unset here: committing
+# "danger-full-access" + "never" grants full filesystem/network access with no
+# approval gate to anyone who clones this repo or runs Codex in CI. Set these
+# in your local, untracked Codex config instead if you want that locally.
 [mcp_servers.tessl]
 type = "stdio"
 command = "tessl"
