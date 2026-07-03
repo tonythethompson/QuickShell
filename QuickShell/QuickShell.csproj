@@ -32,6 +32,8 @@
     <Content Include="Assets\**\*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <!-- Partner Center store listing art is generated here but must not ship in the MSIX. -->
+    <Content Remove="Assets\StoreListing\**" />
   </ItemGroup>
 
   <Target Name="GenerateLogoAssets" BeforeTargets="PrepareForBuild"
