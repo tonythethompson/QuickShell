@@ -71,6 +71,28 @@ internal static class TerminalProfileIconResolver
         return File.Exists(relativePath) ? relativePath : null;
     }
 
+    /// <summary>
+    /// Command Palette icons render Segoe glyphs and emoji, not PNG paths or packaged URIs
+    /// resolved from Windows Terminal profile settings.
+    /// </summary>
+    public static bool IsCmdPalGlyphIcon(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        if (value.StartsWith("ms-", StringComparison.OrdinalIgnoreCase)
+            || Path.IsPathRooted(value)
+            || value.Contains('\\', StringComparison.Ordinal)
+            || value.Contains('/', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return LooksLikeEmojiOrInlineGlyph(value);
+    }
+
     private static IEnumerable<string> GetIconCandidates(WtProfileInfo profile)
     {
         if (!string.IsNullOrWhiteSpace(profile.Icon))

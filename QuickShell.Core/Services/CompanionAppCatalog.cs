@@ -70,6 +70,12 @@ internal static class CompanionAppCatalog
         return Definitions.First(definition => definition.Id == preset).Title;
     }
 
+    public static string GetContextMenuIcon(string? executablePath)
+    {
+        _ = InferPresetFromPath(executablePath);
+        return ShortcutGlyphs.OpenCompanionApp;
+    }
+
     public static bool TryApplyPreset(string presetId, out string? executablePath, out string arguments)
     {
         executablePath = null;

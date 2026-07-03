@@ -13,38 +13,75 @@ internal static class TerminalLaunchGlyphs
 
     public static string GetForLaunch(WorkspaceEntry launch)
     {
-        if (TryGetProfileIcon(launch, out var profileIcon))
+        var profile = TerminalProfileResolver.ResolveForLaunch(launch);
+
+        if (TryGetProfileIcon(profile, out var profileIcon))
         {
             return profileIcon;
         }
 
-        return GetFallbackGlyph(launch);
+        return GetFallbackGlyph(launch, profile);
     }
 
-    private static bool TryGetProfileIcon(WorkspaceEntry launch, out string icon)
+    private static bool TryGetProfileIcon(WtProfileInfo? profile, out string icon)
     {
         icon = string.Empty;
 
-        var profile = TerminalProfileResolver.ResolveForLaunch(launch);
         if (profile is null)
         {
             return false;
         }
 
-        var resolved = TerminalProfileIconResolver.ResolveEffectiveIcon(profile);
-        if (string.IsNullOrWhiteSpace(resolved))
+        if (IsWslProfile(profile))
         {
             return false;
         }
 
-        icon = resolved;
+        var resolved = TerminalProfileIconResolver.ResolveEffectiveIcon(profile);
+        if (!TerminalProfileIconResolver.IsCmdPalGlyphIcon(resolved))
+        {
+            return false;
+        }
+
+        icon = resolved!;
         return true;
     }
 
-    private static string GetFallbackGlyph(WorkspaceEntry launch)
+    internal static bool IsWslProfile(WtProfileInfo profile)
     {
+        if (profile.Commandline?.Contains("wsl.exe", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        if (profile.ProfileSource?.Contains("WSL", StringComparison.OrdinalIgnoreCase) == true
+            || profile.ProfileSource?.Contains("Windows.Subsystem.Linux", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        return IsLinuxDistroName(profile.Name);
+    }
+
+    private static bool IsWslProfile(string? terminal, string? profileName)
+    {
+        if (terminal?.Equals("wsl", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        return IsLinuxDistroName(profileName);
+    }
+
+    private static string GetFallbackGlyph(WorkspaceEntry launch, WtProfileInfo? profile)
+    {
+        if (profile is not null && IsWslProfile(profile))
+        {
+            return ShortcutGlyphs.Linux;
+        }
+
         var terminal = (launch.Terminal ?? "default").Trim().ToLowerInvariant();
-        if (IsLinuxTarget(terminal, launch.WtProfile))
+        if (IsWslProfile(terminal, launch.WtProfile))
         {
             return ShortcutGlyphs.Linux;
         }
@@ -60,22 +97,24 @@ internal static class TerminalLaunchGlyphs
         };
     }
 
-    private static bool IsLinuxTarget(string terminal, string? profile)
+    private static bool IsLinuxDistroName(string? value)
     {
-        if (terminal.Equals("wsl", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(profile))
+        if (string.IsNullOrWhiteSpace(value))
         {
             return false;
         }
 
-        return profile.Contains("ubuntu", StringComparison.OrdinalIgnoreCase)
-            || profile.Contains("debian", StringComparison.OrdinalIgnoreCase)
-            || profile.Contains("fedora", StringComparison.OrdinalIgnoreCase)
-            || profile.Contains("linux", StringComparison.OrdinalIgnoreCase)
-            || profile.Contains("wsl", StringComparison.OrdinalIgnoreCase);
+        return value.Contains("ubuntu", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("debian", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("fedora", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("linux", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("wsl", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("alpine", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("arch", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("kali", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("opensuse", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("suse", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("mint", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("gentoo", StringComparison.OrdinalIgnoreCase);
     }
 }

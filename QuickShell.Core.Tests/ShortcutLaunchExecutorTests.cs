@@ -109,12 +109,20 @@ public sealed class WorkspaceDevServerActionsTests
             ],
         };
 
-        var result = ShortcutLaunchExecutor.LaunchEntry(
-            shortcut,
-            shortcut.Launches[0],
-            "wt",
-            "default");
+        TerminalLauncher.StartProcessOverride = _ => true;
+        try
+        {
+            var result = ShortcutLaunchExecutor.LaunchEntry(
+                shortcut,
+                shortcut.Launches[0],
+                "wt",
+                "default");
 
-        Assert.True(result.Dismiss);
+            Assert.True(result.Dismiss);
+        }
+        finally
+        {
+            TerminalLauncher.StartProcessOverride = null;
+        }
     }
 }

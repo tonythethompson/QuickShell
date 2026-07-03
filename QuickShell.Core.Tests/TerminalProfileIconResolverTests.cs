@@ -1,3 +1,4 @@
+using QuickShell.Models;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -110,6 +111,48 @@ public sealed class TerminalProfileIconResolverTests : IDisposable
 
         Assert.Null(resolved);
     }
+
+    [Fact]
+    public void IsCmdPalGlyphIcon_AcceptsEmojiAndRejectsFilePaths()
+    {
+        Assert.True(TerminalProfileIconResolver.IsCmdPalGlyphIcon("🐧"));
+        Assert.True(TerminalProfileIconResolver.IsCmdPalGlyphIcon("\uE756"));
+        Assert.False(TerminalProfileIconResolver.IsCmdPalGlyphIcon(@"C:\Apps\wt\ProfileIcons\debian.png"));
+        Assert.False(TerminalProfileIconResolver.IsCmdPalGlyphIcon("ms-appx:///ProfileIcons/foo.png"));
+    }
+
+    [Fact]
+    public void IsWslProfile_DetectsWslCommandLine()
+    {
+        var profile = CreateProfile("Debian", "wsl.exe -d Debian");
+        Assert.True(TerminalLaunchGlyphs.IsWslProfile(profile));
+    }
+
+    [Fact]
+    public void GetForLaunch_WslProfile_UsesLinuxPenguinWhenOnlyPngIconExists()
+    {
+        var launch = new WorkspaceEntry
+        {
+            Id = "1",
+            Label = "Main",
+            Terminal = "wt",
+            WtProfile = "Debian",
+        };
+
+        var glyph = TerminalLaunchGlyphs.GetForLaunch(launch);
+        Assert.Equal(ShortcutGlyphs.Linux, glyph);
+    }
+
+    private static WtProfileInfo CreateProfile(string name, string commandline) => new()
+    {
+        Name = name,
+        Commandline = commandline,
+        SettingsPath = Path.Combine(Path.GetTempPath(), "settings.json"),
+        Source = TerminalSettingsSource.WindowsTerminal,
+        HostExecutable = "wt.exe",
+        IdPrefix = "wt",
+        SourceLabel = "Windows Terminal",
+    };
 
     public void Dispose()
     {

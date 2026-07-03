@@ -131,7 +131,13 @@ internal static class WslPathResolver
             return null;
         }
 
-        const string marker = "-d ";
+        return ExtractFlagValue(commandLine, "-d ")
+            ?? ExtractFlagValue(commandLine, "--distribution ")
+            ?? ExtractFlagValue(commandLine, "--distribution=");
+    }
+
+    private static string? ExtractFlagValue(string commandLine, string marker)
+    {
         var index = commandLine.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
         if (index < 0)
         {
@@ -144,8 +150,20 @@ internal static class WslPathResolver
             return null;
         }
 
+        if (remainder.StartsWith('"'))
+        {
+            var endQuote = remainder.IndexOf('"', 1);
+            return endQuote > 0 ? remainder[1..endQuote] : remainder.Trim('"');
+        }
+
+        if (remainder.StartsWith('\''))
+        {
+            var endQuote = remainder.IndexOf('\'', 1);
+            return endQuote > 0 ? remainder[1..endQuote] : remainder.Trim('\'');
+        }
+
         var end = remainder.IndexOf(' ');
-        return (end < 0 ? remainder : remainder[..end]).Trim('"');
+        return (end < 0 ? remainder : remainder[..end]).Trim();
     }
 
     private static string EscapeShell(string value) => value.Replace("\"", "\\\"");

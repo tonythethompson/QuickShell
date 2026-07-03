@@ -13,7 +13,7 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
     {
         _shortcutId = shortcutId;
         Name = "Copy path";
-        Icon = new IconInfo("\uE8C8");
+        Icon = new IconInfo(ShortcutGlyphs.CopyPath);
     }
 
     public override CommandResult Invoke()
@@ -104,7 +104,8 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
             WorkspaceLinkKind.Repo => "Open repository",
             _ => "Open link",
         };
-        Icon = new IconInfo(kind == WorkspaceLinkKind.Repo ? "\uE737" : "\uE774");
+        Icon = new IconInfo(
+            kind == WorkspaceLinkKind.Repo ? ShortcutGlyphs.OpenRepository : "\uE774");
     }
 
     public override CommandResult Invoke()
@@ -133,7 +134,7 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
     {
         _shortcutId = shortcut.Id;
         Name = $"Open {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}";
-        Icon = new IconInfo("\uE70F");
+        Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath));
     }
 
     public override CommandResult Invoke()
