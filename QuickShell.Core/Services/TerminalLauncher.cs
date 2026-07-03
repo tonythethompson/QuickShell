@@ -214,7 +214,6 @@ internal static class TerminalLauncher
         new()
         {
             LinuxPath = directory,
-            Distro = target.ProfileOrDistro,
         };
 
     private static string ResolveDirectoryForPowerShell(string directory)

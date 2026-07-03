@@ -59,3 +59,29 @@ public sealed class ShortcutLaunchExecutorTests
         Assert.Contains("no enabled launch", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
     }
 }
+
+public sealed class WorkspaceDevServerActionsTests
+{
+    [Fact]
+    public void ShouldOpenOnWorkspaceLaunch_RequiresExplicitOptIn()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            DevServerUrl = "http://localhost:5173",
+        };
+
+        Assert.False(WorkspaceDevServerActions.ShouldOpenOnWorkspaceLaunch(shortcut));
+    }
+
+    [Fact]
+    public void ShouldOpenOnWorkspaceLaunch_ReturnsTrueWhenOptedIn()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            DevServerUrl = "http://localhost:5173",
+            OpenDevServerOnLaunch = true,
+        };
+
+        Assert.True(WorkspaceDevServerActions.ShouldOpenOnWorkspaceLaunch(shortcut));
+    }
+}

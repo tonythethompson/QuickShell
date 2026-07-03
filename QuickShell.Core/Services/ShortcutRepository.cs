@@ -1567,6 +1567,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         left.PinOrder == right.PinOrder &&
         left.LastUsedUtc == right.LastUsedUtc &&
         string.Equals(left.DevServerUrl, right.DevServerUrl, StringComparison.Ordinal) &&
+        left.OpenDevServerOnLaunch == right.OpenDevServerOnLaunch &&
         string.Equals(left.RepoUrl, right.RepoUrl, StringComparison.Ordinal) &&
         left.OpenCompanionAppOnLaunch == right.OpenCompanionAppOnLaunch &&
         string.Equals(left.CompanionAppPath, right.CompanionAppPath, StringComparison.Ordinal) &&
@@ -1615,6 +1616,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         LastUsedUtc = shortcut.LastUsedUtc,
         Launches = shortcut.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
         DevServerUrl = shortcut.DevServerUrl,
+        OpenDevServerOnLaunch = shortcut.OpenDevServerOnLaunch,
         RepoUrl = shortcut.RepoUrl,
         OpenCompanionAppOnLaunch = shortcut.OpenCompanionAppOnLaunch,
         CompanionAppPath = shortcut.CompanionAppPath,

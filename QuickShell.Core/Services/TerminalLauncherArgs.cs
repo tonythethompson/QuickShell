@@ -4,7 +4,24 @@ namespace QuickShell.Services;
 
 internal static class TerminalLauncherArgs
 {
-    public static string EscapeWindowsTerminalArg(string value) => value.Replace("\"", "\\\"");
+    public static string EscapeWindowsTerminalArg(string value)
+    {
+        value = value.Replace("\"", "\\\"");
+
+        // MSVC argv rules: an odd run of trailing backslashes escapes the closing quote.
+        var trailingBackslashes = 0;
+        for (var i = value.Length - 1; i >= 0 && value[i] == '\\'; i--)
+        {
+            trailingBackslashes++;
+        }
+
+        if (trailingBackslashes > 0)
+        {
+            value += new string('\\', trailingBackslashes);
+        }
+
+        return value;
+    }
 
     public static string EscapeCmd(string value) => value.Replace("\"", "\"\"");
 
