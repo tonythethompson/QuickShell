@@ -32,9 +32,9 @@ internal static class ShortcutGlyphs
 
     public const string Workspace = "\uE8A7";
 
-    public const string Duplicate = "\uE8C8";
+    public const string Duplicate = "\uF413";
 
-    public const string CopyPath = "\uF413";
+    public const string CopyPath = "\uE8C8";
 
     public const string OpenRepository = "\uE8A7";
 

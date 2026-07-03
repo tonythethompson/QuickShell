@@ -30,7 +30,7 @@ internal static class SettingsCardJson
           "text": "{{Escape(text)}}",
           "wrap": true,
           "isSubtle": true,
-          "spacing": "Small"
+          "spacing": "None"
         }
         """;
 
@@ -41,7 +41,7 @@ internal static class SettingsCardJson
           "text": "{{Escape(text)}}",
           "wrap": true,
           "color": "{{ToneColor(tone)}}",
-          "spacing": "Small"
+          "spacing": "None"
         }
         """;
 
@@ -61,96 +61,32 @@ internal static class SettingsCardJson
         }
         """;
 
-    public static string RecentCountStepper(int count)
-    {
-        var canDecrement = count > QuickShellRecentSettings.MinCount;
-        var canIncrement = count < QuickShellRecentSettings.MaxCount;
-        return $$"""
+    public static string RecentEnabledToggle(bool enabled) =>
+        $$"""
         {
           "type": "Container",
-          "spacing": "Small",
+          "spacing": "None",
           "items": [
-            {{FieldLabel("Recent workspaces to show")}},
-            {{SubtleText("How many recently used workspaces appear on the QuickShell home page. Set to 0 to hide the Recent section.")}},
             {
-              "type": "Container",
-              "style": "emphasis",
+              "type": "Input.Toggle",
+              "id": "showRecents",
+              "title": "Show recent workspaces",
               "spacing": "None",
-              "items": [
-                {
-                  "type": "ColumnSet",
-                  "spacing": "None",
-                  "columns": [
-                    {
-                      "type": "Column",
-                      "width": "auto",
-                      "verticalContentAlignment": "Center",
-                      "items": [
-                        {
-                          "type": "ActionSet",
-                          "spacing": "None",
-                          "actions": [
-                            {
-                              "type": "Action.Submit",
-                              "title": "\u2212",
-                              "tooltip": "Show fewer recent workspaces",
-                              "associatedInputs": "none",
-                              "isEnabled": {{canDecrement.ToString().ToLowerInvariant()}},
-                              "data": { "action": "recentDecrement" }
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "Column",
-                      "width": "stretch",
-                      "verticalContentAlignment": "Center",
-                      "items": [
-                        {
-                          "type": "TextBlock",
-                          "text": "{{count}}",
-                          "horizontalAlignment": "Center",
-                          "size": "Medium",
-                          "weight": "Bolder"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "Column",
-                      "width": "auto",
-                      "verticalContentAlignment": "Center",
-                      "items": [
-                        {
-                          "type": "ActionSet",
-                          "spacing": "None",
-                          "actions": [
-                            {
-                              "type": "Action.Submit",
-                              "title": "+",
-                              "tooltip": "Show more recent workspaces",
-                              "associatedInputs": "none",
-                              "isEnabled": {{canIncrement.ToString().ToLowerInvariant()}},
-                              "data": { "action": "recentIncrement" }
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
+              "value": "{{(enabled ? "true" : "false")}}",
+              "valueOn": "true",
+              "valueOff": "false",
+              {{ChangeActionSave("saveRecents")}}
+            },
+            {{SubtleText($"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page.")}}
           ]
         }
         """;
-    }
 
     public static string BuildChoicesJson(IEnumerable<ChoiceSetSetting.Choice> choices) =>
         string.Join(",\n", choices.Select(choice =>
             $$"""{ "title": "{{Escape(choice.Title)}}", "value": "{{Escape(choice.Value)}}" }"""));
 
-    public static string TransferRow(string header, string description, string actionsJson, string topSpacing = "Large") =>
+    public static string TransferRow(string header, string description, string actionsJson, string topSpacing = "Small") =>
         $$"""
         {
           "type": "Container",
@@ -161,7 +97,7 @@ internal static class SettingsCardJson
               "text": "{{Escape(header)}}",
               "weight": "Bolder",
               "size": "Medium",
-              "spacing": "Small"
+              "spacing": "None"
             },
             {{SubtleText(description)}},
             {{actionsJson}}
@@ -176,7 +112,7 @@ internal static class SettingsCardJson
         $$"""
         {
           "type": "ColumnSet",
-          "spacing": "Medium",
+          "spacing": "Small",
           "columns": [
             {
               "type": "Column",

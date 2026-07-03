@@ -15,26 +15,37 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     private readonly QuickShellPage _page;
     private readonly CreateShortcutCommand _createShortcutCommand;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
-    private readonly QuickShellFallbackPage _fallbackPage;
+    private readonly Lazy<QuickShellFallbackPage> _fallbackPage;
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
     private readonly EventHandler _settingsChangedHandler;
 
     public QuickShellCommandsProvider()
     {
-        _settingsManager = new QuickShellSettingsManager(ReloadPages);
-        QuickShellRuntimeServices.Initialize(_settingsManager);
+        using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
+        using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
+        {
+            _settingsManager = new QuickShellSettingsManager(ReloadPages);
+        }
+
+        using (StartupPerformanceTrace.Measure("CmdPal shortcut preload kickoff"))
+        {
+            QuickShellRuntimeServices.Initialize(_settingsManager);
+        }
 
         DisplayName = QuickShellBrand.DisplayName;
         Icon = QuickShellBrandIcons.App;
         Id = "com.quickshell";
         Settings = _settingsManager.Settings;
 
-        _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
-        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
-        _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
-        _settingsChangedHandler = (_, _) => _page.Reload();
-        _settingsManager.SettingsChanged += _settingsChangedHandler;
+        using (StartupPerformanceTrace.Measure("CmdPal page setup"))
+        {
+            _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
+            _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
+            _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
+            _settingsChangedHandler = (_, _) => _page.Reload();
+            _settingsManager.SettingsChanged += _settingsChangedHandler;
+        }
 
         var settingsPage = _settingsManager.SettingsPage;
 
@@ -73,7 +84,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             },
         ];
 
-        _fallbackPage = new QuickShellFallbackPage(_settingsManager, ReloadPages);
+        _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_settingsManager, ReloadPages));
         _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand)];
     }
 
@@ -85,7 +96,10 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     {
         GitRepoIndex.Invalidate();
         _page.Reload();
-        _fallbackPage.ClearResults();
+        if (_fallbackPage.IsValueCreated)
+        {
+            _fallbackPage.Value.ClearResults();
+        }
     }
 
     public override ICommandItem? GetCommandItem(string id)
@@ -138,7 +152,10 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     {
         _settingsManager.SettingsChanged -= _settingsChangedHandler;
         _page.Dispose();
-        _fallbackPage.Dispose();
+        if (_fallbackPage.IsValueCreated)
+        {
+            _fallbackPage.Value.Dispose();
+        }
         QuickShellRuntimeServices.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);

@@ -77,7 +77,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
             """
             {
               "type": "ActionSet",
-              "spacing": "Small",
+              "spacing": "None",
               "actions": [
                 {
                   "type": "Action.Submit",
@@ -95,7 +95,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
               "id": "{{TerminalApplicationField}}",
               "label": "Terminal application",
               "style": "compact",
-              "spacing": "Small",
+              "spacing": "None",
               "value": "{{EscapeJson(app)}}",
               {{SettingsCardJson.ChangeActionSave("saveTerminalDefaults")}},
               "choices": [
@@ -109,7 +109,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
               "id": "{{DefaultProfileField}}",
               "label": "Default profile",
               "style": "compact",
-              "spacing": "Small",
+              "spacing": "None",
               "value": "{{EscapeJson(profile)}}",
               {{SettingsCardJson.ChangeActionSave("saveTerminalDefaults")}},
               "choices": [

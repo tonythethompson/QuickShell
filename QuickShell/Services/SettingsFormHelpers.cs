@@ -1,4 +1,4 @@
-using System.Threading;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 
@@ -12,14 +12,6 @@ internal static class SettingsFormHelpers
 {
 
     private const int DefaultRefreshDelayMs = 50;
-
-    private const int DefaultDebouncedReloadDelayMs = 400;
-
-
-
-    private static readonly object DebouncedReloadLock = new();
-
-    private static CancellationTokenSource? _debouncedReloadCts;
 
 
 
@@ -49,69 +41,21 @@ internal static class SettingsFormHelpers
 
             await Task.Delay(delayMs).ConfigureAwait(false);
 
-            refresh();
-
-        });
-
-    }
-
-
-
-    /// <summary>
-
-    /// Coalesces rapid home reloads (e.g. numeric stepper clicks) into one refresh after the user pauses.
-
-    /// </summary>
-
-    internal static void ScheduleDebouncedReload(Action? reload, int delayMs = DefaultDebouncedReloadDelayMs)
-
-    {
-
-        if (reload is null)
-
-        {
-
-            return;
-
-        }
-
-
-
-        CancellationTokenSource cts;
-
-        lock (DebouncedReloadLock)
-
-        {
-
-            _debouncedReloadCts?.Cancel();
-
-            _debouncedReloadCts?.Dispose();
-
-            cts = new CancellationTokenSource();
-
-            _debouncedReloadCts = cts;
-
-        }
-
-
-
-        _ = Task.Run(async () =>
-
-        {
-
             try
 
             {
 
-                await Task.Delay(delayMs, cts.Token).ConfigureAwait(false);
-
-                reload();
+                refresh();
 
             }
 
-            catch (OperationCanceledException)
+            catch (Exception ex) when (ex is ObjectDisposedException or COMException)
 
             {
+
+                // Best effort; the settings page/COM host may have been torn down
+
+                // before this fired. Anything else is a real bug and should surface.
 
             }
 

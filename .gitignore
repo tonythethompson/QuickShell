@@ -11,7 +11,6 @@ _winget-test/
 .claude/
 .serena/
 .oac.json
-ACCESSIBILITY.md
 QuickShell/QuickShell_Dev.cer
 QuickShell/QuickShell_Dev.pfx
 QuickShell/bin/
@@ -44,3 +43,4 @@ pr9-threads.json
 /.bob/.bob-errors
 pr9-comments-latest.json
 tessl.json
+/.bob

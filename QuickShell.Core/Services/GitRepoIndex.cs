@@ -7,6 +7,7 @@ internal static class GitRepoIndex
 
     private static IReadOnlyList<GitRepoCandidate> _cache = [];
     private static DateTime _refreshedUtc = DateTime.MinValue;
+    private static Task<IReadOnlyList<GitRepoCandidate>>? _refreshInFlight;
 
     public static IReadOnlyList<GitRepoCandidate> Search(
         string query,
@@ -60,16 +61,51 @@ internal static class GitRepoIndex
 
     private static void EnsureFresh(IEnumerable<string>? extraRoots)
     {
-        WithLock(() =>
+        Task<IReadOnlyList<GitRepoCandidate>> refreshTask;
+
+        lock (Sync)
         {
             if (_cache.Count > 0 && DateTime.UtcNow - _refreshedUtc < CacheLifetime)
             {
                 return;
             }
 
-            _cache = GitRepoDiscovery.Discover(extraRoots);
-            _refreshedUtc = DateTime.UtcNow;
-        });
+            // Kick the (possibly multi-second) filesystem scan off the lock so
+            // Invalidate() and other callers checking freshness never block on the
+            // Monitor for the scan's duration; concurrent callers share this one task.
+            _refreshInFlight ??= Task.Run(() => GitRepoDiscovery.Discover(extraRoots));
+            refreshTask = _refreshInFlight;
+        }
+
+        try
+        {
+            var discovered = refreshTask.GetAwaiter().GetResult();
+
+            lock (Sync)
+            {
+                if (ReferenceEquals(_refreshInFlight, refreshTask))
+                {
+                    _cache = discovered;
+                    _refreshedUtc = DateTime.UtcNow;
+                    _refreshInFlight = null;
+                }
+            }
+        }
+        catch
+        {
+            // If the scan faulted, drop the faulted task so the next call
+            // starts a fresh one instead of reusing (and re-throwing from)
+            // this one forever.
+            lock (Sync)
+            {
+                if (ReferenceEquals(_refreshInFlight, refreshTask))
+                {
+                    _refreshInFlight = null;
+                }
+            }
+
+            throw;
+        }
     }
 
     private static void WithLock(Action action)

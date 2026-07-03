@@ -26,7 +26,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-    private readonly QuickShellFallbackPage _listPage;
+    private readonly Lazy<QuickShellFallbackPage> _listPage;
 
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
 
@@ -34,7 +34,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-    public QuickShellFallback(QuickShellFallbackPage listPage, OpenDiscoverGitReposCommand discoverGitReposCommand)
+    public QuickShellFallback(Lazy<QuickShellFallbackPage> listPage, OpenDiscoverGitReposCommand discoverGitReposCommand)
 
         : base(BaseCommand, "Saved workspace", CommandId)
 
@@ -80,7 +80,9 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
         {
 
-            _listPage.SetWorkspaceResults(_lastQuery, shortcuts);
+            var listPage = _listPage.Value;
+
+            listPage.SetWorkspaceResults(_lastQuery, shortcuts);
 
             ApplyWorkspaceResult(shortcuts);
 
@@ -94,7 +96,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
         {
 
-            _listPage.SetDiscoverEntry(_lastQuery);
+            _listPage.Value.SetDiscoverEntry(_lastQuery);
 
             ApplyDiscoverResult();
 
@@ -104,9 +106,11 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var extraRoots = GitRepoSearchRoots.FromShortcuts(QuickShellRuntimeServices.Shortcuts.GetShortcuts());
+        var allShortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
 
-        var savedDirectories = QuickShellRuntimeServices.Shortcuts.GetShortcuts()
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts);
+
+        var savedDirectories = allShortcuts
 
             .Select(shortcut => shortcut.Directory)
 
@@ -118,7 +122,9 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
         {
 
-            _listPage.SetGitRepoResults(_lastQuery, gitRepos);
+            var listPage = _listPage.Value;
+
+            listPage.SetGitRepoResults(_lastQuery, gitRepos);
 
             ApplyGitRepoResult(gitRepos);
 
@@ -162,7 +168,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
         Icon = QuickShellBrandIcons.App;
 
-        Command = _listPage;
+        Command = _listPage.Value;
 
         MoreCommands = [];
 
@@ -198,7 +204,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
         Icon = new IconInfo(ShortcutGlyphs.Discover);
 
-        Command = _listPage;
+        Command = _listPage.Value;
 
         MoreCommands = [];
 
@@ -256,7 +262,10 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
         MoreCommands = [];
 
-        _listPage.ClearResults();
+        if (_listPage.IsValueCreated)
+        {
+            _listPage.Value.ClearResults();
+        }
 
     }
 

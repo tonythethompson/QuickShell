@@ -108,30 +108,6 @@ internal static class WtProfilesService
             return null;
         }
 
-        foreach (var location in GetLocations())
-        {
-            if (!prefixes.Contains(location.IdPrefix, StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var defaultGuid = ReadDefaultProfileGuid(location.SettingsPath);
-            if (string.IsNullOrWhiteSpace(defaultGuid))
-            {
-                continue;
-            }
-
-            var match = GetProfiles().FirstOrDefault(profile =>
-                profile.IdPrefix.Equals(location.IdPrefix, StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrWhiteSpace(profile.Guid)
-                && profile.Guid.Equals(defaultGuid, StringComparison.OrdinalIgnoreCase));
-
-            if (match is not null)
-            {
-                return match;
-            }
-        }
-
         return GetProfiles().FirstOrDefault(profile =>
             prefixes.Contains(profile.IdPrefix, StringComparer.OrdinalIgnoreCase)
             && profile.IsDefault);
@@ -263,29 +239,7 @@ internal static class WtProfilesService
         try
         {
             using var stream = File.OpenRead(location.SettingsPath);
-            using var doc = JsonDocument.Parse(stream);
-
-            var defaultGuid = ReadDefaultProfileGuid(doc.RootElement);
-            if (!doc.RootElement.TryGetProperty("profiles", out var profilesNode))
-            {
-                yield break;
-            }
-
-            var listNode = profilesNode.TryGetProperty("list", out var directList)
-                ? directList
-                : profilesNode;
-
-            if (listNode.ValueKind != JsonValueKind.Array)
-            {
-                yield break;
-            }
-
-            profiles = listNode
-                .EnumerateArray()
-                .Select(element => ToProfile(element, defaultGuid, location))
-                .Where(p => p is not null)
-                .Cast<WtProfileInfo>()
-                .ToArray();
+            profiles = ReadProfilesFromJson(stream, location);
         }
         catch
         {
@@ -296,6 +250,33 @@ internal static class WtProfilesService
         {
             yield return profile;
         }
+    }
+
+    internal static WtProfileInfo[] ReadProfilesFromJson(Stream stream, TerminalSettingsLocation location)
+    {
+        using var doc = JsonDocument.Parse(stream);
+
+        var defaultGuid = ReadDefaultProfileGuid(doc.RootElement);
+        if (!doc.RootElement.TryGetProperty("profiles", out var profilesNode))
+        {
+            return [];
+        }
+
+        var listNode = profilesNode.TryGetProperty("list", out var directList)
+            ? directList
+            : profilesNode;
+
+        if (listNode.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return listNode
+            .EnumerateArray()
+            .Select(element => ToProfile(element, defaultGuid, location))
+            .Where(p => p is not null)
+            .Cast<WtProfileInfo>()
+            .ToArray();
     }
 
     private static string? ReadDefaultProfileGuid(JsonElement root)
@@ -380,38 +361,6 @@ internal static class WtProfilesService
             ],
             _ => [],
         };
-
-    private static string? ReadDefaultProfileGuid(string settingsPath)
-    {
-        try
-        {
-            if (!File.Exists(settingsPath))
-            {
-                return null;
-            }
-
-            using var stream = File.OpenRead(settingsPath);
-            using var document = JsonDocument.Parse(stream);
-            if (document.RootElement.TryGetProperty("defaultProfile", out var topLevel)
-                && topLevel.ValueKind == JsonValueKind.String)
-            {
-                return topLevel.GetString();
-            }
-
-            if (document.RootElement.TryGetProperty("profiles", out var profilesNode)
-                && profilesNode.TryGetProperty("defaultProfile", out var nested)
-                && nested.ValueKind == JsonValueKind.String)
-            {
-                return nested.GetString();
-            }
-        }
-        catch
-        {
-            return null;
-        }
-
-        return null;
-    }
 
     private static bool MatchesStandaloneShell(WtProfileInfo profile, string shellId) =>
         shellId switch

@@ -17,15 +17,19 @@ internal static class ShortcutFormTemplateCache
     {
         lock (Sync)
         {
-            if (_templateJson is not null
-                && _commandCount == commandCount
-                && string.Equals(_terminalApplicationId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(_companionChoicesJson, companionChoicesJson, StringComparison.Ordinal))
+            if (Matches(commandCount, terminalApplicationId, companionChoicesJson))
             {
-                return _templateJson;
+                return _templateJson!;
             }
+        }
 
-            var built = buildTemplate();
+        // Build outside the lock so an expensive template build for one
+        // (commandCount, terminalApplicationId) combo doesn't block unrelated
+        // GetOrBuild/Invalidate callers for its full duration.
+        var built = buildTemplate();
+
+        lock (Sync)
+        {
             _commandCount = commandCount;
             _terminalApplicationId = terminalApplicationId;
             _companionChoicesJson = companionChoicesJson;
@@ -33,6 +37,12 @@ internal static class ShortcutFormTemplateCache
             return built;
         }
     }
+
+    private static bool Matches(int commandCount, string terminalApplicationId, string companionChoicesJson) =>
+        _templateJson is not null
+        && _commandCount == commandCount
+        && string.Equals(_terminalApplicationId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(_companionChoicesJson, companionChoicesJson, StringComparison.Ordinal);
 
     public static void Invalidate()
     {
