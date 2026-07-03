@@ -155,7 +155,7 @@ jobs:
             --accept-source-agreements --accept-package-agreements --disable-interactivity
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
-          wingetcreate --version
+          wingetcreate version
         shell: pwsh
 
       - name: Submit WinGet manifest update
