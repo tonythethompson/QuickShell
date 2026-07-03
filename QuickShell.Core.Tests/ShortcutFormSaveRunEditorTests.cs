@@ -70,6 +70,7 @@ public sealed class ShortcutFormSaveRunEditorTests
                 },
             ],
             DevServerUrl = "http://localhost:3000",
+            OpenDevServerOnLaunch = true,
             OpenCompanionAppOnLaunch = true,
             CompanionAppPath = companionPath,
         };
@@ -102,6 +103,7 @@ public sealed class ShortcutFormSaveRunEditorTests
         Assert.Equal("claude", saved.Launches[1].Command);
         Assert.Equal(secondaryId, saved.Launches[1].Id);
         Assert.StartsWith("http://localhost:3000", saved.DevServerUrl);
+        Assert.True(saved.OpenDevServerOnLaunch);
         Assert.True(saved.OpenCompanionAppOnLaunch);
         Assert.Equal(companionPath, saved.CompanionAppPath);
     }

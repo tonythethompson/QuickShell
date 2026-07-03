@@ -517,6 +517,7 @@ internal static class ShortcutFormSave
         Launches = source.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
         DevServerUrl = source.DevServerUrl,
         RepoUrl = source.RepoUrl,
+        OpenDevServerOnLaunch = source.OpenDevServerOnLaunch,
         OpenCompanionAppOnLaunch = source.OpenCompanionAppOnLaunch,
         CompanionAppPath = source.CompanionAppPath,
         CompanionAppArguments = source.CompanionAppArguments,
