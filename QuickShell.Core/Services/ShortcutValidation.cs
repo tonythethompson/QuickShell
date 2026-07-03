@@ -85,6 +85,17 @@ internal static class ShortcutValidation
 
         shortcut.RepoUrl = normalizedRepo;
 
+        if (shortcut.OpenDevServerOnLaunch && string.IsNullOrWhiteSpace(shortcut.DevServerUrl))
+        {
+            error = "Dev server URL is required when open on launch is enabled.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(shortcut.DevServerUrl))
+        {
+            shortcut.OpenDevServerOnLaunch = false;
+        }
+
         if (!TryValidateCompanionApp(shortcut, out error))
         {
             return false;

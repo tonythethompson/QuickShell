@@ -53,6 +53,7 @@ internal partial class ShortcutFormPage : ContentPage
         LastUsedUtc = shortcut.LastUsedUtc,
         Launches = shortcut.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
         DevServerUrl = shortcut.DevServerUrl,
+        OpenDevServerOnLaunch = shortcut.OpenDevServerOnLaunch,
         RepoUrl = shortcut.RepoUrl,
         OpenCompanionAppOnLaunch = shortcut.OpenCompanionAppOnLaunch,
         CompanionAppPath = shortcut.CompanionAppPath,
@@ -92,6 +93,7 @@ internal sealed partial class ShortcutForm : FormContent
             Directory = initial?.Directory ?? string.Empty,
             DevServerUrl = initial?.DevServerUrl ?? string.Empty,
             RepoUrl = initial?.RepoUrl ?? string.Empty,
+            OpenDevServerOnLaunch = initial?.OpenDevServerOnLaunch ?? false,
             OpenCompanionAppOnLaunch = initial?.OpenCompanionAppOnLaunch ?? false,
             CompanionAppPreset = CompanionAppCatalog.InferPresetFromPath(initial?.CompanionAppPath),
             CompanionAppPath = initial?.CompanionAppPath ?? string.Empty,
@@ -153,6 +155,7 @@ internal sealed partial class ShortcutForm : FormContent
             Directory = restored.Directory,
             DevServerUrl = restored.DevServerUrl,
             RepoUrl = restored.RepoUrl,
+            OpenDevServerOnLaunch = restored.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = restored.OpenCompanionAppOnLaunch,
             CompanionAppPreset = restored.CompanionAppPreset,
             CompanionAppPath = restored.CompanionAppPath,
@@ -596,6 +599,7 @@ internal sealed partial class ShortcutForm : FormContent
             _onSaved,
             draft.DevServerUrl,
             draft.RepoUrl,
+            draft.OpenDevServerOnLaunch,
             draft.OpenCompanionAppOnLaunch,
             draft.CompanionAppPath,
             draft.CompanionAppArguments);
@@ -629,6 +633,7 @@ internal sealed partial class ShortcutForm : FormContent
           "LaunchTarget": "{{Escape(draft.LaunchTarget)}}",
           "DevServerUrl": "{{Escape(draft.DevServerUrl)}}",
           "RepoUrl": "{{Escape(draft.RepoUrl)}}",
+          "OpenDevServerOnLaunch": "{{(draft.OpenDevServerOnLaunch ? "true" : "false")}}",
           "OpenCompanionAppOnLaunch": "{{(draft.OpenCompanionAppOnLaunch ? "true" : "false")}}",
           "CompanionAppPreset": "{{Escape(draft.CompanionAppPreset)}}",
           "CompanionAppPath": "{{Escape(draft.CompanionAppPath)}}",
@@ -672,6 +677,7 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
+            OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
@@ -721,6 +727,9 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = data["LaunchTarget"]?.ToString() ?? _draft.LaunchTarget,
             DevServerUrl = data["DevServerUrl"]?.ToString() ?? _draft.DevServerUrl,
             RepoUrl = data["RepoUrl"]?.ToString() ?? _draft.RepoUrl,
+            OpenDevServerOnLaunch = ParseToggleBool(
+                data["OpenDevServerOnLaunch"]?.ToString(),
+                _draft.OpenDevServerOnLaunch),
             OpenCompanionAppOnLaunch = ParseToggleBool(
                 data["OpenCompanionAppOnLaunch"]?.ToString(),
                 _draft.OpenCompanionAppOnLaunch),
@@ -731,6 +740,11 @@ internal sealed partial class ShortcutForm : FormContent
         };
 
         ApplyCompanionPresetChange(previousPreset, mergedPreset);
+
+        if (string.IsNullOrWhiteSpace(_draft.DevServerUrl))
+        {
+            _draft.OpenDevServerOnLaunch = false;
+        }
 
         return true;
     }
@@ -919,6 +933,7 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
+            OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
@@ -934,6 +949,7 @@ internal sealed partial class ShortcutForm : FormContent
             || !string.Equals(Normalize(left.LaunchTarget), Normalize(right.LaunchTarget), StringComparison.Ordinal)
             || !string.Equals(Normalize(left.DevServerUrl), Normalize(right.DevServerUrl), StringComparison.Ordinal)
             || !string.Equals(Normalize(left.RepoUrl), Normalize(right.RepoUrl), StringComparison.Ordinal)
+            || left.OpenDevServerOnLaunch != right.OpenDevServerOnLaunch
             || left.OpenCompanionAppOnLaunch != right.OpenCompanionAppOnLaunch
             || !string.Equals(Normalize(left.CompanionAppPreset), Normalize(right.CompanionAppPreset), StringComparison.Ordinal)
             || !string.Equals(Normalize(left.CompanionAppPath), Normalize(right.CompanionAppPath), StringComparison.Ordinal)
@@ -1038,12 +1054,22 @@ internal sealed partial class ShortcutForm : FormContent
               "value": "${Abbreviation}"
             }
             """)}},
-            {{SettingsCardJson.FieldGroup("Dev server URL (optional)", "Opens from the workspace action menu, e.g. http://localhost:3000.", """
+            {{SettingsCardJson.FieldGroup("Dev server URL (optional)", "Used by the action menu and optional auto-open on workspace launch, e.g. http://localhost:3000.", """
             {
               "type": "Input.Text",
               "id": "DevServerUrl",
               "placeholder": "http://localhost:3000",
               "value": "${DevServerUrl}"
+            }
+            """)}},
+            {{SettingsCardJson.FieldGroup("Open on workspace launch", "Opens the dev server URL in your browser when you run the full workspace.", """
+            {
+              "type": "Input.Toggle",
+              "id": "OpenDevServerOnLaunch",
+              "title": "Open dev server when workspace runs",
+              "value": "${OpenDevServerOnLaunch}",
+              "valueOn": "true",
+              "valueOff": "false"
             }
             """)}},
             {{SettingsCardJson.FieldGroup("Repository URL (optional)", "Opens from the workspace action menu, e.g. your GitHub repo page.", """
@@ -1207,6 +1233,8 @@ internal sealed partial class ShortcutForm : FormContent
         public string Directory { get; set; } = string.Empty;
 
         public string DevServerUrl { get; set; } = string.Empty;
+
+        public bool OpenDevServerOnLaunch { get; set; }
 
         public string RepoUrl { get; set; } = string.Empty;
 
