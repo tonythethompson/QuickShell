@@ -8,6 +8,8 @@
 #define Clsid "528cc766-cbe8-4861-9933-722c7a3f3581"
 
 #define InstallAppId "8C4E2F91-6B3D-4A5E-9F1C-2D7E8A0B4C6D"
+#define RunPluginSource "__MUST_BE_SET_BY_BUILD_SCRIPT__"
+#define RunPluginDest "{localappdata}\Microsoft\PowerToys\PowerToys Run\Plugins\QuickShell"
 
 [Setup]
 AppId={{{#InstallAppId}}
@@ -32,6 +34,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "bin\Release\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "{#RunPluginSource}\*"; DestDir: "{#RunPluginDest}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#DisplayName}"; Filename: "{app}\{#ExtensionName}.exe"
@@ -42,3 +45,4 @@ Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}}\LocalServer32"; ValueTy
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{#RunPluginDest}"

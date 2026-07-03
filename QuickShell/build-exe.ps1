@@ -46,11 +46,22 @@ foreach ($Platform in $Platforms) {
     $fileCount = (Get-ChildItem -Path $publishDir -Recurse -File).Count
     Write-Host "Published $fileCount files to $publishDir" -ForegroundColor Green
 
+    $runPlatform = if ($Platform -eq "arm64") { "ARM64" } else { "x64" }
+    $buildRunPlugin = Join-Path (Split-Path $ProjectDir -Parent) "scripts\build-run-plugin.ps1"
+    Write-Host "Building PowerToys Run plugin ($runPlatform)..." -ForegroundColor Yellow
+    & $buildRunPlugin -Configuration $Configuration -Platform $runPlatform
+    if ($LASTEXITCODE -ne 0) {
+        throw "build-run-plugin.ps1 failed for $runPlatform with exit code $LASTEXITCODE"
+    }
+
+    $repoRoot = Split-Path -Parent $ProjectDir
+    $runPluginSource = Join-Path $repoRoot "QuickShell.Run\bin\$runPlatform\$Configuration\package"
     $setupTemplate = Get-Content (Join-Path $ProjectDir "setup-template.iss") -Raw
     $setupScript = $setupTemplate -replace '#define AppVersion ".*"', "#define AppVersion `"$Version`""
+    $setupScript = $setupScript -replace '#define RunPluginSource ".*"', "#define RunPluginSource `"$($runPluginSource.Replace('\', '\\'))`""
+    $setupScript = $setupScript -replace 'OutputDir=bin\\[^\\]+\\installer', ("OutputDir=bin\{0}\installer" -f $Configuration)
     $setupScript = $setupScript -replace 'OutputBaseFilename=(.*?)\{#AppVersion\}', "OutputBaseFilename=`$1{#AppVersion}-$Platform"
-    $setupScript = $setupScript -replace 'Source: "bin\\Release\\win-x64\\publish', "Source: `"bin\Release\win-$Platform\publish"
-
+    $setupScript = $setupScript -replace 'Source: "bin\\Release\\win-x64\\publish', ("Source: `"bin\{0}\win-{1}\publish" -f $Configuration, $Platform)
     if ($Platform -eq "arm64") {
         $setupScript = $setupScript -replace '(\[Setup\][^\[]*)(MinVersion=)', "`$1ArchitecturesAllowed=arm64`r`nArchitecturesInstallIn64BitMode=arm64`r`n`$2"
     }
