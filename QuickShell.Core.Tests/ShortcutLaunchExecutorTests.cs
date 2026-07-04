@@ -3,6 +3,10 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+// Shares a collection with TerminalLauncherTests (see TerminalLauncherOverrideCollection)
+// because both mutate the process-wide static TerminalLauncher.StartProcessOverride
+// seam, which two test classes running in parallel could otherwise clobber.
+[Collection(TerminalLauncherOverrideCollection.Name)]
 public sealed class ShortcutLaunchExecutorTests
 {
     [Fact]
@@ -60,6 +64,7 @@ public sealed class ShortcutLaunchExecutorTests
     }
 }
 
+[Collection(TerminalLauncherOverrideCollection.Name)]
 public sealed class WorkspaceDevServerActionsTests
 {
     [Fact]
