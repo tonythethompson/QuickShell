@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -5,6 +6,107 @@ namespace QuickShell.Core.Tests;
 
 public sealed class ShortcutLaunchExecutorTests
 {
+    [Fact]
+    public void LaunchAll_ThreeWindowsTerminalEntries_OpenAsSingleProcessWithTabs()
+    {
+        var directory = Environment.CurrentDirectory;
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Full stack",
+            Directory = directory,
+            Launches =
+            [
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", WtProfile = "Profile1", Command = "dotnet run", IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", WtProfile = "Profile2", Command = "npm run dev", IsEnabled = true, Order = 1 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Worker", Terminal = "wt", WtProfile = "Profile3", Command = "npm run worker", IsEnabled = true, Order = 2 },
+            ],
+        };
+
+        var captured = new List<ProcessStartInfo>();
+        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
+        try
+        {
+            ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+
+            Assert.Single(captured);
+            Assert.Equal("wt.exe", captured[0].FileName);
+            Assert.Equal(2, CountOccurrences(captured[0].Arguments ?? string.Empty, "; new-tab"));
+        }
+        finally
+        {
+            TerminalLauncher.StartProcessOverride = null;
+        }
+    }
+
+    [Fact]
+    public void LaunchAll_MixedElevation_OpensTwoProcesses()
+    {
+        var directory = Environment.CurrentDirectory;
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Mixed elevation",
+            Directory = directory,
+            Launches =
+            [
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Admin", Terminal = "wt", WtProfile = "Profile1", Command = "cmd", RunAsAdmin = true, IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Normal", Terminal = "wt", WtProfile = "Profile2", Command = "cmd", RunAsAdmin = false, IsEnabled = true, Order = 1 },
+            ],
+        };
+
+        var captured = new List<ProcessStartInfo>();
+        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
+        try
+        {
+            ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+
+            Assert.Equal(2, captured.Count);
+            Assert.Contains(captured, c => c.Verb == "runas");
+            Assert.Contains(captured, c => string.IsNullOrEmpty(c.Verb));
+        }
+        finally
+        {
+            TerminalLauncher.StartProcessOverride = null;
+        }
+    }
+
+    [Fact]
+    public void LaunchAll_NonWindowsTerminalFallbackMixedWithWt_OpensTwoProcesses()
+    {
+        var directory = Environment.CurrentDirectory;
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Mixed hosts",
+            Directory = directory,
+            Launches =
+            [
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", WtProfile = "Profile1", Command = "cmd", IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", WtProfile = "Profile2", Command = "cmd", IsEnabled = true, Order = 1 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Legacy", Terminal = "cmd", Command = "cmd", IsEnabled = true, Order = 2 },
+            ],
+        };
+
+        var captured = new List<ProcessStartInfo>();
+        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
+        try
+        {
+            ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+
+            Assert.Equal(2, captured.Count);
+            Assert.Contains(captured, c => c.FileName == "wt.exe" && (c.Arguments ?? string.Empty).Contains("; new-tab", StringComparison.Ordinal));
+            Assert.Contains(captured, c => c.FileName == "cmd.exe");
+        }
+        finally
+        {
+            TerminalLauncher.StartProcessOverride = null;
+        }
+    }
+
+    private static int CountOccurrences(string haystack, string needle) =>
+        needle.Length == 0 ? 0 : (haystack.Length - haystack.Replace(needle, string.Empty).Length) / needle.Length;
+
     [Fact]
     public void Launch_ReturnsErrorWhenDirectoryMissing()
     {
