@@ -9,7 +9,9 @@ namespace QuickShell.Core.Tests;
 /// hook so they can't race with each other under xUnit's default cross-class parallelization.
 /// </summary>
 [CollectionDefinition("TerminalLauncher StartProcessOverride", DisableParallelization = true)]
-public sealed class TerminalLauncherOverrideCollection;
+public sealed class TerminalLauncherOverrideCollection
+{
+}
 
 [Collection("TerminalLauncher StartProcessOverride")]
 public sealed class ShortcutLaunchExecutorTests

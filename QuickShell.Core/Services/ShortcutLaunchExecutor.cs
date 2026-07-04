@@ -254,7 +254,7 @@ internal static class ShortcutLaunchExecutor
                 continue;
             }
 
-            var key = (plan.Resolved.Target.HostExecutable, plan.EffectiveElevation);
+            var key = ((plan.Resolved.Target.HostExecutable ?? string.Empty).ToUpperInvariant(), plan.EffectiveElevation);
             if (groupIndexByKey.TryGetValue(key, out var index))
             {
                 groups[index].Add(plan);

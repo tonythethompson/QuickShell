@@ -84,13 +84,18 @@ internal static class TerminalLauncher
         }
 
         var hostExecutable = group[0].Target.HostExecutable;
+        if (string.IsNullOrWhiteSpace(hostExecutable))
+        {
+            throw new ArgumentException("Resolved launch target has no host executable.", nameof(group));
+        }
+
         var allArguments = new List<string>();
 
         for (var i = 0; i < group.Count; i++)
         {
             var target = group[i].Target;
             if (target.Kind is not (LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal)
-                || !target.HostExecutable.Equals(hostExecutable, StringComparison.OrdinalIgnoreCase))
+                || !string.Equals(target.HostExecutable, hostExecutable, StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException(
                     "All entries in a group must be Windows Terminal-hosted and share the same host executable.",
