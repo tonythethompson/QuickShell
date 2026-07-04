@@ -4,6 +4,14 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+/// <summary>
+/// Serializes tests that mutate the shared static <see cref="TerminalLauncher.StartProcessOverride"/>
+/// hook so they can't race with each other under xUnit's default cross-class parallelization.
+/// </summary>
+[CollectionDefinition("TerminalLauncher StartProcessOverride", DisableParallelization = true)]
+public sealed class TerminalLauncherOverrideCollection;
+
+[Collection("TerminalLauncher StartProcessOverride")]
 public sealed class ShortcutLaunchExecutorTests
 {
     [Fact]
@@ -162,6 +170,7 @@ public sealed class ShortcutLaunchExecutorTests
     }
 }
 
+[Collection("TerminalLauncher StartProcessOverride")]
 public sealed class WorkspaceDevServerActionsTests
 {
     [Fact]

@@ -78,18 +78,32 @@ internal static class TerminalLauncher
     /// </summary>
     public static void OpenGroup(IReadOnlyList<ResolvedLaunch> group, bool effectiveElevation)
     {
+        if (group is not { Count: > 0 })
+        {
+            throw new ArgumentException("Group must contain at least one resolved launch.", nameof(group));
+        }
+
         var hostExecutable = group[0].Target.HostExecutable;
         var allArguments = new List<string>();
 
         for (var i = 0; i < group.Count; i++)
         {
+            var target = group[i].Target;
+            if (target.Kind is not (LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal)
+                || !target.HostExecutable.Equals(hostExecutable, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "All entries in a group must be Windows Terminal-hosted and share the same host executable.",
+                    nameof(group));
+            }
+
             if (i > 0)
             {
                 allArguments.Add(";");
                 allArguments.Add("new-tab");
             }
 
-            allArguments.AddRange(BuildWindowsTerminalArguments(group[i].Shortcut, group[i].Target));
+            allArguments.AddRange(BuildWindowsTerminalArguments(group[i].Shortcut, target));
         }
 
         var startInfo = CreateWtStartInfo(allArguments, hostExecutable);
