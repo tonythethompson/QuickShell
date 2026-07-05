@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-# Generates all MSIX + Run plugin icons from Assets/logo-micro.svg (single source of truth).
+# Generates all MSIX + Run plugin icons from the root logo.svg (single source of truth).
 
 $ErrorActionPreference = 'Stop'
 
@@ -10,7 +10,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 
 $assetsDir = Join-Path $repoRoot 'QuickShell\Assets'
 
-$logoMicroSvg = Join-Path $assetsDir 'logo-micro.svg'
+$logoSvg = Join-Path $repoRoot 'logo.svg'
 
 $runImagesDir = Join-Path $repoRoot 'QuickShell.Run\Images'
 
@@ -18,9 +18,9 @@ $generatorProject = Join-Path $PSScriptRoot 'LogoAssetGenerator\LogoAssetGenerat
 
 
 
-if (-not (Test-Path $logoMicroSvg)) {
+if (-not (Test-Path $logoSvg)) {
 
-    throw "Missing micro logo source: $logoMicroSvg"
+    throw "Missing logo source: $logoSvg"
 
 }
 
@@ -37,7 +37,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "LogoAssetGenerator build failed with exit code $LASTEXITCODE"
 }
 
-dotnet run --project $generatorProject --no-build -- $logoMicroSvg $assetsDir
+dotnet run --project $generatorProject --no-build -- $logoSvg $assetsDir
 
 if ($LASTEXITCODE -ne 0) {
 
@@ -82,7 +82,7 @@ if (-not (Test-Path $appTile300)) {
 New-Item -ItemType Directory -Force -Path (Split-Path $cmdPalIcon -Parent) | Out-Null
 Copy-Item -Force $appTile300 $cmdPalIcon
 
-Write-Host "Quick Shell assets generated from logo-micro.svg:"
+Write-Host "Quick Shell assets generated from logo.svg:"
 Write-Host "  MSIX: $assetsDir"
 Write-Host "  Store listing (Partner Center): $(Join-Path $assetsDir 'StoreListing')"
 Write-Host "  Run:  $runImagesDir"

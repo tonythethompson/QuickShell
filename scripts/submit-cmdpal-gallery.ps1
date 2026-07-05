@@ -50,18 +50,21 @@ Copy-Item -Recurse -Force (Join-Path $source '*') $dest
 git add extensions/tonythethompson/quickshell
 git commit -m "Add tonythethompson.quickshell to gallery"
 git push -u origin $branch
-$prUrl = gh pr create --repo $upstream --head "${forkRepo.Split('/')[0]}:$branch" --title 'Add tonythethompson.quickshell to gallery' --body @"
+$bodyFile = Join-Path $env:TEMP 'cmdpal-gallery-pr-body.md'
+@'
 ## Summary
 Adds **Quick Shell** to the Command Palette Extension Gallery.
 
 - Microsoft Store: [9PC8S6LNRT3R](https://apps.microsoft.com/detail/9PC8S6LNRT3R)
-- WinGet: \`tonythethompson.QuickShell\`
+- WinGet: `tonythethompson.QuickShell`
 - Source: https://github.com/tonythethompson/QuickShell
 
 ## Test plan
 - [ ] CI schema validation passes
 - [ ] Store product ID resolves
 - [ ] Icon under 100 KB
-"@
+'@ | Set-Content -Path $bodyFile -Encoding utf8NoBOM
+$prUrl = gh pr create --repo $upstream --head "${forkRepo.Split('/')[0]}:$branch" --title 'Add tonythethompson.quickshell to gallery' --body-file $bodyFile
+Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
 Pop-Location
 Write-Host "PR opened: $prUrl"

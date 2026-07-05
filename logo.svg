@@ -1,48 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Folder to terminal with lightning bolt">
-  <title>Folder to Terminal with Lightning Bolt</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Quick Shell folder and lightning logo">
+  <title>Quick Shell Folder Lightning Logo</title>
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1c2028"/>
-      <stop offset="100%" stop-color="#0e1016"/>
+    <linearGradient id="folderBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#35A5FF"/>
+      <stop offset="100%" stop-color="#187CE2"/>
     </linearGradient>
-    <linearGradient id="folder" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#3AA0FF"/>
-      <stop offset="100%" stop-color="#0078D4"/>
+    <linearGradient id="folderFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#43ADFF"/>
+      <stop offset="100%" stop-color="#238CEF"/>
     </linearGradient>
-    <linearGradient id="bolt" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFF6A3"/>
-      <stop offset="50%" stop-color="#FFD84C"/>
-      <stop offset="100%" stop-color="#FFB31A"/>
+    <linearGradient id="folderSheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
-    <clipPath id="boltClip">
-      <path d="M130 14 25 167h87l-20 103 116-159h-80z"/>
-    </clipPath>
+    <linearGradient id="outline" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#05070A"/>
+      <stop offset="100%" stop-color="#05070A"/>
+    </linearGradient>
   </defs>
 
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path
+    d="M84 189V87c0-39 32-71 71-71h223c20 0 39 8 53 23l56 59c18 19 43 30 69 30h356c39 0 71 32 71 71v50H84z"
+    fill="url(#folderBack)"
+    stroke="url(#outline)"
+    stroke-width="32"
+    stroke-linejoin="round"/>
 
-  <!-- Folder: top-left -->
-  <g transform="translate(24 28)">
-    <path fill="url(#folder)" d="M0 48C0 21.5 21.5 0 48 0h112l56 56h156c26.5 0 48 21.5 48 48v144c0 26.5-21.5 48-48 48H48C21.5 296 0 274.5 0 248V48z"/>
-    <path fill="#FFFFFF" fill-opacity="0.22" d="M0 64h56l56-56h96l32 56H0z"/>
-  </g>
+  <path
+    d="M17 239c-3-43 31-80 74-80h842c43 0 77 37 74 80l-36 641c-3 50-45 89-95 89H116c-50 0-92-39-95-89L17 239z"
+    fill="url(#folderFront)"
+    stroke="url(#outline)"
+    stroke-width="32"
+    stroke-linejoin="round"/>
 
-  <!-- Terminal: brought inward so its corner stays inside the rounded canvas -->
-  <g transform="translate(136 242)">
-    <rect width="332" height="238" rx="26" fill="#252830" stroke="#4A5260" stroke-width="8"/>
-    <path fill="#4EC9B0" d="M46 156V110l54 23z"/>
-    <rect x="112" y="124" width="84" height="16" rx="4" fill="#4EC9B0"/>
-  </g>
+  <path
+    d="M38 252c-2-29 21-54 50-54h850c25 0 46 18 50 42l-1 22H37z"
+    fill="url(#folderSheen)"/>
 
-  <!-- Lightning bolt: fill and facets first; the same outline is drawn last so no facet can thin or tint it. -->
-  <g transform="translate(166 105) rotate(9 104 151)">
-    <path d="M130 14 25 167h87l-20 103 116-159h-80z" fill="url(#bolt)"/>
-    <g clip-path="url(#boltClip)">
-      <path d="M130 14 25 167h87l-20 103 17-91 91-67h-73z" fill="#FFF4B4" fill-opacity="0.45"/>
-      <path d="M25 167h87l-20 103 116-159-78 109-89-18z" fill="#FFC42A" fill-opacity="0.5"/>
-      <path d="M92 270 208 111l-81 153-35 38z" fill="#FFF8C9" fill-opacity="0.35"/>
-    </g>
-    <path d="M130 14 25 167h87l-20 103 116-159h-80z" fill="none" stroke="#0B1320" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
-  </g>
+  <path
+    d="M82 242l88 70-88 70"
+    fill="none"
+    stroke="url(#outline)"
+    stroke-width="46"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+  <rect
+    x="212"
+    y="352"
+    width="104"
+    height="38"
+    rx="19"
+    fill="url(#outline)"/>
+
+  <path
+    d="M541 341h143c16 0 24 18 15 30l-86 119h80c16 0 25 19 13 31L406 815c-14 14-36-1-29-19l80-206h-67c-16 0-25-19-15-31l149-211c4-5 10-7 17-7z"
+    fill="#FFFFFF"
+    stroke="url(#outline)"
+    stroke-width="42"
+    stroke-linejoin="round"
+    stroke-linecap="round"/>
 </svg>
