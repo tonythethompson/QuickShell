@@ -22,6 +22,7 @@ public sealed class ShortcutFormSaveRunEditorTests
             command: "npm start",
             launchTarget: "default",
             runAsAdmin: false,
+            taskType: TaskTypeCatalog.Frontend,
             repository,
             onSaved: null);
 
@@ -30,6 +31,7 @@ public sealed class ShortcutFormSaveRunEditorTests
         Assert.NotNull(saved);
         Assert.Single(saved!.Launches);
         Assert.Equal("npm start", saved.Launches[0].Command);
+        Assert.Equal(TaskTypeCatalog.Frontend, saved.Launches[0].TaskType);
     }
 
     [Fact]
@@ -88,6 +90,7 @@ public sealed class ShortcutFormSaveRunEditorTests
             command: "npm run dev",
             launchTarget: "pwsh",
             runAsAdmin: true,
+            taskType: TaskTypeCatalog.Api,
             repository,
             onSaved: null);
 
@@ -100,6 +103,7 @@ public sealed class ShortcutFormSaveRunEditorTests
         Assert.Equal("npm run dev", saved.Launches[0].Command);
         Assert.True(saved.Launches[0].RunAsAdmin);
         Assert.Equal("pwsh", saved.Launches[0].Terminal);
+        Assert.Equal(TaskTypeCatalog.Api, saved.Launches[0].TaskType);
         Assert.Equal("claude", saved.Launches[1].Command);
         Assert.Equal(secondaryId, saved.Launches[1].Id);
         Assert.StartsWith("http://localhost:3000", saved.DevServerUrl);
@@ -157,6 +161,7 @@ public sealed class ShortcutFormSaveRunEditorTests
             command: "updated",
             launchTarget: "default",
             runAsAdmin: false,
+            taskType: TaskTypeCatalog.None,
             repository,
             onSaved: null);
 
@@ -204,6 +209,7 @@ public sealed class ShortcutFormSaveRunEditorTests
             command: "npm run dev",
             launchTarget: "default",
             runAsAdmin: false,
+            taskType: TaskTypeCatalog.None,
             repository,
             onSaved: null);
 
@@ -263,6 +269,7 @@ public sealed class ShortcutFormSaveRunEditorTests
             command: "npm run dev",
             launchTarget: "default",
             runAsAdmin: false,
+            taskType: TaskTypeCatalog.None,
             repository,
             onSaved: null);
 

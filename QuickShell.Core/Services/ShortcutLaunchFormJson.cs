@@ -15,17 +15,19 @@ internal static class ShortcutLaunchFormJson
         public bool IsEnabled { get; set; } = true;
     }
 
-    public static string BuildCommandRowsJson(IReadOnlyList<string> commands)
+    public static string BuildCommandRowsJson(
+        IReadOnlyList<(string Command, string TaskType)> rows,
+        string taskTypeChoices)
     {
-        if (commands.Count == 0)
+        if (rows.Count == 0)
         {
-            commands = [string.Empty];
+            rows = [(string.Empty, TaskTypeCatalog.None)];
         }
 
         var blocks = new List<string>();
-        for (var i = 0; i < commands.Count; i++)
+        for (var i = 0; i < rows.Count; i++)
         {
-            var removeBlock = commands.Count > 1
+            var removeBlock = rows.Count > 1
                 ? $$"""
                 ,{
                   "type": "ActionSet",
@@ -59,6 +61,13 @@ internal static class ShortcutLaunchFormJson
                   "id": "LaunchCommand_{{i}}",
                   "placeholder": "Optional command or script",
                   "value": "${LaunchCommand_{{i}}}"
+                },
+                {
+                  "type": "Input.ChoiceSet",
+                  "id": "LaunchType_{{i}}",
+                  "style": "compact",
+                  "value": "${LaunchType_{{i}}}",
+                  "choices": {{taskTypeChoices}}
                 }
                 {{removeBlock}}
               ]

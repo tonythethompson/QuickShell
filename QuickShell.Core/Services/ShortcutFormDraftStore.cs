@@ -66,6 +66,7 @@ internal sealed class ShortcutFormDraftData
                     LaunchTarget = launch.LaunchTarget,
                     RunAsAdmin = launch.RunAsAdmin,
                     IsEnabled = launch.IsEnabled,
+                    TaskType = launch.TaskType,
                 })
                 .ToList();
         }
@@ -87,6 +88,8 @@ internal sealed class ShortcutFormLaunchDraftData
     public bool RunAsAdmin { get; set; }
 
     public bool IsEnabled { get; set; } = true;
+
+    public string TaskType { get; set; } = TaskTypeCatalog.None;
 }
 
 internal sealed class PersistedShortcutEditDraft
@@ -139,6 +142,8 @@ internal sealed class PersistedShortcutLaunchDraft
     public bool RunAsAdmin { get; set; }
 
     public bool IsEnabled { get; set; } = true;
+
+    public string TaskType { get; set; } = TaskTypeCatalog.None;
 }
 
 internal sealed class ShortcutSaveResult
@@ -170,6 +175,7 @@ internal static class ShortcutFormSave
         string command,
         string launchTarget,
         bool runAsAdmin,
+        string taskType,
         IShortcutRepository shortcuts,
         Action? onSaved)
     {
@@ -183,6 +189,7 @@ internal static class ShortcutFormSave
                 command,
                 launchTarget,
                 runAsAdmin,
+                taskType,
                 shortcuts,
                 onSaved);
         }
@@ -219,13 +226,13 @@ internal static class ShortcutFormSave
             {
                 shortcut.Launches =
                 [
-                    BuildRunEditorLaunch(resolvedName, command, launchTarget, runAsAdmin, order: 0),
+                    BuildRunEditorLaunch(resolvedName, command, launchTarget, runAsAdmin, taskType, order: 0),
                 ];
             }
             else
             {
                 var primary = GetPrimaryLaunch(shortcut);
-                ApplyRunEditorFieldsToLaunch(primary, resolvedName, command, launchTarget, runAsAdmin);
+                ApplyRunEditorFieldsToLaunch(primary, resolvedName, command, launchTarget, runAsAdmin, taskType);
                 if (string.IsNullOrWhiteSpace(primary.Label))
                 {
                     primary.Label = resolvedName;
@@ -250,7 +257,7 @@ internal static class ShortcutFormSave
         else
         {
             var primary = GetPrimaryLaunch(shortcut);
-            ApplyRunEditorFieldsToLaunch(primary, resolvedName, command, launchTarget, runAsAdmin);
+            ApplyRunEditorFieldsToLaunch(primary, resolvedName, command, launchTarget, runAsAdmin, taskType);
         }
 
         ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
@@ -322,6 +329,29 @@ internal static class ShortcutFormSave
             name,
             abbreviation,
             directory,
+            command,
+            launchTarget,
+            runAsAdmin,
+            TaskTypeCatalog.None,
+            shortcuts,
+            onSaved);
+
+    public static ShortcutSaveResult TrySave(
+        string? originalName,
+        string name,
+        string abbreviation,
+        string directory,
+        string command,
+        string launchTarget,
+        bool runAsAdmin,
+        string taskType,
+        IShortcutRepository shortcuts,
+        Action? onSaved) =>
+        TrySave(
+            originalName,
+            name,
+            abbreviation,
+            directory,
             [
                 new ShortcutFormLaunchInput
                 {
@@ -330,6 +360,7 @@ internal static class ShortcutFormSave
                     LaunchTarget = launchTarget,
                     RunAsAdmin = runAsAdmin,
                     IsEnabled = true,
+                    TaskType = taskType,
                 },
             ],
             shortcuts,
@@ -400,6 +431,7 @@ internal static class ShortcutFormSave
                     RunAsAdmin = launch.RunAsAdmin,
                     IsEnabled = launch.IsEnabled,
                     Order = index,
+                    TaskType = TaskTypeCatalog.Normalize(launch.TaskType),
                 };
 
                 var scratch = new TerminalShortcut();
@@ -464,6 +496,7 @@ internal static class ShortcutFormSave
         string command,
         string launchTarget,
         bool runAsAdmin,
+        string taskType,
         int order)
     {
         var entry = new WorkspaceEntry
@@ -476,7 +509,7 @@ internal static class ShortcutFormSave
             Order = order,
         };
 
-        ApplyRunEditorFieldsToLaunch(entry, name, command, launchTarget, runAsAdmin);
+        ApplyRunEditorFieldsToLaunch(entry, name, command, launchTarget, runAsAdmin, taskType);
         return entry;
     }
 
@@ -485,10 +518,12 @@ internal static class ShortcutFormSave
         string name,
         string command,
         string launchTarget,
-        bool runAsAdmin)
+        bool runAsAdmin,
+        string taskType)
     {
         launch.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
         launch.RunAsAdmin = runAsAdmin;
+        launch.TaskType = TaskTypeCatalog.Normalize(taskType);
 
         var launchScratch = new TerminalShortcut();
         TerminalCatalog.ApplyLaunchTargetId(launchScratch, launchTarget);
@@ -537,6 +572,8 @@ internal sealed class ShortcutFormLaunchInput
     public bool RunAsAdmin { get; set; }
 
     public bool IsEnabled { get; set; } = true;
+
+    public string TaskType { get; set; } = TaskTypeCatalog.None;
 }
 
 [JsonSerializable(typeof(PersistedShortcutEditDraft))]

@@ -15,6 +15,7 @@ internal sealed class ShortcutEditorWindow : Window
     private readonly TextBox _directoryBox;
     private readonly TextBox _commandBox;
     private readonly ComboBox _terminalBox;
+    private readonly ComboBox _taskTypeBox;
     private readonly CheckBox _adminBox;
 
     public string ResultMessage { get; private set; } = string.Empty;
@@ -91,6 +92,27 @@ internal sealed class ShortcutEditorWindow : Window
             ? ShortcutFormSave.EncodeLaunchTargetForEntry(primaryLaunch)
             : TerminalCatalog.EncodeLaunchTargetId(existing ?? new TerminalShortcut());
         root.Children.Add(_terminalBox);
+
+        root.Children.Add(new TextBlock
+        {
+            Text = "Task type",
+            Margin = new Thickness(0, 8, 0, 4),
+        });
+
+        _taskTypeBox = new ComboBox
+        {
+            DisplayMemberPath = "Label",
+            SelectedValuePath = "Id",
+            Margin = new Thickness(0, 0, 0, 8),
+        };
+        _taskTypeBox.Items.Add(new { Id = TaskTypeCatalog.None, Label = "None" });
+        foreach (var (id, title) in TaskTypeCatalog.GetChoices())
+        {
+            _taskTypeBox.Items.Add(new { Id = id, Label = title });
+        }
+
+        _taskTypeBox.SelectedValue = TaskTypeCatalog.Normalize(primaryLaunch?.TaskType);
+        root.Children.Add(_taskTypeBox);
 
         _adminBox = new CheckBox
         {
@@ -180,6 +202,7 @@ internal sealed class ShortcutEditorWindow : Window
     private void SaveShortcut()
     {
         var launchTarget = _terminalBox.SelectedValue as string ?? "default";
+        var taskType = _taskTypeBox.SelectedValue as string ?? TaskTypeCatalog.None;
         var result = ShortcutFormSave.TrySaveRunEditor(
             _existing,
             _existing?.Name,
@@ -189,6 +212,7 @@ internal sealed class ShortcutEditorWindow : Window
             _commandBox.Text,
             launchTarget,
             _adminBox.IsChecked == true,
+            taskType,
             _shortcuts,
             onSaved: null);
 

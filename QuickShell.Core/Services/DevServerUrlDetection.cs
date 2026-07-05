@@ -46,6 +46,60 @@ internal static partial class DevServerUrlDetection
         }
     }
 
+    public static string? TryInferTaskType(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return null;
+        }
+
+        var packageJsonPath = Path.Combine(directory, "package.json");
+        if (!File.Exists(packageJsonPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            var script = ReadScript(root, "dev") ?? ReadScript(root, "start");
+            return HasFrontendFrameworkSignal(root, script) ? TaskTypeCatalog.Frontend : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool HasFrontendFrameworkSignal(JsonElement root, string? script)
+    {
+        if (script is not null)
+        {
+            if (script.Contains("vite", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (script.Contains("next", StringComparison.OrdinalIgnoreCase)
+                || script.Contains("react-scripts", StringComparison.OrdinalIgnoreCase)
+                || script.Contains("nuxt", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return HasDependency(root, "vite")
+            || HasDependency(root, "next")
+            || HasDependency(root, "react-scripts")
+            || HasDependency(root, "nuxt");
+    }
+
     public static string? TryDetectDevLaunchCommand(string directory)
     {
         if (string.IsNullOrWhiteSpace(directory))

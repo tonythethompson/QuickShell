@@ -258,6 +258,72 @@ public sealed class ShortcutPersistenceMigrationTests
         Assert.False(saved.Launches[1].IsEnabled);
     }
 
+    [Fact]
+    public async Task LegacyShapeWithoutTaskType_DefaultsToNone()
+    {
+        using var directory = new TempDataDirectory();
+        var workspaceDirectory = Path.Combine(directory.Path, "NoTaskType");
+        Directory.CreateDirectory(workspaceDirectory);
+
+        // Shape from before TaskType existed: launch entry has no "TaskType" property at all.
+        WriteShortcutsJson(directory.Path, $$"""
+        [
+          {
+            "Name": "NoTaskType",
+            "Directory": "{{Escape(workspaceDirectory)}}",
+            "Launches": [
+              { "Id": "a", "Label": "Main", "Command": "npm start", "IsEnabled": true, "Order": 0 }
+            ]
+          }
+        ]
+        """);
+
+        using var repository = new ShortcutRepository(directory.Path);
+        await repository.PreloadAsync();
+
+        var shortcut = repository.GetByName("NoTaskType");
+        Assert.NotNull(shortcut);
+        Assert.Equal("none", shortcut.Launches[0].TaskType);
+    }
+
+    [Fact]
+    public async Task ExplicitTaskType_RoundTripsThroughSaveAndReload()
+    {
+        using var directory = new TempDataDirectory();
+        var workspaceDirectory = Path.Combine(directory.Path, "TypedTask");
+        Directory.CreateDirectory(workspaceDirectory);
+
+        WriteShortcutsJson(directory.Path, $$"""
+        [
+          {
+            "Name": "TypedTask",
+            "Directory": "{{Escape(workspaceDirectory)}}",
+            "Launches": [
+              { "Id": "a", "Label": "Main", "Command": "psql", "IsEnabled": true, "Order": 0, "TaskType": "database" }
+            ]
+          }
+        ]
+        """);
+
+        using (var repository = new ShortcutRepository(directory.Path))
+        {
+            await repository.PreloadAsync();
+
+            var loaded = repository.GetByName("TypedTask");
+            Assert.NotNull(loaded);
+            Assert.Equal("database", loaded.Launches[0].TaskType);
+
+            repository.Upsert(loaded, originalName: "TypedTask");
+        }
+
+        using var reloaded = new ShortcutRepository(directory.Path);
+        await reloaded.PreloadAsync();
+
+        var saved = reloaded.GetByName("TypedTask");
+        Assert.NotNull(saved);
+        Assert.Equal("database", saved.Launches[0].TaskType);
+    }
+
     private static void WriteShortcutsJson(string directoryPath, string json) =>
         File.WriteAllText(Path.Combine(directoryPath, "shortcuts.json"), json);
 

@@ -34,10 +34,11 @@ internal static class ShortcutFormTemplateJson
     public static string BuildTemplate(
         string terminalChoices,
         string companionChoices,
-        IReadOnlyList<string> commands,
+        IReadOnlyList<(string Command, string TaskType)> commands,
+        string taskTypeChoices,
         string displayName = DisplayNameDefault)
     {
-        var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands);
+        var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, taskTypeChoices);
         return $$"""
         {
           "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -258,13 +259,18 @@ internal static class ShortcutFormTemplateJson
         """;
     }
 
-    public static string BuildDataJson(DataPayload draft, IReadOnlyList<string>? commands = null)
+    public static string BuildDataJson(
+        DataPayload draft,
+        IReadOnlyList<(string Command, string TaskType)>? commands = null)
     {
         commands ??= [];
         var commandFields = string.Join(
             ",\n",
-            commands.Select((command, index) =>
-                $"\"LaunchCommand_{index}\": \"{Escape(command)}\""));
+            commands.SelectMany((row, index) => new[]
+            {
+                $"\"LaunchCommand_{index}\": \"{Escape(row.Command)}\"",
+                $"\"LaunchType_{index}\": \"{Escape(TaskTypeCatalog.Normalize(row.TaskType))}\"",
+            }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
 

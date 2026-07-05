@@ -344,6 +344,39 @@ public sealed class DevServerUrlDetectionTests : IDisposable
         Assert.Equal("npm run dev", seed.Command);
         Assert.Single(seed.Launches);
         Assert.Equal("npm run dev", seed.Launches[0].Command);
+        Assert.Equal(TaskTypeCatalog.Frontend, seed.Launches[0].TaskType);
+    }
+
+    [Fact]
+    public void ApplyDirectoryHints_DoesNotOverwriteExplicitlySetTaskType()
+    {
+        WritePackageJson("""
+        {
+          "scripts": {
+            "dev": "vite"
+          }
+        }
+        """);
+
+        var seed = WorkspaceSeedFactory.ApplyDirectoryHints(new TerminalShortcut
+        {
+            Name = "sample",
+            Directory = _root,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Main",
+                    IsEnabled = true,
+                    Order = 0,
+                    TaskType = TaskTypeCatalog.Database,
+                },
+            ],
+        });
+
+        Assert.Single(seed.Launches);
+        Assert.Equal(TaskTypeCatalog.Database, seed.Launches[0].TaskType);
     }
 
     private void WritePackageJson(string contents) =>

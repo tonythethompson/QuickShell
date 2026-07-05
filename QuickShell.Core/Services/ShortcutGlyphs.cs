@@ -40,4 +40,16 @@ internal static class ShortcutGlyphs
 
     /// <summary>Segoe MDL2 OpenWith — generic "launch/open application".</summary>
     public const string OpenCompanionApp = "\uE7AC";
+
+    /// <summary>Segoe MDL2 Plug \u2014 task type: API/service. Verify visually before shipping.</summary>
+    public const string TaskApi = "\uE968";
+
+    /// <summary>Segoe MDL2 Globe \u2014 task type: Frontend. Verify visually before shipping.</summary>
+    public const string TaskFrontend = "\uE774";
+
+    /// <summary>Segoe MDL2 database-like glyph \u2014 task type: Database. Verify visually before shipping.</summary>
+    public const string TaskDatabase = "\uEDA2";
+
+    /// <summary>Segoe MDL2 List \u2014 task type: Logs. Verify visually before shipping.</summary>
+    public const string TaskLogs = "\uE7C3";
 }

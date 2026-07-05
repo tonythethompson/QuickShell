@@ -17,4 +17,6 @@ internal sealed class WorkspaceEntry
     public bool IsEnabled { get; set; } = true;
 
     public int Order { get; set; }
+
+    public string TaskType { get; set; } = "none";
 }

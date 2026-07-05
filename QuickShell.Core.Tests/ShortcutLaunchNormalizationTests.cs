@@ -93,6 +93,60 @@ public sealed class ShortcutLaunchNormalizationTests
     }
 
     [Fact]
+    public void NormalizeShortcut_UnknownTaskType_CollapsesToNone()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "Garbage",
+            Directory = @"C:\Projects\Garbage",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Main",
+                    Command = "npm start",
+                    Terminal = "wt",
+                    IsEnabled = true,
+                    Order = 0,
+                    TaskType = "garbage",
+                },
+            ],
+        };
+
+        ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
+
+        Assert.Equal("none", shortcut.Launches[0].TaskType);
+    }
+
+    [Fact]
+    public void NormalizeShortcut_ValidTaskType_IsPreserved()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "Typed",
+            Directory = @"C:\Projects\Typed",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Main",
+                    Command = "npm run dev",
+                    Terminal = "wt",
+                    IsEnabled = true,
+                    Order = 0,
+                    TaskType = "Frontend",
+                },
+            ],
+        };
+
+        ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
+
+        Assert.Equal("frontend", shortcut.Launches[0].TaskType);
+    }
+
+    [Fact]
     public void TryValidateLaunches_RejectsDuplicateLabels()
     {
         var shortcut = new TerminalShortcut

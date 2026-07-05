@@ -112,6 +112,44 @@ public sealed class ShortcutDraftStoreTests : IDisposable
         Assert.False(raised);
     }
 
+    [Fact]
+    public void SaveIfDirty_TaskTypeOnlyChange_IsTreatedAsDirtyAndPersisted()
+    {
+        var shortcut = CreateSavedShortcut();
+        var repository = new FakeShortcutRepository([shortcut], _configDirectory);
+        var store = new ShortcutDraftStore(repository);
+
+        var baseline = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        var dirty = CreateLaunchBaseline(shortcut, TaskTypeCatalog.Database);
+
+        store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        Assert.True(store.HasPending);
+        Assert.True(store.TryGetForRestore(shortcut.Name, out var restored));
+        Assert.Equal(TaskTypeCatalog.Database, restored.Launches[0].TaskType);
+    }
+
+    private static ShortcutFormDraftData CreateLaunchBaseline(TerminalShortcut shortcut, string taskType) => new()
+    {
+        OriginalName = shortcut.Name,
+        Name = shortcut.Name,
+        Directory = shortcut.Directory,
+        Command = shortcut.Command ?? string.Empty,
+        LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
+        Launches =
+        [
+            new ShortcutFormLaunchDraftData
+            {
+                Id = "launch-1",
+                Label = "Main",
+                Command = shortcut.Command ?? string.Empty,
+                LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
+                IsEnabled = true,
+                TaskType = taskType,
+            },
+        ],
+    };
+
     public void Dispose()
     {
         try

@@ -1779,7 +1779,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 || !string.Equals(a.Command, b.Command, StringComparison.Ordinal)
                 || a.RunAsAdmin != b.RunAsAdmin
                 || a.IsEnabled != b.IsEnabled
-                || a.Order != b.Order)
+                || a.Order != b.Order
+                || !string.Equals(TaskTypeCatalog.Normalize(a.TaskType), TaskTypeCatalog.Normalize(b.TaskType), StringComparison.Ordinal))
             {
                 return false;
             }

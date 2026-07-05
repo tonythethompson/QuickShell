@@ -112,6 +112,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
                     LaunchTarget = launch.LaunchTarget,
                     RunAsAdmin = launch.RunAsAdmin,
                     IsEnabled = launch.IsEnabled,
+                    TaskType = launch.TaskType,
                 })
                 .ToList(),
         };
@@ -166,6 +167,7 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
                 LaunchTarget = launch.LaunchTarget,
                 RunAsAdmin = launch.RunAsAdmin,
                 IsEnabled = launch.IsEnabled,
+                TaskType = launch.TaskType,
             }).ToList()
             : null;
 
@@ -415,7 +417,8 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
                 || !string.Equals(Normalize(a.Command), Normalize(b.Command), StringComparison.Ordinal)
                 || !string.Equals(Normalize(a.LaunchTarget), Normalize(b.LaunchTarget), StringComparison.Ordinal)
                 || a.RunAsAdmin != b.RunAsAdmin
-                || a.IsEnabled != b.IsEnabled)
+                || a.IsEnabled != b.IsEnabled
+                || !string.Equals(TaskTypeCatalog.Normalize(a.TaskType), TaskTypeCatalog.Normalize(b.TaskType), StringComparison.Ordinal))
             {
                 return false;
             }
@@ -448,7 +451,8 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
                 || !string.Equals(Normalize(draft.Command), Normalize(entry.Command), StringComparison.Ordinal)
                 || !string.Equals(Normalize(draft.LaunchTarget), Normalize(launchTarget), StringComparison.Ordinal)
                 || draft.RunAsAdmin != entry.RunAsAdmin
-                || draft.IsEnabled != entry.IsEnabled)
+                || draft.IsEnabled != entry.IsEnabled
+                || !string.Equals(TaskTypeCatalog.Normalize(draft.TaskType), TaskTypeCatalog.Normalize(entry.TaskType), StringComparison.Ordinal))
             {
                 return false;
             }

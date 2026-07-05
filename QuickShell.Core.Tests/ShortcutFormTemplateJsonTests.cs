@@ -1,4 +1,5 @@
 using QuickShell.Services;
+using System.Linq;
 using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
@@ -18,6 +19,7 @@ public sealed class ShortcutFormTemplateJsonTests
       "LaunchTarget",
       "RunAsAdmin",
       "LaunchCommand_0",
+      "LaunchType_0",
   ];
 
     [Fact]
@@ -86,6 +88,17 @@ public sealed class ShortcutFormTemplateJsonTests
     }
 
     [Fact]
+    public void BuildTemplate_EmbedsTaskTypeChoicesAsJsonArray()
+    {
+        var template = BuildDefaultTemplate();
+        using var document = JsonDocument.Parse(template);
+
+        var taskTypeChoices = FindChoiceSetChoices(document.RootElement, "LaunchType_0");
+        Assert.True(taskTypeChoices.GetArrayLength() >= 5);
+        Assert.Equal("none", taskTypeChoices[0].GetProperty("value").GetString());
+    }
+
+    [Fact]
     public void BuildTemplate_IncludesSaveAndCancelActions()
     {
         var template = BuildDefaultTemplate();
@@ -136,11 +149,13 @@ public sealed class ShortcutFormTemplateJsonTests
     {
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(
             new ShortcutFormTemplateJson.DataPayload { Name = "App" },
-            ["npm run dev", "dotnet watch"]);
+            [("npm run dev", TaskTypeCatalog.Frontend), ("dotnet watch", TaskTypeCatalog.Api)]);
 
         using var document = JsonDocument.Parse(dataJson);
         Assert.Equal("npm run dev", document.RootElement.GetProperty("LaunchCommand_0").GetString());
         Assert.Equal("dotnet watch", document.RootElement.GetProperty("LaunchCommand_1").GetString());
+        Assert.Equal("frontend", document.RootElement.GetProperty("LaunchType_0").GetString());
+        Assert.Equal("api", document.RootElement.GetProperty("LaunchType_1").GetString());
     }
 
     [Fact]
@@ -172,7 +187,8 @@ public sealed class ShortcutFormTemplateJsonTests
         return ShortcutFormTemplateJson.BuildTemplate(
             TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true),
             CompanionAppCatalog.BuildFormChoicesJson(),
-            commands);
+            commands.Select(command => (command, TaskTypeCatalog.None)).ToList(),
+            TaskTypeCatalog.BuildFormChoicesJson());
     }
 
     private static JsonElement FindChoiceSetChoices(JsonElement root, string choiceSetId)

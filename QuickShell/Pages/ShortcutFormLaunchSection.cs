@@ -10,6 +10,8 @@ internal static class ShortcutFormLaunchSection
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
         public string Command { get; set; } = string.Empty;
+
+        public string TaskType { get; set; } = TaskTypeCatalog.None;
     }
 
     public static List<CommandRowDraft> CommandsFromShortcut(TerminalShortcut? shortcut)
@@ -37,6 +39,7 @@ internal static class ShortcutFormLaunchSection
             {
                 Id = entry.Id,
                 Command = entry.Command ?? string.Empty,
+                TaskType = TaskTypeCatalog.Normalize(entry.TaskType),
             })
             .ToList();
     }
@@ -48,7 +51,9 @@ internal static class ShortcutFormLaunchSection
         bool runAsAdmin)
     {
         var rows = commands.ToList();
-        while (rows.Count > 1 && string.IsNullOrWhiteSpace(rows[^1].Command))
+        while (rows.Count > 1
+            && string.IsNullOrWhiteSpace(rows[^1].Command)
+            && string.Equals(TaskTypeCatalog.Normalize(rows[^1].TaskType), TaskTypeCatalog.None, StringComparison.Ordinal))
         {
             rows.RemoveAt(rows.Count - 1);
         }
@@ -67,10 +72,12 @@ internal static class ShortcutFormLaunchSection
             LaunchTarget = launchTarget,
             RunAsAdmin = runAsAdmin,
             IsEnabled = true,
+            TaskType = TaskTypeCatalog.Normalize(row.TaskType),
         }).ToList();
     }
 
     public static string BuildCommandRowsJson(IReadOnlyList<CommandRowDraft> commands) =>
         ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => command.Command).ToList());
+            commands.Select(command => (command.Command, command.TaskType)).ToList(),
+            TaskTypeCatalog.BuildFormChoicesJson());
 }
