@@ -6,3 +6,8 @@
 type = "stdio"
 command = "tessl"
 args = [ "mcp", "start" ]
+
+[mcp_servers.serena]
+type = "stdio"
+command = "serena"
+args = [ "start-mcp-server", "--context=codex", "--project-from-cwd" ]
