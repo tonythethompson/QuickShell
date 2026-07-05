@@ -155,7 +155,8 @@ internal static class WtProfilesService
 
     private static void RefreshCacheIfNeeded()
     {
-        var sawChanges = false;
+        var forceRefresh = _cached.Length == 0;
+        var sawChanges = forceRefresh;
         var locations = GetLocations();
         var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -175,7 +176,8 @@ internal static class WtProfilesService
             }
 
             var writeTime = File.GetLastWriteTimeUtc(location.SettingsPath);
-            if (_writeTimes.TryGetValue(location.SettingsPath, out var cachedTime)
+            if (!forceRefresh
+                && _writeTimes.TryGetValue(location.SettingsPath, out var cachedTime)
                 && cachedTime == writeTime
                 && _profilesBySettingsPath.ContainsKey(location.SettingsPath))
             {
