@@ -173,6 +173,16 @@ def _redact_text(text):
             redacted = True
     return text, redacted
 
+def _redact_value(value):
+    if isinstance(value, str):
+        text, _ = _redact_text(value)
+        return text
+    if isinstance(value, list):
+        return [_redact_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _redact_value(item) for key, item in value.items()}
+    return value
+
 def _days_filter(records, days, ts_field="ts"):
     if days is None:
         return records
@@ -257,6 +267,8 @@ def _load_or_create_session(config):
     timeout_min = config.get("session_timeout_minutes", 60)
     try:
         session = json.loads(CUR_SESSION.read_text())
+        if not session.get("session_id"):
+            raise ValueError("missing session_id")
     except Exception:
         session = _new_session()
         CUR_SESSION.parent.mkdir(parents=True, exist_ok=True)
@@ -376,22 +388,26 @@ def cmd_sessions(args):
 def cmd_search(args):
     term = args.term.lower().replace("-", "_").replace(" ", "_")
     limit = min(args.limit or SEARCH_LIMIT_DEFAULT, SEARCH_LIMIT_MAX)
+    cutoff = None
+    if args.days is not None:
+        cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=args.days)).strftime("%Y-%m-%dT%H:%M:%SZ")
     results, total_bytes = [], 0
     for path, rtype in [(EVENTS, "event"), (CHECKPOINTS, "checkpoint"), (SESSIONS, "session"), (THREADS, "thread")]:
         for r in reversed(_read_jsonl(path)):
             if len(results) >= limit:
                 break
+            ts = r.get("ts", r.get("started_at", ""))
+            if cutoff is not None and ts < cutoff:
+                continue
             text = json.dumps(r).lower().replace("-", "_").replace(" ", "_")
             if term in text:
                 snippet = json.dumps(r)[:SEARCH_SNIPPET]
-                entry = {"type": rtype, "ts": r.get("ts", r.get("started_at", "")), "snippet": snippet}
+                entry = {"type": rtype, "ts": ts, "snippet": snippet}
                 entry_bytes = len(json.dumps(entry))
                 if total_bytes + entry_bytes > SEARCH_MAX_BYTES:
                     break
                 results.append(entry)
                 total_bytes += entry_bytes
-    if args.days is not None:
-        results = _days_filter(results, args.days)
     _out(results)
 
 def cmd_checkpoints(args):
@@ -623,7 +639,9 @@ def cmd_repair(args):
     for p in [ACTIVE_CTX, LAST_RECALL, CUR_SESSION, HEALTH_PATH]:
         if not p.exists():
             p.parent.mkdir(parents=True, exist_ok=True)
-            if p.suffix == ".json":
+            if p == CUR_SESSION:
+                _atomic_write_text(CUR_SESSION, json.dumps(_new_session(), indent=2))
+            elif p.suffix == ".json":
                 p.write_text("{}")
             else:
                 p.write_text("")
@@ -704,9 +722,9 @@ def cmd_checkpoint(args):
     if data.get("changed_files"):
         filtered, _ = _filter_paths(data["changed_files"], config)
         data["changed_files"] = filtered
-    # redact text
-    if data.get("summary"):
-        data["summary"], _ = _redact_text(data["summary"])
+    for field in ("summary", "decisions", "open_threads", "next_actions"):
+        if field in data:
+            data[field] = _redact_value(data[field])
     # load session
     try:
         session = json.loads(CUR_SESSION.read_text())
