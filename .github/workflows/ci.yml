@@ -7,6 +7,9 @@ on:
   # Stacked PRs whose base branch predates this file may need master merged in
   # before checks appear on downstream PRs (#5–#9).
   pull_request:
+  # Manual escape hatch: lets a run be dispatched via the Actions tab or API
+  # when a synchronize webhook doesn't fire (e.g. non-standard push paths).
+  workflow_dispatch:
 
 permissions:
   contents: read

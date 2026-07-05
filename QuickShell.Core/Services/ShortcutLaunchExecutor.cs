@@ -149,6 +149,11 @@ internal static class ShortcutLaunchExecutor
         }
     }
 
+    private readonly record struct EntryPlan(
+        WorkspaceEntry Entry,
+        ResolvedLaunch Resolved,
+        bool EffectiveElevation);
+
     private static ShortcutLaunchResult LaunchAll(
         TerminalShortcut shortcut,
         IReadOnlyList<WorkspaceEntry> enabledLaunches,
@@ -159,7 +164,7 @@ internal static class ShortcutLaunchExecutor
         bool companionSucceeded,
         string? companionError)
     {
-        var opened = 0;
+        var plans = new List<EntryPlan>();
         string? lastFailureLabel = null;
 
         foreach (var launch in enabledLaunches)
@@ -167,13 +172,9 @@ internal static class ShortcutLaunchExecutor
             try
             {
                 var launchShortcut = ShortcutLaunchNormalization.ToLaunchShortcut(launch, shortcut);
-                TerminalLauncher.Open(
-                    launchShortcut,
-                    terminalApplicationId,
-                    defaultProfileId,
-                    options.RunAsAdmin,
-                    options.RunAsStandard);
-                opened++;
+                var resolved = TerminalLauncher.Resolve(launchShortcut, terminalApplicationId, defaultProfileId);
+                var effectiveElevation = !options.RunAsStandard && (options.RunAsAdmin || launch.RunAsAdmin);
+                plans.Add(new EntryPlan(launch, resolved, effectiveElevation));
             }
             catch (DirectoryNotFoundException)
             {
@@ -183,23 +184,49 @@ internal static class ShortcutLaunchExecutor
             {
                 lastFailureLabel = launch.Label;
             }
+        }
+
+        var groups = GroupPlans(plans);
+        var openedCommands = 0;
+
+        foreach (var group in groups)
+        {
+            try
+            {
+                if (group.Count == 1)
+                {
+                    TerminalLauncher.OpenResolved(group[0].Resolved, group[0].EffectiveElevation);
+                }
+                else
+                {
+                    TerminalLauncher.OpenGroup(
+                        group.Select(p => p.Resolved).ToList(),
+                        group[0].EffectiveElevation);
+                }
+
+                openedCommands += group.Count;
+            }
             catch (Win32Exception)
             {
-                lastFailureLabel = launch.Label;
+                lastFailureLabel = group[^1].Entry.Label;
+            }
+            catch (InvalidOperationException)
+            {
+                lastFailureLabel = group[^1].Entry.Label;
             }
         }
 
-        if (opened == 0)
+        if (openedCommands == 0)
         {
             return ShortcutLaunchResult.StayOpen(
                 lastFailureLabel is null
-                    ? "Workspace could not launch any terminals."
+                    ? "Workspace could not launch any commands."
                     : $"{lastFailureLabel} could not be launched.");
         }
 
-        var successPrefix = opened == enabledLaunches.Count
+        var successPrefix = openedCommands == enabledLaunches.Count
             ? "Workspace launched"
-            : $"Workspace partially launched: {opened} of {enabledLaunches.Count} terminals opened";
+            : $"Workspace partially launched: {openedCommands} of {enabledLaunches.Count} commands launched";
 
         return BuildPostLaunchResult(
             shortcut,
@@ -208,7 +235,38 @@ internal static class ShortcutLaunchExecutor
             companionSucceeded,
             companionError,
             successPrefix,
-            partialLaunch: opened < enabledLaunches.Count);
+            partialLaunch: openedCommands < enabledLaunches.Count);
+    }
+
+    private static List<List<EntryPlan>> GroupPlans(List<EntryPlan> plans)
+    {
+        var groups = new List<List<EntryPlan>>();
+        var groupIndexByKey = new Dictionary<(string Host, bool Elevated), int>();
+
+        foreach (var plan in plans)
+        {
+            var isTabCapable = plan.Resolved.Target.Kind is
+                LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal;
+
+            if (!isTabCapable)
+            {
+                groups.Add([plan]);
+                continue;
+            }
+
+            var key = ((plan.Resolved.Target.HostExecutable ?? string.Empty).ToUpperInvariant(), plan.EffectiveElevation);
+            if (groupIndexByKey.TryGetValue(key, out var index))
+            {
+                groups[index].Add(plan);
+            }
+            else
+            {
+                groupIndexByKey[key] = groups.Count;
+                groups.Add([plan]);
+            }
+        }
+
+        return groups;
     }
 
     private static ShortcutLaunchResult BuildPostLaunchResult(
