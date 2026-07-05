@@ -23,6 +23,8 @@ internal enum ProjectStack
     Turbo = 1 << 16,
     Nx = 1 << 17,
     Procfile = 1 << 18,
+    Rails = 1 << 19,
+    Elixir = 1 << 20,
 }
 
 internal sealed class ProjectClassification

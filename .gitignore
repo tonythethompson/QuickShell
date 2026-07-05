@@ -41,6 +41,16 @@ pr9-review.md
 pr8-threads.json
 pr9-threads.json
 /.bob/.bob-errors
+/.bob/tmp
+/.bob/notes
 pr9-comments-latest.json
 tessl.json
 /.tmp/tasks
+tmp-dump.csx
+
+# --- ltm-power ---
+ltm/store/*.jsonl
+ltm/runtime/*
+ltm/reports/*
+ltm/snapshots/*
+# --- /ltm-power ---

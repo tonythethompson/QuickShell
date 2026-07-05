@@ -38,26 +38,13 @@
     d="M38 252c-2-29 21-54 50-54h850c25 0 46 18 50 42l-1 22H37z"
     fill="url(#folderSheen)"/>
 
-  <path
-    d="M82 242l88 70-88 70"
-    fill="none"
-    stroke="url(#outline)"
-    stroke-width="46"
-    stroke-linecap="round"
-    stroke-linejoin="round"/>
-  <rect
-    x="212"
-    y="352"
-    width="104"
-    height="38"
-    rx="19"
-    fill="url(#outline)"/>
-
-  <path
-    d="M541 341h143c16 0 24 18 15 30l-86 119h80c16 0 25 19 13 31L406 815c-14 14-36-1-29-19l80-206h-67c-16 0-25-19-15-31l149-211c4-5 10-7 17-7z"
-    fill="#FFFFFF"
-    stroke="url(#outline)"
-    stroke-width="42"
-    stroke-linejoin="round"
-    stroke-linecap="round"/>
+  <g transform="translate(541 578) scale(0.90) translate(-541 -578)">
+    <path
+      d="M541 341h143c16 0 24 18 15 30l-86 119h80c16 0 25 19 13 31L406 815c-14 14-36-1-29-19l80-206h-67c-16 0-25-19-15-31L541 341z"
+      fill="#FFFFFF"
+      stroke="url(#outline)"
+      stroke-width="42"
+      stroke-linejoin="bevel"
+      stroke-linecap="butt"/>
+  </g>
 </svg>

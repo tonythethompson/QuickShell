@@ -19,6 +19,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         WorkspaceHealthCheck.ProcessNamesOverride = () => [];
         WorkspaceHealthCheck.WslDistroNamesOverride = () => ["Ubuntu"];
         WorkspaceHealthCheck.GitStatusOverride = _ => null;
+        WorkspaceHealthCheck.GitCommandOverride = null;
     }
 
     [Fact]
@@ -118,7 +119,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_GitStatusIsInformational()
     {
-        WorkspaceHealthCheck.GitStatusOverride = _ => new WorkspaceGitStatus("main", IsDirty: true);
+        WorkspaceHealthCheck.GitStatusOverride = _ => new WorkspaceGitStatus("main", IsDirty: true, IsDetached: false);
         var shortcut = BuildShortcut(_root);
 
         var health = WorkspaceHealthCheck.Check(
@@ -132,6 +133,32 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
             finding => finding.Kind == WorkspaceHealthFindingKind.GitState);
         Assert.Equal(WorkspaceHealthSeverity.Info, gitFinding.Severity);
         Assert.Contains("main", gitFinding.Title, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Check_GitStatusSupportsWorktreesWithoutGitDirectory()
+    {
+        WorkspaceHealthCheck.GitStatusOverride = null;
+        WorkspaceHealthCheck.GitCommandOverride = (_, arguments) => arguments switch
+        {
+            "rev-parse --is-inside-work-tree" => "true",
+            "rev-parse --abbrev-ref HEAD" => "feature/worktree",
+            "status --porcelain" => " M app.cs",
+            _ => null,
+        };
+        var shortcut = BuildShortcut(_root);
+
+        var health = WorkspaceHealthCheck.Check(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.False(Directory.Exists(Path.Combine(_root, ".git")));
+        var gitFinding = Assert.Single(
+            health.Findings,
+            finding => finding.Kind == WorkspaceHealthFindingKind.GitState);
+        Assert.Contains("feature/worktree", gitFinding.Title, StringComparison.Ordinal);
+        Assert.Contains("uncommitted changes", gitFinding.Detail, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -177,7 +204,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     public void DisplayTags_AddsRunningAndWarningWithoutSubtitleChanges()
     {
         WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
-        var shortcut = BuildShortcut(_root, "missing-tool run");
+        var shortcut = BuildShortcut(_root, "npm run dev");
         shortcut.DevServerUrl = "http://localhost:5173";
         var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
 
@@ -187,9 +214,30 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
             "cmd");
 
         Assert.NotNull(tags);
-        Assert.Contains(tags, tag => tag.ToolTip == "Workspace health warning");
+        var warningTag = Assert.Single(tags, tag => tag.ToolTip == "Workspace health warning");
+        Assert.True(warningTag.Foreground.HasValue);
         Assert.Contains(tags, tag => tag.ToolTip == "Workspace appears to be running");
         Assert.Equal(subtitle, ShortcutHealth.BuildListSubtitle(shortcut));
+    }
+
+    [Fact]
+    public void DisplayTags_NeverExceedsTwoEvenWithAdminFavoriteWarningAndRunning()
+    {
+        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        var shortcut = BuildShortcut(_root, "npm run dev");
+        shortcut.DevServerUrl = "http://localhost:5173";
+        shortcut.RunAsAdmin = true;
+        shortcut.IsPinned = true;
+
+        var tags = ShortcutDisplayTags.BuildTags(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.NotNull(tags);
+        Assert.True(tags.Length <= 2, $"Expected at most 2 tags, found {tags.Length}.");
+        Assert.DoesNotContain(tags, tag => tag.ToolTip == "Favorite");
+        Assert.DoesNotContain(tags, tag => tag.ToolTip == "Always run as administrator");
     }
 
     private static TerminalShortcut BuildShortcut(string directory, string? command = null) =>
@@ -220,6 +268,8 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         WorkspaceHealthCheck.ProcessNamesOverride = null;
         WorkspaceHealthCheck.WslDistroNamesOverride = null;
         WorkspaceHealthCheck.GitStatusOverride = null;
+        WorkspaceHealthCheck.GitCommandOverride = null;
+        WorkspaceStatusService.ResetCacheForTests();
         try
         {
             Directory.Delete(_root, recursive: true);

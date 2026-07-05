@@ -1,5 +1,15 @@
 {
   "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "serena",
+      "args": [
+        "start-mcp-server",
+        "--context=codex",
+        "--project-from-cwd"
+      ],
+      "directTools": true
+    },
     "tessl": {
       "type": "stdio",
       "command": "tessl",

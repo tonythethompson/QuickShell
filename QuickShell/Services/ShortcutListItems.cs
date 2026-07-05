@@ -26,7 +26,10 @@ internal static class ShortcutListItems
             Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
         };
 
-        var tags = ShortcutDisplayTags.BuildTags(shortcut);
+        var tags = ShortcutDisplayTags.BuildTags(
+            shortcut,
+            settings.TerminalApplicationId,
+            settings.DefaultProfileId);
         if (tags is not null)
         {
             item.Tags = tags;
@@ -35,7 +38,7 @@ internal static class ShortcutListItems
         if (onChanged is not null)
         {
             item.MoreCommands = needsRepair
-                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged)
+                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings)
                 : createShortcutCommand is not null
                     ? ShortcutContextCommands.BuildForHomePin(
                         shortcut,

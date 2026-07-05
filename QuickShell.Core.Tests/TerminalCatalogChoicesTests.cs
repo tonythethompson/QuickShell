@@ -28,6 +28,25 @@ public sealed class TerminalCatalogChoicesTests
     }
 
     [Fact]
+    public void ResolveEffectiveLaunchTargetId_FollowsSameAsPreviousChain()
+    {
+        var launches = new List<WorkspaceEntry>
+        {
+            new() { Terminal = "default" },
+            new() { Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { Terminal = "it", WtProfile = "Nushell" },
+            new() { Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId },
+        };
+
+        Assert.Equal("default", TerminalCatalog.ResolveEffectiveLaunchTargetId(launches, 0));
+        Assert.Equal("default", TerminalCatalog.ResolveEffectiveLaunchTargetId(launches, 1));
+        Assert.Equal("default", TerminalCatalog.ResolveEffectiveLaunchTargetId(launches, 2));
+        Assert.Equal("it:Nushell", TerminalCatalog.ResolveEffectiveLaunchTargetId(launches, 3));
+        Assert.Equal("it:Nushell", TerminalCatalog.ResolveEffectiveLaunchTargetId(launches, 4));
+    }
+
+    [Fact]
     public void GetProfileLabel_StandalonePwsh_ReturnsPowerShell7()
     {
         var shortcut = new TerminalShortcut { Terminal = "pwsh" };

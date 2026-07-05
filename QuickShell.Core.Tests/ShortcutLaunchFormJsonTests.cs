@@ -5,41 +5,49 @@ namespace QuickShell.Core.Tests;
 
 public sealed class ShortcutLaunchFormJsonTests
 {
+    private const string TerminalChoices = """[{ "title": "Default", "value": "default" }]""";
+
     [Fact]
     public void BuildCommandRowsJson_TwoCommands_UsesDistinctIds()
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.None), ("dotnet watch", TaskTypeCatalog.Api)],
-                TaskTypeCatalog.BuildFormChoicesJson()));
+                [("npm start", TaskTypeCatalog.None, "default"), ("dotnet watch", TaskTypeCatalog.Api, "default")],
+                TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
         var text = document.RootElement.GetRawText();
 
         Assert.Contains("LaunchCommand_0", text);
         Assert.Contains("LaunchCommand_1", text);
+        Assert.Contains("LaunchTarget_0", text);
+        Assert.Contains("LaunchTarget_1", text);
         Assert.Contains("${LaunchCommand_0}", text);
         Assert.Contains("${LaunchCommand_1}", text);
-        Assert.Contains("+ Add command", text);
+        Assert.Contains(FormActionGlyphs.Add, text);
+        Assert.Contains("removeLaunch", text);
+        Assert.Contains("destructive", text);
+        Assert.DoesNotContain("+ Add command", text);
+        Assert.DoesNotContain("Command 1", text);
+        Assert.DoesNotContain("\"title\": \"Remove command\"", text);
     }
 
     [Fact]
-    public void BuildCommandRowsJson_IncludesLaunchTypeChoiceSetPerRow()
+    public void BuildCommandRowsJson_DoesNotIncludePerRowTaskTypeChoiceSet()
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.Frontend), ("dotnet watch", TaskTypeCatalog.Api)],
-                TaskTypeCatalog.BuildFormChoicesJson()));
+                [("npm start", TaskTypeCatalog.Frontend, "default"), ("dotnet watch", TaskTypeCatalog.Api, "default")],
+                TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
         var text = document.RootElement.GetRawText();
 
-        Assert.Contains("LaunchType_0", text);
-        Assert.Contains("LaunchType_1", text);
-        Assert.Contains("${LaunchType_0}", text);
-        Assert.Contains("${LaunchType_1}", text);
-        Assert.Contains("\"api\"", text);
-        Assert.Contains("\"frontend\"", text);
+        Assert.Contains("LaunchCommand_0", text);
+        Assert.Contains("LaunchCommand_1", text);
+        Assert.DoesNotContain("LaunchType_0", text);
+        Assert.DoesNotContain("LaunchType_1", text);
+        Assert.DoesNotContain("Task type", text);
     }
 
     [Fact]
@@ -48,7 +56,7 @@ public sealed class ShortcutLaunchFormJsonTests
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildLaunchRowsJson(
                 [new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Main", Command = "npm start" }],
-                """[{ "title": "Default", "value": "default" }]"""));
+                TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
         var text = document.RootElement.GetRawText();
@@ -67,7 +75,7 @@ public sealed class ShortcutLaunchFormJsonTests
                 new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Frontend", Command = "npm run dev" },
                 new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Backend", Command = "dotnet watch" },
             ],
-            """[{ "title": "Default", "value": "default" }]""");
+            TerminalChoices);
 
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(rows);
         using var document = JsonDocument.Parse(json);

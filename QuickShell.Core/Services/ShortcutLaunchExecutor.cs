@@ -7,7 +7,8 @@ internal readonly record struct ShortcutLaunchOptions(
     bool RunAsAdmin = false,
     bool RunAsStandard = false,
     bool IncludeCompanionApp = true,
-    bool IncludeDevServerLink = true);
+    bool IncludeDevServerLink = true,
+    bool BlockDirtyBranchSwitch = true);
 
 internal sealed class ShortcutLaunchResult
 {
@@ -49,10 +50,24 @@ internal static class ShortcutLaunchExecutor
                 diagnostics: diagnostics);
         }
 
-        if (!TryGetLaunchDirectory(shortcut.Directory, out _, out var directoryError))
+        if (!TryGetLaunchDirectory(shortcut.Directory, out var launchDirectory, out var directoryError))
         {
             diagnostics.AddError(LaunchDiagnosticKind.HealthError, "Workspace folder could not be used.", directoryError);
             return ShortcutLaunchResult.StayOpen(directoryError, diagnostics: diagnostics);
+        }
+
+        var gitGate = WorkspaceGitLaunchGate.EvaluateBeforeLaunch(
+            launchDirectory,
+            options.BlockDirtyBranchSwitch);
+        if (!gitGate.CanProceed)
+        {
+            diagnostics.AddError(
+                LaunchDiagnosticKind.HealthError,
+                "Git branch switch was blocked.",
+                gitGate.StayOpenMessage);
+            return ShortcutLaunchResult.StayOpen(
+                gitGate.StayOpenMessage ?? "Git branch switch was blocked.",
+                diagnostics: diagnostics);
         }
 
         var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
@@ -115,10 +130,24 @@ internal static class ShortcutLaunchExecutor
                 diagnostics: diagnostics);
         }
 
-        if (!TryGetLaunchDirectory(shortcut.Directory, out _, out var directoryError))
+        if (!TryGetLaunchDirectory(shortcut.Directory, out var launchDirectory, out var directoryError))
         {
             diagnostics.AddError(LaunchDiagnosticKind.HealthError, "Workspace folder could not be used.", directoryError);
             return ShortcutLaunchResult.StayOpen(directoryError, diagnostics: diagnostics);
+        }
+
+        var gitGate = WorkspaceGitLaunchGate.EvaluateBeforeLaunch(
+            launchDirectory,
+            options.BlockDirtyBranchSwitch);
+        if (!gitGate.CanProceed)
+        {
+            diagnostics.AddError(
+                LaunchDiagnosticKind.HealthError,
+                "Git branch switch was blocked.",
+                gitGate.StayOpenMessage);
+            return ShortcutLaunchResult.StayOpen(
+                gitGate.StayOpenMessage ?? "Git branch switch was blocked.",
+                diagnostics: diagnostics);
         }
 
         var entryOptions = new ShortcutLaunchOptions(
@@ -210,6 +239,13 @@ internal static class ShortcutLaunchExecutor
         ResolvedLaunch Resolved,
         bool EffectiveElevation);
 
+    private sealed class EntryPlanGroup(List<EntryPlan> entries, string? tabHostExecutable)
+    {
+        public List<EntryPlan> Entries { get; } = entries;
+
+        public string? TabHostExecutable { get; } = tabHostExecutable;
+    }
+
     private static ShortcutLaunchResult LaunchAll(
         TerminalShortcut shortcut,
         IReadOnlyList<WorkspaceEntry> enabledLaunches,
@@ -230,20 +266,9 @@ internal static class ShortcutLaunchExecutor
             try
             {
                 var launchShortcut = ShortcutLaunchNormalization.ToLaunchShortcut(launch, shortcut);
-<<<<<<< Updated upstream
                 var resolved = TerminalLauncher.Resolve(launchShortcut, terminalApplicationId, defaultProfileId);
                 var effectiveElevation = !options.RunAsStandard && (options.RunAsAdmin || launch.RunAsAdmin);
                 plans.Add(new EntryPlan(launch, resolved, effectiveElevation));
-=======
-                var attempt = TerminalLauncher.Open(
-                    launchShortcut,
-                    terminalApplicationId,
-                    defaultProfileId,
-                    options.RunAsAdmin,
-                    options.RunAsStandard);
-                AddTerminalSuccessDiagnostics(diagnostics, launch, launchShortcut, attempt);
-                opened++;
->>>>>>> Stashed changes
             }
             catch (DirectoryNotFoundException ex)
             {
@@ -261,45 +286,58 @@ internal static class ShortcutLaunchExecutor
                     $"{launch.Label} terminal could not be launched.",
                     ex.Message);
             }
-<<<<<<< Updated upstream
         }
 
-        var groups = GroupPlans(plans);
+        var groups = GroupPlans(plans, terminalApplicationId);
         var openedCommands = 0;
 
         foreach (var group in groups)
         {
+            var entries = group.Entries;
             try
             {
-                if (group.Count == 1)
+                if (entries.Count == 1)
                 {
-                    TerminalLauncher.OpenResolved(group[0].Resolved, group[0].EffectiveElevation);
+                    var attempt = TerminalLauncher.OpenResolved(entries[0].Resolved, entries[0].EffectiveElevation);
+                    AddTerminalSuccessDiagnostics(
+                        diagnostics,
+                        entries[0].Entry,
+                        entries[0].Resolved.Shortcut,
+                        attempt);
                 }
                 else
                 {
-                    TerminalLauncher.OpenGroup(
-                        group.Select(p => p.Resolved).ToList(),
-                        group[0].EffectiveElevation);
+                    var attempts = TerminalLauncher.OpenGroup(
+                        entries.Select(p => p.Resolved).ToList(),
+                        entries[0].EffectiveElevation,
+                        group.TabHostExecutable);
+                    for (var i = 0; i < entries.Count; i++)
+                    {
+                        AddTerminalSuccessDiagnostics(
+                            diagnostics,
+                            entries[i].Entry,
+                            entries[i].Resolved.Shortcut,
+                            attempts[i]);
+                    }
                 }
 
-                openedCommands += group.Count;
+                openedCommands += entries.Count;
             }
-            catch (Win32Exception)
-            {
-                lastFailureLabel = group[^1].Entry.Label;
-            }
-            catch (InvalidOperationException)
-            {
-                lastFailureLabel = group[^1].Entry.Label;
-=======
             catch (Win32Exception ex)
             {
-                lastFailureLabel = launch.Label;
+                lastFailureLabel = entries[^1].Entry.Label;
                 diagnostics.AddError(
                     LaunchDiagnosticKind.TerminalLaunchFailed,
-                    $"{launch.Label} terminal was canceled or blocked.",
+                    $"{lastFailureLabel} terminal was canceled or blocked.",
                     ex.Message);
->>>>>>> Stashed changes
+            }
+            catch (InvalidOperationException ex)
+            {
+                lastFailureLabel = entries[^1].Entry.Label;
+                diagnostics.AddError(
+                    LaunchDiagnosticKind.TerminalLaunchFailed,
+                    $"{lastFailureLabel} terminal could not be launched.",
+                    ex.Message);
             }
         }
 
@@ -307,26 +345,21 @@ internal static class ShortcutLaunchExecutor
         {
             return ShortcutLaunchResult.StayOpen(
                 lastFailureLabel is null
-<<<<<<< Updated upstream
                     ? "Workspace could not launch any commands."
-                    : $"{lastFailureLabel} could not be launched.");
-=======
-                    ? "Workspace could not launch any terminals."
                     : $"{lastFailureLabel} could not be launched.",
                 diagnostics: diagnostics);
->>>>>>> Stashed changes
         }
 
         var successPrefix = openedCommands == enabledLaunches.Count
             ? "Workspace launched"
             : $"Workspace partially launched: {openedCommands} of {enabledLaunches.Count} commands launched";
 
-        if (opened < enabledLaunches.Count)
+        if (openedCommands < enabledLaunches.Count)
         {
             diagnostics.AddWarning(
                 LaunchDiagnosticKind.PartialLaunch,
                 "Workspace partially launched.",
-                $"{opened} of {enabledLaunches.Count} terminals opened.");
+                $"{openedCommands} of {enabledLaunches.Count} commands launched.");
         }
 
         return BuildPostLaunchResult(
@@ -336,44 +369,70 @@ internal static class ShortcutLaunchExecutor
             companionSucceeded,
             companionError,
             successPrefix,
-<<<<<<< Updated upstream
+            preflightWarnings,
+            diagnostics,
             partialLaunch: openedCommands < enabledLaunches.Count);
     }
 
-    private static List<List<EntryPlan>> GroupPlans(List<EntryPlan> plans)
+    private static List<EntryPlanGroup> GroupPlans(List<EntryPlan> plans, string terminalApplicationId)
     {
-        var groups = new List<List<EntryPlan>>();
+        var groups = new List<EntryPlanGroup>();
         var groupIndexByKey = new Dictionary<(string Host, bool Elevated), int>();
+        var workspaceTabHostExecutable = GetWorkspaceTabHostExecutable(terminalApplicationId);
 
         foreach (var plan in plans)
         {
-            var isTabCapable = plan.Resolved.Target.Kind is
-                LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal;
-
-            if (!isTabCapable)
+            if (!TryGetTabHostExecutable(plan.Resolved.Target, workspaceTabHostExecutable, out var tabHostExecutable))
             {
-                groups.Add([plan]);
+                groups.Add(new EntryPlanGroup([plan], tabHostExecutable: null));
                 continue;
             }
 
-            var key = ((plan.Resolved.Target.HostExecutable ?? string.Empty).ToUpperInvariant(), plan.EffectiveElevation);
+            var key = (tabHostExecutable.ToUpperInvariant(), plan.EffectiveElevation);
             if (groupIndexByKey.TryGetValue(key, out var index))
             {
-                groups[index].Add(plan);
+                groups[index].Entries.Add(plan);
             }
             else
             {
                 groupIndexByKey[key] = groups.Count;
-                groups.Add([plan]);
+                groups.Add(new EntryPlanGroup([plan], tabHostExecutable));
             }
         }
 
         return groups;
-=======
-            preflightWarnings,
-            diagnostics,
-            partialLaunch: opened < enabledLaunches.Count);
->>>>>>> Stashed changes
+    }
+
+    private static string? GetWorkspaceTabHostExecutable(string terminalApplicationId)
+    {
+        if (!TerminalHostIds.UsesWindowsTerminalProfiles(terminalApplicationId))
+        {
+            return null;
+        }
+
+        return TerminalHostIds.HostExecutable(terminalApplicationId);
+    }
+
+    private static bool TryGetTabHostExecutable(
+        LaunchTarget target,
+        string? workspaceTabHostExecutable,
+        out string tabHostExecutable)
+    {
+        if (target.Kind is LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal)
+        {
+            tabHostExecutable = target.HostExecutable;
+            return !string.IsNullOrWhiteSpace(tabHostExecutable);
+        }
+
+        if (workspaceTabHostExecutable is not null
+            && target.Kind is LaunchTargetKind.PowerShell or LaunchTargetKind.Pwsh or LaunchTargetKind.Cmd or LaunchTargetKind.Wsl)
+        {
+            tabHostExecutable = workspaceTabHostExecutable;
+            return true;
+        }
+
+        tabHostExecutable = string.Empty;
+        return false;
     }
 
     private static ShortcutLaunchResult BuildPostLaunchResult(

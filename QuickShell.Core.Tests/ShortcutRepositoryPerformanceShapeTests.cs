@@ -57,6 +57,34 @@ public sealed class ShortcutRepositoryPerformanceShapeTests
     }
 
     [Fact]
+    public void GetShortcuts_AndGetLayout_StayUnderAllocationBudget()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Workspaces");
+        Directory.CreateDirectory(workspaceDirectory);
+
+        for (var i = 0; i < 25; i++)
+        {
+            var projectDirectory = Path.Combine(workspaceDirectory, i.ToString(CultureInfo.InvariantCulture));
+            Directory.CreateDirectory(projectDirectory);
+            repository.Upsert(CreateShortcut($"Project {i}", projectDirectory));
+        }
+
+        _ = repository.GetShortcuts();
+        _ = repository.GetLayout();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+
+        _ = repository.GetShortcuts();
+        _ = repository.GetLayout();
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(
+            allocated <= 2048,
+            $"Expected read-only shortcut/layout access to avoid deep clones (<= 2048 bytes), allocated {allocated} bytes.");
+    }
+
+    [Fact]
     public void Search_ReturnsDefensiveCopies()
     {
         using var directory = new TempDataDirectory();
@@ -186,6 +214,226 @@ public sealed class ShortcutRepositoryPerformanceShapeTests
             results,
             shortcut => Assert.Equal("Zeta", shortcut.Name),
             shortcut => Assert.Equal("Beta", shortcut.Name));
+    }
+
+    [Fact]
+    public void GetByIdReadOnly_ReturnsLiveReference_WithoutDeepClone()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(CreateShortcut("Alpha", workspaceDirectory));
+
+        var readOnly = repository.GetByIdReadOnly(repository.GetByName("Alpha")!.Id);
+        var cloned = repository.GetByName("Alpha");
+
+        Assert.NotNull(readOnly);
+        Assert.NotNull(cloned);
+        Assert.Same(readOnly, repository.GetByIdReadOnly(readOnly.Id));
+        Assert.NotSame(readOnly, cloned);
+    }
+
+    [Fact]
+    public void SearchTaskActions_MatchesWorkspaceNameAndLaunchLabel()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Trackdub");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "Trackdub",
+            Directory = workspaceDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Tests",
+                    Command = "dotnet test",
+                    Terminal = "pwsh",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+
+        var action = repository.SearchTaskActions("Trackdub tests").Single();
+
+        Assert.Equal("Trackdub", action.Workspace.Name);
+        Assert.Equal("Tests", action.Launch.Label);
+    }
+
+    [Fact]
+    public void SearchTaskActions_DoesNotMatchWorkspaceNameOnly()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Trackdub");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "Trackdub",
+            Directory = workspaceDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Dev",
+                    Command = "dotnet run",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+
+        Assert.Empty(repository.SearchTaskActions("Trackdub"));
+    }
+
+    [Fact]
+    public void SearchTaskActions_MatchesLaunchCommand()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Frontend");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "Frontend",
+            Directory = workspaceDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Dev server",
+                    Command = "npm run dev",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+
+        var action = repository.SearchTaskActions("npm dev").Single();
+
+        Assert.Equal("Frontend", action.Workspace.Name);
+        Assert.Equal("npm run dev", action.Launch.Command);
+    }
+
+    [Fact]
+    public void SearchTaskActions_ExcludesDisabledLaunches()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "App");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "App",
+            Directory = workspaceDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Tests",
+                    Command = "dotnet test",
+                    IsEnabled = false,
+                    Order = 0,
+                },
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Dev",
+                    Command = "dotnet run",
+                    IsEnabled = true,
+                    Order = 1,
+                },
+            ],
+        });
+
+        Assert.Empty(repository.SearchTaskActions("tests"));
+    }
+
+    [Fact]
+    public void SearchTaskActions_ExcludesMissingWorkspaceFolders()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var missingDirectory = Path.Combine(directory.Path, "Missing");
+        Directory.CreateDirectory(missingDirectory);
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "Missing",
+            Directory = missingDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Tests",
+                    Command = "dotnet test",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+        Directory.Delete(missingDirectory);
+
+        Assert.Empty(repository.SearchTaskActions("tests"));
+    }
+
+    [Fact]
+    public void SearchTaskActions_RanksAbbreviationAndLaunchLabelAboveCommandOnly()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var exactDirectory = Path.Combine(directory.Path, "Exact");
+        var commandOnlyDirectory = Path.Combine(directory.Path, "CommandOnly");
+        Directory.CreateDirectory(exactDirectory);
+        Directory.CreateDirectory(commandOnlyDirectory);
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "Exact",
+            Directory = exactDirectory,
+            Abbreviation = "api",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Tests",
+                    Command = "dotnet test",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+        repository.Upsert(new TerminalShortcut
+        {
+            Name = "Other",
+            Directory = commandOnlyDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Backend",
+                    Command = "api tests",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        });
+
+        var results = repository.SearchTaskActions("api tests").ToArray();
+
+        Assert.Collection(
+            results,
+            action => Assert.Equal("Exact", action.Workspace.Name),
+            action => Assert.Equal("Other", action.Workspace.Name));
     }
 
     [Fact]

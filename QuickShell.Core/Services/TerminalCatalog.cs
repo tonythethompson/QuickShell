@@ -28,6 +28,8 @@ internal sealed class LaunchTarget
     public string? WtCommandLine { get; init; }
 
     public string HostExecutable { get; init; } = "wt.exe";
+
+    public string? FallbackReason { get; init; }
 }
 
 internal static class TerminalCatalog
@@ -46,6 +48,10 @@ internal static class TerminalCatalog
     private static string? _cachedFormChoicesJson;
     private static bool _cachedFormChoicesIncludeDefault;
     private static string? _cachedFormApplicationId;
+
+    public const string SameAsPreviousLaunchTargetId = "same-as-previous";
+
+    public const string SameAsPreviousDisplayName = "Same as previous command";
 
     public static IReadOnlyList<LaunchTarget> GetLaunchTargets(bool includeDefaultChoice = false)
     {
@@ -226,6 +232,7 @@ internal static class TerminalCatalog
         return terminal switch
         {
             "default" => "default",
+            SameAsPreviousLaunchTargetId => SameAsPreviousLaunchTargetId,
             "it" => string.IsNullOrWhiteSpace(shortcut.WtProfile) ? "it" : $"it:{shortcut.WtProfile}",
             "wt" => string.IsNullOrWhiteSpace(shortcut.WtProfile) ? "wt" : $"wt:{shortcut.WtProfile}",
             "wsl" => string.IsNullOrWhiteSpace(shortcut.WtProfile) ? "wsl" : $"wsl:{shortcut.WtProfile}",
@@ -239,6 +246,13 @@ internal static class TerminalCatalog
     public static void ApplyLaunchTargetId(TerminalShortcut shortcut, string? launchTargetId)
     {
         var id = (launchTargetId ?? "default").Trim();
+        if (id.Equals(SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase))
+        {
+            shortcut.Terminal = SameAsPreviousLaunchTargetId;
+            shortcut.WtProfile = null;
+            return;
+        }
+
         if (id.Equals("default", StringComparison.OrdinalIgnoreCase))
         {
             shortcut.Terminal = "default";
@@ -304,12 +318,13 @@ internal static class TerminalCatalog
         }
 
         return snapshot.ById.TryGetValue("wt", out var fallback)
-            ? fallback
+            ? WithFallbackReason(fallback, $"Launch target '{id}' was not found; using Windows Terminal.")
             : new LaunchTarget
             {
                 Id = "wt",
                 DisplayName = "Windows Terminal",
                 Kind = LaunchTargetKind.WindowsTerminal,
+                FallbackReason = $"Launch target '{id}' was not found; using Windows Terminal.",
             };
     }
 
@@ -392,6 +407,7 @@ internal static class TerminalCatalog
                     ProfileOrDistro = explicitTarget.ProfileOrDistro,
                     WtCommandLine = explicitTarget.WtCommandLine,
                     HostExecutable = TerminalHostIds.HostExecutable(terminalApplicationId),
+                    FallbackReason = explicitTarget.FallbackReason,
                 };
             }
         }
@@ -423,8 +439,23 @@ internal static class TerminalCatalog
             ProfileOrDistro = profileName,
             WtCommandLine = profile?.Commandline,
             HostExecutable = hostExecutable,
+            FallbackReason = profile is null
+                ? $"Profile '{profileName}' was not found; {TerminalHostIds.SourceLabel(terminalApplicationId)} may fall back or fail."
+                : null,
         };
     }
+
+    private static LaunchTarget WithFallbackReason(LaunchTarget target, string fallbackReason) =>
+        new()
+        {
+            Id = target.Id,
+            DisplayName = target.DisplayName,
+            Kind = target.Kind,
+            ProfileOrDistro = target.ProfileOrDistro,
+            WtCommandLine = target.WtCommandLine,
+            HostExecutable = target.HostExecutable,
+            FallbackReason = fallbackReason,
+        };
 
     private static bool IsStandaloneShellId(string id) =>
         IsStandaloneShellLaunchTarget(id);
@@ -457,6 +488,13 @@ internal static class TerminalCatalog
                 Kind = LaunchTargetKind.Default,
             });
         }
+
+        choiceTargets.Add(new LaunchTarget
+        {
+            Id = SameAsPreviousLaunchTargetId,
+            DisplayName = SameAsPreviousDisplayName,
+            Kind = LaunchTargetKind.Default,
+        });
 
         var appLabel = TerminalHostIds.SourceLabel(terminalApplicationId);
         var prefix = TerminalHostIds.ProfileIdPrefix(terminalApplicationId);
@@ -510,6 +548,48 @@ internal static class TerminalCatalog
     public static LaunchTarget ResolveForShortcut(TerminalShortcut shortcut, string defaultLaunchTargetId) =>
         ResolveForShortcut(shortcut, TerminalHostIds.WindowsTerminal, defaultLaunchTargetId);
 
+    public static string ResolveEffectiveLaunchTargetId(
+        IReadOnlyList<WorkspaceEntry> orderedLaunches,
+        int index)
+    {
+        for (var i = index; i >= 0; i--)
+        {
+            var scratch = new TerminalShortcut
+            {
+                Terminal = orderedLaunches[i].Terminal,
+                WtProfile = orderedLaunches[i].WtProfile,
+            };
+            var id = EncodeLaunchTargetId(scratch);
+            if (!id.Equals(SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase))
+            {
+                return id;
+            }
+        }
+
+        return "default";
+    }
+
+    public static WorkspaceEntry ResolveLaunchEntry(
+        WorkspaceEntry entry,
+        IReadOnlyList<WorkspaceEntry> orderedLaunches,
+        int index)
+    {
+        var scratch = new TerminalShortcut();
+        ApplyLaunchTargetId(scratch, ResolveEffectiveLaunchTargetId(orderedLaunches, index));
+        return new WorkspaceEntry
+        {
+            Id = entry.Id,
+            Label = entry.Label,
+            Terminal = scratch.Terminal,
+            WtProfile = scratch.WtProfile,
+            Command = entry.Command,
+            RunAsAdmin = entry.RunAsAdmin,
+            IsEnabled = entry.IsEnabled,
+            Order = entry.Order,
+            TaskType = entry.TaskType,
+        };
+    }
+
     public static string NormalizeLaunchTargetId(string? launchTargetId)
     {
         var value = (launchTargetId ?? string.Empty).Trim();
@@ -521,6 +601,11 @@ internal static class TerminalCatalog
         if (value.Equals("default", StringComparison.OrdinalIgnoreCase))
         {
             return "default";
+        }
+
+        if (value.Equals(SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase))
+        {
+            return SameAsPreviousLaunchTargetId;
         }
 
         if (value.Equals("windows-terminal", StringComparison.OrdinalIgnoreCase))

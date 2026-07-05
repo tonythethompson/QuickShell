@@ -70,11 +70,16 @@ internal static class CompanionAppCatalog
         return string.IsNullOrWhiteSpace(executablePath) ? PresetNone : PresetCustom;
     }
 
+    public const string FormChoiceTitleNone = "No companion app";
+    public const string FormChoiceTitleCustom = "Custom app";
+    public const string BrowseActionTitle = "Choose custom app…";
+    public const string BrowseRequiredMessage = "Choose custom app… to pick an executable.";
+
     public static string BuildFormChoicesJson()
     {
         var choices = new List<object>
         {
-            new { title = "None", value = PresetNone },
+            new { title = FormChoiceTitleNone, value = PresetNone },
         };
 
         foreach (var definition in Definitions)
@@ -85,22 +90,49 @@ internal static class CompanionAppCatalog
             }
         }
 
+        choices.Add(new { title = FormChoiceTitleCustom, value = PresetCustom });
+
         return JsonSerializer.Serialize(choices);
     }
 
     /// <summary>
-    /// Custom apps are chosen with the browse button; the dropdown only lists None and catalog presets.
+    /// Maps stored companion preset to the dropdown value shown in the workspace form.
+    /// Custom app stays selected for browsed paths even when the filename matches a catalog app.
     /// </summary>
     public static string ToFormPresetValue(string presetId, string? executablePath)
     {
-        if (string.Equals(presetId, PresetCustom, StringComparison.OrdinalIgnoreCase)
-            && !string.IsNullOrWhiteSpace(executablePath))
+        if (string.Equals(presetId, PresetCustom, StringComparison.OrdinalIgnoreCase))
         {
-            return PresetNone;
+            return PresetCustom;
+        }
+
+        if (!string.IsNullOrWhiteSpace(executablePath))
+        {
+            var inferred = InferPresetFromPath(executablePath);
+            if (IsCatalogPreset(inferred))
+            {
+                return inferred;
+            }
         }
 
         return presetId;
     }
+
+    /// <summary>
+    /// After browse, use a matching catalog preset or fall back to Custom app.
+    /// </summary>
+    public static string ResolvePresetAfterBrowse(string selectedPath)
+    {
+        var inferred = InferPresetFromPath(selectedPath);
+        return IsCatalogPreset(inferred) ? inferred : PresetCustom;
+    }
+
+    public static bool ShouldShowExecutablePath(string? path) =>
+        !string.IsNullOrWhiteSpace(path);
+
+    public static bool ShouldShowPathWarning(string preset, string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && !TryResolveExecutablePath(path, out _);
 
     public static string InferPresetFromPath(string? executablePath)
     {
@@ -336,18 +368,25 @@ internal static class CompanionAppCatalog
         return state with { LaunchOnWorkspaceOpen = openOnLaunch };
     }
 
-    public static bool ShouldShowExecutablePath(string preset, string? path) =>
+    public static bool ShouldShowBrowseRequiredPrompt(string preset, string? path) =>
         string.Equals(preset, PresetCustom, StringComparison.OrdinalIgnoreCase)
-        && !string.IsNullOrWhiteSpace(path);
+        && string.IsNullOrWhiteSpace(path);
 
-    public static bool ShouldShowPathWarning(string preset, string? path) =>
-        string.Equals(preset, PresetCustom, StringComparison.OrdinalIgnoreCase)
-        && !string.IsNullOrWhiteSpace(path)
-        && !TryResolveExecutablePath(path, out _);
+    public static bool TryValidateFormSelection(string preset, string? path, out string error)
+    {
+        if (ShouldShowBrowseRequiredPrompt(preset, path))
+        {
+            error = BrowseRequiredMessage;
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
 
     public static string BuildPathWarning(string preset, string? path) =>
         ShouldShowPathWarning(preset, path)
-            ? "Executable not found. Choose another app or set App preset to None."
+            ? "Executable not found. Choose another app or set App preset to No companion app."
             : string.Empty;
 
     public static bool TryResolveExecutablePath(string? executablePath, out string resolvedPath)

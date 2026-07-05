@@ -161,7 +161,7 @@ _NCrunch_*/
 Thumbs.db
 desktop.ini
 
-# Bob configuration — always include
+# Bob configuration - always include
 !.bob/mcp.json
 !.bob/settings.json
 
@@ -194,3 +194,7 @@ Podfile.lock
 Package.resolved
 packages.lock.json
 **/packages.lock.json
+
+# Worktree files must be readable by Bob tools
+!.claude/
+!.claude/**

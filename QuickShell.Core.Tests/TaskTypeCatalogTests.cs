@@ -7,19 +7,60 @@ namespace QuickShell.Core.Tests;
 public sealed class TaskTypeCatalogTests
 {
     [Fact]
-    public void BuildFormChoicesJson_IncludesNoneAndAllFourTypes()
+    public void BuildPickerChoicesJson_WithoutDirectory_IncludesOnlyPlaceholder()
     {
-        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildFormChoicesJson());
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson());
         var values = document.RootElement
             .EnumerateArray()
             .Select(choice => choice.GetProperty("value").GetString())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .ToList();
 
-        Assert.Contains(TaskTypeCatalog.None, values);
-        Assert.Contains(TaskTypeCatalog.Api, values);
-        Assert.Contains(TaskTypeCatalog.Frontend, values);
-        Assert.Contains(TaskTypeCatalog.Database, values);
-        Assert.Contains(TaskTypeCatalog.Logs, values);
+        Assert.Single(values);
+        Assert.Equal(TaskTypeCatalog.None, values[0]);
+    }
+
+    [Fact]
+    public void BuildPickerChoicesJson_ForDockerProject_IncludesLogsAndDatabaseOnly()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "quickshell-picker-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "docker-compose.yml"), "services: {}");
+
+        try
+        {
+            using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(root));
+            var values = document.RootElement
+                .EnumerateArray()
+                .Select(choice => choice.GetProperty("value").GetString())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            Assert.Contains(TaskTypeCatalog.None, values);
+            Assert.Contains(TaskTypeCatalog.Logs, values);
+            Assert.Contains(TaskTypeCatalog.Services, values);
+            Assert.DoesNotContain(TaskTypeCatalog.Api, values);
+            Assert.DoesNotContain(TaskTypeCatalog.Frontend, values);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void BuildPickerChoicesJson_IncludesTooltipOnEachChoice()
+    {
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson());
+
+        foreach (var choice in document.RootElement.EnumerateArray())
+        {
+            Assert.True(choice.TryGetProperty("tooltip", out _));
+        }
     }
 
     [Theory]
@@ -35,7 +76,8 @@ public sealed class TaskTypeCatalogTests
     [Theory]
     [InlineData(" API ", TaskTypeCatalog.Api)]
     [InlineData("Frontend", TaskTypeCatalog.Frontend)]
-    [InlineData("DATABASE", TaskTypeCatalog.Database)]
+    [InlineData("DATABASE", TaskTypeCatalog.Services)]
+    [InlineData("database", TaskTypeCatalog.Services)]
     [InlineData("logs", TaskTypeCatalog.Logs)]
     public void Normalize_KnownValues_AreCaseInsensitiveAndTrimmed(string value, string expected)
     {
@@ -52,7 +94,9 @@ public sealed class TaskTypeCatalogTests
     [Theory]
     [InlineData(TaskTypeCatalog.Api, "API")]
     [InlineData(TaskTypeCatalog.Frontend, "Frontend")]
-    [InlineData(TaskTypeCatalog.Database, "Database")]
+    [InlineData(TaskTypeCatalog.Services, "Services")]
+    [InlineData(TaskTypeCatalog.Test, "Test")]
+    [InlineData(TaskTypeCatalog.Build, "Build")]
     [InlineData(TaskTypeCatalog.Logs, "Logs")]
     public void GetTitle_KnownValues_ReturnExpectedStrings(string value, string expected)
     {
@@ -69,7 +113,9 @@ public sealed class TaskTypeCatalogTests
     [Theory]
     [InlineData(TaskTypeCatalog.Api)]
     [InlineData(TaskTypeCatalog.Frontend)]
-    [InlineData(TaskTypeCatalog.Database)]
+    [InlineData(TaskTypeCatalog.Services)]
+    [InlineData(TaskTypeCatalog.Test)]
+    [InlineData(TaskTypeCatalog.Build)]
     [InlineData(TaskTypeCatalog.Logs)]
     public void GetGlyph_KnownValues_ReturnNonEmptyGlyphs(string value)
     {
