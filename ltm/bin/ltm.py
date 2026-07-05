@@ -49,6 +49,7 @@ SECRET_PATTERNS = [
     re.compile(r'ghp_\S+'), re.compile(r'gho_\S+'), re.compile(r'-----BEGIN\s'),
     re.compile(r'Bearer\s+\S{20,}'),
 ]
+BASE64_SECRET = re.compile(r'[A-Za-z0-9+/]{40,}={0,2}')
 SECRET_KEYS = {'password', 'secret', 'token', 'api_key', 'private_key', 'access_key'}
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -171,6 +172,20 @@ def _redact_text(text):
         if pat.search(text):
             text = pat.sub("[REDACTED]", text)
             redacted = True
+
+    def _replace_base64(match):
+        token = match.group()
+        core = token.rstrip("=")
+        if re.fullmatch(r"[a-f0-9]+", core, re.IGNORECASE):
+            return token
+        if "+" in token or "/" in token or token.endswith("="):
+            return "[REDACTED]"
+        return token
+
+    updated = BASE64_SECRET.sub(_replace_base64, text)
+    if updated != text:
+        redacted = True
+        text = updated
     return text, redacted
 
 def _redact_value(value):

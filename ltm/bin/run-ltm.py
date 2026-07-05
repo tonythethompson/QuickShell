@@ -8,8 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-CONFIG_PATH = ROOT / "config.json"
+LTM_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = LTM_DIR.parent
+CONFIG_PATH = LTM_DIR / "config.json"
 LTM_PY = Path(__file__).resolve().parent / "ltm.py"
 ALLOWED_PYTHON_NAMES = frozenset({
     "python",
@@ -39,7 +40,7 @@ def _validated_python_cmd(raw: str) -> str:
 
 
 def main() -> int:
-    os.chdir(ROOT)
+    os.chdir(REPO_ROOT)
     cmd = [_validated_python_cmd(_python_cmd()), str(LTM_PY), *sys.argv[1:]]
     return subprocess.call(cmd)
 
