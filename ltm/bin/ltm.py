@@ -512,7 +512,7 @@ def cmd_health(args):
         last_chk_age = 999
     sessions = _read_jsonl(SESSIONS)
     structural_only = sum(1 for s in sessions if s.get("summary", "").startswith("[structural]"))
-    sem_status = "pass" if last_chk_age < 8 else ("warn" if last_chk_age < 24 else "warn")
+    sem_status = "pass" if last_chk_age < 8 else ("warn" if last_chk_age < 24 else "fail")
     if structural_only >= 3:
         sem_status = "warn"
     h["semantic_coverage"] = {"last_checkpoint_age_hours": round(last_chk_age, 1), "structural_sessions_without_checkpoint": structural_only, "status": sem_status}
