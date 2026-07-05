@@ -24,7 +24,12 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
         _settings = settings;
         _runAsAdmin = runAsAdmin;
         _runAsStandard = runAsStandard;
-        Id = $"{ShortcutCommandIds.Open(shortcut.Id)}.launch.{launch.Id}";
+        var baseId = ShortcutCommandIds.OpenLaunch(shortcut.Id, launch.Id);
+        Id = runAsAdmin
+            ? $"{baseId}.admin"
+            : runAsStandard
+                ? $"{baseId}.standard"
+                : baseId;
         var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
         Name = ShortcutDisplay.GetLaunchContextMenuTitle(launch, enabledLaunches);
         Icon = new IconInfo(
@@ -56,7 +61,10 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
                 _runAsAdmin,
                 _runAsStandard,
                 IncludeCompanionApp: false,
-                IncludeDevServerLink: false));
+                IncludeDevServerLink: false,
+                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch));
+
+        LaunchDiagnosticsState.Set(result.Diagnostics);
 
         if (result.MarkUsed)
         {

@@ -6,21 +6,34 @@ namespace QuickShell;
 
 internal static class ShortcutDisplayTags
 {
-    public static Tag[]? BuildTags(TerminalShortcut shortcut)
+    public static Tag[]? BuildTags(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId)
     {
-        var tags = new List<Tag>();
-        if (shortcut.RunAsAdmin)
+        var snapshot = WorkspaceStatusService.CaptureForList(
+            shortcut,
+            terminalApplicationId,
+            defaultProfileId);
+        var tags = new List<Tag>(capacity: 2);
+
+        if (snapshot.Attention != WorkspaceAttentionState.None)
         {
             tags.Add(new Tag(string.Empty)
             {
-                Icon = new IconInfo(ShortcutGlyphs.AdminShield),
-                ToolTip = "Always run as administrator",
+                Icon = new IconInfo(ShortcutGlyphs.IncidentTriangle),
+                ToolTip = snapshot.AttentionSummary,
+                Foreground = ShortcutDisplayTagColors.ForAttention(snapshot.Attention),
             });
         }
 
-        if (shortcut.IsPinned)
+        if (snapshot.Activity == WorkspaceActivityState.Running)
         {
-            tags.Add(FavoriteTagStyle.CreateFavoriteTag());
+            tags.Add(new Tag(string.Empty)
+            {
+                Icon = new IconInfo(ShortcutGlyphs.Running),
+                ToolTip = WorkspaceStatusLabels.RunningBadgeSummary,
+            });
         }
 
         return tags.Count == 0 ? null : tags.ToArray();

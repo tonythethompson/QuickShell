@@ -91,6 +91,9 @@ internal static class WorkspacePath
 
     public static bool IsEmptyOrWhitespace(string? path) => string.IsNullOrWhiteSpace(path);
 
+    public static string TrimTrailingSeparatorsForStorage(string path) =>
+        TrimTrailingSeparatorsPreserveRoot(path);
+
     private static bool TryNormalizeExtendedWindowsPath(string trimmed, out string normalized, out string error)
     {
         normalized = string.Empty;

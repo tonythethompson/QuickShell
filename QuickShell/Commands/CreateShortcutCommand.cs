@@ -17,11 +17,15 @@ internal sealed partial class CreateShortcutCommand : ShortcutFormPage
     }
 
     /// <summary>
-    /// Create form prefilled from a seed (e.g. discovered git repo). Keeps a unique page id
-    /// so multiple seeded create rows can coexist in a list page.
+    /// Create form prefilled from a seed (e.g. discovered git repo). Uses a stable command id
+    /// derived from the repo directory so CmdPal Pin to home can resolve the command later.
     /// </summary>
     public CreateShortcutCommand(Action onSaved, TerminalShortcut createSeed)
         : base(existing: null, onSaved, createSeed)
     {
+        if (!string.IsNullOrWhiteSpace(createSeed.Directory))
+        {
+            Id = ShortcutCommandIds.DiscoverCreate(createSeed.Directory);
+        }
     }
 }

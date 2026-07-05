@@ -11,10 +11,20 @@ internal static class CompanionAppLauncher
     public static bool ShouldLaunchOnWorkspaceOpen(TerminalShortcut shortcut) =>
         shortcut.OpenCompanionAppOnLaunch && IsConfigured(shortcut);
 
+    internal static Func<TerminalShortcut, bool, bool>? TryLaunchOverride { get; set; }
+
+    internal static bool LastLaunchAttempted { get; private set; }
+
     public static bool TryLaunch(TerminalShortcut shortcut, bool onDemand, out string? error)
     {
         error = null;
+        LastLaunchAttempted = false;
 
+        if (TryLaunchOverride is { } tryLaunchOverride)
+        {
+            LastLaunchAttempted = true;
+            return tryLaunchOverride(shortcut, onDemand);
+        }
         if (!onDemand && !ShouldLaunchOnWorkspaceOpen(shortcut))
         {
             return true;

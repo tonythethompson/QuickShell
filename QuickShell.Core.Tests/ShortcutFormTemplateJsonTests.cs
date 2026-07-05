@@ -16,10 +16,11 @@ public sealed class ShortcutFormTemplateJsonTests
       "OpenDevServerOnLaunch",
       "RepoUrl",
       "CompanionAppPreset",
-      "LaunchTarget",
+      "CompanionAppArguments",
+      "LaunchTarget_0",
       "RunAsAdmin",
       "LaunchCommand_0",
-      "LaunchType_0",
+      "TaskTypePicker",
   ];
 
     [Fact]
@@ -75,6 +76,13 @@ public sealed class ShortcutFormTemplateJsonTests
         var companionChoices = FindChoiceSetChoices(document.RootElement, "CompanionAppPreset");
         Assert.True(companionChoices.GetArrayLength() >= 2);
         Assert.Equal("none", companionChoices[0].GetProperty("value").GetString());
+        Assert.Equal(CompanionAppCatalog.FormChoiceTitleNone, companionChoices[0].GetProperty("title").GetString());
+        Assert.Equal(
+            CompanionAppCatalog.PresetCustom,
+            companionChoices[companionChoices.GetArrayLength() - 1].GetProperty("value").GetString());
+        Assert.Equal(
+            CompanionAppCatalog.FormChoiceTitleCustom,
+            companionChoices[companionChoices.GetArrayLength() - 1].GetProperty("title").GetString());
     }
 
     [Fact]
@@ -83,19 +91,75 @@ public sealed class ShortcutFormTemplateJsonTests
         var template = BuildDefaultTemplate();
         using var document = JsonDocument.Parse(template);
 
-        var terminalChoices = FindChoiceSetChoices(document.RootElement, "LaunchTarget");
+        var terminalChoices = FindChoiceSetChoices(document.RootElement, "LaunchTarget_0");
         Assert.True(terminalChoices.GetArrayLength() >= 1);
     }
 
     [Fact]
-    public void BuildTemplate_EmbedsTaskTypeChoicesAsJsonArray()
+    public void BuildTemplate_EmbedsTaskTypePickerChoicesAsJsonArray()
     {
-        var template = BuildDefaultTemplate();
-        using var document = JsonDocument.Parse(template);
+        var root = Path.Combine(Path.GetTempPath(), "quickshell-template-picker-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "docker-compose.yml"), "services: {}");
 
-        var taskTypeChoices = FindChoiceSetChoices(document.RootElement, "LaunchType_0");
-        Assert.True(taskTypeChoices.GetArrayLength() >= 5);
-        Assert.Equal("none", taskTypeChoices[0].GetProperty("value").GetString());
+        try
+        {
+            var template = ShortcutFormTemplateJson.BuildTemplate(
+                TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true),
+                CompanionAppCatalog.BuildFormChoicesJson(),
+                [(string.Empty, TaskTypeCatalog.None, "default")],
+                TaskTypeCatalog.BuildPickerChoicesJson(root));
+            using var document = JsonDocument.Parse(template);
+
+            var taskTypeChoices = FindChoiceSetChoices(document.RootElement, "TaskTypePicker");
+            Assert.True(taskTypeChoices.GetArrayLength() >= 3);
+            Assert.Equal("none", taskTypeChoices[0].GetProperty("value").GetString());
+            Assert.Contains("addTaskTypeCommand", template, StringComparison.Ordinal);
+            Assert.Contains("${ShowTaskTypePicker}", template, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void BuildTemplate_CommandRow_PairsCommandWithProfileAndRefreshGlyph()
+    {
+        var template = BuildDefaultTemplate(["dir", string.Empty]);
+        Assert.Contains("\"id\": \"LaunchTarget_0\"", template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.Refresh, template, StringComparison.Ordinal);
+        Assert.Contains("refreshTerminals", template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.RefreshProfileListTooltip, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.Add, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.Remove, template, StringComparison.Ordinal);
+        Assert.Contains("destructive", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"title\": \"Refresh profile list\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command 1", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("+ Add command", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"title\": \"Browse folder\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"title\": \"Paste path\"", template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.FolderOpen, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.Paste, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.BrowseFolderTooltip, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.PastePathTooltip, template, StringComparison.Ordinal);
+        Assert.Contains("\"text\": \"Commands\"", template, StringComparison.Ordinal);
+        Assert.Contains("addTaskTypeCommand", template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.AddTaskTypeCommandTooltip, template, StringComparison.Ordinal);
+        Assert.Contains("\"width\": \"2\"", template, StringComparison.Ordinal);
+        Assert.Contains("\"width\": \"3\"", template, StringComparison.Ordinal);
+        Assert.Contains(WorkspaceFormTooltips.DevServerUrlExample, template, StringComparison.Ordinal);
+        Assert.Contains(WorkspaceFormTooltips.RepoUrlExample, template, StringComparison.Ordinal);
+        Assert.Contains("\"isSubtle\": true", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"placeholder\": \"http://localhost:3000\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"placeholder\": \"https://github.com/you/your-repo\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"id\": \"LaunchTarget\"", template, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -111,6 +175,50 @@ public sealed class ShortcutFormTemplateJsonTests
 
         Assert.Contains("Save workspace", titles);
         Assert.Contains("Cancel", titles);
+    }
+
+    [Fact]
+    public void BuildTemplate_SoloFieldsUseFullWidthStretchColumns()
+    {
+        var template = BuildDefaultTemplate();
+
+        var repoIndex = template.IndexOf("\"id\": \"RepoUrl\"", StringComparison.Ordinal);
+        Assert.True(repoIndex > 0);
+
+        var repoSlice = template[repoIndex..Math.Min(repoIndex + 600, template.Length)];
+        Assert.Contains("\"width\": \"stretch\"", repoSlice, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"width\": \"3\"", repoSlice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildTemplate_UsesNarrowColumnSetForCompanionArguments()
+    {
+        var template = BuildDefaultTemplate();
+        Assert.Contains("\"type\": \"ColumnSet\"", template, StringComparison.Ordinal);
+        Assert.Contains("\"id\": \"CompanionAppArguments\"", template, StringComparison.Ordinal);
+        Assert.Contains("\"width\": \"1\"", template, StringComparison.Ordinal);
+        Assert.Contains("${ShowCompanionArguments}", template, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildDataJson_ShowsCompanionArgumentsForCatalogPreset()
+    {
+        if (!CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
+        {
+            return;
+        }
+
+        var dataJson = ShortcutFormTemplateJson.BuildDataJson(new ShortcutFormTemplateJson.DataPayload
+        {
+            CompanionAppPreset = CompanionAppCatalog.PresetVsCode,
+            CompanionAppPath = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) ?? string.Empty,
+            CompanionAppArguments = ".",
+        });
+
+        using var document = JsonDocument.Parse(dataJson);
+        Assert.True(document.RootElement.GetProperty("ShowCompanionArguments").GetBoolean());
+        Assert.Equal(".", document.RootElement.GetProperty("CompanionAppArguments").GetString());
+        Assert.Equal(".", document.RootElement.GetProperty("CompanionArgumentPlaceholder").GetString());
     }
 
     [Fact]
@@ -130,6 +238,32 @@ public sealed class ShortcutFormTemplateJsonTests
         Assert.Equal("My App", document.RootElement.GetProperty("Name").GetString());
         Assert.True(document.RootElement.GetProperty("ShowRestoredDraftNote").GetBoolean());
         Assert.True(document.RootElement.GetProperty("ShowCompanionExecutablePath").GetBoolean());
+        Assert.False(document.RootElement.GetProperty("ShowCompanionBrowseRequired").GetBoolean());
+    }
+
+    [Fact]
+    public void BuildDataJson_CustomWithoutPath_ShowsBrowseRequired()
+    {
+        var dataJson = ShortcutFormTemplateJson.BuildDataJson(new ShortcutFormTemplateJson.DataPayload
+        {
+            CompanionAppPreset = CompanionAppCatalog.PresetCustom,
+        });
+
+        using var document = JsonDocument.Parse(dataJson);
+        Assert.True(document.RootElement.GetProperty("ShowCompanionBrowseRequired").GetBoolean());
+        Assert.Equal(
+            CompanionAppCatalog.BrowseRequiredMessage,
+            document.RootElement.GetProperty("CompanionBrowseRequiredMessage").GetString());
+        Assert.False(document.RootElement.GetProperty("ShowCompanionExecutablePath").GetBoolean());
+    }
+
+    [Fact]
+    public void BuildTemplate_AlwaysShowsBrowseAction()
+    {
+        var template = BuildDefaultTemplate();
+        Assert.DoesNotContain("${ShowCompanionBrowseAction}", template, StringComparison.Ordinal);
+        Assert.Contains("${ShowCompanionBrowseRequired}", template, StringComparison.Ordinal);
+        Assert.Contains("browseCompanionApp", template, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -149,13 +283,48 @@ public sealed class ShortcutFormTemplateJsonTests
     {
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(
             new ShortcutFormTemplateJson.DataPayload { Name = "App" },
-            [("npm run dev", TaskTypeCatalog.Frontend), ("dotnet watch", TaskTypeCatalog.Api)]);
+            [("npm run dev", TaskTypeCatalog.Frontend, "default"), ("dotnet watch", TaskTypeCatalog.Api, "wt:pwsh")]);
 
         using var document = JsonDocument.Parse(dataJson);
         Assert.Equal("npm run dev", document.RootElement.GetProperty("LaunchCommand_0").GetString());
         Assert.Equal("dotnet watch", document.RootElement.GetProperty("LaunchCommand_1").GetString());
         Assert.Equal("frontend", document.RootElement.GetProperty("LaunchType_0").GetString());
         Assert.Equal("api", document.RootElement.GetProperty("LaunchType_1").GetString());
+        Assert.Equal("default", document.RootElement.GetProperty("LaunchTarget_0").GetString());
+        Assert.Equal("wt:pwsh", document.RootElement.GetProperty("LaunchTarget_1").GetString());
+        Assert.Equal("none", document.RootElement.GetProperty("TaskTypePicker").GetString());
+        Assert.False(document.RootElement.GetProperty("ShowTaskTypePicker").GetBoolean());
+    }
+
+    [Fact]
+    public void BuildDataJson_ShowsTaskTypePickerWhenTypesAreAvailable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "quickshell-data-picker-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "docker-compose.yml"), "services: {}");
+
+        try
+        {
+            var dataJson = ShortcutFormTemplateJson.BuildDataJson(
+                new ShortcutFormTemplateJson.DataPayload
+                {
+                    Directory = root,
+                    ShowTaskTypePicker = TaskTypeCommandSuggestion.HasAvailableTypes(root),
+                });
+
+            using var document = JsonDocument.Parse(dataJson);
+            Assert.True(document.RootElement.GetProperty("ShowTaskTypePicker").GetBoolean());
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch
+            {
+            }
+        }
     }
 
     [Fact]
@@ -187,8 +356,8 @@ public sealed class ShortcutFormTemplateJsonTests
         return ShortcutFormTemplateJson.BuildTemplate(
             TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true),
             CompanionAppCatalog.BuildFormChoicesJson(),
-            commands.Select(command => (command, TaskTypeCatalog.None)).ToList(),
-            TaskTypeCatalog.BuildFormChoicesJson());
+            commands.Select(command => (command, TaskTypeCatalog.None, "default")).ToList(),
+            TaskTypeCatalog.BuildPickerChoicesJson());
     }
 
     private static JsonElement FindChoiceSetChoices(JsonElement root, string choiceSetId)

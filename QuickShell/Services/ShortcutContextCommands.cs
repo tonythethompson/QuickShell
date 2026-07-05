@@ -12,7 +12,6 @@ internal static class ShortcutContextCommands
     private const int HoverOrderMoveUp = -20;
     private const int HoverOrderMoveDown = -10;
     private const int HoverOrderMoveToBottom = -5;
-    private const int HoverOrderCreate = -3;
     private const int HoverOrderUndo = -2;
     private const int HoverOrderRedo = -1;
     private const int HoverOrderElevation = 0;
@@ -21,7 +20,9 @@ internal static class ShortcutContextCommands
     private const int HoverOrderDevServer = 3;
     private const int HoverOrderRepo = 4;
     private const int HoverOrderCompanionApp = 5;
-    private const int HoverOrderEdit = 10;
+    private const int HoverOrderStatus = 6;
+    private const int HoverOrderCopyDiagnostics = 7;
+    private const int HoverOrderEdit = 8;
     private const int HoverOrderFavorite = 20;
     private const int HoverOrderDuplicate = 30;
     private const int HoverOrderDelete = 50;
@@ -30,7 +31,7 @@ internal static class ShortcutContextCommands
         new(settings.SettingsPage)
         {
             Title = QuickShellBrand.SettingsTitle,
-            Icon = new IconInfo("\uE713"),
+            Icon = new IconInfo(""),
         };
 
     public static CommandContextItem[] Build(
@@ -43,11 +44,12 @@ internal static class ShortcutContextCommands
     {
         if (ShortcutHealth.NeedsRepair(shortcut))
         {
-            return BuildRepairOnly(shortcut, onChanged);
+            return BuildRepairOnly(shortcut, onChanged, settings);
         }
 
         var items = new List<CommandContextItem>();
 
+        // Open
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
         var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
         if (enabledLaunches.Count > 1)
@@ -63,8 +65,15 @@ internal static class ShortcutContextCommands
         }
 
         AddElevationContextCommand(items, shortcut, settings);
+
+        // Workspace
         AddFolderAndLinkCommands(items, shortcut);
 
+        // Status…
+        AddStatusCommand(items, shortcut, settings, onChanged);
+        AddLaunchDiagnosticsCommand(items);
+
+        // Manage
         if (includeEdit)
         {
             items.Add(WithShortcut(
@@ -89,6 +98,11 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderFavorite));
 
+        if (shortcut.IsPinned)
+        {
+            AddPinnedMoveCommands(items, shortcut, onChanged, moveVisibility);
+        }
+
         var duplicateCommand = new DuplicateShortcutCommand(shortcut, onChanged);
         items.Add(WithShortcut(
             duplicateCommand,
@@ -100,14 +114,7 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderDuplicate));
 
-        if (shortcut.IsPinned)
-        {
-            AddPinnedMoveCommands(items, shortcut, onChanged, moveVisibility);
-        }
-
-        AddPreSettingsCommands(items, createShortcutCommand, onChanged);
-        items.Add(CreateSettingsItem(settings));
-
+        // Delete
         var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged);
         items.Add(WithShortcut(
             deleteCommand,
@@ -131,13 +138,15 @@ internal static class ShortcutContextCommands
     {
         if (ShortcutHealth.NeedsRepair(shortcut))
         {
-            return BuildRepairOnly(shortcut, onChanged);
+            return BuildRepairOnly(shortcut, onChanged, settings);
         }
 
         var items = new List<CommandContextItem>();
 
         AddElevationContextCommand(items, shortcut, settings);
         AddFolderAndLinkCommands(items, shortcut);
+        AddStatusCommand(items, shortcut, settings, onChanged);
+        AddLaunchDiagnosticsCommand(items);
 
         items.Add(WithShortcut(
             new ShortcutFormPage(shortcut, onChanged),
@@ -149,26 +158,31 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderEdit));
 
-        AddPreSettingsCommands(items, createShortcutCommand, onChanged);
-        items.Add(CreateSettingsItem(settings));
-
         return items.ToArray();
     }
 
-    public static CommandContextItem[] BuildRepairOnly(TerminalShortcut shortcut, Action onChanged)
+    public static CommandContextItem[] BuildRepairOnly(
+        TerminalShortcut shortcut,
+        Action onChanged,
+        QuickShellSettingsManager? settings = null)
     {
-        var items = new List<CommandContextItem>
+        var items = new List<CommandContextItem>();
+
+        if (settings is not null)
         {
-            WithShortcut(
-                new ShortcutFormPage(shortcut, onChanged),
-                ctrl: true,
-                alt: false,
-                shift: false,
-                VirtualKey.E,
-                title: "Edit",
-                showInHoverActions: true,
-                hoverOrder: HoverOrderEdit),
-        };
+            AddStatusCommand(items, shortcut, settings, onChanged);
+            AddLaunchDiagnosticsCommand(items);
+        }
+
+        items.Add(WithShortcut(
+            new ShortcutFormPage(shortcut, onChanged),
+            ctrl: true,
+            alt: false,
+            shift: false,
+            VirtualKey.E,
+            title: "Edit",
+            showInHoverActions: true,
+            hoverOrder: HoverOrderEdit));
 
         if (shortcut.IsPinned)
         {
@@ -214,28 +228,6 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderRedo),
     ];
-
-    private static void AddPreSettingsCommands(
-        List<CommandContextItem> items,
-        CreateShortcutCommand? createShortcutCommand,
-        Action onChanged)
-    {
-        items.AddRange(BuildUndoRedoCommands(onChanged));
-
-        if (createShortcutCommand is not null)
-        {
-            items.Add(new CommandContextItem(createShortcutCommand)
-            {
-                Title = "Create workspace",
-                Icon = new IconInfo("\uE710"),
-                RequestedShortcut = QuickShellKeyboardShortcuts.CreateShortcut,
-#if CMDPAL_HOVER_ACTIONS
-                ShowInHoverActions = true,
-                HoverOrder = HoverOrderCreate,
-#endif
-            });
-        }
-    }
 
     private static void AddPinnedMoveCommands(
         List<CommandContextItem> items,
@@ -303,7 +295,7 @@ internal static class ShortcutContextCommands
         items.Add(new CommandContextItem(new OpenShortcutFolderInExplorerCommand(shortcut.Id))
         {
             Title = "Open in File Explorer",
-            Icon = new IconInfo("\uE838"),
+            Icon = new IconInfo(""),
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = true,
             HoverOrder = HoverOrderOpenExplorer,
@@ -325,7 +317,7 @@ internal static class ShortcutContextCommands
             items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.DevServer))
             {
                 Title = "Open dev server",
-                Icon = new IconInfo("\uE774"),
+                Icon = new IconInfo(""),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
                 HoverOrder = HoverOrderDevServer,
@@ -358,6 +350,41 @@ internal static class ShortcutContextCommands
 #endif
             });
         }
+    }
+
+    private static void AddStatusCommand(
+        List<CommandContextItem> items,
+        TerminalShortcut shortcut,
+        QuickShellSettingsManager settings,
+        Action onChanged)
+    {
+        items.Add(new CommandContextItem(new WorkspaceStatusPage(shortcut, settings, onChanged))
+        {
+            Title = "Workspace status…",
+            Icon = new IconInfo(""),
+#if CMDPAL_HOVER_ACTIONS
+            ShowInHoverActions = true,
+            HoverOrder = HoverOrderStatus,
+#endif
+        });
+    }
+
+    private static void AddLaunchDiagnosticsCommand(List<CommandContextItem> items)
+    {
+        if (LaunchDiagnosticsState.LastReport is null)
+        {
+            return;
+        }
+
+        items.Add(new CommandContextItem(new CopyLaunchDiagnosticsCommand())
+        {
+            Title = "Copy launch diagnostics",
+            Icon = new IconInfo(ShortcutGlyphs.CopyDiagnostics),
+#if CMDPAL_HOVER_ACTIONS
+            ShowInHoverActions = true,
+            HoverOrder = HoverOrderCopyDiagnostics,
+#endif
+        });
     }
 
     public static void AddElevationContextCommand(

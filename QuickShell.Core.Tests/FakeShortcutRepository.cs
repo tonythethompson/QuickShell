@@ -30,6 +30,10 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public TerminalShortcut? GetById(string id) =>
         _byId.TryGetValue(id, out var shortcut) ? shortcut : null;
 
+    public TerminalShortcut? GetByNameReadOnly(string name) => GetByName(name);
+
+    public TerminalShortcut? GetByIdReadOnly(string id) => GetById(id);
+
     public TerminalShortcut? ResolveForOpenCommand(string key) => GetById(key) ?? GetByName(key);
 
     public void Reload()
@@ -104,6 +108,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public IEnumerable<TerminalShortcut> Search(string query) => GetShortcuts();
 
     public IEnumerable<TerminalShortcut> SearchForRootPalette(string query) => [];
+
+    public IEnumerable<WorkspaceTaskAction> SearchTaskActions(string query) => [];
 
     public string ResolveAvailableName(string desiredName, string? replacingOriginalName = null) => desiredName;
 }

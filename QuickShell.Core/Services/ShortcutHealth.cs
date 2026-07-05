@@ -8,6 +8,11 @@ internal static class ShortcutHealth
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
 
+        return WouldNeedRepair(shortcut);
+    }
+
+    public static bool WouldNeedRepair(TerminalShortcut shortcut)
+    {
         if (string.IsNullOrWhiteSpace(shortcut.Name) || string.IsNullOrWhiteSpace(shortcut.Directory))
         {
             return true;
@@ -21,6 +26,11 @@ internal static class ShortcutHealth
         if (!ShortcutValidation.DirectoryExists(shortcut.Directory))
         {
             return true;
+        }
+
+        if (shortcut.Launches is null || shortcut.Launches.Count == 0)
+        {
+            return false;
         }
 
         return !ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out _);

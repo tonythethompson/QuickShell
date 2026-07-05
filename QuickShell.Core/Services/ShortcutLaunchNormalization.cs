@@ -100,16 +100,34 @@ internal static class ShortcutLaunchNormalization
             .OrderBy(entry => entry.Order)
             .ToList();
 
-    public static TerminalShortcut ToLaunchShortcut(WorkspaceEntry entry, TerminalShortcut workspace) =>
-        new()
+    public static TerminalShortcut ToLaunchShortcut(WorkspaceEntry entry, TerminalShortcut workspace)
+    {
+        var enabled = GetEnabledLaunches(workspace);
+        var index = FindLaunchIndex(enabled, entry);
+        var resolved = TerminalCatalog.ResolveLaunchEntry(entry, enabled, index);
+        return new TerminalShortcut
         {
-            Name = entry.Label,
+            Name = resolved.Label,
             Directory = workspace.Directory,
-            Command = entry.Command,
-            Terminal = entry.Terminal,
-            WtProfile = entry.WtProfile,
-            RunAsAdmin = entry.RunAsAdmin,
+            Command = resolved.Command,
+            Terminal = resolved.Terminal,
+            WtProfile = resolved.WtProfile,
+            RunAsAdmin = resolved.RunAsAdmin,
         };
+    }
+
+    private static int FindLaunchIndex(IReadOnlyList<WorkspaceEntry> enabled, WorkspaceEntry entry)
+    {
+        for (var i = 0; i < enabled.Count; i++)
+        {
+            if (string.Equals(enabled[i].Id, entry.Id, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
 
     public static TerminalShortcut WorkspaceToShortcut(Workspace workspace)
     {

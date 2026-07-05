@@ -21,9 +21,9 @@ public sealed class ShortcutLaunchExecutorTests
             Directory = directory,
             Launches =
             [
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", WtProfile = "Profile1", Command = "dotnet run", IsEnabled = true, Order = 0 },
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", WtProfile = "Profile2", Command = "npm run dev", IsEnabled = true, Order = 1 },
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Worker", Terminal = "wt", WtProfile = "Profile3", Command = "npm run worker", IsEnabled = true, Order = 2 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", Command = "dotnet run", IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", Command = "npm run dev", IsEnabled = true, Order = 1 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Worker", Terminal = "wt", Command = "npm run worker", IsEnabled = true, Order = 2 },
             ],
         };
 
@@ -54,8 +54,8 @@ public sealed class ShortcutLaunchExecutorTests
             Directory = directory,
             Launches =
             [
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Admin", Terminal = "wt", WtProfile = "Profile1", Command = "cmd", RunAsAdmin = true, IsEnabled = true, Order = 0 },
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Normal", Terminal = "wt", WtProfile = "Profile2", Command = "cmd", RunAsAdmin = false, IsEnabled = true, Order = 1 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Admin", Terminal = "wt", Command = "cmd", RunAsAdmin = true, IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Normal", Terminal = "wt", Command = "cmd", RunAsAdmin = false, IsEnabled = true, Order = 1 },
             ],
         };
 
@@ -76,7 +76,7 @@ public sealed class ShortcutLaunchExecutorTests
     }
 
     [Fact]
-    public void LaunchAll_NonWindowsTerminalFallbackMixedWithWt_OpensTwoProcesses()
+    public void LaunchAll_MixedWindowsTerminalAndStandaloneShells_OpenAsSingleProcessWithTabs()
     {
         var directory = Environment.CurrentDirectory;
         var shortcut = new TerminalShortcut
@@ -86,8 +86,8 @@ public sealed class ShortcutLaunchExecutorTests
             Directory = directory,
             Launches =
             [
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", WtProfile = "Profile1", Command = "cmd", IsEnabled = true, Order = 0 },
-                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", WtProfile = "Profile2", Command = "cmd", IsEnabled = true, Order = 1 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", Command = "cmd", IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", Command = "cmd", IsEnabled = true, Order = 1 },
                 new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Legacy", Terminal = "cmd", Command = "cmd", IsEnabled = true, Order = 2 },
             ],
         };
@@ -98,9 +98,11 @@ public sealed class ShortcutLaunchExecutorTests
         {
             ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
 
-            Assert.Equal(2, captured.Count);
-            Assert.Contains(captured, c => c.FileName == "wt.exe" && (c.Arguments ?? string.Empty).Contains("; new-tab", StringComparison.Ordinal));
-            Assert.Contains(captured, c => c.FileName == "cmd.exe");
+            Assert.Single(captured);
+            Assert.Equal("wt.exe", captured[0].FileName);
+            var arguments = captured[0].Arguments ?? string.Empty;
+            Assert.Equal(2, CountOccurrences(arguments, "; new-tab"));
+            Assert.Contains("cmd.exe", arguments, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -136,6 +138,11 @@ public sealed class ShortcutLaunchExecutorTests
 
         Assert.False(result.Dismiss);
         Assert.Contains("folder not found", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(result.Diagnostics);
+        Assert.Contains(
+            result.Diagnostics.Entries,
+            entry => entry.Kind == LaunchDiagnosticKind.HealthError
+                && entry.Severity == LaunchDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -163,6 +170,57 @@ public sealed class ShortcutLaunchExecutorTests
 
         Assert.False(result.Dismiss);
         Assert.Contains("no enabled launch", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Launch_RecordsTerminalAndCommandDiagnostics()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Diagnostics",
+            Directory = Environment.CurrentDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Dev",
+                    Command = "echo ready",
+                    Terminal = "default",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        };
+
+        TerminalLauncher.StartProcessOverride = _ => true;
+        try
+        {
+            var result = ShortcutLaunchExecutor.Launch(
+                shortcut,
+                TerminalHostIds.WindowsConsoleHost,
+                "cmd");
+
+            Assert.True(result.Dismiss);
+            Assert.NotNull(result.Diagnostics);
+            Assert.Contains(
+                result.Diagnostics.Entries,
+                entry => entry.Kind == LaunchDiagnosticKind.TerminalLaunched
+                    && entry.Title.Contains("Dev", StringComparison.Ordinal));
+            Assert.Contains(
+                result.Diagnostics.Entries,
+                entry => entry.Kind == LaunchDiagnosticKind.CommandHandoff
+                    && entry.Detail == "echo ready");
+            Assert.Contains(
+                "Command exit status is not monitored.",
+                result.Diagnostics.ToClipboardText(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            TerminalLauncher.StartProcessOverride = null;
+        }
     }
 }
 
@@ -222,8 +280,8 @@ public sealed class WorkspaceDevServerActionsTests
             var result = ShortcutLaunchExecutor.LaunchEntry(
                 shortcut,
                 shortcut.Launches[0],
-                "wt",
-                "default");
+                TerminalHostIds.WindowsConsoleHost,
+                "cmd");
 
             Assert.True(result.Dismiss);
         }

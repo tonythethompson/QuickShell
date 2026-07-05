@@ -65,14 +65,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         WithLock(() =>
         {
             EnsureLoaded();
-            return CloneAll(_shortcuts);
+            return _shortcuts;
         });
 
     public IReadOnlyList<ShortcutLayoutEntry> GetLayout() =>
         WithLock(() =>
         {
             EnsureLoaded();
-            return CloneLayout(_layout);
+            return _layout;
         });
 
     public TerminalShortcut? GetByName(string name)
@@ -100,6 +100,34 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             EnsureLoaded();
             return _shortcutsById.TryGetValue(id, out var shortcut) ? Clone(shortcut) : null;
+        });
+    }
+
+    public TerminalShortcut? GetByNameReadOnly(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
+
+        return WithLock(() =>
+        {
+            EnsureLoaded();
+            return _shortcutsByName.TryGetValue(name, out var shortcut) ? shortcut : null;
+        });
+    }
+
+    public TerminalShortcut? GetByIdReadOnly(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        return WithLock(() =>
+        {
+            EnsureLoaded();
+            return _shortcutsById.TryGetValue(id, out var shortcut) ? shortcut : null;
         });
     }
 
@@ -868,16 +896,17 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public IEnumerable<TerminalShortcut> Search(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return GetShortcuts();
-        }
-
-        _ = TryGetTrimmedQueryRange(query, out var queryStart, out var queryLength);
         _sync.Wait();
         try
         {
             EnsureLoaded();
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return _shortcuts;
+            }
+
+            _ = TryGetTrimmedQueryRange(query, out var queryStart, out var queryLength);
             List<TerminalShortcut>? matches = null;
             foreach (var shortcut in _shortcuts)
             {
@@ -940,6 +969,63 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             return matches is null ? [] : matches.ToArray();
+        }
+        finally
+        {
+            _sync.Release();
+        }
+    }
+
+    public IEnumerable<WorkspaceTaskAction> SearchTaskActions(string query)
+    {
+        var tokens = GetTaskSearchTokens(query);
+        if (tokens.Length == 0)
+        {
+            return [];
+        }
+
+        _sync.Wait();
+        try
+        {
+            EnsureLoaded();
+            List<WorkspaceTaskAction>? matches = null;
+            foreach (var shortcut in _shortcuts)
+            {
+                if (shortcut.Launches is not { Count: > 0 })
+                {
+                    continue;
+                }
+
+                foreach (var launch in shortcut.Launches)
+                {
+                    if (!launch.IsEnabled)
+                    {
+                        continue;
+                    }
+
+                    var score = ComputeTaskActionScore(shortcut, launch, tokens);
+                    if (score <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (ShortcutHealth.WouldNeedRepair(shortcut))
+                    {
+                        continue;
+                    }
+
+                    matches ??= [];
+                    matches.Add(CreateTaskAction(shortcut, launch, score));
+                }
+            }
+
+            return matches is null
+                ? []
+                : matches
+                    .OrderByDescending(action => action.Score)
+                    .ThenBy(action => action.Workspace.Name, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(action => action.Launch.Order)
+                    .ToArray();
         }
         finally
         {
@@ -1650,6 +1736,112 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
         return ContainsText(shortcut.WtProfile, query, queryStart, queryLength);
     }
+
+    private static WorkspaceTaskAction CreateTaskAction(TerminalShortcut shortcut, WorkspaceEntry launch, int score)
+    {
+        var workspace = Clone(shortcut);
+        var clonedLaunch = workspace.Launches.First(entry => entry.Id.Equals(launch.Id, StringComparison.OrdinalIgnoreCase));
+        return new WorkspaceTaskAction
+        {
+            Workspace = workspace,
+            Launch = clonedLaunch,
+            Score = score,
+        };
+    }
+
+    private static int ComputeTaskActionScore(TerminalShortcut shortcut, WorkspaceEntry launch, IReadOnlyList<string> tokens)
+    {
+        var score = 0;
+        var matchedLaunchSpecificField = false;
+
+        foreach (var token in tokens)
+        {
+            var workspaceScore =
+                ScoreToken(shortcut.Abbreviation, token, exact: 900, prefix: 650, contains: 200) +
+                ScoreToken(shortcut.Name, token, exact: 700, prefix: 450, contains: 160) +
+                ScoreToken(shortcut.Directory, token, exact: 100, prefix: 80, contains: 40);
+
+            var profileLabel = TerminalCatalog.GetProfileLabel(new TerminalShortcut
+            {
+                Terminal = launch.Terminal,
+                WtProfile = launch.WtProfile,
+            });
+
+            var launchScore =
+                ScoreToken(launch.Label, token, exact: 1000, prefix: 750, contains: 300) +
+                ScoreToken(launch.Command, token, exact: 850, prefix: 600, contains: 260) +
+                ScoreToken(profileLabel, token, exact: 250, prefix: 175, contains: 90) +
+                ScoreToken(launch.WtProfile, token, exact: 220, prefix: 160, contains: 80);
+
+            if (workspaceScore + launchScore == 0)
+            {
+                return 0;
+            }
+
+            if (launchScore > 0)
+            {
+                matchedLaunchSpecificField = true;
+            }
+
+            score += workspaceScore + launchScore;
+        }
+
+        if (!matchedLaunchSpecificField)
+        {
+            return 0;
+        }
+
+        return score + Math.Max(0, 50 - launch.Order);
+    }
+
+    private static int ScoreToken(string? value, string token, int exact, int prefix, int contains)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.Equals(token, StringComparison.OrdinalIgnoreCase))
+        {
+            return exact;
+        }
+
+        if (trimmed.StartsWith(token, StringComparison.OrdinalIgnoreCase))
+        {
+            return prefix;
+        }
+
+        return trimmed.Contains(token, StringComparison.OrdinalIgnoreCase) ? contains : 0;
+    }
+
+    private static string[] GetTaskSearchTokens(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return [];
+        }
+
+        return query
+            .Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(NormalizeTaskSearchToken)
+            .Where(token => token.Length > 0 && !IsTaskSearchVerb(token))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string NormalizeTaskSearchToken(string token) =>
+        token.Trim('\'', '"', '`', ',', '.', ':', ';', '(', ')', '[', ']', '{', '}');
+
+    private static bool IsTaskSearchVerb(string token) =>
+        token.Equals("run", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("open", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("start", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("launch", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("task", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("tasks", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("workspace", StringComparison.OrdinalIgnoreCase) ||
+        token.Equals("workspaces", StringComparison.OrdinalIgnoreCase);
 
     private static int CompareAbbreviationMatch(
         TerminalShortcut left,

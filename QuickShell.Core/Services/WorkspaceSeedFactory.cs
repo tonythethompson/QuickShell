@@ -14,6 +14,24 @@ internal static class WorkspaceSeedFactory
             ? ProjectClassifier.Classify(candidate.Directory)
             : candidate.Classification);
 
+    public static TerminalShortcut FromGitRepoDirectory(string directory)
+    {
+        var trimmed = directory.Trim().TrimEnd('\\', '/');
+        var name = Path.GetFileName(trimmed);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = trimmed;
+        }
+
+        return FromGitRepo(new GitRepoCandidate
+        {
+            Directory = trimmed,
+            Name = name,
+            RemoteUrl = GitRepoDiscovery.TryGetRemoteUrl(trimmed),
+            Classification = ProjectClassifier.Classify(trimmed),
+        });
+    }
+
     public static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed) =>
         ApplyDirectoryHints(seed, ProjectClassifier.Classify(seed.Directory));
 
@@ -37,6 +55,7 @@ internal static class WorkspaceSeedFactory
         if (!HasNonemptyLaunchCommand(seed))
         {
             WorkspaceSetupSuggestion.ApplyToShortcut(seed, classification);
+            ApplyInferredTaskTypes(seed);
         }
 
         return seed;
@@ -45,39 +64,22 @@ internal static class WorkspaceSeedFactory
     private static bool HasNonemptyLaunchCommand(TerminalShortcut seed) =>
         seed.Launches.Any(launch => !string.IsNullOrWhiteSpace(launch.Command))
         || !string.IsNullOrWhiteSpace(seed.Command);
-<<<<<<< Updated upstream
 
-    private static void ApplyDetectedCommandToLaunches(TerminalShortcut seed, string command)
+    private static void ApplyInferredTaskTypes(TerminalShortcut seed)
     {
-        if (seed.Launches is { Count: > 0 })
-        {
-            var first = seed.Launches.OrderBy(launch => launch.Order).First();
-            if (string.IsNullOrWhiteSpace(first.Command))
-            {
-                first.Command = command;
-            }
-
-            ApplyInferredTaskType(seed, first);
-            return;
-        }
-
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(seed);
-        ApplyInferredTaskType(seed, seed.Launches.OrderBy(launch => launch.Order).First());
-    }
-
-    private static void ApplyInferredTaskType(TerminalShortcut seed, WorkspaceEntry launch)
-    {
-        if (!string.Equals(TaskTypeCatalog.Normalize(launch.TaskType), TaskTypeCatalog.None, StringComparison.Ordinal))
+        var inferred = DevServerUrlDetection.TryInferTaskType(seed.Directory);
+        if (inferred is null)
         {
             return;
         }
 
-        var inferred = DevServerUrlDetection.TryInferTaskType(seed.Directory);
-        if (inferred is not null)
+        foreach (var launch in seed.Launches)
         {
-            launch.TaskType = inferred;
+            if (string.Equals(TaskTypeCatalog.Normalize(launch.TaskType), TaskTypeCatalog.None, StringComparison.Ordinal))
+            {
+                launch.TaskType = inferred;
+            }
         }
     }
-=======
->>>>>>> Stashed changes
 }

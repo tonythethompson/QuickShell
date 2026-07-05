@@ -1,8 +1,11 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
+using QuickShell.Models;
 using QuickShell.Pages;
+using QuickShell.Pages.Dev;
 using QuickShell.Services;
+using System.Threading.Tasks;
 
 namespace QuickShell;
 
@@ -31,6 +34,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         using (StartupPerformanceTrace.Measure("CmdPal shortcut preload kickoff"))
         {
             QuickShellRuntimeServices.Initialize(_settingsManager);
+            KickoffGitRepoIndexPrewarm();
         }
 
         DisplayName = QuickShellBrand.DisplayName;
@@ -48,6 +52,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         }
 
         var settingsPage = _settingsManager.SettingsPage;
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.PrewarmSettingsContent);
 
         _commands =
         [
@@ -80,12 +85,18 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                         HoverOrder = 10,
 #endif
                     },
+                    ..ShortcutContextCommands.BuildUndoRedoCommands(ReloadPages),
+                    new CommandContextItem(new CmdPalFormReproIndexPage())
+                    {
+                        Title = "CmdPal form repros",
+                        Icon = new IconInfo("\uE8FD"),
+                    },
                 ],
             },
         ];
 
         _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_settingsManager, ReloadPages));
-        _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand)];
+        _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand, _settingsManager)];
     }
 
     public override ICommandItem[] TopLevelCommands() => _commands;
@@ -100,6 +111,22 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         {
             _fallbackPage.Value.ClearResults();
         }
+    }
+
+    private static void KickoffGitRepoIndexPrewarm()
+    {
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var shortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
+                GitRepoIndex.Prewarm(GitRepoSearchRoots.FromShortcuts(shortcuts));
+            }
+            catch
+            {
+                // Best effort; discover/create still work without the warm cache.
+            }
+        });
     }
 
     public override ICommandItem? GetCommandItem(string id)
@@ -125,6 +152,24 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             };
         }
 
+        if (ShortcutCommandIds.TryDecodeDiscoverCreateDirectory(id, out var discoverDirectory)
+            && !string.IsNullOrWhiteSpace(discoverDirectory))
+        {
+            var seed = WorkspaceSeedFactory.FromGitRepoDirectory(discoverDirectory);
+            return new CommandItem(new CreateShortcutCommand(ReloadPages, seed))
+            {
+                Title = seed.Name,
+                Subtitle = DiscoverGitRepoListItems.BuildSubtitleForNew(new GitRepoCandidate
+                {
+                    Directory = discoverDirectory,
+                    Name = seed.Name,
+                    RemoteUrl = seed.RepoUrl,
+                    Classification = ProjectClassifier.Classify(discoverDirectory),
+                }),
+                Icon = new IconInfo(ShortcutGlyphs.Add),
+            };
+        }
+
         if (string.Equals(id, DiscoverGitReposPage.PageId, StringComparison.Ordinal))
         {
             return new CommandItem(new OpenDiscoverGitReposCommand(ReloadPages))
@@ -132,6 +177,37 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 Title = "Discover git repos",
                 Icon = new IconInfo(ShortcutGlyphs.Discover),
             };
+        }
+
+        if (ShortcutCommandIds.TryParseOpenLaunch(id, out var shortcutId, out var launchId))
+        {
+            var shortcut = QuickShellRuntimeServices.Shortcuts.GetByIdReadOnly(shortcutId);
+            if (shortcut is null || ShortcutHealth.WouldNeedRepair(shortcut))
+            {
+                return null;
+            }
+
+            TerminalShortcut workspace = shortcut;
+            if (shortcut.Launches.Count == 0)
+            {
+                workspace = QuickShellRuntimeServices.Shortcuts.GetById(shortcutId)!;
+                ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(workspace);
+            }
+
+            var launch = workspace.Launches.FirstOrDefault(entry =>
+                entry.Id.Equals(launchId, StringComparison.OrdinalIgnoreCase));
+            if (launch is null || !launch.IsEnabled)
+            {
+                return null;
+            }
+
+            var action = new WorkspaceTaskAction
+            {
+                Workspace = workspace,
+                Launch = launch,
+                Score = 0,
+            };
+            return ShortcutTaskActionListItems.Create(action, _settingsManager, ReloadPages, _createShortcutCommand);
         }
 
         if (ShortcutCommandIds.TryParseOpen(id, out var openKey))

@@ -11,12 +11,14 @@ internal sealed class QuickShellSettingsManager
     private const string TerminalApplicationSettingId = "terminalApplication";
     private const string DefaultProfileSettingId = "defaultProfile";
     private const string RecentWorkspaceCountSettingId = QuickShellRecentSettings.SettingKey;
+    private const string BlockDirtyBranchSwitchSettingId = "blockDirtyBranchSwitch";
 
     private readonly QuickShellJsonSettingsStore _settingsStore;
     private readonly Settings _settings;
     private readonly ChoiceSetSetting _terminalApplicationSetting;
     private readonly ChoiceSetSetting _defaultProfileSetting;
     private readonly TextSetting _recentWorkspaceCountSetting;
+    private readonly TextSetting _blockDirtyBranchSwitchSetting;
     private readonly Pages.QuickShellExtensionSettingsPage _settingsPage;
 
     public QuickShellSettingsManager(Action? onReload = null)
@@ -46,9 +48,16 @@ internal sealed class QuickShellSettingsManager
             $"On/off toggle, not a count: any non-zero value shows the {QuickShellRecentSettings.EnabledCount} most recently used workspaces on the home page; 0 hides the section.",
             QuickShellRecentSettings.DefaultCount.ToString(CultureInfo.InvariantCulture));
 
+        _blockDirtyBranchSwitchSetting = new TextSetting(
+            BlockDirtyBranchSwitchSettingId,
+            "Block launch when dirty and branch would change",
+            "When a worktree target branch differs from HEAD, block launch and branch switching if the working tree has uncommitted changes.",
+            "true");
+
         _settings.Add(_terminalApplicationSetting);
         _settings.Add(_defaultProfileSetting);
         _settings.Add(_recentWorkspaceCountSetting);
+        _settings.Add(_blockDirtyBranchSwitchSetting);
         _settingsStore.LoadSettings();
 
         var usedLegacyDefaults = false;
@@ -64,8 +73,9 @@ internal sealed class QuickShellSettingsManager
         initialApp = EnsureValidTerminalApplication(initialApp);
         initialProfile = NormalizeStoredDefaultProfile(initialProfile);
         var initialRecentCount = ReadRecentWorkspaceCount();
+        var initialBlockDirtyBranchSwitch = ReadBlockDirtyBranchSwitch();
 
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}"}""");
+        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}"}""");
         SyncDefaultProfileChoices();
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
@@ -84,6 +94,8 @@ internal sealed class QuickShellSettingsManager
 
     internal void RefreshSettingsContent() => _settingsPage.RefreshContent();
 
+    internal void PrewarmSettingsContent() => _settingsPage.PrewarmContent();
+
     public IContentPage SettingsPage => _settingsPage;
 
     public string TerminalApplicationId =>
@@ -93,6 +105,8 @@ internal sealed class QuickShellSettingsManager
         EnsureValidDefaultProfile(TerminalApplicationId, _settings.GetSetting<string>(DefaultProfileSettingId));
 
     public int RecentWorkspaceCount => ReadRecentWorkspaceCount();
+
+    public bool BlockDirtyBranchSwitch => ReadBlockDirtyBranchSwitch();
 
     internal void UpdateTerminalDefaults(string app, string profile)
     {
@@ -108,6 +122,12 @@ internal sealed class QuickShellSettingsManager
     {
         count = QuickShellRecentSettings.NormalizeCount(count);
         _settings.Update($$"""{"{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(count)}}"}""");
+        PersistSettings();
+    }
+
+    internal void UpdateBlockDirtyBranchSwitch(bool enabled)
+    {
+        _settings.Update($$"""{"{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(enabled)}}"}""");
         PersistSettings();
     }
 
@@ -284,4 +304,12 @@ internal sealed class QuickShellSettingsManager
             ? parsed
             : QuickShellRecentSettings.DefaultCount;
     }
+
+    private bool ReadBlockDirtyBranchSwitch()
+    {
+        var raw = _settings.GetSetting<string>(BlockDirtyBranchSwitchSettingId);
+        return !string.Equals(raw, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatBool(bool value) => value ? "true" : "false";
 }

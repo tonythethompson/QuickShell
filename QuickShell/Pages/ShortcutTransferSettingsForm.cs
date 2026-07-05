@@ -32,6 +32,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             "exportWorkspaces" => RunWorkspaceExport(),
             "importWorkspaces" => RunWorkspaceImport(),
             "resetWorkspaces" => ConfirmResetWorkspaces(),
+            "copyLaunchDiagnostics" => CopyLaunchDiagnostics(),
             "merge" => ResolveImportConflict(merge: true),
             "replace" => ResolveImportConflict(merge: false),
             "cancel" => CancelImportConflict(),
@@ -136,6 +137,12 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
                 "Export, import, or reset saved workspace folders and favorites.",
                 BuildWorkspaceTransferActionSet(),
                 topSpacing: "Small"));
+
+            bodyParts.Add(SettingsCardJson.TransferRow(
+                "Launch diagnostics",
+                "Copy the last workspace launch report for troubleshooting terminal, command, URL, profile, or health-check issues.",
+                BuildLaunchDiagnosticsActionSet(),
+                topSpacing: "Medium"));
         }
 
         var conflictBlock = BuildImportConflictBlock();
@@ -191,6 +198,27 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
               "data": { "action": "resetWorkspaces" }
             }
             """);
+
+    private static string BuildLaunchDiagnosticsActionSet() => """
+        {
+          "type": "ActionSet",
+          "spacing": "Small",
+          "actions": [
+            {
+              "type": "Action.Submit",
+              "title": "Copy launch diagnostics",
+              "associatedInputs": "none",
+              "data": { "action": "copyLaunchDiagnostics" }
+            }
+          ]
+        }
+        """;
+
+    private static CommandResult CopyLaunchDiagnostics()
+    {
+        LaunchDiagnosticsState.TryCopyLastReport(out var message);
+        return QuickShellNavigation.StayOnSettings(message);
+    }
 
     private static string BuildImportConflictBlock()
     {

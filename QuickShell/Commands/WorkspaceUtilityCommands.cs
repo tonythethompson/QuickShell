@@ -33,6 +33,21 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
     }
 }
 
+internal sealed partial class CopyLaunchDiagnosticsCommand : InvokableCommand
+{
+    public CopyLaunchDiagnosticsCommand()
+    {
+        Name = "Copy launch diagnostics";
+        Icon = new IconInfo(ShortcutGlyphs.CopyDiagnostics);
+    }
+
+    public override CommandResult Invoke()
+    {
+        LaunchDiagnosticsState.TryCopyLastReport(out var message);
+        return QuickShellNavigation.StayOpen(message);
+    }
+}
+
 internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCommand
 {
     private readonly string _shortcutId;

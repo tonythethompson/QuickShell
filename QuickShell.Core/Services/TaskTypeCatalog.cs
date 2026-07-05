@@ -7,25 +7,58 @@ internal static class TaskTypeCatalog
     public const string None = "none";
     public const string Api = "api";
     public const string Frontend = "frontend";
-    public const string Database = "database";
+    public const string Services = "services";
     public const string Logs = "logs";
+    public const string Test = "test";
+    public const string Build = "build";
+
+    public const string Database = Services;
 
     private static readonly IReadOnlyList<(string Id, string Title)> Definitions =
     [
         (Api, "API"),
         (Frontend, "Frontend"),
-        (Database, "Database"),
+        (Services, "Services"),
         (Logs, "Logs"),
+        (Test, "Test"),
+        (Build, "Build"),
     ];
 
     public static IReadOnlyList<(string Id, string Title)> GetChoices() => Definitions;
 
-    public static string BuildFormChoicesJson()
+    public static string BuildFormChoicesJson(string? directory = null, TaskTypePickContext? pickContext = null) =>
+        BuildPickerChoicesJson(directory, includePlaceholder: false, pickContext);
+
+    public static string BuildPickerChoicesJson(
+        string? directory = null,
+        bool includePlaceholder = true,
+        TaskTypePickContext? pickContext = null)
     {
-        var choices = new List<object> { new { title = "None", value = None } };
+        pickContext ??= TaskTypePickContext.Empty;
+        var choices = new List<object>();
+        if (includePlaceholder)
+        {
+            choices.Add(new
+            {
+                title = "Choose a command…",
+                value = None,
+                tooltip = TaskTypeCommandSuggestion.PickerTooltip,
+            });
+        }
+
         foreach (var definition in Definitions)
         {
-            choices.Add(new { title = definition.Title, value = definition.Id });
+            if (!TaskTypeCommandSuggestion.IsAvailable(directory, definition.Id, pickContext))
+            {
+                continue;
+            }
+
+            choices.Add(new
+            {
+                title = definition.Title,
+                value = definition.Id,
+                tooltip = TaskTypeCommandSuggestion.GetChoiceTooltip(directory, definition.Id, pickContext),
+            });
         }
 
         return JsonSerializer.Serialize(choices);
@@ -36,8 +69,10 @@ internal static class TaskTypeCatalog
         {
             Api => Api,
             Frontend => Frontend,
-            Database => Database,
+            Services or "database" => Services,
             Logs => Logs,
+            Test or "tests" => Test,
+            Build => Build,
             _ => None,
         };
 
@@ -46,8 +81,10 @@ internal static class TaskTypeCatalog
         {
             Api => "API",
             Frontend => "Frontend",
-            Database => "Database",
+            Services => "Services",
             Logs => "Logs",
+            Test => "Test",
+            Build => "Build",
             _ => string.Empty,
         };
 
@@ -56,8 +93,10 @@ internal static class TaskTypeCatalog
         {
             Api => ShortcutGlyphs.TaskApi,
             Frontend => ShortcutGlyphs.TaskFrontend,
-            Database => ShortcutGlyphs.TaskDatabase,
+            Services => ShortcutGlyphs.TaskServices,
             Logs => ShortcutGlyphs.TaskLogs,
+            Test => ShortcutGlyphs.TaskTest,
+            Build => ShortcutGlyphs.TaskBuild,
             _ => null,
         };
 }

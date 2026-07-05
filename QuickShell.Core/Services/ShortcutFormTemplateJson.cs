@@ -26,19 +26,49 @@ internal static class ShortcutFormTemplateJson
 
         public string CompanionAppPath { get; init; } = string.Empty;
 
+        public string CompanionAppArguments { get; init; } = string.Empty;
+
         public bool ShowRestoredDraftNote { get; init; }
 
         public bool RunAsAdmin { get; init; }
+
+        public bool ShowTaskTypePicker { get; init; }
+
+        public string TaskTypePicker { get; init; } = TaskTypeCatalog.None;
     }
 
     public static string BuildTemplate(
         string terminalChoices,
         string companionChoices,
-        IReadOnlyList<(string Command, string TaskType)> commands,
-        string taskTypeChoices,
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)> commands,
+        string taskTypePickerChoices,
         string displayName = DisplayNameDefault)
     {
-        var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, taskTypeChoices);
+        var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices);
+        var tipDirectory = Escape(WorkspaceFormTooltips.Directory);
+        var tipName = Escape(WorkspaceFormTooltips.Name);
+        var tipHomeKeyword = Escape(WorkspaceFormTooltips.HomeKeyword);
+        var tipDevServerUrl = Escape(WorkspaceFormTooltips.DevServerUrl);
+        var tipDevServerOnLaunch = Escape(WorkspaceFormTooltips.DevServerOnLaunch);
+        var tipRepoUrl = Escape(WorkspaceFormTooltips.RepoUrl);
+        var tipCompanionPreset = Escape(WorkspaceFormTooltips.CompanionAppPreset);
+        var tipTaskTypePicker = Escape(WorkspaceFormTooltips.TaskTypePicker);
+        var tipRunAsAdmin = Escape(WorkspaceFormTooltips.RunAsAdmin);
+        var browseCompanionTitle = Escape(CompanionAppCatalog.BrowseActionTitle);
+        var taskTypePickerBlock = ShortcutLaunchFormJson.BuildTaskTypePickerBlock($$"""
+                {
+                  "type": "Input.ChoiceSet",
+                  "id": "TaskTypePicker",
+                  "style": "compact",
+                  "value": "${TaskTypePicker}",
+                  "tooltip": "{{tipTaskTypePicker}}",
+                  "choices": {{taskTypePickerChoices}}
+                }
+                """);
+        var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
+            commandRows,
+            taskTypePickerBlock);
+
         return $$"""
         {
           "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -64,108 +94,107 @@ internal static class ShortcutFormTemplateJson
               "spacing": "Medium",
               "items": [
                 {{AdaptiveCardFormJson.FieldLabel("Folder path")}},
-                {{AdaptiveCardFormJson.FieldHelp("Folder opened when you run this workspace. Browse or paste to pick a folder.")}},
+                {{AdaptiveCardFormJson.FieldHelp(WorkspaceFormTooltips.DirectoryExample)}},
+                {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.InputWithTrailingActionsRow("""
                 {
                   "type": "Input.Text",
                   "id": "Directory",
                   "isRequired": true,
                   "errorMessage": "Folder path is required",
-                  "placeholder": "Type or paste a path, e.g. C:\\Projects\\MyApp",
+                  "tooltip": "{{tipDirectory}}",
                   "value": "${Directory}"
-                },
-                {
-                  "type": "ActionSet",
-                  "spacing": "Small",
-                  "actions": [
-                    {
-                      "type": "Action.Submit",
-                      "title": "Browse folder",
-                      "data": { "action": "browse" },
-                      "associatedInputs": "none"
-                    },
-                    {
-                      "type": "Action.Submit",
-                      "title": "Paste path",
-                      "data": { "action": "paste" },
-                      "associatedInputs": "none"
-                    }
-                  ]
                 }
+                """,
+                $$"""
+                {{AdaptiveCardFormJson.IconSubmitAction(
+                    FormActionGlyphs.FolderOpen,
+                    FormActionGlyphs.BrowseFolderTooltip,
+                    "browse",
+                    "none")}},
+                {{AdaptiveCardFormJson.IconSubmitAction(
+                    FormActionGlyphs.Paste,
+                    FormActionGlyphs.PastePathTooltip,
+                    "paste",
+                    "none")}}
+                """))}}
               ]
             },
-            {{AdaptiveCardFormJson.FieldGroup("Name", $"Shown in your {displayName} list. Filled in from the folder name when you browse or paste—you can edit it.", """
-            {
-              "type": "Input.Text",
-              "id": "Name",
-              "value": "${Name}"
-            }
-            """)}},
-            {{AdaptiveCardFormJson.FieldGroup("Home keyword (optional)", "Type this at Command Palette home to jump straight to this workspace.", """
-            {
-              "type": "Input.Text",
-              "id": "Abbreviation",
-              "placeholder": "e.g. api",
-              "value": "${Abbreviation}"
-            }
-            """)}},
-            {{AdaptiveCardFormJson.FieldGroup("Dev server URL (optional)", "Opens in your browser when you run this workspace (e.g. http://localhost:3000). Use a launch command such as npm run dev to start the server in a terminal.", """
-            {
-              "type": "Input.Text",
-              "id": "DevServerUrl",
-              "value": "${DevServerUrl}"
-            }
-            """)}},
-            {{AdaptiveCardFormJson.FieldGroup("Dev server on launch", "When enabled, opens the URL above in your browser whenever you run the full workspace.", """
-            {
-              "type": "Input.Toggle",
-              "id": "OpenDevServerOnLaunch",
-              "title": "Open dev server in browser",
-              "value": "${OpenDevServerOnLaunch}",
-              "valueOn": "true",
-              "valueOff": "false"
-            }
-            """)}},
-            {{AdaptiveCardFormJson.FieldGroup("Repository URL (optional)", "Opens from the workspace action menu, e.g. your GitHub repo page.", """
+            {{AdaptiveCardFormJson.PairedFieldRow(
+                "Name",
+                """
+                {
+                  "type": "Input.Text",
+                  "id": "Name",
+                  "tooltip": "{{tipName}}",
+                  "value": "${Name}"
+                }
+                """,
+                "Home keyword (optional)",
+                """
+                {
+                  "type": "Input.Text",
+                  "id": "Abbreviation",
+                  "tooltip": "{{tipHomeKeyword}}",
+                  "value": "${Abbreviation}"
+                }
+                """)}},
+            {{AdaptiveCardFormJson.DevServerFieldRow(
+                """
+                {
+                  "type": "Input.Text",
+                  "id": "DevServerUrl",
+                  "tooltip": "{{tipDevServerUrl}}",
+                  "value": "${DevServerUrl}"
+                }
+                """,
+                """
+                {
+                  "type": "Input.Toggle",
+                  "id": "OpenDevServerOnLaunch",
+                  "title": "Open in browser",
+                  "tooltip": "{{tipDevServerOnLaunch}}",
+                  "value": "${OpenDevServerOnLaunch}",
+                  "valueOn": "true",
+                  "valueOff": "false"
+                }
+                """,
+                WorkspaceFormTooltips.DevServerUrlExample)}},
+            {{AdaptiveCardFormJson.FieldGroup("Repository URL (optional)", WorkspaceFormTooltips.RepoUrlExample, """
             {
               "type": "Input.Text",
               "id": "RepoUrl",
-              "placeholder": "https://github.com/you/your-repo",
+              "tooltip": "{{tipRepoUrl}}",
               "value": "${RepoUrl}"
             }
             """)}},
-            {
-              "type": "Container",
-              "spacing": "Medium",
-              "items": [
+            {{AdaptiveCardFormJson.FieldWithActionRow(
+                "App preset",
+                $$"""
                 {
-                  "type": "Container",
-                  "spacing": "Small",
-                  "items": [
-                    {{AdaptiveCardFormJson.FieldLabel("App preset")}},
-                    {{AdaptiveCardFormJson.FieldHelp("Optionally open an editor or other app with this workspace folder when you run the workspace.")}},
-                    {
-                      "type": "Input.ChoiceSet",
-                      "id": "CompanionAppPreset",
-                      "style": "compact",
-                      "value": "${CompanionAppPreset}",
-                      "choices": {{companionChoices}}
-                    },
-                    {
-                      "type": "ActionSet",
-                      "spacing": "Small",
-                      "actions": [
-                        {
-                          "type": "Action.Submit",
-                          "title": "Choose custom app…",
-                          "tooltip": "Pick any installed application.",
-                          "data": { "action": "browseCompanionApp" },
-                          "associatedInputs": "auto"
-                        }
-                      ]
-                    }
-                  ]
+                  "type": "Input.ChoiceSet",
+                  "id": "CompanionAppPreset",
+                  "style": "compact",
+                  "tooltip": "{{tipCompanionPreset}}",
+                  "value": "${CompanionAppPreset}",
+                  "choices": {{companionChoices}}
                 }
-              ]
+                """,
+                $$"""
+                {
+                  "type": "Action.Submit",
+                  "title": "{{browseCompanionTitle}}",
+                  "tooltip": "Pick any installed application.",
+                  "data": { "action": "browseCompanionApp" },
+                  "associatedInputs": "auto"
+                }
+                """)}},
+            {
+              "type": "TextBlock",
+              "$when": "${ShowCompanionBrowseRequired}",
+              "text": "${CompanionBrowseRequiredMessage}",
+              "color": "Attention",
+              "wrap": true,
+              "spacing": "Small"
             },
             {
               "type": "Container",
@@ -189,52 +218,29 @@ internal static class ShortcutFormTemplateJson
               "spacing": "Small"
             },
             {
-              "type": "TextBlock",
-              "text": "Commands",
-              "weight": "Bolder",
-              "spacing": "Medium"
-            },
-            {
-              "type": "TextBlock",
-              "text": "Each command uses this workspace's terminal. Leave blank to open the folder only.",
-              "wrap": true,
-              "isSubtle": true,
-              "spacing": "Small"
-            },
-            {{commandRows}},
-            {
               "type": "Container",
+              "$when": "${ShowCompanionArguments}",
               "spacing": "Medium",
               "items": [
-                {{AdaptiveCardFormJson.FieldLabel("Terminal profile")}},
-                {{AdaptiveCardFormJson.FieldHelp("Applies to every command in this workspace.")}},
+                {{AdaptiveCardFormJson.FieldLabel(CompanionAppArgumentValidation.FieldLabel)}},
+                {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.NarrowCompanionArgumentsInput())}},
                 {
-                  "type": "Input.ChoiceSet",
-                  "id": "LaunchTarget",
-                  "style": "compact",
-                  "value": "${LaunchTarget}",
-                  "choices": {{terminalChoices}}
-                },
-                {
-                  "type": "ActionSet",
-                  "spacing": "Small",
-                  "actions": [
-                    {
-                      "type": "Action.Submit",
-                      "title": "Refresh profile list",
-                      "tooltip": "Reload after installing a shell or editing Windows Terminal settings.",
-                      "associatedInputs": "auto",
-                      "data": { "action": "refreshTerminals" }
-                    }
-                  ]
+                  "type": "TextBlock",
+                  "$when": "${ShowCompanionArgumentWarning}",
+                  "text": "${CompanionArgumentWarning}",
+                  "color": "Attention",
+                  "wrap": true,
+                  "spacing": "Small"
                 }
               ]
             },
-            {{AdaptiveCardFormJson.FieldGroup("Administrator", "Launch elevated. Windows may show a UAC prompt each time.", """
+            {{commandsSection}},
+            {{AdaptiveCardFormJson.FieldGroup("Administrator", help: null, """
             {
               "type": "Input.Toggle",
               "id": "RunAsAdmin",
               "title": "Always run as administrator",
+              "tooltip": "{{tipRunAsAdmin}}",
               "value": "${RunAsAdmin}",
               "valueOn": "true",
               "valueOff": "false"
@@ -261,7 +267,7 @@ internal static class ShortcutFormTemplateJson
 
     public static string BuildDataJson(
         DataPayload draft,
-        IReadOnlyList<(string Command, string TaskType)>? commands = null)
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)>? commands = null)
     {
         commands ??= [];
         var commandFields = string.Join(
@@ -270,6 +276,7 @@ internal static class ShortcutFormTemplateJson
             {
                 $"\"LaunchCommand_{index}\": \"{Escape(row.Command)}\"",
                 $"\"LaunchType_{index}\": \"{Escape(TaskTypeCatalog.Normalize(row.TaskType))}\"",
+                $"\"LaunchTarget_{index}\": \"{Escape(row.LaunchTarget)}\"",
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
@@ -286,11 +293,21 @@ internal static class ShortcutFormTemplateJson
           "RepoUrl": "{{Escape(draft.RepoUrl)}}",
           "CompanionAppPreset": "{{Escape(CompanionAppCatalog.ToFormPresetValue(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
           "CompanionAppPathDisplay": "{{Escape(draft.CompanionAppPath)}}",
-          "ShowCompanionExecutablePath": {{(CompanionAppCatalog.ShouldShowExecutablePath(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
+          "ShowCompanionBrowseRequired": {{(CompanionAppCatalog.ShouldShowBrowseRequiredPrompt(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
+          "CompanionBrowseRequiredMessage": "{{Escape(CompanionAppCatalog.BrowseRequiredMessage)}}",
+          "ShowCompanionExecutablePath": {{(CompanionAppCatalog.ShouldShowExecutablePath(draft.CompanionAppPath) ? "true" : "false")}},
           "ShowCompanionPathWarning": {{(CompanionAppCatalog.ShouldShowPathWarning(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
           "CompanionPathWarning": "{{Escape(CompanionAppCatalog.BuildPathWarning(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
+          "ShowCompanionArguments": {{(CompanionAppArgumentValidation.ShouldShowArgumentsField(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
+          "CompanionAppArguments": "{{Escape(draft.CompanionAppArguments)}}",
+          "CompanionArgumentPlaceholder": "{{Escape(CompanionAppArgumentValidation.GetArgumentPlaceholder(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
+          "CompanionArgumentTooltip": "{{Escape(CompanionAppArgumentValidation.GetArgumentTooltip(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
+          "ShowCompanionArgumentWarning": {{(CompanionAppArgumentValidation.BuildArgumentWarning(draft.CompanionAppPreset, draft.CompanionAppPath, draft.CompanionAppArguments, draft.Directory) is not null ? "true" : "false")}},
+          "CompanionArgumentWarning": "{{Escape(CompanionAppArgumentValidation.BuildArgumentWarning(draft.CompanionAppPreset, draft.CompanionAppPath, draft.CompanionAppArguments, draft.Directory) ?? string.Empty)}}",
           "RunAsAdmin": "{{(draft.RunAsAdmin ? "true" : "false")}}",
-          "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}}{{commandSection}}
+          "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}},
+          "ShowTaskTypePicker": {{(draft.ShowTaskTypePicker ? "true" : "false")}},
+          "TaskTypePicker": "{{Escape(TaskTypeCatalog.Normalize(draft.TaskTypePicker))}}"{{commandSection}}
         }
         """;
     }
@@ -331,13 +348,13 @@ internal static class ShortcutFormTemplateJson
         }
         """;
 
-private static string Escape(string? value)
-{
-    var encoded = global::System.Text.Json.JsonSerializer.Serialize(
-        value ?? string.Empty,
-        global::QuickShell.QuickShellJsonContext.Default.String);
-    return encoded.Length >= 2 ? encoded[1..^1] : string.Empty;
-}
+    private static string Escape(string? value)
+    {
+        var encoded = global::System.Text.Json.JsonSerializer.Serialize(
+            value ?? string.Empty,
+            global::QuickShell.QuickShellJsonContext.Default.String);
+        return encoded.Length >= 2 ? encoded[1..^1] : string.Empty;
+    }
 
     /// <summary>
     /// Choice arrays and command rows must be interpolated in the outer template scope.

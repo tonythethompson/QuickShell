@@ -63,13 +63,18 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
             shortcut,
             _settings.TerminalApplicationId,
             _settings.DefaultProfileId,
-            new ShortcutLaunchOptions(_runAsAdmin, _runAsStandard));
+            new ShortcutLaunchOptions(
+                _runAsAdmin,
+                _runAsStandard,
+                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch));
 
         return ToCommandResult(result);
     }
 
     private CommandResult ToCommandResult(ShortcutLaunchResult result)
     {
+        LaunchDiagnosticsState.Set(result.Diagnostics);
+
         if (result.MarkUsed)
         {
             QuickShellRuntimeServices.Shortcuts.MarkUsed(_shortcutId);
