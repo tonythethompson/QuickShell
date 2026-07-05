@@ -81,6 +81,10 @@ jobs:
         run: .\scripts\build-run-plugin.ps1 -Platform ARM64
         shell: pwsh
 
+      - name: Verify release artifacts
+        run: .\scripts\verify-release-artifacts.ps1 -Version "${{ steps.version.outputs.VERSION }}"
+        shell: pwsh
+
       - name: Upload x64 installer
         uses: actions/upload-artifact@v4
         with:
@@ -93,7 +97,7 @@ jobs:
         with:
           name: QuickShell-arm64-installer
           path: QuickShell/bin/Release/installer/*-arm64.exe
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
