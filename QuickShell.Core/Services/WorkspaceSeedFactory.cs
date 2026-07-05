@@ -10,9 +10,14 @@ internal static class WorkspaceSeedFactory
             Name = candidate.Name,
             Directory = candidate.Directory,
             RepoUrl = candidate.RemoteUrl,
-        });
+        }, candidate.Classification.Stacks == ProjectStack.None
+            ? ProjectClassifier.Classify(candidate.Directory)
+            : candidate.Classification);
 
-    public static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed)
+    public static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed) =>
+        ApplyDirectoryHints(seed, ProjectClassifier.Classify(seed.Directory));
+
+    private static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed, ProjectClassification classification)
     {
         if (string.IsNullOrWhiteSpace(seed.Directory))
         {
@@ -31,12 +36,7 @@ internal static class WorkspaceSeedFactory
 
         if (!HasNonemptyLaunchCommand(seed))
         {
-            var detected = DevServerUrlDetection.TryDetectDevLaunchCommand(seed.Directory);
-            if (!string.IsNullOrWhiteSpace(detected))
-            {
-                seed.Command = detected;
-                ApplyDetectedCommandToLaunches(seed, detected);
-            }
+            WorkspaceSetupSuggestion.ApplyToShortcut(seed, classification);
         }
 
         return seed;
@@ -45,6 +45,7 @@ internal static class WorkspaceSeedFactory
     private static bool HasNonemptyLaunchCommand(TerminalShortcut seed) =>
         seed.Launches.Any(launch => !string.IsNullOrWhiteSpace(launch.Command))
         || !string.IsNullOrWhiteSpace(seed.Command);
+<<<<<<< Updated upstream
 
     private static void ApplyDetectedCommandToLaunches(TerminalShortcut seed, string command)
     {
@@ -77,4 +78,6 @@ internal static class WorkspaceSeedFactory
             launch.TaskType = inferred;
         }
     }
+=======
+>>>>>>> Stashed changes
 }

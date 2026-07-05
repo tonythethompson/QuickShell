@@ -3,13 +3,27 @@ using System.Diagnostics;
 
 namespace QuickShell.Services;
 
+<<<<<<< Updated upstream
 internal readonly record struct ResolvedLaunch(TerminalShortcut Shortcut, LaunchTarget Target);
+=======
+internal sealed record TerminalLaunchAttempt(
+    string HostExecutable,
+    string Arguments,
+    string TargetDisplayName,
+    string? ProfileOrDistro,
+    bool RunAsAdmin,
+    string? FallbackReason);
+>>>>>>> Stashed changes
 
 internal static class TerminalLauncher
 {
     internal static Func<ProcessStartInfo, bool>? StartProcessOverride { get; set; }
 
+<<<<<<< Updated upstream
     public static ResolvedLaunch Resolve(
+=======
+    public static TerminalLaunchAttempt Open(
+>>>>>>> Stashed changes
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId)
@@ -144,6 +158,14 @@ internal static class TerminalLauncher
         {
             throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
         }
+
+        return new TerminalLaunchAttempt(
+            startInfo.FileName,
+            startInfo.Arguments,
+            target.DisplayName,
+            target.ProfileOrDistro,
+            string.Equals(startInfo.Verb, "runas", StringComparison.OrdinalIgnoreCase),
+            target.FallbackReason);
     }
 
     private static List<string> BuildWindowsTerminalArguments(TerminalShortcut shortcut, LaunchTarget target)

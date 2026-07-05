@@ -1,61 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="62 98 395 395" role="img" aria-label="Quick Shell: folder and lightning bolt" shape-rendering="geometricPrecision">
-  <title>Micro Folder Bolt</title>
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quick Shell micro icon">
+  <title>Quick Shell Micro</title>
   <defs>
-    <linearGradient id="folderBack" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1B7BBF"/>
-      <stop offset="100%" stop-color="#0E5F96"/>
+    <linearGradient id="fBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#35A5FF"/>
+      <stop offset="100%" stop-color="#187CE2"/>
     </linearGradient>
-
-    <linearGradient id="folderFront" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#45A8F0"/>
-      <stop offset="100%" stop-color="#2F96E8"/>
-    </linearGradient>
-
-    <linearGradient id="boltFill" x1="50%" y1="0%" x2="50%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#FFFFFF"/>
-    </linearGradient>
-
-    <linearGradient id="boltOutline" x1="38%" y1="0%" x2="62%" y2="100%">
-      <stop offset="0%" stop-color="#5A9FD4"/>
-      <stop offset="45%" stop-color="#1E6DB8"/>
-      <stop offset="100%" stop-color="#004878"/>
-    </linearGradient>
-
-    <linearGradient id="boltOutlineMain" x1="38%" y1="0%" x2="62%" y2="100%">
-      <stop offset="0%" stop-color="#2A5A78"/>
-      <stop offset="45%" stop-color="#0E3D5C"/>
-      <stop offset="100%" stop-color="#001A2E"/>
+    <linearGradient id="fFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#43ADFF"/>
+      <stop offset="100%" stop-color="#238CEF"/>
     </linearGradient>
   </defs>
 
-  <g transform="translate(259.5 290) scale(15.177) translate(-16 -16)">
-    <path fill="url(#folderBack)" d="M26,27H6c-1.105,0-2-0.895-2-2V7c0-1.105,0.895-2,2-2h4.027c0.623,0,1.22,0.247,1.66,0.688l0.624,0.624C12.753,6.753,13.35,7,13.973,7H26c1.105,0,2,0.895,2,2v16C28,26.105,27.105,27,26,27z"/>
-    <path fill="url(#folderFront)" d="M27,27H5c-1.105,0-2-0.895-2-2V11c0-1.105,0.895-2,2-2h22c1.105,0,2,0.895,2,2v14C29,26.105,28.105,27,27,27z"/>
-  </g>
+  <path
+    d="M42 95V44c0-20 16-36 36-36h112c10 0 20 4 27 12l28 30c9 10 22 15 35 15h178c20 0 36 16 36 36v25H42z"
+    fill="url(#fBack)"
+    stroke="#05070A"
+    stroke-width="18"
+    stroke-linejoin="round"/>
 
-  <g transform="translate(259.5 303) scale(3.10) translate(-54.5 -58.5)">
-    <path
-      d="M108 0L35 45L61 46L10 78L37 79L0 116L80 64L57 63L106 31L78 30Z"
-      fill="none"
-      stroke="url(#boltOutline)"
-      stroke-width="4.5"
-      stroke-linejoin="round"
-      opacity="0.28"/>
-    <path
-      d="M108 0L35 45L61 46L10 78L37 79L0 116L80 64L57 63L106 31L78 30Z"
-      fill="none"
-      stroke="url(#boltOutline)"
-      stroke-width="2.5"
-      stroke-linejoin="round"
-      opacity="0.82"/>
-    <path
-      d="M108 0L35 45L61 46L10 78L37 79L0 116L80 64L57 63L106 31L78 30Z"
-      fill="url(#boltFill)"
-      stroke="url(#boltOutlineMain)"
-      stroke-width="1.6"
-      stroke-linejoin="round"/>
-  </g>
+  <path
+    d="M9 120c-2-22 16-40 37-40h421c22 0 39 19 37 40l-18 321c-2 25-23 45-48 45H58c-25 0-46-20-48-45L9 120z"
+    fill="url(#fFront)"
+    stroke="#05070A"
+    stroke-width="18"
+    stroke-linejoin="round"/>
+
+  <path
+    d="M41 121l44 35-44 35"
+    fill="none"
+    stroke="#05070A"
+    stroke-width="24"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <rect x="106" y="176" width="52" height="19" rx="10" fill="#05070A"/>
+
+  <path
+    d="M271 171h72c8 0 12 9 8 15l-43 60h40c8 0 13 10 7 16L203 408c-7 7-18-1-15-10l40-103h-34c-8 0-13-10-7-16l75-106c2-3 5-4 9-4z"
+    fill="#FFFFFF"
+    stroke="#05070A"
+    stroke-width="22"
+    stroke-linejoin="round"
+    stroke-linecap="round"/>
 </svg>
