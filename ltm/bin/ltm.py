@@ -46,7 +46,8 @@ EXIT_USAGE = 64
 
 SECRET_PATTERNS = [
     re.compile(r'sk_live_\S+'), re.compile(r'sk_test_\S+'), re.compile(r'AKIA\S{16,}'),
-    re.compile(r'ghp_\S+'), re.compile(r'gho_\S+'), re.compile(r'-----BEGIN\s'),
+    re.compile(r'ghp_\S+'), re.compile(r'gho_\S+'),
+    re.compile(r'-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----'),
     re.compile(r'Bearer\s+\S{20,}'),
 ]
 BASE64_SECRET = re.compile(r'[A-Za-z0-9+/]{40,}={0,2}')
@@ -411,7 +412,7 @@ def cmd_search(args):
         for r in reversed(_read_jsonl(path)):
             if len(results) >= limit:
                 break
-            ts = r.get("ts", r.get("started_at", ""))
+            ts = r.get("ts") or r.get("started_at") or r.get("last_touched") or r.get("ts_opened") or ""
             if cutoff is not None and ts < cutoff:
                 continue
             text = json.dumps(r).lower().replace("-", "_").replace(" ", "_")
