@@ -1,4 +1,6 @@
 bin/
+!ltm/bin/
+!ltm/bin/**
 obj/
 AppPackages/
 *.user
