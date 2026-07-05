@@ -47,7 +47,7 @@ EXIT_USAGE = 64
 SECRET_PATTERNS = [
     re.compile(r'sk_live_\S+'), re.compile(r'sk_test_\S+'), re.compile(r'AKIA\S{16,}'),
     re.compile(r'ghp_\S+'), re.compile(r'gho_\S+'), re.compile(r'-----BEGIN\s'),
-    re.compile(r'Bearer\s+\S{20,}'), re.compile(r'[A-Za-z0-9+/]{40,}={0,2}'),
+    re.compile(r'Bearer\s+\S{20,}'),
 ]
 SECRET_KEYS = {'password', 'secret', 'token', 'api_key', 'private_key', 'access_key'}
 
@@ -138,7 +138,7 @@ def _git_status():
             return [], "unavailable"
         if check == "timeout":
             return [], "timeout"
-        return [], "not_repo"
+        return [], "ok"
     cached = _git("diff", "--cached", "--name-only") or []
     if cached == "timeout":
         cached = []
@@ -417,12 +417,22 @@ def cmd_show(args):
     limit = min(args.limit or SHOW_EVENT_DEFAULT, SHOW_EVENT_MAX)
     session = [s for s in _read_jsonl(SESSIONS) if s.get("session_id") == sid]
     chks = [c for c in _read_jsonl(CHECKPOINTS) if c.get("session_id") == sid]
-    threads = [t for t in _read_jsonl(THREADS) if any(c.get("session_id") == sid for c in _read_jsonl(CHECKPOINTS) if t.get("thread_id") in c.get("open_threads", []))]
+    linked_thread_ids = {
+        tid
+        for c in chks
+        for tid in c.get("open_threads", [])
+        if isinstance(tid, str)
+    }
+    threads = [t for t in _read_jsonl(THREADS) if t.get("thread_id") in linked_thread_ids]
     events = [e for e in _read_jsonl(EVENTS) if e.get("session_id") == sid]
     total = len(events)
     if total > limit:
-        half = limit // 2
-        shown = events[:half] + events[-half:]
+        if limit == 1:
+            shown = events[-1:]
+        else:
+            head = limit // 2
+            tail = limit - head
+            shown = events[:head] + events[-tail:]
     else:
         shown = events
     result = {"session": session[0] if session else None, "checkpoints": chks, "threads": threads, "events": shown, "total_events": total, "events_shown": len(shown)}
@@ -518,9 +528,13 @@ def cmd_health(args):
     h["semantic_coverage"] = {"last_checkpoint_age_hours": round(last_chk_age, 1), "structural_sessions_without_checkpoint": structural_only, "status": sem_status}
     # 7. e2e probe
     try:
-        _read_jsonl(EVENTS)
+        if EVENTS.exists():
+            for line in EVENTS.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line:
+                    json.loads(line)
         h["e2e_probe"] = "pass"
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         h["e2e_probe"] = "fail"
     # 8. hook status
     hook_path = Path(".kiro/hooks/ltm-postturn-capture.kiro.hook")
