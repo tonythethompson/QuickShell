@@ -11,7 +11,7 @@ If the hook uses an absolute path, review `.kiro/hooks/ltm-postturn-capture.kiro
 
 ## Commands
 
-Read `python_cmd` from `ltm/config.json`.
+Use `python_cmd` from `ltm/config.json` (default: `python`).
 
 - `python ltm/bin/ltm.py files --limit 10`
 - `python ltm/bin/ltm.py health`
