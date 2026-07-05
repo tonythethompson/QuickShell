@@ -12,6 +12,8 @@ internal static class ShortcutFormLaunchSection
         public string Command { get; set; } = string.Empty;
 
         public string TaskType { get; set; } = TaskTypeCatalog.None;
+
+        public string LaunchTarget { get; set; } = "default";
     }
 
     public static List<CommandRowDraft> CommandsFromShortcut(TerminalShortcut? shortcut)
@@ -30,6 +32,7 @@ internal static class ShortcutFormLaunchSection
                 new CommandRowDraft
                 {
                     Command = shortcut.Command ?? string.Empty,
+                    LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
                 },
             ];
         }
@@ -40,6 +43,7 @@ internal static class ShortcutFormLaunchSection
                 Id = entry.Id,
                 Command = entry.Command ?? string.Empty,
                 TaskType = TaskTypeCatalog.Normalize(entry.TaskType),
+                LaunchTarget = ShortcutFormSave.EncodeLaunchTargetForEntry(entry),
             })
             .ToList();
     }
@@ -47,7 +51,7 @@ internal static class ShortcutFormLaunchSection
     public static List<ShortcutFormLaunchInput> ToLaunchInputs(
         IReadOnlyList<CommandRowDraft> commands,
         string workspaceName,
-        string launchTarget,
+        string fallbackLaunchTarget,
         bool runAsAdmin)
     {
         var rows = commands.ToList();
@@ -69,15 +73,43 @@ internal static class ShortcutFormLaunchSection
             Id = row.Id,
             Label = index == 0 ? labelBase : $"Command {index + 1}",
             Command = row.Command,
-            LaunchTarget = launchTarget,
+            LaunchTarget = string.IsNullOrWhiteSpace(row.LaunchTarget)
+                ? index == 0
+                    ? fallbackLaunchTarget
+                    : TerminalCatalog.SameAsPreviousLaunchTargetId
+                : row.LaunchTarget,
             RunAsAdmin = runAsAdmin,
             IsEnabled = true,
             TaskType = TaskTypeCatalog.Normalize(row.TaskType),
         }).ToList();
     }
 
-    public static string BuildCommandRowsJson(IReadOnlyList<CommandRowDraft> commands) =>
+    public static string BuildCommandRowsJson(
+        IReadOnlyList<CommandRowDraft> commands,
+        string terminalChoices) =>
         ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => (command.Command, command.TaskType)).ToList(),
-            TaskTypeCatalog.BuildFormChoicesJson());
+            commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget)).ToList(),
+            terminalChoices);
+
+    public static CommandRowDraft? TryCreateCommandFromTaskType(
+        string? directory,
+        string? taskType,
+        IEnumerable<string?>? existingCommands = null)
+    {
+        var normalized = TaskTypeCatalog.Normalize(taskType);
+        if (normalized == TaskTypeCatalog.None)
+        {
+            return null;
+        }
+
+        var pickContext = existingCommands is null
+            ? TaskTypePickContext.Empty
+            : TaskTypePickContext.FromCommands(existingCommands);
+
+        return new CommandRowDraft
+        {
+            Command = TaskTypeCommandSuggestion.TrySuggest(directory, normalized, pickContext) ?? string.Empty,
+            TaskType = normalized,
+        };
+    }
 }

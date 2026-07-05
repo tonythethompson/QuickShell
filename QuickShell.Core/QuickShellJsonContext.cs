@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using QuickShell.Models;
+using QuickShell.Services;
 
 namespace QuickShell;
 
@@ -18,4 +19,5 @@ namespace QuickShell;
 [JsonSerializable(typeof(WorkspaceEntry))]
 [JsonSerializable(typeof(List<WorkspaceEntry>))]
 [JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(WorktreeBranchTargetsDocument))]
 internal sealed partial class QuickShellJsonContext : JsonSerializerContext;

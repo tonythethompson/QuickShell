@@ -46,39 +46,14 @@ internal static class ShortcutDisplay
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
 
         var parts = new List<string> { ShortenPath(shortcut.Directory) };
-
         var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
-        foreach (var launch in enabledLaunches)
+        if (enabledLaunches.Count == 1)
         {
-            parts.Add(TerminalCatalog.GetProfileLabel(new TerminalShortcut
-            {
-                Terminal = launch.Terminal,
-                WtProfile = launch.WtProfile,
-            }));
-
-            var command = CollapseToSingleLine(launch.Command);
-            if (!string.IsNullOrWhiteSpace(command))
-            {
-                parts.Add(command.Trim());
-            }
-            else if (enabledLaunches.Count > 1 && AnyLaunchHasCommand(enabledLaunches))
-            {
-                parts.Add("Open folder only");
-            }
-            else if (!string.IsNullOrWhiteSpace(launch.Label))
-            {
-                parts.Add(launch.Label.Trim());
-            }
+            parts.Add(BuildPrimaryLaunchSummary(enabledLaunches[0]));
         }
-
-        if (!string.IsNullOrWhiteSpace(shortcut.Abbreviation))
+        else if (enabledLaunches.Count > 1)
         {
-            parts.Add($"home · {shortcut.Abbreviation}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(shortcut.CompanionAppPath))
-        {
-            parts.Add(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath));
+            parts.Add($"{enabledLaunches.Count} launches");
         }
 
         if (shortcut.LastUsedUtc is not null)
@@ -87,6 +62,24 @@ internal static class ShortcutDisplay
         }
 
         return string.Join(" · ", parts);
+    }
+
+    private static string BuildPrimaryLaunchSummary(WorkspaceEntry launch)
+    {
+        var terminal = TerminalCatalog.GetProfileLabel(new TerminalShortcut
+        {
+            Terminal = launch.Terminal,
+            WtProfile = launch.WtProfile,
+        });
+        var command = CollapseToSingleLine(launch.Command);
+        if (!string.IsNullOrWhiteSpace(command))
+        {
+            return $"{terminal}: {Truncate(command.Trim(), 56)}";
+        }
+
+        return string.IsNullOrWhiteSpace(launch.Label)
+            ? terminal
+            : $"{terminal}: {launch.Label.Trim()}";
     }
 
     public static string FormatTerminal(string? launchTargetId) =>
@@ -112,6 +105,9 @@ internal static class ShortcutDisplay
         string.Join(
             ' ',
             (value ?? string.Empty).Split(['\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private static string Truncate(string value, int maximumLength) =>
+        value.Length <= maximumLength ? value : value[..(maximumLength - 1)] + "…";
 
     private static string FormatRelativeTime(DateTime utc)
     {

@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(GitRepoIndexIsolation.Name)]
 public sealed class GitRepoDiscoveryTests : IDisposable
 {
     private readonly string _root;
@@ -12,6 +13,8 @@ public sealed class GitRepoDiscoveryTests : IDisposable
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-git-discovery-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
+        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
     }
 
     [Fact]
@@ -91,8 +94,58 @@ public sealed class GitRepoDiscoveryTests : IDisposable
             candidate => Assert.Equal("zeta", candidate.Name));
     }
 
+    [Fact]
+    public void Discover_UsesDefaultRootCandidatesWhenNoExplicitRootProvided()
+    {
+        var repoPath = Path.Combine(_root, "default-root-repo");
+        Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
+        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [_root];
+
+        var discovered = GitRepoDiscovery.Discover();
+
+        Assert.Contains(discovered, candidate =>
+            string.Equals(candidate.Directory, repoPath, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Discover_MergesExtraRootsWithDefaultLocations()
+    {
+        var extraRoot = Path.Combine(_root, "shortcuts");
+        var defaultRoot = Path.Combine(_root, "defaults");
+        Directory.CreateDirectory(Path.Combine(extraRoot, "from-shortcut", ".git"));
+        Directory.CreateDirectory(Path.Combine(defaultRoot, "from-default", ".git"));
+        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [defaultRoot];
+
+        var discovered = GitRepoDiscovery.Discover([extraRoot]);
+
+        Assert.Contains(discovered, candidate => candidate.Name == "from-shortcut");
+        Assert.Contains(discovered, candidate => candidate.Name == "from-default");
+    }
+
+    [Fact]
+    public void Discover_FindsExplicitWorkspaceRootWhenSiblingRootExhaustsBudget()
+    {
+        var siblingRoot = Path.Combine(_root, "wide-parent");
+        var workspaceRoot = Path.Combine(_root, "workspace");
+        Directory.CreateDirectory(siblingRoot);
+        Directory.CreateDirectory(Path.Combine(workspaceRoot, ".git"));
+
+        for (var i = 0; i < 2100; i++)
+        {
+            Directory.CreateDirectory(Path.Combine(siblingRoot, $"child-{i:D4}"));
+        }
+
+        var discovered = GitRepoDiscovery.Discover([siblingRoot, workspaceRoot]);
+
+        Assert.Contains(discovered, candidate =>
+            string.Equals(candidate.Directory, workspaceRoot, StringComparison.OrdinalIgnoreCase)
+            && candidate.Name == "workspace");
+    }
+
     public void Dispose()
     {
+        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
+        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -394,6 +447,13 @@ public sealed class DevServerUrlDetectionTests : IDisposable
     }
 }
 
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class GitRepoIndexIsolation
+{
+    public const string Name = "GitRepoIndex";
+}
+
+[Collection(GitRepoIndexIsolation.Name)]
 public sealed class GitRepoIndexTests : IDisposable
 {
     private readonly string _root;
@@ -414,6 +474,9 @@ public sealed class GitRepoIndexTests : IDisposable
         GitRepoIndex.Invalidate();
         var saved = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { repoPath };
 
+        _ = GitRepoIndex.Search("alpha", [_root], saved);
+        GitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
+
         var matches = GitRepoIndex.Search("alpha", [_root], saved);
 
         Assert.Empty(matches);
@@ -424,9 +487,33 @@ public sealed class GitRepoIndexTests : IDisposable
         Assert.Equal("alpha-app", matches[0].Name);
     }
 
+    [Fact]
+    public void GetAll_RefreshesWhenExtraRootsChange()
+    {
+        var firstRoot = Path.Combine(_root, "first");
+        var secondRoot = Path.Combine(_root, "second");
+        var firstRepo = Path.Combine(firstRoot, "alpha-app");
+        var secondRepo = Path.Combine(secondRoot, "beta-app");
+        Directory.CreateDirectory(Path.Combine(firstRepo, ".git"));
+        Directory.CreateDirectory(Path.Combine(secondRepo, ".git"));
+
+        _ = GitRepoIndex.GetAll([firstRoot]);
+        GitRepoIndex.WaitForPopulationForTests(BuildRootKeyForTest(firstRoot), TimeSpan.FromSeconds(10));
+        var first = GitRepoIndex.GetAll([firstRoot]);
+
+        _ = GitRepoIndex.GetAll([secondRoot]);
+        GitRepoIndex.WaitForPopulationForTests(BuildRootKeyForTest(secondRoot), TimeSpan.FromSeconds(10));
+        var second = GitRepoIndex.GetAll([secondRoot]);
+
+        Assert.Contains(first, candidate => candidate.Name == "alpha-app");
+        Assert.DoesNotContain(second, candidate => candidate.Name == "alpha-app");
+        Assert.Contains(second, candidate => candidate.Name == "beta-app");
+    }
+
     public void Dispose()
     {
         GitRepoIndex.Invalidate();
+        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -434,6 +521,50 @@ public sealed class GitRepoIndexTests : IDisposable
         catch
         {
         }
+    }
+
+    private static string BuildRootKeyForTest(string root) => root;
+}
+
+public sealed class GitRepoSearchRootsTests
+{
+    [Fact]
+    public void FromShortcuts_IncludesWorkspaceDirectoryAndParent()
+    {
+        var parent = Path.Combine(Path.GetTempPath(), "quickshell-roots-" + Guid.NewGuid().ToString("N"));
+        var workspace = Path.Combine(parent, "app");
+
+        var roots = GitRepoSearchRoots.FromShortcuts(
+        [
+            new TerminalShortcut
+            {
+                Name = "App",
+                Directory = workspace,
+            },
+        ]).ToArray();
+
+        Assert.Contains(workspace, roots, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(parent, roots, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void FromShortcuts_ExcludesDriveRootParent()
+    {
+        var driveRoot = Path.GetPathRoot(Path.GetTempPath())
+            ?? throw new InvalidOperationException("Could not resolve temp drive root.");
+        var workspace = Path.Combine(driveRoot, "quickshell-drive-root-" + Guid.NewGuid().ToString("N"));
+
+        var roots = GitRepoSearchRoots.FromShortcuts(
+        [
+            new TerminalShortcut
+            {
+                Name = "Drive workspace",
+                Directory = workspace,
+            },
+        ]).ToArray();
+
+        Assert.Contains(workspace, roots, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(driveRoot, roots, StringComparer.OrdinalIgnoreCase);
     }
 }
 
@@ -536,13 +667,19 @@ public sealed class CompanionAppTests : IDisposable
     public void BuildFormChoicesJson_OnlyIncludesInstalledPresets()
     {
         using var document = JsonDocument.Parse(CompanionAppCatalog.BuildFormChoicesJson());
-        var values = document.RootElement
-            .EnumerateArray()
+        var choices = document.RootElement.EnumerateArray().ToList();
+        var values = choices
             .Select(choice => choice.GetProperty("value").GetString())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var titlesByValue = choices.ToDictionary(
+            choice => choice.GetProperty("value").GetString()!,
+            choice => choice.GetProperty("title").GetString(),
+            StringComparer.OrdinalIgnoreCase);
 
         Assert.Contains(CompanionAppCatalog.PresetNone, values);
-        Assert.DoesNotContain(CompanionAppCatalog.PresetCustom, values);
+        Assert.Contains(CompanionAppCatalog.PresetCustom, values);
+        Assert.Equal(CompanionAppCatalog.FormChoiceTitleNone, titlesByValue[CompanionAppCatalog.PresetNone]);
+        Assert.Equal(CompanionAppCatalog.FormChoiceTitleCustom, titlesByValue[CompanionAppCatalog.PresetCustom]);
 
         if (CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
         {
@@ -552,6 +689,70 @@ public sealed class CompanionAppTests : IDisposable
         {
             Assert.DoesNotContain(CompanionAppCatalog.PresetVsCode, values);
         }
+    }
+
+    [Fact]
+    public void ToFormPresetValue_PreservesCustomPresetWithoutPath()
+    {
+        Assert.Equal(
+            CompanionAppCatalog.PresetCustom,
+            CompanionAppCatalog.ToFormPresetValue(CompanionAppCatalog.PresetCustom, executablePath: null));
+    }
+
+    [Fact]
+    public void ToFormPresetValue_KeepsCustomWhenStoredAsCustom()
+    {
+        Assert.Equal(
+            CompanionAppCatalog.PresetCustom,
+            CompanionAppCatalog.ToFormPresetValue(
+                CompanionAppCatalog.PresetCustom,
+                @"C:\Users\me\AppData\Local\Programs\Microsoft VS Code\Code.exe"));
+    }
+
+    [Fact]
+    public void ResolvePresetAfterBrowse_MatchesCatalogPresetOrFallsBackToCustom()
+    {
+        var catalogMatch = CompanionAppCatalog.ResolvePresetAfterBrowse(
+            @"C:\Users\me\AppData\Local\Programs\Microsoft VS Code\Code.exe");
+
+        if (CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
+        {
+            Assert.Equal(CompanionAppCatalog.PresetVsCode, catalogMatch);
+        }
+        else
+        {
+            Assert.Equal(CompanionAppCatalog.PresetCustom, catalogMatch);
+        }
+
+        Assert.Equal(
+            CompanionAppCatalog.PresetCustom,
+            CompanionAppCatalog.ResolvePresetAfterBrowse(@"C:\Tools\MyCustomApp.exe"));
+    }
+
+    [Fact]
+    public void ShouldShowExecutablePath_WhenPathIsSet()
+    {
+        Assert.True(CompanionAppCatalog.ShouldShowExecutablePath(@"C:\Apps\Code.exe"));
+        Assert.False(CompanionAppCatalog.ShouldShowExecutablePath(null));
+        Assert.False(CompanionAppCatalog.ShouldShowExecutablePath(""));
+    }
+
+    [Fact]
+    public void TryValidateFormSelection_RequiresBrowseWhenCustomWithoutPath()
+    {
+        Assert.False(CompanionAppCatalog.TryValidateFormSelection(
+            CompanionAppCatalog.PresetCustom,
+            null,
+            out var error));
+        Assert.Equal(CompanionAppCatalog.BrowseRequiredMessage, error);
+        Assert.True(CompanionAppCatalog.TryValidateFormSelection(
+            CompanionAppCatalog.PresetCustom,
+            @"C:\Apps\Code.exe",
+            out _));
+        Assert.True(CompanionAppCatalog.TryValidateFormSelection(
+            CompanionAppCatalog.PresetNone,
+            null,
+            out _));
     }
 
     [Fact]

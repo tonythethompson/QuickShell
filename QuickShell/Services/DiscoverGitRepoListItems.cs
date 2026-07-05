@@ -137,6 +137,7 @@ internal static class DiscoverGitRepoListItems
         }
 
         parts.Add(ShortcutDisplay.ShortenPathForDisplay(candidate.Directory));
+        AppendClassification(parts, candidate);
         AppendRemote(parts, candidate);
         return string.Join(" · ", parts);
     }
@@ -144,8 +145,17 @@ internal static class DiscoverGitRepoListItems
     private static string JoinPathAndRemote(GitRepoCandidate candidate)
     {
         var parts = new List<string> { ShortcutDisplay.ShortenPathForDisplay(candidate.Directory) };
+        AppendClassification(parts, candidate);
         AppendRemote(parts, candidate);
         return string.Join(" · ", parts);
+    }
+
+    private static void AppendClassification(List<string> parts, GitRepoCandidate candidate)
+    {
+        if (candidate.Classification.Labels.Count > 0)
+        {
+            parts.Add(string.Join(", ", candidate.Classification.Labels.Take(5)));
+        }
     }
 
     private static void AppendRemote(List<string> parts, GitRepoCandidate candidate)
