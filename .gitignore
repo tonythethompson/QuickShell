@@ -9,6 +9,7 @@ _winget-pkgs/
 _winget-pr/
 _winget-test/
 .claude/
+!.claude/worktrees/**
 .serena/
 .oac.json
 QuickShell/QuickShell_Dev.cer

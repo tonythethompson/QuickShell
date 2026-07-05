@@ -2,6 +2,10 @@
 # Uses conservative gitignore-compatible syntax only: comments, directory suffixes,
 # root anchors, globstars, and explicit negation. Preserve solution/project files, source, UI assets, tests, docs, manifests, and CI.
 
+# Allow Bob to read files inside Claude worktrees (overrides .gitignore's .claude/ exclusion)
+!.claude/
+!.claude/**
+
 # Dependencies, package-manager stores, and external modules
 /packages/
 **/packages/
