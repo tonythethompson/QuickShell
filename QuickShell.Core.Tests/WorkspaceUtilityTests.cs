@@ -712,17 +712,10 @@ public sealed class CompanionAppTests : IDisposable
     [Fact]
     public void ResolvePresetAfterBrowse_MatchesCatalogPresetOrFallsBackToCustom()
     {
-        var catalogMatch = CompanionAppCatalog.ResolvePresetAfterBrowse(
-            @"C:\Users\me\AppData\Local\Programs\Microsoft VS Code\Code.exe");
-
-        if (CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVsCode))
-        {
-            Assert.Equal(CompanionAppCatalog.PresetVsCode, catalogMatch);
-        }
-        else
-        {
-            Assert.Equal(CompanionAppCatalog.PresetCustom, catalogMatch);
-        }
+        Assert.Equal(
+            CompanionAppCatalog.PresetVsCode,
+            CompanionAppCatalog.ResolvePresetAfterBrowse(
+                @"C:\Users\me\AppData\Local\Programs\Microsoft VS Code\Code.exe"));
 
         Assert.Equal(
             CompanionAppCatalog.PresetCustom,
