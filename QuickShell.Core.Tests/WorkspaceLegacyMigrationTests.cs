@@ -45,6 +45,43 @@ public sealed class WorkspaceLegacyMigrationTests
     }
 
     [Fact]
+    public void TryReadLegacyWorkspaces_PreservesTaskType()
+    {
+        using var directory = new TempDataDirectory();
+        var shortcuts = new FakeShortcutRepository([]);
+
+        var records = new List<WorkspaceDiskRecord>
+        {
+            new()
+            {
+                Id = "a1b2c3d4e5f6478990a1b2c3d4e5f678",
+                Name = "Trackdub — Agents",
+                Directory = @"C:\Projects\Trackdub",
+                Entries =
+                [
+                    new WorkspaceEntry
+                    {
+                        Id = "b2c3d4e5f6478990a1b2c3d4e5f67890",
+                        Label = "Database",
+                        Command = "psql",
+                        IsEnabled = true,
+                        Order = 0,
+                        TaskType = "database",
+                    },
+                ],
+            },
+        };
+
+        var json = JsonSerializer.Serialize(records, QuickShellJsonContext.Default.ListWorkspaceDiskRecord);
+        File.WriteAllBytes(Path.Combine(directory.Path, "workspaces.json"), Encoding.UTF8.GetBytes(json));
+
+        Assert.True(WorkspaceLegacyMigration.TryReadLegacyWorkspaces(directory.Path, shortcuts, out var imported, out _));
+        Assert.Single(imported);
+        Assert.Single(imported[0].Launches);
+        Assert.Equal("database", imported[0].Launches[0].TaskType);
+    }
+
+    [Fact]
     public void MigrationOutput_OmitsProjectShortcutId_AndWritesResolvedDirectory()
     {
         var shortcuts = new FakeShortcutRepository(

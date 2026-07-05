@@ -183,6 +183,7 @@ internal static class WorkspaceValidation
                 RunAsAdmin = entry.RunAsAdmin,
                 IsEnabled = entry.IsEnabled,
                 Order = entry.Order,
+                TaskType = TaskTypeCatalog.Normalize(entry.TaskType),
             });
         }
 

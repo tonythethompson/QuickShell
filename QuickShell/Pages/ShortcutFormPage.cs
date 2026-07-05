@@ -1129,7 +1129,7 @@ internal sealed partial class ShortcutForm : FormContent
         for (var i = 0; i < left.Commands.Count; i++)
         {
             if (!string.Equals(Normalize(left.Commands[i].Command), Normalize(right.Commands[i].Command), StringComparison.Ordinal)
-                || !string.Equals(Normalize(left.Commands[i].TaskType), Normalize(right.Commands[i].TaskType), StringComparison.Ordinal))
+                || !string.Equals(TaskTypeCatalog.Normalize(left.Commands[i].TaskType), TaskTypeCatalog.Normalize(right.Commands[i].TaskType), StringComparison.Ordinal))
             {
                 return false;
             }

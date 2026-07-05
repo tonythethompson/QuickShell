@@ -94,7 +94,10 @@ internal static partial class DevServerUrlDetection
             }
         }
 
-        return HasDependency(root, "vite") || HasDependency(root, "next") || HasDependency(root, "react-scripts");
+        return HasDependency(root, "vite")
+            || HasDependency(root, "next")
+            || HasDependency(root, "react-scripts")
+            || HasDependency(root, "nuxt");
     }
 
     public static string? TryDetectDevLaunchCommand(string directory)

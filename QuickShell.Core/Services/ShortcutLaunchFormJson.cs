@@ -21,7 +21,7 @@ internal static class ShortcutLaunchFormJson
     {
         if (rows.Count == 0)
         {
-            rows = [(string.Empty, "none")];
+            rows = [(string.Empty, TaskTypeCatalog.None)];
         }
 
         var blocks = new List<string>();

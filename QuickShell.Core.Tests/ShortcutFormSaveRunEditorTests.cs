@@ -31,11 +31,7 @@ public sealed class ShortcutFormSaveRunEditorTests
         Assert.NotNull(saved);
         Assert.Single(saved!.Launches);
         Assert.Equal("npm start", saved.Launches[0].Command);
-
-        // The Run editor's "create" path delegates to the single-command TrySave
-        // overload, which doesn't accept a task type — deliberately out of scope
-        // (see WorkspaceSeedFactory/DevServerUrlDetection for smart-setup inference instead).
-        Assert.Equal(TaskTypeCatalog.None, saved.Launches[0].TaskType);
+        Assert.Equal(TaskTypeCatalog.Frontend, saved.Launches[0].TaskType);
     }
 
     [Fact]

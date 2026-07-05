@@ -189,6 +189,7 @@ internal static class ShortcutFormSave
                 command,
                 launchTarget,
                 runAsAdmin,
+                taskType,
                 shortcuts,
                 onSaved);
         }
@@ -328,6 +329,29 @@ internal static class ShortcutFormSave
             name,
             abbreviation,
             directory,
+            command,
+            launchTarget,
+            runAsAdmin,
+            TaskTypeCatalog.None,
+            shortcuts,
+            onSaved);
+
+    public static ShortcutSaveResult TrySave(
+        string? originalName,
+        string name,
+        string abbreviation,
+        string directory,
+        string command,
+        string launchTarget,
+        bool runAsAdmin,
+        string taskType,
+        IShortcutRepository shortcuts,
+        Action? onSaved) =>
+        TrySave(
+            originalName,
+            name,
+            abbreviation,
+            directory,
             [
                 new ShortcutFormLaunchInput
                 {
@@ -336,6 +360,7 @@ internal static class ShortcutFormSave
                     LaunchTarget = launchTarget,
                     RunAsAdmin = runAsAdmin,
                     IsEnabled = true,
+                    TaskType = taskType,
                 },
             ],
             shortcuts,
