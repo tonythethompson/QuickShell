@@ -15,7 +15,10 @@ internal static class ShortcutDisplay
         var command = CollapseToSingleLine(entry.Command);
         if (!string.IsNullOrWhiteSpace(command))
         {
-            return command.Trim();
+            var taskTitle = TaskTypeCatalog.GetTitle(entry.TaskType);
+            return string.IsNullOrWhiteSpace(taskTitle)
+                ? command.Trim()
+                : $"{taskTitle} — {command.Trim()}";
         }
 
         var launches = siblingLaunches?.ToList() ?? [entry];
@@ -138,14 +141,19 @@ internal static class ShortcutDisplay
 
     public static string BuildLaunchEntrySubtitle(WorkspaceEntry entry)
     {
-        var parts = new List<string>
+        var parts = new List<string>();
+
+        var taskTitle = TaskTypeCatalog.GetTitle(entry.TaskType);
+        if (!string.IsNullOrWhiteSpace(taskTitle))
         {
-            TerminalCatalog.GetProfileLabel(new TerminalShortcut
-            {
-                Terminal = entry.Terminal,
-                WtProfile = entry.WtProfile,
-            }),
-        };
+            parts.Add(taskTitle);
+        }
+
+        parts.Add(TerminalCatalog.GetProfileLabel(new TerminalShortcut
+        {
+            Terminal = entry.Terminal,
+            WtProfile = entry.WtProfile,
+        }));
 
         if (!string.IsNullOrWhiteSpace(entry.Command))
         {

@@ -9,7 +9,9 @@ public sealed class ShortcutLaunchFormJsonTests
     public void BuildCommandRowsJson_TwoCommands_UsesDistinctIds()
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
-            ShortcutLaunchFormJson.BuildCommandRowsJson(["npm start", "dotnet watch"]));
+            ShortcutLaunchFormJson.BuildCommandRowsJson(
+                [("npm start", TaskTypeCatalog.None), ("dotnet watch", TaskTypeCatalog.Api)],
+                TaskTypeCatalog.BuildFormChoicesJson()));
 
         using var document = JsonDocument.Parse(json);
         var text = document.RootElement.GetRawText();
@@ -19,6 +21,25 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("${LaunchCommand_0}", text);
         Assert.Contains("${LaunchCommand_1}", text);
         Assert.Contains("+ Add command", text);
+    }
+
+    [Fact]
+    public void BuildCommandRowsJson_IncludesLaunchTypeChoiceSetPerRow()
+    {
+        var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
+            ShortcutLaunchFormJson.BuildCommandRowsJson(
+                [("npm start", TaskTypeCatalog.Frontend), ("dotnet watch", TaskTypeCatalog.Api)],
+                TaskTypeCatalog.BuildFormChoicesJson()));
+
+        using var document = JsonDocument.Parse(json);
+        var text = document.RootElement.GetRawText();
+
+        Assert.Contains("LaunchType_0", text);
+        Assert.Contains("LaunchType_1", text);
+        Assert.Contains("${LaunchType_0}", text);
+        Assert.Contains("${LaunchType_1}", text);
+        Assert.Contains("\"api\"", text);
+        Assert.Contains("\"frontend\"", text);
     }
 
     [Fact]

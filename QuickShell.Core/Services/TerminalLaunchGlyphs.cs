@@ -30,6 +30,12 @@ internal static class TerminalLaunchGlyphs
             return profileIcon;
         }
 
+        var taskGlyph = TaskTypeCatalog.GetGlyph(launch.TaskType);
+        if (taskGlyph is not null)
+        {
+            return taskGlyph;
+        }
+
         return GetFallbackGlyph(launch, profile);
     }
 

@@ -87,6 +87,7 @@ internal static class ShortcutLaunchNormalization
 
             entry.WtProfile = string.IsNullOrWhiteSpace(entry.WtProfile) ? null : entry.WtProfile.Trim();
             entry.Label = (entry.Label ?? string.Empty).Trim();
+            entry.TaskType = TaskTypeCatalog.Normalize(entry.TaskType);
         }
 
         NormalizeLaunchOrders(shortcut);

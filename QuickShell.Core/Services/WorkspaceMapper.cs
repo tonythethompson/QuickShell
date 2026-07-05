@@ -25,6 +25,7 @@ internal static class WorkspaceMapper
         RunAsAdmin = entry.RunAsAdmin,
         IsEnabled = entry.IsEnabled,
         Order = entry.Order,
+        TaskType = entry.TaskType,
     };
 
     public static void NormalizeEntryOrders(Workspace workspace)

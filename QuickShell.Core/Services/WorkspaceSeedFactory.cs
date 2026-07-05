@@ -56,9 +56,25 @@ internal static class WorkspaceSeedFactory
                 first.Command = command;
             }
 
+            ApplyInferredTaskType(seed, first);
             return;
         }
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(seed);
+        ApplyInferredTaskType(seed, seed.Launches.OrderBy(launch => launch.Order).First());
+    }
+
+    private static void ApplyInferredTaskType(TerminalShortcut seed, WorkspaceEntry launch)
+    {
+        if (!string.Equals(TaskTypeCatalog.Normalize(launch.TaskType), TaskTypeCatalog.None, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var inferred = DevServerUrlDetection.TryInferTaskType(seed.Directory);
+        if (inferred is not null)
+        {
+            launch.TaskType = inferred;
+        }
     }
 }

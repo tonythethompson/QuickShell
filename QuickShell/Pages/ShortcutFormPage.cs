@@ -241,6 +241,7 @@ internal sealed partial class ShortcutForm : FormContent
             {
                 Id = string.IsNullOrWhiteSpace(launch.Id) ? Guid.NewGuid().ToString("N") : launch.Id,
                 Command = launch.Command,
+                TaskType = TaskTypeCatalog.Normalize(launch.TaskType),
             }).ToList()
             : ShortcutFormLaunchSection.CommandsFromShortcut(null);
 
@@ -405,6 +406,7 @@ internal sealed partial class ShortcutForm : FormContent
             QuickShellRuntimeServices.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
         var commandCount = Math.Max(1, commands.Count);
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
+        var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson();
         TemplateJson = ShortcutFormTemplateCache.GetOrBuild(
             commandCount,
             terminalApplicationId,
@@ -412,7 +414,8 @@ internal sealed partial class ShortcutForm : FormContent
             () => ShortcutFormTemplateJson.BuildTemplate(
                 FormTerminalChoicesJson(),
                 companionChoicesJson,
-                commands.Select(command => command.Command).ToList(),
+                commands.Select(command => (command.Command, command.TaskType)).ToList(),
+                taskTypeChoicesJson,
                 QuickShellBrand.DisplayName));
     }
 
@@ -780,7 +783,7 @@ internal sealed partial class ShortcutForm : FormContent
                 RunAsAdmin = draft.RunAsAdmin,
                 ShowRestoredDraftNote = _showRestoredDraftNote,
             },
-            draft.Commands.Select(command => command.Command).ToList());
+            draft.Commands.Select(command => (command.Command, command.TaskType)).ToList());
 
     private void PersistEditDraftIfNeeded()
     {
@@ -823,6 +826,7 @@ internal sealed partial class ShortcutForm : FormContent
                 LaunchTarget = draft.LaunchTarget,
                 RunAsAdmin = draft.RunAsAdmin,
                 IsEnabled = true,
+                TaskType = command.TaskType,
             }).ToList(),
         };
     }
@@ -950,6 +954,7 @@ internal sealed partial class ShortcutForm : FormContent
             {
                 Id = prior.Id,
                 Command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command,
+                TaskType = TaskTypeCatalog.Normalize(data[$"LaunchType_{i}"]?.ToString() ?? prior.TaskType),
             });
         }
 
@@ -1086,6 +1091,7 @@ internal sealed partial class ShortcutForm : FormContent
             {
                 Id = command.Id,
                 Command = command.Command,
+                TaskType = command.TaskType,
             }).ToList(),
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
@@ -1122,7 +1128,8 @@ internal sealed partial class ShortcutForm : FormContent
 
         for (var i = 0; i < left.Commands.Count; i++)
         {
-            if (!string.Equals(Normalize(left.Commands[i].Command), Normalize(right.Commands[i].Command), StringComparison.Ordinal))
+            if (!string.Equals(Normalize(left.Commands[i].Command), Normalize(right.Commands[i].Command), StringComparison.Ordinal)
+                || !string.Equals(Normalize(left.Commands[i].TaskType), Normalize(right.Commands[i].TaskType), StringComparison.Ordinal))
             {
                 return false;
             }
