@@ -32,7 +32,6 @@ _msix_inspect/
 _upload_inspect/
 _upload.zip
 *.graphql
-/.bob/tmp
 pr5-threads.json
 pr6-threads.json
 pr7-threads.json
@@ -44,5 +43,4 @@ pr9-threads.json
 /.bob/.bob-errors
 pr9-comments-latest.json
 tessl.json
-/.bob
 /.tmp/tasks

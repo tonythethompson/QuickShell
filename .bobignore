@@ -2,9 +2,6 @@
 # Uses conservative gitignore-compatible syntax only: comments, directory suffixes,
 # root anchors, globstars, and explicit negation. Preserve solution/project files, source, UI assets, tests, docs, manifests, and CI.
 
-# Allow Bob to read files inside Claude worktrees (overrides .gitignore's .claude/ exclusion)
-!.claude/
-!.claude/**
 
 # Dependencies, package-manager stores, and external modules
 /packages/
@@ -163,6 +160,10 @@ _NCrunch_*/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Bob configuration — always include
+!.bob/mcp.json
+!.bob/settings.json
 
 # Local environment, signing material, and machine-specific configuration
 .env
