@@ -101,6 +101,31 @@ internal static class ShortcutLaunchNormalization
             .OrderBy(entry => entry.Order)
             .ToList();
 
+    /// <summary>
+    /// Returns enabled launches for UI display without synthesizing legacy rows into the shortcut.
+    /// </summary>
+    public static IReadOnlyList<WorkspaceEntry> GetLaunchesForDisplay(TerminalShortcut shortcut)
+    {
+        if (shortcut.Launches is { Count: > 0 })
+        {
+            return GetEnabledLaunches(shortcut);
+        }
+
+        return
+        [
+            new WorkspaceEntry
+            {
+                Label = string.IsNullOrWhiteSpace(shortcut.Name) ? "Main" : shortcut.Name.Trim(),
+                Terminal = string.IsNullOrWhiteSpace(shortcut.Terminal) ? "default" : shortcut.Terminal,
+                WtProfile = shortcut.WtProfile,
+                Command = shortcut.Command,
+                RunAsAdmin = shortcut.RunAsAdmin,
+                IsEnabled = true,
+                Order = 0,
+            },
+        ];
+    }
+
     public static TerminalShortcut ToLaunchShortcut(WorkspaceEntry entry, TerminalShortcut workspace)
     {
         var enabled = GetEnabledLaunches(workspace);

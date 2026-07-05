@@ -42,7 +42,7 @@ internal static class ShortcutContextCommands
         bool includeEdit = true,
         PinnedMoveVisibility moveVisibility = default)
     {
-        if (ShortcutHealth.NeedsRepair(shortcut))
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return BuildRepairOnly(shortcut, onChanged, settings);
         }
@@ -50,8 +50,7 @@ internal static class ShortcutContextCommands
         var items = new List<CommandContextItem>();
 
         // Open
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-        var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
+        var enabledLaunches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         if (enabledLaunches.Count > 1)
         {
             foreach (var launch in enabledLaunches)
@@ -136,7 +135,7 @@ internal static class ShortcutContextCommands
         QuickShellSettingsManager settings,
         CreateShortcutCommand? createShortcutCommand = null)
     {
-        if (ShortcutHealth.NeedsRepair(shortcut))
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return BuildRepairOnly(shortcut, onChanged, settings);
         }

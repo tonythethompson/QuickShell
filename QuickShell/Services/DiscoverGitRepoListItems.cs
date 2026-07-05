@@ -184,7 +184,7 @@ internal static class DiscoverGitRepoListItems
         var items = new List<CommandContextItem>(BuildDirectoryCommands(directory));
         foreach (var shortcut in matchingShortcuts)
         {
-            if (ShortcutHealth.NeedsRepair(shortcut))
+            if (ShortcutHealth.WouldNeedRepair(shortcut))
             {
                 items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged))
                 {

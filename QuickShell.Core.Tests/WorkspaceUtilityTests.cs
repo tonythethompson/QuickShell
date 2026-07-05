@@ -1103,6 +1103,25 @@ public sealed class ShortcutHealthTests : IDisposable
         Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DisplayHelpers_DoNotSynthesizeLegacyLaunchesIntoShortcut()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Name = "Legacy",
+            Directory = _root,
+            Command = "npm test",
+            Terminal = "wt",
+            Launches = [],
+        };
+
+        _ = ShortcutHealth.GetListGlyph(shortcut);
+        _ = ShortcutHealth.BuildListSubtitle(shortcut);
+
+        Assert.Empty(shortcut.Launches);
+        Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
+    }
+
     public void Dispose()
     {
         try
