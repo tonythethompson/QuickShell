@@ -51,7 +51,9 @@ internal static class ShortcutFormLaunchSection
         bool runAsAdmin)
     {
         var rows = commands.ToList();
-        while (rows.Count > 1 && string.IsNullOrWhiteSpace(rows[^1].Command))
+        while (rows.Count > 1
+            && string.IsNullOrWhiteSpace(rows[^1].Command)
+            && string.Equals(TaskTypeCatalog.Normalize(rows[^1].TaskType), TaskTypeCatalog.None, StringComparison.Ordinal))
         {
             rows.RemoveAt(rows.Count - 1);
         }
