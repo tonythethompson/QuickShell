@@ -93,6 +93,37 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     }
 
     [Fact]
+    public void RunAfterNextRefresh_InvokesCallbackWhenRefreshCompletes()
+    {
+        var invoked = false;
+        using var gate = new ManualResetEventSlim(false);
+        GitRepoIndex.DiscoverOverride = _ =>
+        {
+            gate.Wait();
+            return
+            [
+                new GitRepoCandidate
+                {
+                    Name = "AfterCallback",
+                    Directory = @"C:\after-callback",
+                },
+            ];
+        };
+
+        GitRepoIndex.Invalidate();
+        GitRepoIndex.RunAfterNextRefresh(() => invoked = true);
+        _ = GitRepoIndex.GetAll([]);
+
+        gate.Set();
+        Assert.True(
+            SpinWait.SpinUntil(() => invoked, TimeSpan.FromSeconds(5)),
+            "Expected refresh completion callback to run.");
+        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+
+        Assert.True(invoked);
+    }
+
+    [Fact]
     public void GetAll_ReturnsEmpty_WhenRootKeyDoesNotMatchCachedData()
     {
         GitRepoIndex.SeedCacheForTests(

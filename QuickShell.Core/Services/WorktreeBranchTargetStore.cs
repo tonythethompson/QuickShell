@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickShell;
 
 namespace QuickShell.Services;
 
@@ -124,34 +125,28 @@ internal static class WorktreeBranchTargetStore
         try
         {
             using var stream = File.OpenRead(path);
-            using var document = JsonDocument.Parse(stream);
-            if (!document.RootElement.TryGetProperty("targets", out var targetsElement)
-                || targetsElement.ValueKind != JsonValueKind.Object)
+            var document = JsonSerializer.Deserialize(
+                stream,
+                QuickShellJsonContext.Default.WorktreeBranchTargetsDocument);
+            if (document?.Targets is not { Count: > 0 } targets)
             {
                 return;
             }
 
-            foreach (var property in targetsElement.EnumerateObject())
+            foreach (var (worktreeKey, branch) in targets)
             {
-                if (string.IsNullOrWhiteSpace(property.Name)
-                    || property.Value.ValueKind != JsonValueKind.String)
+                if (string.IsNullOrWhiteSpace(worktreeKey) || string.IsNullOrWhiteSpace(branch))
                 {
                     continue;
                 }
 
-                var branch = property.Value.GetString();
-                if (string.IsNullOrWhiteSpace(branch))
-                {
-                    continue;
-                }
-
-                if (WorkspaceGitOperations.TryNormalizeWorktreeKey(property.Name, out var normalizedKey))
+                if (WorkspaceGitOperations.TryNormalizeWorktreeKey(worktreeKey, out var normalizedKey))
                 {
                     Targets[normalizedKey] = branch.Trim();
                 }
                 else
                 {
-                    Targets[property.Name] = branch.Trim();
+                    Targets[worktreeKey] = branch.Trim();
                 }
             }
         }

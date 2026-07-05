@@ -75,6 +75,7 @@ internal static class ShortcutLaunchNormalization
             var terminal = (entry.Terminal ?? string.Empty).Trim().ToLowerInvariant();
             entry.Terminal = terminal switch
             {
+                TerminalCatalog.SameAsPreviousLaunchTargetId => TerminalCatalog.SameAsPreviousLaunchTargetId,
                 "wt" or "windows-terminal" => "wt",
                 "it" or "intelligent-terminal" => "it",
                 "wsl" => "wsl",

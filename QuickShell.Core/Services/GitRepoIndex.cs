@@ -9,8 +9,31 @@ internal static class GitRepoIndex
     private static string _cacheRootKey = string.Empty;
     private static DateTime _refreshedUtc = DateTime.MinValue;
     private static RefreshInFlight? _refreshInFlight;
+    private static readonly List<Action> RefreshCompletedHandlers = [];
+    private static readonly object RefreshHandlerSync = new();
 
     internal static Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? DiscoverOverride { get; set; }
+
+    public static bool IsRefreshInFlight
+    {
+        get
+        {
+            lock (Sync)
+            {
+                return _refreshInFlight is not null;
+            }
+        }
+    }
+
+    public static void RunAfterNextRefresh(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        lock (RefreshHandlerSync)
+        {
+            RefreshCompletedHandlers.Add(callback);
+        }
+    }
 
     public static IReadOnlyList<GitRepoCandidate> Search(
         string query,
@@ -129,6 +152,10 @@ internal static class GitRepoIndex
             _refreshedUtc = DateTime.MinValue;
             _refreshInFlight = null;
             DiscoverOverride = null;
+            lock (RefreshHandlerSync)
+            {
+                RefreshCompletedHandlers.Clear();
+            }
         }
     }
 
@@ -207,6 +234,7 @@ internal static class GitRepoIndex
 
     private static void CompleteRefresh(RefreshInFlight inFlight, Task<IReadOnlyList<GitRepoCandidate>> task)
     {
+        var shouldNotify = false;
         lock (Sync)
         {
             if (!ReferenceEquals(_refreshInFlight, inFlight))
@@ -224,6 +252,39 @@ internal static class GitRepoIndex
             _cache = task.Result;
             _cacheRootKey = inFlight.RootKey;
             _refreshedUtc = DateTime.UtcNow;
+            shouldNotify = true;
+        }
+
+        if (shouldNotify)
+        {
+            NotifyRefreshCompleted();
+        }
+    }
+
+    private static void NotifyRefreshCompleted()
+    {
+        Action[] handlers;
+        lock (RefreshHandlerSync)
+        {
+            if (RefreshCompletedHandlers.Count == 0)
+            {
+                return;
+            }
+
+            handlers = RefreshCompletedHandlers.ToArray();
+            RefreshCompletedHandlers.Clear();
+        }
+
+        foreach (var handler in handlers)
+        {
+            try
+            {
+                handler();
+            }
+            catch
+            {
+                // Best effort; UI callbacks should not break cache refresh.
+            }
         }
     }
 

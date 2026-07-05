@@ -97,10 +97,8 @@ internal sealed partial class WorkspaceStatusForm : FormContent
                 Refresh(forceRefresh: true);
                 return CommandResult.KeepOpen();
             case "copyDiagnostics":
-                return QuickShellNavigation.StayOpen(
-                    LaunchDiagnosticsState.TryCopyLastReport(out var message)
-                        ? message
-                        : message);
+                LaunchDiagnosticsState.TryCopyLastReport(out var message);
+                return QuickShellNavigation.StayOpen(message);
             case "close":
                 _releaseForm();
                 return QuickShellNavigation.GoBack();

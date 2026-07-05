@@ -1910,6 +1910,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         var terminal = (shortcut.Terminal ?? string.Empty).Trim().ToLowerInvariant();
         shortcut.Terminal = terminal switch
         {
+            TerminalCatalog.SameAsPreviousLaunchTargetId => TerminalCatalog.SameAsPreviousLaunchTargetId,
             "wt" or "windows-terminal" => "wt",
             "it" or "intelligent-terminal" => "it",
             "wsl" => "wsl",

@@ -67,6 +67,29 @@ public sealed class WorktreeBranchTests : IDisposable
     }
 
     [Fact]
+    public void WorktreeTargets_PersistAndReloadFromDisk()
+    {
+        var repoRoot = Path.Combine(_root, "repo");
+        Directory.CreateDirectory(repoRoot);
+        ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
+        Assert.True(WorkspaceGitOperations.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
+
+        var targetsPath = Path.Combine(_root, "worktree-branch-targets.json");
+        WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorktreeBranchTargetStore.SetTargetOverride = null;
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+        WorktreeBranchTargetStore.ResetForTests();
+
+        WorktreeBranchTargetStore.SetTarget(worktreeKey, "feature/persisted");
+        Assert.True(File.Exists(targetsPath));
+
+        WorktreeBranchTargetStore.ResetForTests();
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+
+        Assert.Equal("feature/persisted", WorktreeBranchTargetStore.GetTarget(worktreeKey));
+    }
+
+    [Fact]
     public void Launch_DirtyMismatchWithBlockOn_PreventsAllSideEffects()
     {
         var repoRoot = Path.Combine(_root, "repo");
@@ -361,6 +384,7 @@ public sealed class WorktreeBranchTests : IDisposable
         WorkspaceGitOperations.GitRunOverride = null;
         WorkspaceGitOperations.GitStatusOverride = null;
         WorktreeBranchTargetStore.ResetForTests();
+        WorktreeBranchTargetStore.FilePathOverride = null;
         WorktreeBranchTargetStore.GetTargetOverride = key =>
             _branchTargets.TryGetValue(key, out var branch) ? branch : null;
         WorktreeBranchTargetStore.SetTargetOverride = (key, branch) =>

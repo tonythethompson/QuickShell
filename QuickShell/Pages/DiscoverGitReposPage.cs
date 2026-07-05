@@ -105,12 +105,34 @@ internal partial class DiscoverGitReposPage : DynamicListPage
 
             if (items.Count == 0)
             {
-                items.Add(new ListItem(new NoOpCommand())
+                if (string.IsNullOrWhiteSpace(query))
                 {
-                    Title = string.IsNullOrWhiteSpace(query) ? "No git repositories found" : "No matching repositories",
-                    Subtitle = "Try searching Projects, dev, code, repos, source, src, Documents, or a non-system drive root.",
-                    Icon = new IconInfo("\uE946"),
-                });
+                    if (GitRepoIndex.IsRefreshInFlight)
+                    {
+                        SetOpeningItems();
+                        GitRepoIndex.RunAfterNextRefresh(ScheduleRefreshItems);
+                        RaiseItemsChanged();
+                        return;
+                    }
+
+                    var retryDiscovered = GitRepoIndex.GetAll(extraRoots).ToList();
+                    if (retryDiscovered.Count > 0)
+                    {
+                        items = DiscoverGitRepoListItems
+                            .BuildSectionedItems(retryDiscovered, _onReload, shortcutsByDirectory, settings)
+                            .ToList();
+                    }
+                }
+
+                if (items.Count == 0)
+                {
+                    items.Add(new ListItem(new NoOpCommand())
+                    {
+                        Title = string.IsNullOrWhiteSpace(query) ? "No git repositories found" : "No matching repositories",
+                        Subtitle = "Try searching Projects, dev, code, repos, source, src, Documents, or a non-system drive root.",
+                        Icon = new IconInfo("\uE946"),
+                    });
+                }
             }
 
             _items = items.ToArray();
