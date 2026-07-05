@@ -44,3 +44,4 @@ pr9-threads.json
 pr9-comments-latest.json
 tessl.json
 /.bob
+/.tmp/tasks
