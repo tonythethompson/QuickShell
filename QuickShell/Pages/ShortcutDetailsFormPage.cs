@@ -156,6 +156,18 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         _shortcut.Name = _draft.Name.Trim();
         _shortcut.Abbreviation = string.IsNullOrWhiteSpace(_draft.Abbreviation) ? null : _draft.Abbreviation.Trim();
         _shortcut.Directory = normalized;
+
+        if (!WorktreeBranchTargetStore.TrySetTargetForDirectory(
+                normalized,
+                string.IsNullOrWhiteSpace(_draft.TargetBranch) ? null : _draft.TargetBranch.Trim(),
+                out var branchError))
+        {
+            if (!string.IsNullOrWhiteSpace(_draft.TargetBranch))
+            {
+                return QuickShellNavigation.StayOpen(branchError ?? "Could not save worktree branch target.");
+            }
+        }
+
         _onChanged(_shortcut);
         _releaseForm?.Invoke();
         return QuickShellNavigation.GoBack("Workspace details updated.");
@@ -166,6 +178,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         _draft.Name = GetField(payload, "Name") ?? _draft.Name;
         _draft.Abbreviation = GetField(payload, "Abbreviation") ?? _draft.Abbreviation;
         _draft.Directory = GetField(payload, "Directory") ?? _draft.Directory;
+        _draft.TargetBranch = GetField(payload, "TargetBranch") ?? _draft.TargetBranch;
     }
 
     private void MergeDraftFromInputs(string payload, bool excludeDirectory = false)
@@ -176,6 +189,8 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         {
             _draft.Directory = GetField(payload, "Directory") ?? _draft.Directory;
         }
+
+        _draft.TargetBranch = GetField(payload, "TargetBranch") ?? _draft.TargetBranch;
     }
 
     private void ApplyDraft()
@@ -183,6 +198,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         _draft.Name = _shortcut.Name;
         _draft.Abbreviation = _shortcut.Abbreviation ?? string.Empty;
         _draft.Directory = _shortcut.Directory;
+        _draft.TargetBranch = WorktreeBranchTargetStore.GetTargetForDirectory(_shortcut.Directory) ?? string.Empty;
         PublishDraftJson();
     }
 
@@ -192,7 +208,8 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         {
           "Name": "{{EscapeJsonValue(_draft.Name)}}",
           "Abbreviation": "{{EscapeJsonValue(_draft.Abbreviation)}}",
-          "Directory": "{{EscapeJsonValue(_draft.Directory)}}"
+          "Directory": "{{EscapeJsonValue(_draft.Directory)}}",
+          "TargetBranch": "{{EscapeJsonValue(_draft.TargetBranch)}}"
         }
         """;
     }
@@ -203,55 +220,65 @@ internal sealed partial class ShortcutDetailsForm : FormContent
       "type": "AdaptiveCard",
       "version": "1.6",
       "body": [
-        {{SettingsCardJson.FieldGroup("Name", $"Shown in your {QuickShellBrand.DisplayName} list.", """
-        {
-          "type": "Input.Text",
-          "id": "Name",
-          "isRequired": true,
-          "value": "${Name}"
-        }
-        """)}},
-        {{SettingsCardJson.FieldGroup("Home keyword (optional)", "Type this at Command Palette home to jump straight to this workspace.", """
-        {
-          "type": "Input.Text",
-          "id": "Abbreviation",
-          "placeholder": "e.g. api",
-          "value": "${Abbreviation}"
-        }
-        """)}},
+        {{AdaptiveCardFormJson.PairedFieldRow(
+            "Name",
+            """
+            {
+              "type": "Input.Text",
+              "id": "Name",
+              "isRequired": true,
+              "tooltip": "{{EscapeJsonValue(WorkspaceFormTooltips.Name)}}",
+              "value": "${Name}"
+            }
+            """,
+            "Home keyword (optional)",
+            """
+            {
+              "type": "Input.Text",
+              "id": "Abbreviation",
+              "placeholder": "e.g. api",
+              "tooltip": "{{EscapeJsonValue(WorkspaceFormTooltips.HomeKeyword)}}",
+              "value": "${Abbreviation}"
+            }
+            """)}},
         {
           "type": "Container",
           "spacing": "Medium",
           "items": [
-            {{SettingsCardJson.FieldLabel("Folder path")}},
-            {{SettingsCardJson.FieldHelp("Folder opened when you run this workspace.")}},
+            {{AdaptiveCardFormJson.FieldLabel("Folder path")}},
+            {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.InputWithTrailingActionsRow("""
             {
               "type": "Input.Text",
               "id": "Directory",
               "isRequired": true,
               "placeholder": "e.g. C:\\Projects\\MyApp",
+              "tooltip": "{{EscapeJsonValue(WorkspaceFormTooltips.Directory)}}",
               "value": "${Directory}"
-            },
-            {
-              "type": "ActionSet",
-              "spacing": "Small",
-              "actions": [
-                {
-                  "type": "Action.Submit",
-                  "title": "Browse folder",
-                  "data": { "action": "browse" },
-                  "associatedInputs": "auto"
-                },
-                {
-                  "type": "Action.Submit",
-                  "title": "Paste path",
-                  "data": { "action": "paste" },
-                  "associatedInputs": "auto"
-                }
-              ]
             }
+            """,
+            $$"""
+            {{AdaptiveCardFormJson.IconSubmitAction(
+                FormActionGlyphs.FolderOpen,
+                FormActionGlyphs.BrowseFolderTooltip,
+                "browse",
+                "auto")}},
+            {{AdaptiveCardFormJson.IconSubmitAction(
+                FormActionGlyphs.Paste,
+                FormActionGlyphs.PastePathTooltip,
+                "paste",
+                "auto")}}
+            """))}},
           ]
+        },
+        {{AdaptiveCardFormJson.FieldGroup("Target branch (optional)", help: null, """
+        {
+          "type": "Input.Text",
+          "id": "TargetBranch",
+          "placeholder": "e.g. main",
+          "tooltip": "Switch to this branch before launch. Leave empty to keep the current checkout.",
+          "value": "${TargetBranch}"
         }
+        """)}}
       ],
       "actions": [
         {
@@ -351,5 +378,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         public string Abbreviation { get; set; } = string.Empty;
 
         public string Directory { get; set; } = string.Empty;
+
+        public string TargetBranch { get; set; } = string.Empty;
     }
 }

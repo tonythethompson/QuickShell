@@ -10,6 +10,8 @@ internal sealed class GitRepoCandidate
     public string Name { get; init; } = string.Empty;
 
     public string? RemoteUrl { get; init; }
+
+    public ProjectClassification Classification { get; init; } = ProjectClassification.Empty;
 }
 
 internal static partial class GitRepoDiscovery
@@ -37,6 +39,23 @@ internal static partial class GitRepoDiscovery
         ".vscode",
         ".cursor",
     };
+
+    private static readonly string[] CommonRootFolderNames =
+    [
+        "Projects",
+        "projects",
+        "dev",
+        "Development",
+        "code",
+        "repos",
+        "source",
+        "src",
+        "Documents",
+    ];
+
+    internal static Func<IEnumerable<string>>? DefaultRootCandidatesOverride { get; set; }
+
+    internal static bool IncludeDefaultSearchRoots { get; set; } = true;
 
     public static IReadOnlyList<GitRepoCandidate> Discover(
         IEnumerable<string>? extraRoots = null,
@@ -139,16 +158,6 @@ internal static partial class GitRepoDiscovery
                 return;
             }
 
-            lock (sync)
-            {
-                if (results.Count >= MaxRepos || scanned >= MaxDirectoriesScanned)
-                {
-                    return;
-                }
-
-                scanned++;
-            }
-
             if (IsGitRepository(workItem.Directory))
             {
                 var candidate = new GitRepoCandidate
@@ -156,6 +165,7 @@ internal static partial class GitRepoDiscovery
                     Directory = workItem.Directory,
                     Name = Path.GetFileName(workItem.Directory.TrimEnd('\\', '/')),
                     RemoteUrl = TryReadOriginRemoteUrl(workItem.Directory),
+                    Classification = ProjectClassifier.Classify(workItem.Directory),
                 };
 
                 lock (sync)
@@ -167,6 +177,16 @@ internal static partial class GitRepoDiscovery
                 }
 
                 return;
+            }
+
+            lock (sync)
+            {
+                if (results.Count >= MaxRepos || scanned >= MaxDirectoriesScanned)
+                {
+                    return;
+                }
+
+                scanned++;
             }
 
             foreach (var child in GetChildDirectories(workItem.Directory))
@@ -224,15 +244,55 @@ internal static partial class GitRepoDiscovery
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(userProfile))
+        if (IncludeDefaultSearchRoots && !string.IsNullOrWhiteSpace(userProfile))
         {
-            foreach (var child in new[] { "Projects", "projects", "dev", "Development", "code", "repos", "source", "src", "Documents" })
+            foreach (var child in CommonRootFolderNames)
             {
                 AddRoot(Path.Combine(userProfile, child));
             }
         }
 
+        if (IncludeDefaultSearchRoots || DefaultRootCandidatesOverride is not null)
+        {
+            foreach (var candidate in GetDefaultRootCandidates())
+            {
+                AddRoot(candidate);
+            }
+        }
+
         return roots;
+    }
+
+    private static IEnumerable<string> GetDefaultRootCandidates()
+    {
+        if (DefaultRootCandidatesOverride is { } overrideCandidates)
+        {
+            return overrideCandidates();
+        }
+
+        var candidates = new List<string>();
+        var systemRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            if (!drive.IsReady)
+            {
+                continue;
+            }
+
+            var root = drive.RootDirectory.FullName;
+            foreach (var child in CommonRootFolderNames)
+            {
+                candidates.Add(Path.Combine(root, child));
+            }
+
+            if (!string.Equals(root, systemRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add(root);
+            }
+        }
+
+        return candidates;
     }
 
     private static IEnumerable<string> GetChildDirectories(string directory)

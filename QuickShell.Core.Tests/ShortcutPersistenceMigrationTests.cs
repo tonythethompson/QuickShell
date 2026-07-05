@@ -311,7 +311,7 @@ public sealed class ShortcutPersistenceMigrationTests
 
             var loaded = repository.GetByName("TypedTask");
             Assert.NotNull(loaded);
-            Assert.Equal("database", loaded.Launches[0].TaskType);
+            Assert.Equal("services", loaded.Launches[0].TaskType);
 
             repository.Upsert(loaded, originalName: "TypedTask");
         }
@@ -321,7 +321,7 @@ public sealed class ShortcutPersistenceMigrationTests
 
         var saved = reloaded.GetByName("TypedTask");
         Assert.NotNull(saved);
-        Assert.Equal("database", saved.Launches[0].TaskType);
+        Assert.Equal("services", saved.Launches[0].TaskType);
     }
 
     private static void WriteShortcutsJson(string directoryPath, string json) =>

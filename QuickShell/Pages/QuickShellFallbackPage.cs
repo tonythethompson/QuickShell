@@ -14,6 +14,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private readonly SearchDebouncer _searchDebouncer;
     private IListItem[] _items = [];
     private string _query = string.Empty;
+    private WorkspaceTaskAction[] _taskActions = [];
     private TerminalShortcut[] _shortcuts = [];
     private IReadOnlyList<GitRepoCandidate> _gitRepos = [];
     private bool _showDiscoverEntry;
@@ -29,9 +30,20 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         Name = "Open";
     }
 
+    public void SetTaskResults(string query, WorkspaceTaskAction[] taskActions)
+    {
+        _query = query ?? string.Empty;
+        _taskActions = taskActions;
+        _shortcuts = [];
+        _gitRepos = [];
+        _showDiscoverEntry = false;
+        RefreshItems();
+    }
+
     public void SetWorkspaceResults(string query, TerminalShortcut[] shortcuts)
     {
         _query = query ?? string.Empty;
+        _taskActions = [];
         _shortcuts = shortcuts;
         _gitRepos = [];
         _showDiscoverEntry = false;
@@ -41,6 +53,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     public void SetGitRepoResults(string query, IReadOnlyList<GitRepoCandidate> gitRepos)
     {
         _query = query ?? string.Empty;
+        _taskActions = [];
         _shortcuts = [];
         _gitRepos = gitRepos;
         _showDiscoverEntry = false;
@@ -50,6 +63,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     public void SetDiscoverEntry(string query)
     {
         _query = query ?? string.Empty;
+        _taskActions = [];
         _shortcuts = [];
         _gitRepos = [];
         _showDiscoverEntry = true;
@@ -59,6 +73,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     public void ClearResults()
     {
         _query = string.Empty;
+        _taskActions = [];
         _shortcuts = [];
         _gitRepos = [];
         _showDiscoverEntry = false;
@@ -69,6 +84,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     {
         var normalized = newSearch ?? string.Empty;
         if (string.Equals(_query, normalized, StringComparison.Ordinal)
+            && _taskActions.Length == 0
             && _shortcuts.Length == 0
             && _gitRepos.Count == 0
             && !_showDiscoverEntry)
@@ -111,6 +127,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         }
         else
         {
+            items.AddRange(_taskActions.Select(BuildTaskActionItem));
             items.AddRange(_shortcuts.Select(BuildShortcutItem));
             items.AddRange(BuildGitRepoItems(_gitRepos));
         }
@@ -158,4 +175,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         item.MoreCommands = ShortcutContextCommands.Build(shortcut, _onReload, _settings, includeEdit: false);
         return item;
     }
+
+    private ListItem BuildTaskActionItem(WorkspaceTaskAction action) =>
+        ShortcutTaskActionListItems.Create(action, _settings, _onReload);
 }

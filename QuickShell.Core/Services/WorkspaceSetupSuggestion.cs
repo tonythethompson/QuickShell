@@ -40,6 +40,10 @@ internal static class WorkspaceSetupSuggestion
             return;
         }
 
+        var existingLaunches = shortcut.Launches
+            .OrderBy(launch => launch.Order)
+            .ToArray();
+
         shortcut.Launches = suggestions.Select((suggestion, index) => new WorkspaceEntry
         {
             Id = Guid.NewGuid().ToString("N"),
@@ -50,6 +54,7 @@ internal static class WorkspaceSetupSuggestion
             RunAsAdmin = shortcut.RunAsAdmin,
             IsEnabled = true,
             Order = index,
+            TaskType = GetPreservedTaskType(existingLaunches, index),
         }).ToList();
         ShortcutLaunchNormalization.MirrorLegacyFieldsFromFirstLaunch(shortcut);
     }
@@ -57,6 +62,19 @@ internal static class WorkspaceSetupSuggestion
     private static bool HasNonemptyLaunchCommand(TerminalShortcut shortcut) =>
         shortcut.Launches.Any(launch => !string.IsNullOrWhiteSpace(launch.Command))
         || !string.IsNullOrWhiteSpace(shortcut.Command);
+
+    private static string GetPreservedTaskType(WorkspaceEntry[] existingLaunches, int index)
+    {
+        if (index >= existingLaunches.Length)
+        {
+            return TaskTypeCatalog.None;
+        }
+
+        var taskType = TaskTypeCatalog.Normalize(existingLaunches[index].TaskType);
+        return string.Equals(taskType, TaskTypeCatalog.None, StringComparison.Ordinal)
+            ? TaskTypeCatalog.None
+            : taskType;
+    }
 
     private sealed class Builder(string directory, ProjectClassification classification)
     {
@@ -72,6 +90,8 @@ internal static class WorkspaceSetupSuggestion
             AddDotNet();
             AddRust();
             AddPython();
+            AddRuby();
+            AddElixir();
             AddDocker();
             AddMake();
             AddJust();
@@ -112,7 +132,13 @@ internal static class WorkspaceSetupSuggestion
 
             if (classification.RunnableDotNetProjects.Count == 1)
             {
-                Add("Run", $"dotnet run --project {QuoteIfNeeded(classification.RunnableDotNetProjects[0])}");
+                var project = QuoteIfNeeded(classification.RunnableDotNetProjects[0]);
+                Add("Watch", $"dotnet watch --project {project}");
+                Add("Run", $"dotnet run --project {project}");
+            }
+            else if (classification.RunnableDotNetProjects.Count > 1)
+            {
+                Add("Watch", "dotnet watch");
             }
         }
 
@@ -123,6 +149,7 @@ internal static class WorkspaceSetupSuggestion
                 return;
             }
 
+            Add("Watch", "cargo watch -x run");
             Add("Run", "cargo run");
             Add("Tests", "cargo test");
             Add("Build", "cargo build");
@@ -130,10 +157,68 @@ internal static class WorkspaceSetupSuggestion
 
         private void AddPython()
         {
-            if (classification.Has(ProjectStack.Python) && HasPythonTests())
+            if (!classification.Has(ProjectStack.Python))
+            {
+                return;
+            }
+
+            if (HasPythonTests())
             {
                 Add("Tests", "python -m pytest");
             }
+
+            if (File.Exists(Path.Combine(directory, "manage.py")))
+            {
+                Add("Run", "python manage.py runserver");
+                return;
+            }
+
+            if (HasPythonDependency("flask"))
+            {
+                Add("Run", "flask run");
+                return;
+            }
+
+            if (HasPythonDependency("uvicorn") || File.Exists(Path.Combine(directory, "main.py")))
+            {
+                Add("Run", "uvicorn main:app --reload");
+            }
+        }
+
+        private void AddRuby()
+        {
+            if (!classification.Has(ProjectStack.Rails))
+            {
+                return;
+            }
+
+            Add("Run", File.Exists(Path.Combine(directory, "bin", "rails"))
+                ? "bin/rails server"
+                : "rails server");
+
+            if (Directory.Exists(Path.Combine(directory, "test"))
+                || Directory.Exists(Path.Combine(directory, "spec")))
+            {
+                Add("Tests", File.Exists(Path.Combine(directory, "bin", "rails"))
+                    ? "bin/rails test"
+                    : "rails test");
+            }
+        }
+
+        private void AddElixir()
+        {
+            if (!classification.Has(ProjectStack.Elixir))
+            {
+                return;
+            }
+
+            var mixExs = Path.Combine(directory, "mix.exs");
+            if (FileContains(mixExs, "phoenix"))
+            {
+                Add("Run", "mix phx.server");
+            }
+
+            Add("Tests", "mix test");
         }
 
         private void AddDocker()
@@ -306,6 +391,34 @@ internal static class WorkspaceSetupSuggestion
             || Directory.EnumerateFiles(directory, "test_*.py", SearchOption.TopDirectoryOnly).Any()
             || File.Exists(Path.Combine(directory, "pytest.ini"))
             || File.Exists(Path.Combine(directory, "tox.ini"));
+
+        private bool HasPythonDependency(string packageName)
+        {
+            if (FileContains(Path.Combine(directory, "requirements.txt"), packageName))
+            {
+                return true;
+            }
+
+            var pyproject = Path.Combine(directory, "pyproject.toml");
+            return File.Exists(pyproject) && FileContains(pyproject, packageName);
+        }
+
+        private static bool FileContains(string path, string value)
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            try
+            {
+                return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private static string ToTitle(string value)
         {

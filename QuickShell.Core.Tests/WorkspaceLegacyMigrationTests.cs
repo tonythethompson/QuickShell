@@ -78,7 +78,7 @@ public sealed class WorkspaceLegacyMigrationTests
         Assert.True(WorkspaceLegacyMigration.TryReadLegacyWorkspaces(directory.Path, shortcuts, out var imported, out _));
         Assert.Single(imported);
         Assert.Single(imported[0].Launches);
-        Assert.Equal("database", imported[0].Launches[0].TaskType);
+        Assert.Equal("services", imported[0].Launches[0].TaskType);
     }
 
     [Fact]

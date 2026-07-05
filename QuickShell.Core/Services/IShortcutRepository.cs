@@ -18,6 +18,10 @@ internal interface IShortcutRepository
 
     TerminalShortcut? GetById(string id);
 
+    TerminalShortcut? GetByNameReadOnly(string name);
+
+    TerminalShortcut? GetByIdReadOnly(string id);
+
     TerminalShortcut? ResolveForOpenCommand(string key);
 
     void Reload();
@@ -71,6 +75,8 @@ internal interface IShortcutRepository
     IEnumerable<TerminalShortcut> Search(string query);
 
     IEnumerable<TerminalShortcut> SearchForRootPalette(string query);
+
+    IEnumerable<WorkspaceTaskAction> SearchTaskActions(string query);
 
     string ResolveAvailableName(string desiredName, string? replacingOriginalName = null);
 }

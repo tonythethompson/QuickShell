@@ -12,9 +12,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly CreateShortcutCommand _createShortcutCommand;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly SearchDebouncer _searchDebouncer;
+    private readonly object _reloadSync = new();
     private IListItem[] _items = [];
     private string _query = string.Empty;
     private bool _hasShownInitialList;
+    private bool _reloadScheduled;
+    private bool _disposed;
 
     public QuickShellPage(
         QuickShellSettingsManager settings,
@@ -48,7 +51,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         MaxHoverActions = -1;
         HoverActionsVisibility = HoverActionsVisibility.HoverOrSelected;
 #endif
-        RefreshItems(string.Empty);
+        SetOpeningItems();
+        SchedulePostNavigationReload();
     }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
@@ -63,7 +67,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 SetSearchNoUpdate(string.Empty);
             }
 
-            ApplyQuery(string.Empty, immediate: true);
+            SchedulePostNavigationReload();
             return;
         }
 
@@ -79,14 +83,28 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public void Reload()
     {
+        SchedulePostNavigationReload();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _searchDebouncer.Dispose();
+    }
+
+    private void ReloadNow()
+    {
         _searchDebouncer.FlushNow();
         RefreshItems(_query);
     }
 
-    public void Dispose() => _searchDebouncer.Dispose();
-
     private void ApplyQuery(string query, bool immediate = false)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var normalized = query ?? string.Empty;
         if (string.Equals(_query, normalized, StringComparison.Ordinal) && _items.Length > 0)
         {
@@ -105,6 +123,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     private void ApplyQueryDebounced(string normalized)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (string.Equals(_query, normalized, StringComparison.Ordinal))
         {
             return;
@@ -114,8 +137,57 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         RefreshItems(normalized);
     }
 
+    private void SchedulePostNavigationReload()
+    {
+        lock (_reloadSync)
+        {
+            if (_reloadScheduled || _disposed)
+            {
+                return;
+            }
+
+            _reloadScheduled = true;
+        }
+
+        SettingsFormHelpers.SchedulePostNavigationRefresh(() =>
+        {
+            lock (_reloadSync)
+            {
+                _reloadScheduled = false;
+            }
+
+            if (_disposed)
+            {
+                return;
+            }
+
+            ReloadNow();
+        });
+    }
+
+    private void SetOpeningItems()
+    {
+        var items = new List<IListItem>();
+        items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload));
+        items.Add(CreateStatusItem("Loading workspaces", "Workspace list will appear in a moment."));
+        _items = items.ToArray();
+    }
+
+    private static ListItem CreateStatusItem(string title, string subtitle) =>
+        new(new NoOpCommand())
+        {
+            Title = title,
+            Subtitle = subtitle,
+            Icon = QuickShellBrandIcons.App,
+        };
+
     private void RefreshItems(string query)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var pinnedInOrder = QuickShellRuntimeServices.Shortcuts.GetShortcuts()
             .Where(s => s.IsPinned)
             .OrderBy(s => s.PinOrder ?? int.MaxValue)
@@ -130,13 +202,19 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
         else
         {
+            var taskActions = QuickShellRuntimeServices.Shortcuts.SearchTaskActions(query).ToArray();
+            foreach (var action in taskActions)
+            {
+                items.Add(ShortcutTaskActionListItems.Create(action, _settings, Reload, _createShortcutCommand));
+            }
+
             var shortcuts = QuickShellRuntimeServices.Shortcuts.Search(query).ToArray();
             foreach (var shortcut in shortcuts)
             {
                 items.Add(BuildShortcutItem(shortcut, pinnedInOrder));
             }
 
-            if (shortcuts.Length == 0)
+            if (taskActions.Length == 0 && shortcuts.Length == 0)
             {
                 items.Add(new ListItem(new NoOpCommand())
                 {

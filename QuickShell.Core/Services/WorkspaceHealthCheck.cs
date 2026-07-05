@@ -58,8 +58,6 @@ internal sealed class WorkspaceHealthResult
         Findings.Where(finding => finding.Severity == WorkspaceHealthSeverity.Warning).ToList();
 }
 
-internal sealed record WorkspaceGitStatus(string Branch, bool IsDirty);
-
 internal static partial class WorkspaceHealthCheck
 {
     private static readonly string[] ShellBuiltins =
@@ -91,6 +89,8 @@ internal static partial class WorkspaceHealthCheck
     internal static Func<IReadOnlyList<string>>? WslDistroNamesOverride { get; set; }
 
     internal static Func<string, WorkspaceGitStatus?>? GitStatusOverride { get; set; }
+
+    internal static Func<string, string, string?>? GitCommandOverride { get; set; }
 
     public static WorkspaceHealthResult Check(
         TerminalShortcut shortcut,
@@ -125,17 +125,29 @@ internal static partial class WorkspaceHealthCheck
         string defaultProfileId,
         bool includeVolatile = true)
     {
+        var enabled = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
+        var index = 0;
+        for (var i = 0; i < enabled.Count; i++)
+        {
+            if (string.Equals(enabled[i].Id, launch.Id, StringComparison.Ordinal))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        var resolved = TerminalCatalog.ResolveLaunchEntry(launch, enabled, index);
         var scoped = new TerminalShortcut
         {
             Id = shortcut.Id,
             Name = shortcut.Name,
             Directory = shortcut.Directory,
-            Terminal = shortcut.Terminal,
-            WtProfile = shortcut.WtProfile,
+            Terminal = resolved.Terminal,
+            WtProfile = resolved.WtProfile,
             RunAsAdmin = shortcut.RunAsAdmin,
             DevServerUrl = shortcut.DevServerUrl,
             RepoUrl = shortcut.RepoUrl,
-            Launches = [launch],
+            Launches = [resolved],
         };
 
         return Check(scoped, terminalApplicationId, defaultProfileId, includeVolatile);
@@ -146,6 +158,11 @@ internal static partial class WorkspaceHealthCheck
 
     public static string FormatWarningSummary(WorkspaceHealthResult result) =>
         FormatFindings("Launched with warnings", result.WarningFindings);
+
+    public static string FormatFindingsEvidence(IReadOnlyList<WorkspaceHealthFinding> findings) =>
+        findings.Count == 0
+            ? "No current issues"
+            : string.Join(" · ", findings.Select(FormatFinding));
 
     public static string FormatDetailedSummary(WorkspaceHealthResult result)
     {
@@ -660,54 +677,54 @@ internal static partial class WorkspaceHealthCheck
             return gitOverride(directory);
         }
 
-        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(Path.Combine(directory, ".git")))
+        if (GitCommandOverride is { } gitCommandOverride)
+        {
+            return TryReadGitStatusViaLegacyOverride(directory, gitCommandOverride);
+        }
+
+        return WorkspaceGitOperations.TryGetStatus(directory, out var status) ? status : null;
+    }
+
+    private static WorkspaceGitStatus? TryReadGitStatusViaLegacyOverride(
+        string directory,
+        Func<string, string, string?> gitCommandOverride)
+    {
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
             return null;
         }
 
-        var branch = RunGit(directory, "rev-parse --abbrev-ref HEAD");
+        var insideWorkTree = gitCommandOverride(directory, "rev-parse --is-inside-work-tree");
+        if (!string.Equals(insideWorkTree?.Trim(), "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var branch = gitCommandOverride(directory, "rev-parse --abbrev-ref HEAD");
         if (string.IsNullOrWhiteSpace(branch))
         {
             return null;
         }
 
-        var status = RunGit(directory, "status --porcelain");
-        return new WorkspaceGitStatus(branch.Trim(), !string.IsNullOrWhiteSpace(status));
+        var branchName = branch.Trim();
+        var isDetached = branchName.Equals("HEAD", StringComparison.Ordinal);
+        var status = gitCommandOverride(directory, "status --porcelain");
+        return new WorkspaceGitStatus(
+            isDetached ? "(detached)" : branchName,
+            !string.IsNullOrWhiteSpace(status),
+            isDetached);
     }
 
     private static string? RunGit(string directory, string arguments)
     {
-        try
+        if (GitCommandOverride is { } gitCommandOverride)
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "git.exe",
-                Arguments = $"-C \"{directory.Replace("\"", "\\\"", StringComparison.Ordinal)}\" {arguments}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process is null)
-            {
-                return null;
-            }
-
-            var output = process.StandardOutput.ReadToEnd();
-            if (!process.WaitForExit(1500))
-            {
-                TryKill(process);
-                return null;
-            }
-
-            return process.ExitCode == 0 ? output.Trim() : null;
+            return gitCommandOverride(directory, arguments);
         }
-        catch
-        {
-            return null;
-        }
+
+        var splitArguments = arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var result = WorkspaceGitOperations.RunGit(directory, splitArguments);
+        return result.Succeeded ? result.StandardOutput : null;
     }
 
     private static string FormatFindings(string prefix, IReadOnlyList<WorkspaceHealthFinding> findings)

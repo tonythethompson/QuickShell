@@ -60,4 +60,16 @@ public sealed class ShortcutCommandIdsTests
         Assert.True(parsed);
         Assert.Equal(shortcutId, parsedShortcutId);
     }
+
+    [Fact]
+    public void DiscoverCreate_RoundTripsDirectoryPath()
+    {
+        var directory = @"A:\repos\QuickShell";
+
+        var commandId = ShortcutCommandIds.DiscoverCreate(directory);
+        var parsed = ShortcutCommandIds.TryDecodeDiscoverCreateDirectory(commandId, out var parsedDirectory);
+
+        Assert.True(parsed);
+        Assert.Equal(Path.GetFullPath(directory), parsedDirectory);
+    }
 }

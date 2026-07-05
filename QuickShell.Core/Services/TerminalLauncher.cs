@@ -3,9 +3,8 @@ using System.Diagnostics;
 
 namespace QuickShell.Services;
 
-<<<<<<< Updated upstream
 internal readonly record struct ResolvedLaunch(TerminalShortcut Shortcut, LaunchTarget Target);
-=======
+
 internal sealed record TerminalLaunchAttempt(
     string HostExecutable,
     string Arguments,
@@ -13,17 +12,12 @@ internal sealed record TerminalLaunchAttempt(
     string? ProfileOrDistro,
     bool RunAsAdmin,
     string? FallbackReason);
->>>>>>> Stashed changes
 
 internal static class TerminalLauncher
 {
     internal static Func<ProcessStartInfo, bool>? StartProcessOverride { get; set; }
 
-<<<<<<< Updated upstream
     public static ResolvedLaunch Resolve(
-=======
-    public static TerminalLaunchAttempt Open(
->>>>>>> Stashed changes
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId)
@@ -61,7 +55,7 @@ internal static class TerminalLauncher
         return new ResolvedLaunch(launchShortcut, target);
     }
 
-    public static void Open(
+    public static TerminalLaunchAttempt Open(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
@@ -70,10 +64,10 @@ internal static class TerminalLauncher
     {
         var resolved = Resolve(shortcut, terminalApplicationId, defaultProfileId);
         var effectiveElevation = !runAsStandard && (runAsAdmin || shortcut.RunAsAdmin);
-        OpenResolved(resolved, effectiveElevation);
+        return OpenResolved(resolved, effectiveElevation);
     }
 
-    public static void OpenResolved(ResolvedLaunch resolved, bool effectiveElevation)
+    public static TerminalLaunchAttempt OpenResolved(ResolvedLaunch resolved, bool effectiveElevation)
     {
         var startInfo = BuildStartInfo(resolved.Shortcut, resolved.Target);
 
@@ -83,21 +77,26 @@ internal static class TerminalLauncher
         }
 
         StartProcess(startInfo);
+        return ToAttempt(resolved, startInfo);
     }
 
     /// <summary>
-    /// Launches multiple Windows Terminal-hosted entries as tabs of a single window/process.
-    /// Every entry must resolve to the same <see cref="LaunchTarget.HostExecutable"/>; elevation
-    /// applies to the whole window, so callers must group entries by matching elevation first.
+    /// Launches multiple entries as tabs of a single Windows Terminal window/process.
+    /// Elevation applies to the whole window, so callers must group entries by matching elevation first.
     /// </summary>
-    public static void OpenGroup(IReadOnlyList<ResolvedLaunch> group, bool effectiveElevation)
+    public static IReadOnlyList<TerminalLaunchAttempt> OpenGroup(
+        IReadOnlyList<ResolvedLaunch> group,
+        bool effectiveElevation,
+        string? hostExecutableOverride = null)
     {
         if (group is not { Count: > 0 })
         {
             throw new ArgumentException("Group must contain at least one resolved launch.", nameof(group));
         }
 
-        var hostExecutable = group[0].Target.HostExecutable;
+        var hostExecutable = string.IsNullOrWhiteSpace(hostExecutableOverride)
+            ? group[0].Target.HostExecutable
+            : hostExecutableOverride;
         if (string.IsNullOrWhiteSpace(hostExecutable))
         {
             throw new ArgumentException("Resolved launch target has no host executable.", nameof(group));
@@ -108,11 +107,10 @@ internal static class TerminalLauncher
         for (var i = 0; i < group.Count; i++)
         {
             var target = group[i].Target;
-            if (target.Kind is not (LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal)
-                || !string.Equals(target.HostExecutable, hostExecutable, StringComparison.OrdinalIgnoreCase))
+            if (!CanOpenAsWindowsTerminalTab(target, hostExecutable))
             {
                 throw new ArgumentException(
-                    "All entries in a group must be Windows Terminal-hosted and share the same host executable.",
+                    "All entries in a group must be launchable as tabs in the same Windows Terminal host.",
                     nameof(group));
             }
 
@@ -122,7 +120,7 @@ internal static class TerminalLauncher
                 allArguments.Add("new-tab");
             }
 
-            allArguments.AddRange(BuildWindowsTerminalArguments(group[i].Shortcut, target));
+            allArguments.AddRange(BuildWindowsTerminalTabArguments(group[i].Shortcut, target));
         }
 
         var startInfo = CreateWtStartInfo(allArguments, hostExecutable);
@@ -132,6 +130,7 @@ internal static class TerminalLauncher
         }
 
         StartProcess(startInfo);
+        return group.Select(resolved => ToAttempt(resolved, startInfo)).ToArray();
     }
 
     private static ProcessStartInfo BuildStartInfo(TerminalShortcut shortcut, LaunchTarget target) => target.Kind switch
@@ -144,6 +143,15 @@ internal static class TerminalLauncher
         LaunchTargetKind.Wsl => CreateWslStartInfo(shortcut, target),
         _ => CreateWtStartInfo(BuildWindowsTerminalArguments(shortcut, target), target.HostExecutable),
     };
+
+    private static bool CanOpenAsWindowsTerminalTab(LaunchTarget target, string hostExecutable) =>
+        target.Kind switch
+        {
+            LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal =>
+                string.Equals(target.HostExecutable, hostExecutable, StringComparison.OrdinalIgnoreCase),
+            LaunchTargetKind.PowerShell or LaunchTargetKind.Pwsh or LaunchTargetKind.Cmd or LaunchTargetKind.Wsl => true,
+            _ => false,
+        };
 
     private static void StartProcess(ProcessStartInfo startInfo)
     {
@@ -158,15 +166,16 @@ internal static class TerminalLauncher
         {
             throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
         }
+    }
 
-        return new TerminalLaunchAttempt(
+    private static TerminalLaunchAttempt ToAttempt(ResolvedLaunch resolved, ProcessStartInfo startInfo) =>
+        new(
             startInfo.FileName,
             startInfo.Arguments,
-            target.DisplayName,
-            target.ProfileOrDistro,
+            resolved.Target.DisplayName,
+            resolved.Target.ProfileOrDistro,
             string.Equals(startInfo.Verb, "runas", StringComparison.OrdinalIgnoreCase),
-            target.FallbackReason);
-    }
+            resolved.Target.FallbackReason);
 
     private static List<string> BuildWindowsTerminalArguments(TerminalShortcut shortcut, LaunchTarget target)
     {
@@ -195,6 +204,68 @@ internal static class TerminalLauncher
         }
 
         return arguments;
+    }
+
+    private static List<string> BuildWindowsTerminalTabArguments(TerminalShortcut shortcut, LaunchTarget target) =>
+        target.Kind switch
+        {
+            LaunchTargetKind.WindowsTerminal or LaunchTargetKind.IntelligentTerminal =>
+                BuildWindowsTerminalArguments(shortcut, target),
+            LaunchTargetKind.PowerShell =>
+                BuildPowerShellWindowsTerminalArguments(shortcut, "powershell.exe"),
+            LaunchTargetKind.Pwsh =>
+                BuildPowerShellWindowsTerminalArguments(shortcut, "pwsh.exe"),
+            LaunchTargetKind.Cmd =>
+                BuildCmdWindowsTerminalArguments(shortcut, target),
+            LaunchTargetKind.Wsl =>
+                BuildWslWindowsTerminalArguments(shortcut, target),
+            _ => BuildWindowsTerminalArguments(shortcut, target),
+        };
+
+    private static List<string> BuildPowerShellWindowsTerminalArguments(TerminalShortcut shortcut, string executable)
+    {
+        if (WslPathResolver.TryParse(shortcut.Directory, out var wslLocation))
+        {
+            var directory = wslLocation.UncPath ?? shortcut.Directory;
+            return [TerminalLauncherArgs.ToPowerShellExecutableCommand(shortcut, executable, directory)];
+        }
+
+        return
+        [
+            $"-d \"{TerminalLauncherArgs.EscapeWindowsTerminalArg(shortcut.Directory)}\"",
+            TerminalLauncherArgs.ToWindowsTerminalPowerShellSuffix(shortcut, executable),
+        ];
+    }
+
+    private static List<string> BuildCmdWindowsTerminalArguments(TerminalShortcut shortcut, LaunchTarget target)
+    {
+        if (WslPathResolver.TryParse(shortcut.Directory, out var wslLocation))
+        {
+            return [ToWslExecutableCommand(shortcut, target, wslLocation, interactiveShell: string.IsNullOrWhiteSpace(shortcut.Command))];
+        }
+
+        return
+        [
+            $"-d \"{TerminalLauncherArgs.EscapeWindowsTerminalArg(shortcut.Directory)}\"",
+            TerminalLauncherArgs.BuildWindowsTerminalCmdSuffix(shortcut, omitDirectoryChange: true),
+        ];
+    }
+
+    private static List<string> BuildWslWindowsTerminalArguments(TerminalShortcut shortcut, LaunchTarget target)
+    {
+        if (WslPathResolver.TryParse(shortcut.Directory, out var wslLocation))
+        {
+            return [ToWslExecutableCommand(shortcut, target, wslLocation, interactiveShell: string.IsNullOrWhiteSpace(shortcut.Command))];
+        }
+
+        return
+        [
+            ToWslExecutableCommand(
+                shortcut,
+                target,
+                WslPathResolver.CreateLocationFromWindowsDirectory(shortcut.Directory, target),
+                interactiveShell: string.IsNullOrWhiteSpace(shortcut.Command)),
+        ];
     }
 
     private static List<string> BuildWindowsTerminalArgumentsForWslDirectory(

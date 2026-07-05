@@ -51,6 +51,8 @@ internal static partial class ProjectClassifier
             Try(ClassifyJava);
             Try(ClassifyDeno);
             Try(ClassifyProcfile);
+            Try(ClassifyRuby);
+            Try(ClassifyElixir);
         }
 
         public ProjectClassification Build() =>
@@ -268,6 +270,24 @@ internal static partial class ProjectClassifier
                 || FileContains(Path.Combine(directory, "Gemfile"), "foreman")
                 || FileContains(Path.Combine(directory, "package.json"), "foreman")
                 || FileContains(Path.Combine(directory, "package.json"), "overmind");
+        }
+
+        private void ClassifyRuby()
+        {
+            var gemfile = Path.Combine(directory, "Gemfile");
+            if (File.Exists(gemfile) && FileContains(gemfile, "rails"))
+            {
+                Add(ProjectStack.Rails, "Rails");
+            }
+        }
+
+        private void ClassifyElixir()
+        {
+            var mixExs = Path.Combine(directory, "mix.exs");
+            if (File.Exists(mixExs))
+            {
+                Add(ProjectStack.Elixir, "Elixir");
+            }
         }
 
         private string? FindFirst(params string[] names)

@@ -12,6 +12,8 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-project-setup-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
+        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
     }
 
     [Fact]
@@ -233,6 +235,9 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         Assert.True(candidate.Classification.Has(ProjectStack.Go));
         Assert.Contains("Go", DiscoverGitRepoListItems.BuildSubtitleForNew(candidate), StringComparison.Ordinal);
 
+        _ = GitRepoIndex.Search("go", [_root], savedDirectories: null);
+        GitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
+
         var matches = GitRepoIndex.Search("go", [_root], savedDirectories: null);
 
         Assert.Single(matches);
@@ -254,6 +259,8 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
     public void Dispose()
     {
         GitRepoIndex.Invalidate();
+        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
+        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try
         {
             Directory.Delete(_root, recursive: true);

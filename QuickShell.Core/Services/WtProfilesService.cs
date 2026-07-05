@@ -33,7 +33,14 @@ internal static class WtProfilesService
 
     private static WtProfileInfo[] _cached = [];
     private static readonly Dictionary<string, DateTime> _writeTimes = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, WtProfileInfo[]> _profilesBySettingsPath = new(StringComparer.OrdinalIgnoreCase);
     private static TerminalSettingsLocation[] _locations = [];
+
+    internal static TerminalSettingsLocation[]? TestLocationsOverride { get; set; }
+
+    internal static int TestParseCount { get; private set; }
+
+    internal static Action? TestOnParseForTests { get; set; }
 
     public static void InvalidateCache()
     {
@@ -41,7 +48,10 @@ internal static class WtProfilesService
         {
             _cached = [];
             _writeTimes.Clear();
+            _profilesBySettingsPath.Clear();
             _locations = [];
+            TestParseCount = 0;
+            TestOnParseForTests = null;
         }
 
         WindowsTerminalInstallDiscovery.InvalidateCache();
@@ -49,6 +59,11 @@ internal static class WtProfilesService
 
     private static TerminalSettingsLocation[] GetLocations()
     {
+        if (TestLocationsOverride is { Length: > 0 } overrideLocations)
+        {
+            return overrideLocations;
+        }
+
         if (_locations.Length == 0)
         {
             _locations = [.. TerminalSettingsDiscovery.DiscoverLocations()];
@@ -140,27 +155,43 @@ internal static class WtProfilesService
 
     private static void RefreshCacheIfNeeded()
     {
-        var merged = new List<WtProfileInfo>();
-        var sawChanges = _cached.Length == 0;
+        var sawChanges = false;
         var locations = GetLocations();
+        var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var location in locations)
         {
+            activePaths.Add(location.SettingsPath);
+
             if (!File.Exists(location.SettingsPath))
             {
+                if (_profilesBySettingsPath.Remove(location.SettingsPath))
+                {
+                    sawChanges = true;
+                }
+
+                _writeTimes.Remove(location.SettingsPath);
                 continue;
             }
 
             var writeTime = File.GetLastWriteTimeUtc(location.SettingsPath);
             if (_writeTimes.TryGetValue(location.SettingsPath, out var cachedTime)
                 && cachedTime == writeTime
-                && !sawChanges)
+                && _profilesBySettingsPath.ContainsKey(location.SettingsPath))
             {
                 continue;
             }
 
             sawChanges = true;
             _writeTimes[location.SettingsPath] = writeTime;
+            _profilesBySettingsPath[location.SettingsPath] = ReadProfilesForLocation(location);
+        }
+
+        foreach (var stalePath in _profilesBySettingsPath.Keys.Where(path => !activePaths.Contains(path)).ToArray())
+        {
+            _profilesBySettingsPath.Remove(stalePath);
+            _writeTimes.Remove(stalePath);
+            sawChanges = true;
         }
 
         if (!sawChanges)
@@ -168,16 +199,19 @@ internal static class WtProfilesService
             return;
         }
 
-        foreach (var location in locations)
-        {
-            if (!File.Exists(location.SettingsPath))
-            {
-                continue;
-            }
+        RebuildMergedCache();
+    }
 
-            merged.AddRange(TryReadProfiles(location));
-        }
+    private static WtProfileInfo[] ReadProfilesForLocation(TerminalSettingsLocation location)
+    {
+        TestParseCount++;
+        TestOnParseForTests?.Invoke();
+        return TryReadProfiles(location).ToArray();
+    }
 
+    private static void RebuildMergedCache()
+    {
+        var merged = _profilesBySettingsPath.Values.SelectMany(profiles => profiles).ToList();
         _cached = merged
             .GroupBy(p => $"{p.IdPrefix}:{p.Name}", StringComparer.OrdinalIgnoreCase)
             .Select(g => g.First())

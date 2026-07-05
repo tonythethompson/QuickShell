@@ -110,7 +110,7 @@ public sealed class ShortcutDisplayTests
     }
 
     [Fact]
-    public void BuildSubtitle_IncludesCompanionAppDisplayName()
+    public void BuildSubtitle_LeavesCompanionAppDetailOutOfRowSummary()
     {
         var shortcut = new TerminalShortcut
         {
@@ -122,7 +122,8 @@ public sealed class ShortcutDisplayTests
         };
 
         var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
-        Assert.Contains("Discord", subtitle, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Discord", subtitle, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Main", subtitle, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -176,7 +177,7 @@ public sealed class ShortcutDisplayTests
     }
 
     [Fact]
-    public void BuildSubtitle_MultipleLaunches_IncludesProfileForEachCommand()
+    public void BuildSubtitle_MultipleLaunchesUsesCompactCount()
     {
         var shortcut = new TerminalShortcut
         {
@@ -206,9 +207,8 @@ public sealed class ShortcutDisplayTests
 
         var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
 
-        Assert.Contains("PowerShell 7", subtitle, StringComparison.Ordinal);
-        Assert.Contains("npm run dev", subtitle, StringComparison.Ordinal);
-        Assert.Contains("Nushell", subtitle, StringComparison.Ordinal);
-        Assert.Contains("claude", subtitle, StringComparison.Ordinal);
+        Assert.Contains("2 launches", subtitle, StringComparison.Ordinal);
+        Assert.DoesNotContain("npm run dev", subtitle, StringComparison.Ordinal);
+        Assert.DoesNotContain("claude", subtitle, StringComparison.Ordinal);
     }
 }

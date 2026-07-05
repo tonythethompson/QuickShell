@@ -30,11 +30,16 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
 
+    private readonly QuickShellSettingsManager _settings;
+
     private string _lastQuery = string.Empty;
 
 
 
-    public QuickShellFallback(Lazy<QuickShellFallbackPage> listPage, OpenDiscoverGitReposCommand discoverGitReposCommand)
+    public QuickShellFallback(
+        Lazy<QuickShellFallbackPage> listPage,
+        OpenDiscoverGitReposCommand discoverGitReposCommand,
+        QuickShellSettingsManager settings)
 
         : base(BaseCommand, "Saved workspace", CommandId)
 
@@ -43,6 +48,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
         _listPage = listPage;
 
         _discoverGitReposCommand = discoverGitReposCommand;
+
+        _settings = settings;
 
         Title = string.Empty;
 
@@ -67,6 +74,36 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
         {
 
             ClearResult();
+
+            return;
+
+        }
+
+
+
+        var taskActions = QuickShellRuntimeServices.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
+
+        if (taskActions.Length > 0)
+
+        {
+
+            if (taskActions.Length == 1)
+
+            {
+
+                ApplyTaskResult(taskActions[0]);
+
+                return;
+
+            }
+
+
+
+            var listPage = _listPage.Value;
+
+            listPage.SetTaskResults(_lastQuery, taskActions);
+
+            ApplyTaskResults(taskActions);
 
             return;
 
@@ -165,6 +202,58 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
         }
 
 
+
+        Icon = QuickShellBrandIcons.App;
+
+        Command = _listPage.Value;
+
+        MoreCommands = [];
+
+    }
+
+
+
+    private void ApplyTaskResult(WorkspaceTaskAction action)
+
+    {
+
+        var item = ShortcutTaskActionListItems.Create(action, _settings, ReloadCurrentQuery);
+
+        Title = item.Title;
+
+        Subtitle = item.Subtitle;
+
+        Icon = item.Icon;
+
+        Command = item.Command;
+
+        MoreCommands = item.MoreCommands;
+
+    }
+
+
+
+    private void ReloadCurrentQuery()
+
+    {
+
+        var query = _lastQuery;
+
+        ClearResult();
+
+        UpdateQuery(query);
+
+    }
+
+
+
+    private void ApplyTaskResults(WorkspaceTaskAction[] taskActions)
+
+    {
+
+        Title = $"{taskActions.Length} task actions";
+
+        Subtitle = $"Matching \"{_lastQuery}\"";
 
         Icon = QuickShellBrandIcons.App;
 
