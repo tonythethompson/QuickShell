@@ -69,6 +69,9 @@
   <data name="Menu_Redo" xml:space="preserve">
     <value>やり直し</value>
   </data>
+  <data name="Menu_Run" xml:space="preserve">
+    <value>実行</value>
+  </data>
   <data name="Menu_RunAsAdmin" xml:space="preserve">
     <value>管理者として実行</value>
   </data>
@@ -446,7 +449,7 @@
     <value>&#12452;&#12531;&#12509;&#12540;&#12488;&#12398;&#20445;&#30041;&#12399;&#12354;&#12426;&#12414;&#12379;&#12435;&#12290;</value>
   </data>
   <data name="Common_Discard" xml:space="preserve">
-    <value>&#30834;&#26522;</value>
+    <value>破棄</value>
   </data>
   <data name="Menu_Edit" xml:space="preserve">
     <value>&#32232;&#38598;</value>

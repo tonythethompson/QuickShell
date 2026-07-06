@@ -5,7 +5,7 @@ namespace QuickShell.Services;
 
 internal static class Strings
 {
-    private static readonly ResourceManager Rm = new("QuickShell.Services.Strings", typeof(Strings).Assembly);
+    private static readonly ResourceManager Rm = new("QuickShell.Resources.Strings", typeof(Strings).Assembly);
 
     private static string Get(string key) => Rm.GetString(key, CultureInfo.CurrentUICulture) ?? key;
 
@@ -22,6 +22,7 @@ internal static class Strings
     public static string Menu_CreateWorkspace => Get(nameof(Menu_CreateWorkspace));
     public static string Menu_Undo => Get(nameof(Menu_Undo));
     public static string Menu_Redo => Get(nameof(Menu_Redo));
+    public static string Menu_Run => Get(nameof(Menu_Run));
     public static string Menu_RunAsAdmin => Get(nameof(Menu_RunAsAdmin));
     public static string Menu_RunNormally => Get(nameof(Menu_RunNormally));
     public static string Menu_OpenCompanionAppFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(Menu_OpenCompanionAppFormat)), arg0);
@@ -74,7 +75,6 @@ internal static class Strings
     public static string PendingEdit_NonePending => Get(nameof(PendingEdit_NonePending));
     public static string PendingEdit_NoneWaiting => Get(nameof(PendingEdit_NoneWaiting));
     public static string PendingEdit_LeftEditingFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(PendingEdit_LeftEditingFormat)), arg0);
-    public static string ChooseCompanionApp_DialogTitle => Get(nameof(ChooseCompanionApp_DialogTitle));
     public static string Dialog_ExportWorkspacesFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(Dialog_ExportWorkspacesFormat)), arg0);
     public static string Dialog_ImportWorkspacesFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(Dialog_ImportWorkspacesFormat)), arg0);
     public static string Command_CheckWorkspaceHealth_Name => Get(nameof(Command_CheckWorkspaceHealth_Name));
@@ -95,7 +95,6 @@ internal static class Strings
     public static string WorkspaceNotFoundNamedFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(WorkspaceNotFoundNamedFormat)), arg0);
     public static string ExportFailedFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(ExportFailedFormat)), arg0);
     public static string ExportedWorkspacesFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(ExportedWorkspacesFormat)), arg0);
-    public static string ChooseCompanionApp_Title => Get(nameof(ChooseCompanionApp_Title));
     public static string ItemHealth_ChooseFolder => Get(nameof(ItemHealth_ChooseFolder));
     public static string ItemHealth_InvalidFolderPath => Get(nameof(ItemHealth_InvalidFolderPath));
     public static string ItemHealth_FolderNotFoundFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(ItemHealth_FolderNotFoundFormat)), arg0);
@@ -179,6 +178,5 @@ internal static class Strings
     public static string TaskActions_RunTaskAsAdmin => Get(nameof(TaskActions_RunTaskAsAdmin));
     public static string CheckWorkspace_NotFound => Get(nameof(CheckWorkspace_NotFound));
     public static string ResetProjects_Title => Get(nameof(ResetProjects_Title));
-    public static string ImportNoImportPending => Get(nameof(ImportNoImportPending));
 }
 

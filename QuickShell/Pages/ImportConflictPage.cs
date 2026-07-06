@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Services;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,7 +53,7 @@ internal sealed partial class ImportConflictForm : FormContent
           "body": [
             {
               "type": "TextBlock",
-              "text": "{{EscapeJson(Strings.ImportConflictPage_Heading)}}",
+              "text": "{{Escape(Strings.ImportConflictPage_Heading)}}",
               "weight": "Bolder",
               "size": "Large"
             },
@@ -70,14 +71,14 @@ internal sealed partial class ImportConflictForm : FormContent
             },
             {
               "type": "TextBlock",
-              "text": "{{EscapeJson(Strings.ImportConflictPage_ChooseOption)}}",
+              "text": "{{Escape(Strings.ImportConflictPage_ChooseOption)}}",
               "wrap": true,
               "weight": "Bolder",
               "spacing": "Large"
             },
             {
               "type": "TextBlock",
-              "text": "{{EscapeJson(Strings.ImportConflictPage_HelpText)}}",
+              "text": "{{Escape(Strings.ImportConflictPage_HelpText)}}",
               "wrap": true,
               "isSubtle": true,
               "spacing": "Small"
@@ -86,22 +87,22 @@ internal sealed partial class ImportConflictForm : FormContent
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "{{EscapeJson(Strings.ImportConflictPage_MergeButton)}}",
-              "tooltip": "{{EscapeJson(Strings.ImportConflictPage_MergeTooltip)}}",
+              "title": "{{Escape(Strings.ImportConflictPage_MergeButton)}}",
+              "tooltip": "{{Escape(Strings.ImportConflictPage_MergeTooltip)}}",
               "data": { "action": "merge" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "{{EscapeJson(Strings.ImportConflictPage_ReplaceButton)}}",
-              "tooltip": "{{EscapeJson(Strings.ImportConflictPage_ReplaceTooltip)}}",
+              "title": "{{Escape(Strings.ImportConflictPage_ReplaceButton)}}",
+              "tooltip": "{{Escape(Strings.ImportConflictPage_ReplaceTooltip)}}",
               "data": { "action": "replace" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "{{EscapeJson(Strings.ImportConflictPage_CancelButton)}}",
-              "tooltip": "{{EscapeJson(Strings.ImportConflictPage_CancelTooltip)}}",
+              "title": "{{Escape(Strings.ImportConflictPage_CancelButton)}}",
+              "tooltip": "{{Escape(Strings.ImportConflictPage_CancelTooltip)}}",
               "data": { "action": "cancel" },
               "associatedInputs": "none"
             }
@@ -161,7 +162,7 @@ internal sealed partial class ImportConflictForm : FormContent
         {
             DataJson = $$"""
             {
-              "Description": "{{EscapeJson(Strings.ImportConflictPage_NoneWaiting)}}",
+              "Description": "{{Escape(Strings.ImportConflictPage_NoneWaiting)}}",
               "FileName": ""
             }
             """;
@@ -211,9 +212,9 @@ internal sealed partial class ImportConflictForm : FormContent
         return JsonNode.Parse(data)?.AsObject()?["action"]?.ToString();
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-
-    private static string EscapeJson(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value)
+    {
+        var serialized = JsonSerializer.Serialize(value);
+        return serialized.Substring(1, serialized.Length - 2);
+    }
 }

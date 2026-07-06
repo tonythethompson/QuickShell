@@ -2,6 +2,7 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Services;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -87,7 +88,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var pending = ImportConflictState.Pending;
         if (pending is null)
         {
-            return Finish(Strings.ImportNoImportPending);
+            return Finish(Strings.ImportConflictPage_NoImportPending);
         }
 
         var transferResult = pending.Kind switch
@@ -176,7 +177,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             $$"""
             {
               "type": "Action.Submit",
-              "title": "{{Strings.ShortcutTransfer_ExportButton_Title}}",
+              "title": "{{Escape(Strings.ShortcutTransfer_ExportButton_Title)}}",
               "associatedInputs": "none",
               "data": { "action": "exportWorkspaces" }
             }
@@ -184,7 +185,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             $$"""
             {
               "type": "Action.Submit",
-              "title": "{{Strings.ShortcutTransfer_ImportButton_Title}}",
+              "title": "{{Escape(Strings.ShortcutTransfer_ImportButton_Title)}}",
               "associatedInputs": "none",
               "data": { "action": "importWorkspaces" }
             }
@@ -192,9 +193,9 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             $$"""
             {
               "type": "Action.Submit",
-              "title": "{{Strings.ShortcutTransfer_ResetButton_Title}}",
+              "title": "{{Escape(Strings.ShortcutTransfer_ResetButton_Title)}}",
               "style": "destructive",
-              "tooltip": "{{Strings.ShortcutTransfer_ResetButton_Tooltip}}",
+              "tooltip": "{{Escape(Strings.ShortcutTransfer_ResetButton_Tooltip)}}",
               "associatedInputs": "none",
               "data": { "action": "resetWorkspaces" }
             }
@@ -282,6 +283,12 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private static string? TryGetActionFromInputs(string inputs) =>
         JsonNode.Parse(inputs)?.AsObject()?["action"]?.ToString();
+
+    private static string Escape(string value)
+    {
+        var serialized = JsonSerializer.Serialize(value);
+        return serialized.Substring(1, serialized.Length - 2);
+    }
 
     private readonly record struct ImportTransferResult(bool Success, string Message);
 }

@@ -30,7 +30,7 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
             ? Strings.Menu_RunAsAdmin
             : runAsStandard
                 ? Strings.Menu_RunNormally
-                : "Run";
+                : Strings.Menu_Run;
         Icon = new IconInfo(ResolveLaunchIcon(shortcut, runAsAdmin, runAsStandard));
     }
 

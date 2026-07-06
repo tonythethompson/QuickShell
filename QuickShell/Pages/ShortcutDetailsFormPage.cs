@@ -283,12 +283,12 @@ internal sealed partial class ShortcutDetailsForm : FormContent
       "actions": [
         {
           "type": "Action.Submit",
-          "title": "{{Strings.ShortcutDetails_ApplyButton}}",
+          "title": "{{EscapeJsonValue(Strings.ShortcutDetails_ApplyButton)}}",
           "associatedInputs": "auto"
         },
         {
           "type": "Action.Submit",
-          "title": "{{Strings.ShortcutDetails_CancelButton}}",
+          "title": "{{EscapeJsonValue(Strings.ShortcutDetails_CancelButton)}}",
           "data": { "action": "cancel" },
           "associatedInputs": "none"
         }

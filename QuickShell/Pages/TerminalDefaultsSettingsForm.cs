@@ -4,6 +4,8 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 
 using QuickShell.Services;
 
+using System.Text.Json;
+
 using System.Text.Json.Nodes;
 
 
@@ -284,7 +286,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
               "type": "TextBlock",
 
-              "text": "{{Strings.TerminalDefaults_SectionHeader}}",
+              "text": "{{EscapeJson(Strings.TerminalDefaults_SectionHeader)}}",
 
               "weight": "Bolder",
 
@@ -304,7 +306,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
               "type": "TextBlock",
 
-              "text": "{{Strings.TerminalDefaults_SubtleText}}",
+              "text": "{{EscapeJson(Strings.TerminalDefaults_SubtleText)}}",
 
               "wrap": true,
 
@@ -544,8 +546,14 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
 
 
-    private static string EscapeJson(string value) =>
+    private static string EscapeJson(string value)
 
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    {
+
+        var serialized = JsonSerializer.Serialize(value);
+
+        return serialized.Substring(1, serialized.Length - 2);
+
+    }
 
 }

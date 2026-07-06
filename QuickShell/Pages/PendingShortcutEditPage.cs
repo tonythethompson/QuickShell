@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Services;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace QuickShell.Pages;
@@ -48,7 +49,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
           "body": [
             {
               "type": "TextBlock",
-              "text": "{{EscapeJson(Strings.PendingEdit_Title)}}",
+              "text": "{{Escape(Strings.PendingEdit_Title)}}",
               "weight": "Bolder",
               "size": "Large"
             },
@@ -60,7 +61,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             },
             {
               "type": "TextBlock",
-              "text": "{{EscapeJson(Strings.PendingEdit_ValidationNote)}}",
+              "text": "{{Escape(Strings.PendingEdit_ValidationNote)}}",
               "wrap": true,
               "isSubtle": true,
               "spacing": "Medium"
@@ -69,13 +70,13 @@ internal sealed partial class PendingShortcutEditForm : FormContent
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "{{EscapeJson(Strings.PendingEdit_SaveAndCloseButton)}}",
+              "title": "{{Escape(Strings.PendingEdit_SaveAndCloseButton)}}",
               "data": { "action": "save" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "{{EscapeJson(Strings.Common_Discard)}}",
+              "title": "{{Escape(Strings.Common_Discard)}}",
               "data": { "action": "discard" },
               "associatedInputs": "none"
             }
@@ -131,7 +132,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         {
             DataJson = $$"""
             {
-              "Description": "{{EscapeJson(Strings.PendingEdit_NoneWaiting)}}"
+              "Description": "{{Escape(Strings.PendingEdit_NoneWaiting)}}"
             }
             """;
             return;
@@ -159,9 +160,9 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         return JsonNode.Parse(data)?.AsObject()?["action"]?.ToString();
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-
-    private static string EscapeJson(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value)
+    {
+        var serialized = JsonSerializer.Serialize(value);
+        return serialized.Substring(1, serialized.Length - 2);
+    }
 }

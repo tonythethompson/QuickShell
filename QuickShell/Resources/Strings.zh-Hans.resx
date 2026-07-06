@@ -69,6 +69,9 @@
   <data name="Menu_Redo" xml:space="preserve">
     <value>重做</value>
   </data>
+  <data name="Menu_Run" xml:space="preserve">
+    <value>运行</value>
+  </data>
   <data name="Menu_RunAsAdmin" xml:space="preserve">
     <value>以管理员身份运行</value>
   </data>
@@ -437,16 +440,16 @@
   </data>
 
   <data name="ImportConflictPage_Cancelled" xml:space="preserve">
-    <value>&#23548;&#20837;&#24050;&#21462;&#28040;&#12290;</value>
+    <value>导入已取消。</value>
   </data>
   <data name="ImportConflictPage_Name" xml:space="preserve">
-    <value>&#23548;&#20837;</value>
+    <value>导入</value>
   </data>
   <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
-    <value>&#27809;&#26377;&#24453;&#22788;&#29702;&#30340;&#23548;&#20837;&#12290;</value>
+    <value>没有待处理的导入。</value>
   </data>
   <data name="Common_Discard" xml:space="preserve">
-    <value>&#25918;&#24323;</value>
+    <value>放弃</value>
   </data>
   <data name="Menu_Edit" xml:space="preserve">
     <value>&#32534;&#36753;</value>

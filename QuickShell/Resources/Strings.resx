@@ -69,6 +69,9 @@
   <data name="Menu_Redo" xml:space="preserve">
     <value>Redo</value>
   </data>
+  <data name="Menu_Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
   <data name="Menu_RunAsAdmin" xml:space="preserve">
     <value>Run as Admin</value>
   </data>
@@ -94,7 +97,7 @@
     <value>Not saved yet</value>
   </data>
   <data name="Section_AlreadyWorkspaces" xml:space="preserve">
-    <value>Already workspaces</value>
+    <value>Existing workspaces</value>
   </data>
   <data name="AddAnotherWorkspace" xml:space="preserve">
     <value>Add another workspace</value>
@@ -222,9 +225,6 @@
   <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
     <value>You left editing "{0}" with unsaved changes. Save them to your workspaces, or discard them.</value>
   </data>
-  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
-    <value>Choose companion app</value>
-  </data>
   <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
     <value>Export {0} workspaces</value>
   </data>
@@ -284,9 +284,6 @@
   </data>
   <data name="ExportedWorkspacesFormat" xml:space="preserve">
     <value>Exported workspaces to {0}.</value>
-  </data>
-  <data name="ChooseCompanionApp_Title" xml:space="preserve">
-    <value>Choose companion app</value>
   </data>
   <data name="ItemHealth_ChooseFolder" xml:space="preserve">
     <value>Choose workspace folder · fix in edit</value>
@@ -539,8 +536,5 @@
   </data>
   <data name="ResetProjects_Title" xml:space="preserve">
     <value>Reset all workspaces?</value>
-  </data>
-  <data name="ImportNoImportPending" xml:space="preserve">
-    <value>No import is pending.</value>
   </data>
 </root>

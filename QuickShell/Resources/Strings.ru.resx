@@ -69,6 +69,9 @@
   <data name="Menu_Redo" xml:space="preserve">
     <value>Повторить</value>
   </data>
+  <data name="Menu_Run" xml:space="preserve">
+    <value>Запустить</value>
+  </data>
   <data name="Menu_RunAsAdmin" xml:space="preserve">
     <value>Запустить от имени администратора</value>
   </data>
