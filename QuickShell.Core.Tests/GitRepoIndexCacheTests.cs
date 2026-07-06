@@ -86,7 +86,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
         Assert.Empty(GitRepoIndex.GetAll([]));
 
         gate.Set();
-        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        GitRepoIndex.WaitForPopulationForTests(string.Empty, TimeSpan.FromSeconds(5));
         var refreshed = GitRepoIndex.GetAll([]);
         Assert.Single(refreshed);
         Assert.Equal("AfterInvalidate", refreshed[0].Name);

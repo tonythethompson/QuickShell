@@ -8,6 +8,7 @@ internal static class GitRepoIndex
     private static IReadOnlyList<GitRepoCandidate> _cache = [];
     private static string _cacheRootKey = string.Empty;
     private static DateTime _refreshedUtc = DateTime.MinValue;
+    private static bool _hasCompletedRefreshForRoot;
     private static RefreshInFlight? _refreshInFlight;
     private static readonly List<Action> RefreshCompletedHandlers = [];
     private static readonly object RefreshHandlerSync = new();
@@ -98,6 +99,7 @@ internal static class GitRepoIndex
             _cache = [];
             _refreshedUtc = DateTime.MinValue;
             _cacheRootKey = string.Empty;
+            _hasCompletedRefreshForRoot = false;
             _refreshInFlight = null;
         });
 
@@ -175,6 +177,7 @@ internal static class GitRepoIndex
             _cache = [];
             _cacheRootKey = string.Empty;
             _refreshedUtc = DateTime.MinValue;
+            _hasCompletedRefreshForRoot = false;
             _refreshInFlight = null;
             DiscoverOverride = null;
             lock (RefreshHandlerSync)
@@ -194,6 +197,7 @@ internal static class GitRepoIndex
             _cache = cache;
             _cacheRootKey = rootKey;
             _refreshedUtc = refreshedUtc;
+            _hasCompletedRefreshForRoot = true;
             _refreshInFlight = null;
         }
     }
@@ -229,8 +233,8 @@ internal static class GitRepoIndex
     }
 
     private static bool IsCacheFreshLocked(string rootKey) =>
-        string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
-        && _refreshedUtc != DateTime.MinValue
+        _hasCompletedRefreshForRoot
+        && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
 
     private static void StartRefreshLocked(string rootKey, string[] rootSnapshot)
@@ -267,7 +271,6 @@ internal static class GitRepoIndex
                 return;
             }
 
-            _refreshInFlight = null;
             shouldNotify = true;
 
             if (!task.IsFaulted && !task.IsCanceled)
@@ -275,7 +278,10 @@ internal static class GitRepoIndex
                 _cache = task.Result;
                 _cacheRootKey = inFlight.RootKey;
                 _refreshedUtc = DateTime.UtcNow;
+                _hasCompletedRefreshForRoot = true;
             }
+
+            _refreshInFlight = null;
         }
 
         if (shouldNotify)
