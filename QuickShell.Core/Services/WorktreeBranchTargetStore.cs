@@ -107,19 +107,21 @@ internal static class WorktreeBranchTargetStore
                 return;
             }
 
-            LoadLocked();
-            _loaded = true;
+            if (LoadLocked())
+            {
+                _loaded = true;
+            }
         }
     }
 
-    private static void LoadLocked()
+    private static bool LoadLocked()
     {
         Targets.Clear();
 
         var path = ResolveFilePath();
         if (!File.Exists(path))
         {
-            return;
+            return true;
         }
 
         try
@@ -130,7 +132,7 @@ internal static class WorktreeBranchTargetStore
                 QuickShellJsonContext.Default.WorktreeBranchTargetsDocument);
             if (document?.Targets is not { Count: > 0 } persistedTargets)
             {
-                return;
+                return true;
             }
 
             foreach (var (worktreeKey, branch) in persistedTargets)
@@ -149,10 +151,18 @@ internal static class WorktreeBranchTargetStore
                     Targets[worktreeKey] = branch.Trim();
                 }
             }
+
+            return true;
         }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        catch (IOException)
         {
             Targets.Clear();
+            return false;
+        }
+        catch (Exception ex) when (ex is JsonException or UnauthorizedAccessException)
+        {
+            Targets.Clear();
+            return true;
         }
     }
 
