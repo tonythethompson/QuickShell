@@ -20,7 +20,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         _onReload = onReload;
         _stayOnSettings = stayOnSettings;
         _onSettingsRefresh = onSettingsRefresh;
-        Name = "Import workspaces";
+        Name = Strings.Command_ImportWorkspaces_Name;
         Icon = new IconInfo("\uE898");
     }
 
@@ -29,7 +29,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         var path = ShortcutFilePickerService.PickImportFile();
         if (path is null)
         {
-            return Finish("Import cancelled.");
+            return Finish(Strings.Import_Cancelled);
         }
 
         using var readCancellation = new CancellationTokenSource(IoTimeout);

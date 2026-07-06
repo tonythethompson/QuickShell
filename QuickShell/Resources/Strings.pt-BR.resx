@@ -1,0 +1,550 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Pesquisar espaços de trabalho por nome, caminho ou comando…</value>
+  </data>
+  <data name="EmptyState_Title" xml:space="preserve">
+    <value>Crie seu primeiro espaço de trabalho</value>
+  </data>
+  <data name="EmptyState_Subtitle" xml:space="preserve">
+    <value>Escolha uma pasta e configure as inicializações do terminal</value>
+  </data>
+  <data name="NoMatch_Title" xml:space="preserve">
+    <value>Nenhum espaço de trabalho correspondente</value>
+  </data>
+  <data name="NoMatch_Subtitle" xml:space="preserve">
+    <value>Tente outra pesquisa</value>
+  </data>
+  <data name="SettingsTitleFormat" xml:space="preserve">
+    <value>Configurações do {0}</value>
+  </data>
+  <data name="Menu_OpenInFileExplorer" xml:space="preserve">
+    <value>Abrir no Explorador de Arquivos</value>
+  </data>
+  <data name="Menu_CopyPath" xml:space="preserve">
+    <value>Copiar caminho</value>
+  </data>
+  <data name="Menu_OpenDevServer" xml:space="preserve">
+    <value>Abrir servidor de desenvolvimento</value>
+  </data>
+  <data name="Menu_OpenRepository" xml:space="preserve">
+    <value>Abrir repositório</value>
+  </data>
+  <data name="Menu_CreateWorkspace" xml:space="preserve">
+    <value>Criar espaço de trabalho</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>Desfazer</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>Refazer</value>
+  </data>
+  <data name="Menu_Run" xml:space="preserve">
+    <value>Executar</value>
+  </data>
+  <data name="Menu_RunAsAdmin" xml:space="preserve">
+    <value>Executar como administrador</value>
+  </data>
+  <data name="Menu_RunNormally" xml:space="preserve">
+    <value>Executar normalmente</value>
+  </data>
+  <data name="Menu_OpenCompanionAppFormat" xml:space="preserve">
+    <value>Abrir {0}</value>
+  </data>
+  <data name="Section_Favorites" xml:space="preserve">
+    <value>Favoritos</value>
+  </data>
+  <data name="Section_Workspaces" xml:space="preserve">
+    <value>Espaços de trabalho</value>
+  </data>
+  <data name="Tooltip_Favorite" xml:space="preserve">
+    <value>Favorito</value>
+  </data>
+  <data name="Tooltip_AlwaysRunAsAdmin" xml:space="preserve">
+    <value>Sempre executar como administrador</value>
+  </data>
+  <data name="Section_NotSavedYet" xml:space="preserve">
+    <value>Ainda não salvo</value>
+  </data>
+  <data name="Section_AlreadyWorkspaces" xml:space="preserve">
+    <value>Já são espaços de trabalho</value>
+  </data>
+  <data name="AddAnotherWorkspace" xml:space="preserve">
+    <value>Adicionar outro espaço de trabalho</value>
+  </data>
+  <data name="SavedAsFormat" xml:space="preserve">
+    <value>Salvo como {0}</value>
+  </data>
+  <data name="WorkspacesCountFormat" xml:space="preserve">
+    <value>{0} espaços de trabalho</value>
+  </data>
+  <data name="RightClickToOpenOrEdit" xml:space="preserve">
+    <value>Clique com o botão direito para abrir ou editar</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>Abrir diretório</value>
+  </data>
+  <data name="RepairWorkspace" xml:space="preserve">
+    <value>Reparar espaço de trabalho</value>
+  </data>
+  <data name="OpenWorkspace" xml:space="preserve">
+    <value>Abrir espaço de trabalho</value>
+  </data>
+  <data name="EditNamedFormat" xml:space="preserve">
+    <value>Editar {0}</value>
+  </data>
+  <data name="DuplicateWorkspace_Title" xml:space="preserve">
+    <value>Duplicar espaço de trabalho</value>
+  </data>
+  <data name="Command_Duplicate_Name" xml:space="preserve">
+    <value>Duplicar</value>
+  </data>
+  <data name="Discover_Title" xml:space="preserve">
+    <value>Descobrir repositórios Git</value>
+  </data>
+  <data name="Discover_Name" xml:space="preserve">
+    <value>Descobrir</value>
+  </data>
+  <data name="Discover_Placeholder" xml:space="preserve">
+    <value>Filtrar repositórios descobertos…</value>
+  </data>
+  <data name="Discover_NoReposFound" xml:space="preserve">
+    <value>Nenhum repositório Git encontrado</value>
+  </data>
+  <data name="Discover_NoMatchingRepos" xml:space="preserve">
+    <value>Nenhum repositório correspondente</value>
+  </data>
+  <data name="Discover_TrySearching" xml:space="preserve">
+    <value>Tente pesquisar Projects, dev ou code dentro da sua pasta de perfil</value>
+  </data>
+  <data name="ImportConflictPage_Title" xml:space="preserve">
+    <value>Concluir importação</value>
+  </data>
+  <data name="ImportConflictPage_Heading" xml:space="preserve">
+    <value>Nomes duplicados no arquivo de importação</value>
+  </data>
+  <data name="ImportConflictPage_ChooseOption" xml:space="preserve">
+    <value>Escolha uma opção abaixo para concluir a importação.</value>
+  </data>
+  <data name="ImportConflictPage_HelpText" xml:space="preserve">
+    <value>Mesclar mantém seus itens existentes e adiciona o arquivo; nomes duplicados são renomeados. Substituir tudo exclui todos os itens atuais desse tipo e carrega somente o arquivo.</value>
+  </data>
+  <data name="ImportConflictPage_MergeButton" xml:space="preserve">
+    <value>Mesclar (renomear duplicatas)</value>
+  </data>
+  <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
+    <value>Mantém seus espaços de trabalho e adiciona os importados. Nomes duplicados se tornam "Nome Cópia", "Nome Cópia 2" e assim por diante.</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
+    <value>Substituir tudo</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
+    <value>Exclui todos os espaços de trabalho atuais (incluindo favoritos) e os substitui apenas pelo arquivo importado.</value>
+  </data>
+  <data name="ImportConflictPage_CancelButton" xml:space="preserve">
+    <value>Cancelar importação</value>
+  </data>
+  <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
+    <value>Descarta este arquivo de importação e mantém seus espaços de trabalho inalterados.</value>
+  </data>
+  <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
+    <value>Nenhuma importação aguardando decisão.</value>
+  </data>
+  <data name="ImportConflictPage_UnableToReadForm" xml:space="preserve">
+    <value>Não foi possível ler os valores do formulário.</value>
+  </data>
+  <data name="ImportConflictPage_UnknownImportType" xml:space="preserve">
+    <value>Tipo de importação desconhecido.</value>
+  </data>
+  <data name="ImportConflictPage_DescriptionFormat" xml:space="preserve">
+    <value>O arquivo contém {0} {1} duplicados entre {2} {3}.</value>
+  </data>
+  <data name="Word_Name_Singular" xml:space="preserve">
+    <value>nome</value>
+  </data>
+  <data name="Word_Name_Plural" xml:space="preserve">
+    <value>nomes</value>
+  </data>
+  <data name="Word_Workspace_Singular" xml:space="preserve">
+    <value>espaço de trabalho</value>
+  </data>
+  <data name="Word_Workspace_Plural" xml:space="preserve">
+    <value>espaços de trabalho</value>
+  </data>
+  <data name="PendingEdit_Title" xml:space="preserve">
+    <value>Alterações não salvas no espaço de trabalho</value>
+  </data>
+  <data name="PendingEdit_ValidationNote" xml:space="preserve">
+    <value>Salvar aplica a mesma validação do formulário de edição. Se houver campos obrigatórios ausentes, corrija-os editando o espaço de trabalho novamente.</value>
+  </data>
+  <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
+    <value>Salvar e fechar</value>
+  </data>
+  <data name="PendingEdit_Discarded" xml:space="preserve">
+    <value>Alterações não salvas no espaço de trabalho foram descartadas.</value>
+  </data>
+  <data name="PendingEdit_UnableToReadForm" xml:space="preserve">
+    <value>Não foi possível ler os valores do formulário.</value>
+  </data>
+  <data name="PendingEdit_NonePending" xml:space="preserve">
+    <value>Nenhuma edição não salva do espaço de trabalho pendente.</value>
+  </data>
+  <data name="PendingEdit_NoneWaiting" xml:space="preserve">
+    <value>Nenhuma edição não salva do espaço de trabalho aguardando decisão.</value>
+  </data>
+  <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
+    <value>Você saiu da edição de "{0}" com alterações não salvas. Salve-as em seus espaços de trabalho ou descarte-as.</value>
+  </data>
+  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
+    <value>Escolher aplicativo complementar</value>
+  </data>
+  <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
+    <value>Exportar espaços de trabalho do {0}</value>
+  </data>
+  <data name="Dialog_ImportWorkspacesFormat" xml:space="preserve">
+    <value>Importar espaços de trabalho do {0}</value>
+  </data>
+  <data name="Command_CheckWorkspaceHealth_Name" xml:space="preserve">
+    <value>Verificar integridade do espaço de trabalho</value>
+  </data>
+  <data name="Command_ExportWorkspaces_Name" xml:space="preserve">
+    <value>Exportar espaços de trabalho</value>
+  </data>
+  <data name="Command_ImportWorkspaces_Name" xml:space="preserve">
+    <value>Importar espaços de trabalho</value>
+  </data>
+  <data name="Command_ResetAllWorkspaces_Name" xml:space="preserve">
+    <value>Redefinir todos os espaços de trabalho</value>
+  </data>
+  <data name="Command_MoveUp_Name" xml:space="preserve">
+    <value>Mover para cima</value>
+  </data>
+  <data name="Command_MoveDown_Name" xml:space="preserve">
+    <value>Mover para baixo</value>
+  </data>
+  <data name="Command_MoveToTop_Name" xml:space="preserve">
+    <value>Mover para o início</value>
+  </data>
+  <data name="Command_MoveToBottom_Name" xml:space="preserve">
+    <value>Mover para o fim</value>
+  </data>
+  <data name="Command_Move_Name" xml:space="preserve">
+    <value>Mover</value>
+  </data>
+  <data name="Command_Favorite_Name" xml:space="preserve">
+    <value>Favorito</value>
+  </data>
+  <data name="Command_Unfavorite_Name" xml:space="preserve">
+    <value>Remover dos favoritos</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>Esse espaço de trabalho não foi encontrado.</value>
+  </data>
+  <data name="PathCopiedToClipboard" xml:space="preserve">
+    <value>Caminho copiado para a área de transferência.</value>
+  </data>
+  <data name="CompanionAppLaunchFailed" xml:space="preserve">
+    <value>Não foi possível iniciar o aplicativo complementar.</value>
+  </data>
+  <data name="DeletedWorkspaceFormat" xml:space="preserve">
+    <value>Espaço de trabalho '{0}' excluído.</value>
+  </data>
+  <data name="WorkspaceNotFoundNamedFormat" xml:space="preserve">
+    <value>O espaço de trabalho '{0}' não foi encontrado.</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>Falha na exportação: {0}</value>
+  </data>
+  <data name="ExportedWorkspacesFormat" xml:space="preserve">
+    <value>Espaços de trabalho exportados para {0}.</value>
+  </data>
+  <data name="ChooseCompanionApp_Title" xml:space="preserve">
+    <value>Escolher aplicativo complementar</value>
+  </data>
+  <data name="ItemHealth_ChooseFolder" xml:space="preserve">
+    <value>Escolha a pasta do espaço de trabalho · corrija na edição</value>
+  </data>
+  <data name="ItemHealth_InvalidFolderPath" xml:space="preserve">
+    <value>Caminho de pasta inválido · corrija na edição</value>
+  </data>
+  <data name="ItemHealth_FolderNotFoundFormat" xml:space="preserve">
+    <value>Pasta não encontrada · {0}</value>
+  </data>
+  <data name="ItemHealth_InvalidWorkspaceFormat" xml:space="preserve">
+    <value>Espaço de trabalho inválido · {0}</value>
+  </data>
+  <data name="ItemHealth_CompanionAppMissingFormat" xml:space="preserve">
+    <value>Aplicativo complementar ausente · {0}</value>
+  </data>
+  <data name="CreateNewWorkspace_Title" xml:space="preserve">
+    <value>Criar novo espaço de trabalho</value>
+  </data>
+  <data name="CreateNewWorkspace_Subtitle" xml:space="preserve">
+    <value>Diretório e comando opcional</value>
+  </data>
+  <data name="CompanionApp_Generic_Label" xml:space="preserve">
+    <value>Aplicativo complementar</value>
+  </data>
+  <data name="CompanionApp_PathWarning" xml:space="preserve">
+    <value>Executável não encontrado. Escolha outro aplicativo ou defina a predefinição de aplicativo como Nenhum.</value>
+  </data>
+  <data name="Terminal_DefaultFromSettings_Choice" xml:space="preserve">
+    <value>Padrão (das configurações)</value>
+  </data>
+  <data name="Terminal_DefaultProfileSuffixFormat" xml:space="preserve">
+    <value>{0} (perfil padrão)</value>
+  </data>
+  <data name="TaskType_Frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="TaskType_Database" xml:space="preserve">
+    <value>Banco de dados</value>
+  </data>
+  <data name="TaskType_Logs" xml:space="preserve">
+    <value>Registros</value>
+  </data>
+  <data name="ShortcutForm_CreateTitle" xml:space="preserve">
+    <value>Novo espaço de trabalho</value>
+  </data>
+  <data name="ShortcutForm_EditTitleFormat" xml:space="preserve">
+    <value>Editar {0}</value>
+  </data>
+  <data name="ShortcutForm_CreateName" xml:space="preserve">
+    <value>Criar</value>
+  </data>
+  <data name="ShortcutForm_EditName" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="AddLaunch_Toast" xml:space="preserve">
+    <value>Linha de comando adicionada.</value>
+  </data>
+  <data name="RefreshTerminals_Toast" xml:space="preserve">
+    <value>Lista de terminais atualizada.</value>
+  </data>
+  <data name="PasteClipboard_NoTextError" xml:space="preserve">
+    <value>A área de transferência não contém texto para colar.</value>
+  </data>
+  <data name="DirectoryNotFound_ErrorFormat" xml:space="preserve">
+    <value>Diretório não encontrado: {0}</value>
+  </data>
+  <data name="FormValues_ReadError" xml:space="preserve">
+    <value>Não foi possível ler os valores do formulário.</value>
+  </data>
+  <data name="TerminalDefaults_PickAppAndProfile_Error" xml:space="preserve">
+    <value>Escolha um aplicativo de terminal e um perfil.</value>
+  </data>
+  <data name="TerminalDefaults_ListRefreshed_Status" xml:space="preserve">
+    <value>Lista de terminais atualizada.</value>
+  </data>
+  <data name="TerminalDefaults_SectionHeader" xml:space="preserve">
+    <value>Padrões do terminal</value>
+  </data>
+  <data name="TerminalDefaults_SubtleText" xml:space="preserve">
+    <value>Host e perfil padrão para espaços de trabalho definidos como Padrão. As alterações são salvas ao escolher um valor.</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Title" xml:space="preserve">
+    <value>Atualizar lista de terminais</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Tooltip" xml:space="preserve">
+    <value>Recarregue os perfis após instalar um shell ou editar as configurações do Windows Terminal.</value>
+  </data>
+  <data name="TerminalDefaults_SaveButton_Title" xml:space="preserve">
+    <value>Salvar padrões do terminal</value>
+  </data>
+  <data name="TerminalDefaults_AppField_Label" xml:space="preserve">
+    <value>Aplicativo de terminal</value>
+  </data>
+  <data name="TerminalDefaults_ProfileField_Label" xml:space="preserve">
+    <value>Perfil padrão</value>
+  </data>
+  <data name="HomeDisplay_SectionHeader" xml:space="preserve">
+    <value>Exibição da tela inicial</value>
+  </data>
+  <data name="ResetWorkspaces_Confirm_Title" xml:space="preserve">
+    <value>Redefinir todos os espaços de trabalho?</value>
+  </data>
+  <data name="ResetWorkspaces_NoneSavedFormat" xml:space="preserve">
+    <value>Você não tem {0} salvos.</value>
+  </data>
+  <data name="ResetWorkspaces_DeleteCountFormat" xml:space="preserve">
+    <value>Isso exclui {0} {1} salvos.</value>
+  </data>
+  <data name="ResetWorkspaces_BackupNoteFormat" xml:space="preserve">
+    <value>{0} Um backup do seu último salvamento permanece como {1} na mesma pasta.</value>
+  </data>
+  <data name="ShortcutTransfer_SectionHeader" xml:space="preserve">
+    <value>Backup e transferência</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Title" xml:space="preserve">
+    <value>Espaços de trabalho</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Description" xml:space="preserve">
+    <value>Exporte, importe ou redefina as pastas de espaços de trabalho salvas e os favoritos.</value>
+  </data>
+  <data name="ShortcutTransfer_ExportButton_Title" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="ShortcutTransfer_ImportButton_Title" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Title" xml:space="preserve">
+    <value>Redefinir</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
+    <value>Exclui todos os espaços de trabalho salvos. Use Desfazer (Ctrl+Z) para restaurar.</value>
+  </data>
+  <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
+    <value>Importação pausada: {0} {1} duplicados em {2} ({3} {4}). Escolha como concluir.</value>
+  </data>
+  <data name="ImportConflict_MergeButton_Title" xml:space="preserve">
+    <value>Mesclar (renomear duplicatas)</value>
+  </data>
+  <data name="ImportConflict_ReplaceButton_Title" xml:space="preserve">
+    <value>Substituir todos os espaços de trabalho</value>
+  </data>
+  <data name="ImportConflict_CancelButton_Title" xml:space="preserve">
+    <value>Cancelar importação</value>
+  </data>
+  <data name="ImportConflict_HelpText" xml:space="preserve">
+    <value>Mesclar mantém todos os espaços de trabalho que você já tem e adiciona o arquivo. Nomes conflitantes são renomeados (por exemplo, "Meu App (2)"). Substituir tudo exclui todos os espaços de trabalho e favoritos atuais e carrega apenas o que está no arquivo.</value>
+  </data>
+
+  <data name="ImportConflictPage_Cancelled" xml:space="preserve">
+    <value>Importa&#231;&#227;o cancelada.</value>
+  </data>
+  <data name="ImportConflictPage_Name" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
+    <value>Nenhuma importa&#231;&#227;o pendente.</value>
+  </data>
+  <data name="Common_Discard" xml:space="preserve">
+    <value>Descartar</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="PendingEdit_ResumeName" xml:space="preserve">
+    <value>Retomar edi&#231;&#227;o</value>
+  </data>
+  <data name="Command_Delete_Name" xml:space="preserve">
+    <value>Excluir</value>
+  </data>
+  <data name="DeletedWorkspaceConfirmedFormat" xml:space="preserve">
+    <value>Espa&#231;o de trabalho &#171;{0}&#187; exclu&#237;do.</value>
+  </data>
+  <data name="Command_Undo_Name" xml:space="preserve">
+    <value>Desfazer</value>
+  </data>
+  <data name="Undo_NothingToUndo" xml:space="preserve">
+    <value>Nada para desfazer.</value>
+  </data>
+  <data name="Undo_Confirmation" xml:space="preserve">
+    <value>&#218;ltima altera&#231;&#227;o desfeita.</value>
+  </data>
+  <data name="Command_Redo_Name" xml:space="preserve">
+    <value>Refazer</value>
+  </data>
+  <data name="Redo_NothingToRedo" xml:space="preserve">
+    <value>Nada para refazer.</value>
+  </data>
+  <data name="Redo_Confirmation" xml:space="preserve">
+    <value>&#218;ltima altera&#231;&#227;o refeita.</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Exporta&#231;&#227;o cancelada.</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>Importa&#231;&#227;o cancelada.</value>
+  </data>
+  <data name="Saved_Toast" xml:space="preserve">
+    <value>Salvo</value>
+  </data>
+  <data name="ShortcutDetails_PageTitle" xml:space="preserve">
+    <value>Detalhes do espa&#231;o de trabalho</value>
+  </data>
+  <data name="ShortcutDetails_PageName" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="ShortcutDetails_FolderRequired" xml:space="preserve">
+    <value>O caminho da pasta &#233; obrigat&#243;rio.</value>
+  </data>
+  <data name="ShortcutDetails_UpdatedToast" xml:space="preserve">
+    <value>Detalhes do espa&#231;o de trabalho atualizados.</value>
+  </data>
+  <data name="ShortcutDetails_BrowseButton" xml:space="preserve">
+    <value>Procurar pasta</value>
+  </data>
+  <data name="ShortcutDetails_PasteButton" xml:space="preserve">
+    <value>Colar caminho</value>
+  </data>
+  <data name="ShortcutDetails_ApplyButton" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="ShortcutDetails_CancelButton" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Title" xml:space="preserve">
+    <value>Criar espa&#231;o de trabalho</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Subtitle" xml:space="preserve">
+    <value>Ctrl+N</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
+    <value>Descobrir reposit&#243;rios git</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
+    <value>Verificar pastas locais e adicion&#225;-las como espa&#231;os de trabalho</value>
+  </data>
+  <data name="PageActions_Settings_Subtitle" xml:space="preserve">
+    <value>Terminal, importar/exportar, desfazer (Ctrl+Z)&#160;/ refazer (Ctrl+Y)</value>
+  </data>
+  <data name="TaskActions_OpenWorkspace" xml:space="preserve">
+    <value>Abrir espa&#231;o de trabalho</value>
+  </data>
+  <data name="TaskActions_RunTaskNormally" xml:space="preserve">
+    <value>Executar tarefa normalmente</value>
+  </data>
+  <data name="TaskActions_RunTaskAsAdmin" xml:space="preserve">
+    <value>Executar tarefa como administrador</value>
+  </data>
+  <data name="CheckWorkspace_NotFound" xml:space="preserve">
+    <value>Esse espa&#231;o de trabalho n&#227;o foi encontrado.</value>
+  </data>
+  <data name="ResetProjects_Title" xml:space="preserve">
+    <value>Redefinir todos os espa&#231;os de trabalho?</value>
+  </data>
+  <data name="ImportNoImportPending" xml:space="preserve">
+    <value>Nenhuma importa&#231;&#227;o pendente.</value>
+  </data>
+</root>

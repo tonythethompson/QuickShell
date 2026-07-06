@@ -27,10 +27,10 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
                 ? $"{ShortcutCommandIds.Open(shortcut.Id)}.standard"
                 : ShortcutCommandIds.Open(shortcut.Id);
         Name = runAsAdmin
-            ? "Run as Admin"
+            ? Strings.Menu_RunAsAdmin
             : runAsStandard
-                ? "Run normally"
-                : "Run";
+                ? Strings.Menu_RunNormally
+                : Strings.Menu_Run;
         Icon = new IconInfo(ResolveLaunchIcon(shortcut, runAsAdmin, runAsStandard));
     }
 
@@ -56,7 +56,7 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That workspace was not found.");
+            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
         var result = ShortcutLaunchExecutor.Launch(

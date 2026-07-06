@@ -10,7 +10,7 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
     public RedoShortcutCommand(Action onChanged)
     {
         _onChanged = onChanged;
-        Name = "Redo";
+        Name = Strings.Command_Redo_Name;
         Icon = new IconInfo("\uE7A6");
     }
 
@@ -18,10 +18,10 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
     {
         if (!QuickShellRuntimeServices.Shortcuts.Redo())
         {
-            return QuickShellNavigation.StayOpen("Nothing to redo.");
+            return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }
 
         _onChanged();
-        return QuickShellNavigation.StayOpen("Redid the last workspace change.");
+        return QuickShellNavigation.StayOpen(Strings.Redo_Confirmation);
     }
 }

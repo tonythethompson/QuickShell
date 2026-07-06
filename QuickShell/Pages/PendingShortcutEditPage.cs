@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Services;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace QuickShell.Pages;
@@ -16,8 +17,8 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
-        Title = "Unsaved workspace changes";
-        Name = "Resume edit";
+        Title = Strings.PendingEdit_Title;
+        Name = Strings.PendingEdit_ResumeName;
     }
 
     public override IContent[] GetContent() => [new PendingShortcutEditForm(_onReload)];
@@ -33,7 +34,14 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
 
-        TemplateJson = """
+        RebuildTemplate();
+
+        ApplyPendingState();
+    }
+
+    private void RebuildTemplate()
+    {
+        TemplateJson = $$"""
         {
           "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
           "type": "AdaptiveCard",
@@ -41,7 +49,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
           "body": [
             {
               "type": "TextBlock",
-              "text": "Unsaved workspace changes",
+              "text": "{{Escape(Strings.PendingEdit_Title)}}",
               "weight": "Bolder",
               "size": "Large"
             },
@@ -53,7 +61,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             },
             {
               "type": "TextBlock",
-              "text": "Save applies the same validation as the edit form. If required fields are missing, fix them by editing the workspace again.",
+              "text": "{{Escape(Strings.PendingEdit_ValidationNote)}}",
               "wrap": true,
               "isSubtle": true,
               "spacing": "Medium"
@@ -62,21 +70,19 @@ internal sealed partial class PendingShortcutEditForm : FormContent
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "Save and close",
+              "title": "{{Escape(Strings.PendingEdit_SaveAndCloseButton)}}",
               "data": { "action": "save" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "Discard",
+              "title": "{{Escape(Strings.Common_Discard)}}",
               "data": { "action": "discard" },
               "associatedInputs": "none"
             }
           ]
         }
         """;
-
-        ApplyPendingState();
     }
 
     public override CommandResult SubmitForm(string inputs, string data) =>
@@ -92,12 +98,12 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             QuickShellRuntimeServices.Drafts.Clear();
             _onReload();
             _onSettingsChanged?.Invoke();
-            return QuickShellNavigation.StayOnSettings("Discarded unsaved workspace changes.");
+            return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_Discarded);
         }
 
         if (action != "save")
         {
-            return QuickShellNavigation.StayOnSettings("Unable to read form values.");
+            return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_UnableToReadForm);
         }
 
         var pending = QuickShellRuntimeServices.Drafts.Pending;
@@ -105,7 +111,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         {
             _onReload();
             _onSettingsChanged?.Invoke();
-            return QuickShellNavigation.StayOnSettings("No unsaved workspace edit is pending.");
+            return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_NonePending);
         }
 
         var result = QuickShellRuntimeServices.Drafts.TryCommitPending(onSaved: null);
@@ -124,17 +130,15 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         var pending = QuickShellRuntimeServices.Drafts.Pending;
         if (pending is null)
         {
-            DataJson = """
+            DataJson = $$"""
             {
-              "Description": "No unsaved workspace edit is waiting for a decision."
+              "Description": "{{Escape(Strings.PendingEdit_NoneWaiting)}}"
             }
             """;
             return;
         }
 
-        var description =
-            $"You left editing \"{pending.OriginalName}\" with unsaved changes. " +
-            "Save them to your workspaces, or discard them.";
+        var description = Strings.PendingEdit_LeftEditingFormat(pending.OriginalName);
 
         DataJson = $$"""
         {
@@ -156,6 +160,9 @@ internal sealed partial class PendingShortcutEditForm : FormContent
         return JsonNode.Parse(data)?.AsObject()?["action"]?.ToString();
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value)
+    {
+        var serialized = JsonSerializer.Serialize(value);
+        return serialized.Substring(1, serialized.Length - 2);
+    }
 }

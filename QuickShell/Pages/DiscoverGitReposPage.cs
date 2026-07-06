@@ -20,9 +20,6 @@ internal partial class DiscoverGitReposPage : DynamicListPage
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);
-        Title = "Discover git repos";
-        Name = "Discover";
-        PlaceholderText = "Filter discovered repositories...";
         GitRepoIndex.Invalidate();
         SetOpeningItems();
         ScheduleRefreshItems();
@@ -107,31 +104,10 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             {
                 if (string.IsNullOrWhiteSpace(query))
                 {
-                    if (GitRepoIndex.TryRunAfterNextRefreshIfInFlight(ScheduleRefreshItems))
-                    {
-                        SetOpeningItems();
-                        RaiseItemsChanged();
-                        return;
-                    }
-
-                    var retryDiscovered = GitRepoIndex.GetAll(extraRoots).ToList();
-                    if (retryDiscovered.Count > 0)
-                    {
-                        items = DiscoverGitRepoListItems
-                            .BuildSectionedItems(retryDiscovered, _onReload, shortcutsByDirectory, settings)
-                            .ToList();
-                    }
-                }
-
-                if (items.Count == 0)
-                {
-                    items.Add(new ListItem(new NoOpCommand())
-                    {
-                        Title = string.IsNullOrWhiteSpace(query) ? "No git repositories found" : "No matching repositories",
-                        Subtitle = "Try searching Projects, dev, code, repos, source, src, Documents, or a non-system drive root.",
-                        Icon = new IconInfo("\uE946"),
-                    });
-                }
+                    Title = string.IsNullOrWhiteSpace(query) ? Strings.Discover_NoReposFound : Strings.Discover_NoMatchingRepos,
+                    Subtitle = Strings.Discover_TrySearching,
+                    Icon = new IconInfo("\uE946"),
+                });
             }
 
             _items = items.ToArray();

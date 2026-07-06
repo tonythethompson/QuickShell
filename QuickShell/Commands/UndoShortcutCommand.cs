@@ -10,7 +10,7 @@ internal sealed partial class UndoShortcutCommand : InvokableCommand
     public UndoShortcutCommand(Action onChanged)
     {
         _onChanged = onChanged;
-        Name = "Undo";
+        Name = Strings.Command_Undo_Name;
         Icon = new IconInfo("\uE7A7");
     }
 
@@ -18,10 +18,10 @@ internal sealed partial class UndoShortcutCommand : InvokableCommand
     {
         if (!QuickShellRuntimeServices.Shortcuts.Undo())
         {
-            return QuickShellNavigation.StayOpen("Nothing to undo.");
+            return QuickShellNavigation.StayOpen(Strings.Undo_NothingToUndo);
         }
 
         _onChanged();
-        return QuickShellNavigation.StayOpen("Undid the last workspace change.");
+        return QuickShellNavigation.StayOpen(Strings.Undo_Confirmation);
     }
 }

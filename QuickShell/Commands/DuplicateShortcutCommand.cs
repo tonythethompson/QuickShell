@@ -15,8 +15,8 @@ internal sealed partial class DuplicateShortcutCommand : ShortcutFormPage
         : base(existing: null, onSaved, createSeed: QuickShellRuntimeServices.Shortcuts.BuildDuplicateFrom(source))
     {
         Id = $"com.quickshell.shortcut-form.duplicate.{Guid.NewGuid():N}";
-        Name = "Duplicate";
+        Name = Strings.Command_Duplicate_Name;
         Icon = new IconInfo(ShortcutGlyphs.Duplicate);
-        Title = "Duplicate workspace";
+        Title = Strings.DuplicateWorkspace_Title;
     }
 }

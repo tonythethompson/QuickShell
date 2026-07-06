@@ -55,7 +55,7 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
             _settingsManager.UpdateRecentWorkspaceCount(nextCount);
             SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
             SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
-            QuickShellStatus.ShowToast("Saved");
+            QuickShellStatus.ShowToast(Strings.Saved_Toast);
         }
 
         _pendingShowRecents = showRecents;
@@ -67,7 +67,7 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
     {
         var bodyParts = new List<string>
         {
-            SettingsCardJson.SectionHeader("Home display"),
+            SettingsCardJson.SectionHeader(Strings.HomeDisplay_SectionHeader),
             SettingsCardJson.RecentEnabledToggle(_pendingShowRecents),
         };
 

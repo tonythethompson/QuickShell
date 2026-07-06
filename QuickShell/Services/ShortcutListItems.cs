@@ -54,7 +54,7 @@ internal static class ShortcutListItems
     public static ListItem CreateNewShortcut(CreateShortcutCommand command) =>
         new(command)
         {
-            Title = "Create new workspace",
-            Subtitle = "Directory and optional command",
+            Title = Strings.CreateNewWorkspace_Title,
+            Subtitle = Strings.CreateNewWorkspace_Subtitle,
         };
 }

@@ -1,0 +1,550 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Поиск рабочих пространств по имени, пути или команде…</value>
+  </data>
+  <data name="EmptyState_Title" xml:space="preserve">
+    <value>Создайте своё первое рабочее пространство</value>
+  </data>
+  <data name="EmptyState_Subtitle" xml:space="preserve">
+    <value>Выберите папку и настройте запуск терминала</value>
+  </data>
+  <data name="NoMatch_Title" xml:space="preserve">
+    <value>Нет подходящих рабочих пространств</value>
+  </data>
+  <data name="NoMatch_Subtitle" xml:space="preserve">
+    <value>Попробуйте другой поисковый запрос</value>
+  </data>
+  <data name="SettingsTitleFormat" xml:space="preserve">
+    <value>Настройки {0}</value>
+  </data>
+  <data name="Menu_OpenInFileExplorer" xml:space="preserve">
+    <value>Открыть в проводнике</value>
+  </data>
+  <data name="Menu_CopyPath" xml:space="preserve">
+    <value>Копировать путь</value>
+  </data>
+  <data name="Menu_OpenDevServer" xml:space="preserve">
+    <value>Открыть сервер разработки</value>
+  </data>
+  <data name="Menu_OpenRepository" xml:space="preserve">
+    <value>Открыть репозиторий</value>
+  </data>
+  <data name="Menu_CreateWorkspace" xml:space="preserve">
+    <value>Создать рабочее пространство</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>Отменить</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
+  <data name="Menu_Run" xml:space="preserve">
+    <value>Запустить</value>
+  </data>
+  <data name="Menu_RunAsAdmin" xml:space="preserve">
+    <value>Запустить от имени администратора</value>
+  </data>
+  <data name="Menu_RunNormally" xml:space="preserve">
+    <value>Запустить обычным образом</value>
+  </data>
+  <data name="Menu_OpenCompanionAppFormat" xml:space="preserve">
+    <value>Открыть {0}</value>
+  </data>
+  <data name="Section_Favorites" xml:space="preserve">
+    <value>Избранное</value>
+  </data>
+  <data name="Section_Workspaces" xml:space="preserve">
+    <value>Рабочие пространства</value>
+  </data>
+  <data name="Tooltip_Favorite" xml:space="preserve">
+    <value>Избранное</value>
+  </data>
+  <data name="Tooltip_AlwaysRunAsAdmin" xml:space="preserve">
+    <value>Всегда запускать от имени администратора</value>
+  </data>
+  <data name="Section_NotSavedYet" xml:space="preserve">
+    <value>Ещё не сохранено</value>
+  </data>
+  <data name="Section_AlreadyWorkspaces" xml:space="preserve">
+    <value>Уже рабочие пространства</value>
+  </data>
+  <data name="AddAnotherWorkspace" xml:space="preserve">
+    <value>Добавить ещё одно рабочее пространство</value>
+  </data>
+  <data name="SavedAsFormat" xml:space="preserve">
+    <value>Сохранено как {0}</value>
+  </data>
+  <data name="WorkspacesCountFormat" xml:space="preserve">
+    <value>Рабочих пространств: {0}</value>
+  </data>
+  <data name="RightClickToOpenOrEdit" xml:space="preserve">
+    <value>Щёлкните правой кнопкой, чтобы открыть или изменить</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>Открыть каталог</value>
+  </data>
+  <data name="RepairWorkspace" xml:space="preserve">
+    <value>Восстановить рабочее пространство</value>
+  </data>
+  <data name="OpenWorkspace" xml:space="preserve">
+    <value>Открыть рабочее пространство</value>
+  </data>
+  <data name="EditNamedFormat" xml:space="preserve">
+    <value>Изменить {0}</value>
+  </data>
+  <data name="DuplicateWorkspace_Title" xml:space="preserve">
+    <value>Дублировать рабочее пространство</value>
+  </data>
+  <data name="Command_Duplicate_Name" xml:space="preserve">
+    <value>Дублировать</value>
+  </data>
+  <data name="Discover_Title" xml:space="preserve">
+    <value>Обнаружить репозитории Git</value>
+  </data>
+  <data name="Discover_Name" xml:space="preserve">
+    <value>Обнаружить</value>
+  </data>
+  <data name="Discover_Placeholder" xml:space="preserve">
+    <value>Фильтр обнаруженных репозиториев…</value>
+  </data>
+  <data name="Discover_NoReposFound" xml:space="preserve">
+    <value>Репозитории Git не найдены</value>
+  </data>
+  <data name="Discover_NoMatchingRepos" xml:space="preserve">
+    <value>Нет подходящих репозиториев</value>
+  </data>
+  <data name="Discover_TrySearching" xml:space="preserve">
+    <value>Попробуйте найти Projects, dev или code в папке вашего профиля</value>
+  </data>
+  <data name="ImportConflictPage_Title" xml:space="preserve">
+    <value>Завершить импорт</value>
+  </data>
+  <data name="ImportConflictPage_Heading" xml:space="preserve">
+    <value>Повторяющиеся имена в файле импорта</value>
+  </data>
+  <data name="ImportConflictPage_ChooseOption" xml:space="preserve">
+    <value>Выберите один из вариантов ниже, чтобы завершить импорт.</value>
+  </data>
+  <data name="ImportConflictPage_HelpText" xml:space="preserve">
+    <value>«Объединить» сохраняет существующие элементы и добавляет файл; повторяющиеся имена переименовываются. «Заменить всё» удаляет все текущие элементы этого типа и загружает только файл.</value>
+  </data>
+  <data name="ImportConflictPage_MergeButton" xml:space="preserve">
+    <value>Объединить (переименовать дубликаты)</value>
+  </data>
+  <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
+    <value>Сохраняются ваши рабочие пространства и добавляются импортированные. Повторяющиеся имена становятся «Имя Копия», «Имя Копия 2» и т. д.</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
+    <value>Заменить всё</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
+    <value>Удаляет все текущие рабочие пространства (включая избранные) и заменяет их только импортированным файлом.</value>
+  </data>
+  <data name="ImportConflictPage_CancelButton" xml:space="preserve">
+    <value>Отменить импорт</value>
+  </data>
+  <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
+    <value>Отклонить этот файл импорта и оставить рабочие пространства без изменений.</value>
+  </data>
+  <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
+    <value>Нет импорта, ожидающего решения.</value>
+  </data>
+  <data name="ImportConflictPage_UnableToReadForm" xml:space="preserve">
+    <value>Не удалось прочитать значения формы.</value>
+  </data>
+  <data name="ImportConflictPage_UnknownImportType" xml:space="preserve">
+    <value>Неизвестный тип импорта.</value>
+  </data>
+  <data name="ImportConflictPage_DescriptionFormat" xml:space="preserve">
+    <value>Файл содержит {0} повторяющихся {1} из {2} {3}.</value>
+  </data>
+  <data name="Word_Name_Singular" xml:space="preserve">
+    <value>имя</value>
+  </data>
+  <data name="Word_Name_Plural" xml:space="preserve">
+    <value>имён</value>
+  </data>
+  <data name="Word_Workspace_Singular" xml:space="preserve">
+    <value>рабочее пространство</value>
+  </data>
+  <data name="Word_Workspace_Plural" xml:space="preserve">
+    <value>рабочих пространств</value>
+  </data>
+  <data name="PendingEdit_Title" xml:space="preserve">
+    <value>Несохранённые изменения рабочего пространства</value>
+  </data>
+  <data name="PendingEdit_ValidationNote" xml:space="preserve">
+    <value>При сохранении применяется та же проверка, что и в форме редактирования. Если отсутствуют обязательные поля, исправьте это, снова отредактировав рабочее пространство.</value>
+  </data>
+  <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
+    <value>Сохранить и закрыть</value>
+  </data>
+  <data name="PendingEdit_Discarded" xml:space="preserve">
+    <value>Несохранённые изменения рабочего пространства отклонены.</value>
+  </data>
+  <data name="PendingEdit_UnableToReadForm" xml:space="preserve">
+    <value>Не удалось прочитать значения формы.</value>
+  </data>
+  <data name="PendingEdit_NonePending" xml:space="preserve">
+    <value>Нет ожидающих несохранённых изменений рабочего пространства.</value>
+  </data>
+  <data name="PendingEdit_NoneWaiting" xml:space="preserve">
+    <value>Нет несохранённых изменений рабочего пространства, ожидающих решения.</value>
+  </data>
+  <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
+    <value>Вы вышли из редактирования «{0}» с несохранёнными изменениями. Сохраните их в рабочих пространствах или отклоните.</value>
+  </data>
+  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
+    <value>Выбрать сопутствующее приложение</value>
+  </data>
+  <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
+    <value>Экспортировать рабочие пространства {0}</value>
+  </data>
+  <data name="Dialog_ImportWorkspacesFormat" xml:space="preserve">
+    <value>Импортировать рабочие пространства {0}</value>
+  </data>
+  <data name="Command_CheckWorkspaceHealth_Name" xml:space="preserve">
+    <value>Проверить состояние рабочего пространства</value>
+  </data>
+  <data name="Command_ExportWorkspaces_Name" xml:space="preserve">
+    <value>Экспортировать рабочие пространства</value>
+  </data>
+  <data name="Command_ImportWorkspaces_Name" xml:space="preserve">
+    <value>Импортировать рабочие пространства</value>
+  </data>
+  <data name="Command_ResetAllWorkspaces_Name" xml:space="preserve">
+    <value>Сбросить все рабочие пространства</value>
+  </data>
+  <data name="Command_MoveUp_Name" xml:space="preserve">
+    <value>Переместить вверх</value>
+  </data>
+  <data name="Command_MoveDown_Name" xml:space="preserve">
+    <value>Переместить вниз</value>
+  </data>
+  <data name="Command_MoveToTop_Name" xml:space="preserve">
+    <value>Переместить в начало</value>
+  </data>
+  <data name="Command_MoveToBottom_Name" xml:space="preserve">
+    <value>Переместить в конец</value>
+  </data>
+  <data name="Command_Move_Name" xml:space="preserve">
+    <value>Переместить</value>
+  </data>
+  <data name="Command_Favorite_Name" xml:space="preserve">
+    <value>В избранное</value>
+  </data>
+  <data name="Command_Unfavorite_Name" xml:space="preserve">
+    <value>Убрать из избранного</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>Это рабочее пространство не найдено.</value>
+  </data>
+  <data name="PathCopiedToClipboard" xml:space="preserve">
+    <value>Путь скопирован в буфер обмена.</value>
+  </data>
+  <data name="CompanionAppLaunchFailed" xml:space="preserve">
+    <value>Не удалось запустить сопутствующее приложение.</value>
+  </data>
+  <data name="DeletedWorkspaceFormat" xml:space="preserve">
+    <value>Рабочее пространство «{0}» удалено.</value>
+  </data>
+  <data name="WorkspaceNotFoundNamedFormat" xml:space="preserve">
+    <value>Рабочее пространство «{0}» не найдено.</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>Ошибка экспорта: {0}</value>
+  </data>
+  <data name="ExportedWorkspacesFormat" xml:space="preserve">
+    <value>Рабочие пространства экспортированы в {0}.</value>
+  </data>
+  <data name="ChooseCompanionApp_Title" xml:space="preserve">
+    <value>Выбрать сопутствующее приложение</value>
+  </data>
+  <data name="ItemHealth_ChooseFolder" xml:space="preserve">
+    <value>Выберите папку рабочего пространства · исправьте в редактировании</value>
+  </data>
+  <data name="ItemHealth_InvalidFolderPath" xml:space="preserve">
+    <value>Недопустимый путь к папке · исправьте в редактировании</value>
+  </data>
+  <data name="ItemHealth_FolderNotFoundFormat" xml:space="preserve">
+    <value>Папка не найдена · {0}</value>
+  </data>
+  <data name="ItemHealth_InvalidWorkspaceFormat" xml:space="preserve">
+    <value>Недопустимое рабочее пространство · {0}</value>
+  </data>
+  <data name="ItemHealth_CompanionAppMissingFormat" xml:space="preserve">
+    <value>Сопутствующее приложение отсутствует · {0}</value>
+  </data>
+  <data name="CreateNewWorkspace_Title" xml:space="preserve">
+    <value>Создать новое рабочее пространство</value>
+  </data>
+  <data name="CreateNewWorkspace_Subtitle" xml:space="preserve">
+    <value>Каталог и необязательная команда</value>
+  </data>
+  <data name="CompanionApp_Generic_Label" xml:space="preserve">
+    <value>Сопутствующее приложение</value>
+  </data>
+  <data name="CompanionApp_PathWarning" xml:space="preserve">
+    <value>Исполняемый файл не найден. Выберите другое приложение или установите для предустановки приложения значение «Нет».</value>
+  </data>
+  <data name="Terminal_DefaultFromSettings_Choice" xml:space="preserve">
+    <value>По умолчанию (из настроек)</value>
+  </data>
+  <data name="Terminal_DefaultProfileSuffixFormat" xml:space="preserve">
+    <value>{0} (профиль по умолчанию)</value>
+  </data>
+  <data name="TaskType_Frontend" xml:space="preserve">
+    <value>Фронтенд</value>
+  </data>
+  <data name="TaskType_Database" xml:space="preserve">
+    <value>База данных</value>
+  </data>
+  <data name="TaskType_Logs" xml:space="preserve">
+    <value>Журналы</value>
+  </data>
+  <data name="ShortcutForm_CreateTitle" xml:space="preserve">
+    <value>Новое рабочее пространство</value>
+  </data>
+  <data name="ShortcutForm_EditTitleFormat" xml:space="preserve">
+    <value>Изменить {0}</value>
+  </data>
+  <data name="ShortcutForm_CreateName" xml:space="preserve">
+    <value>Создать</value>
+  </data>
+  <data name="ShortcutForm_EditName" xml:space="preserve">
+    <value>Изменить</value>
+  </data>
+  <data name="AddLaunch_Toast" xml:space="preserve">
+    <value>Строка команды добавлена.</value>
+  </data>
+  <data name="RefreshTerminals_Toast" xml:space="preserve">
+    <value>Список терминалов обновлён.</value>
+  </data>
+  <data name="PasteClipboard_NoTextError" xml:space="preserve">
+    <value>В буфере обмена нет текста для вставки.</value>
+  </data>
+  <data name="DirectoryNotFound_ErrorFormat" xml:space="preserve">
+    <value>Каталог не найден: {0}</value>
+  </data>
+  <data name="FormValues_ReadError" xml:space="preserve">
+    <value>Не удалось прочитать значения формы.</value>
+  </data>
+  <data name="TerminalDefaults_PickAppAndProfile_Error" xml:space="preserve">
+    <value>Выберите приложение терминала и профиль.</value>
+  </data>
+  <data name="TerminalDefaults_ListRefreshed_Status" xml:space="preserve">
+    <value>Список терминалов обновлён.</value>
+  </data>
+  <data name="TerminalDefaults_SectionHeader" xml:space="preserve">
+    <value>Терминал по умолчанию</value>
+  </data>
+  <data name="TerminalDefaults_SubtleText" xml:space="preserve">
+    <value>Хост и профиль по умолчанию для рабочих пространств со значением «По умолчанию». Изменения сохраняются при выборе значения.</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Title" xml:space="preserve">
+    <value>Обновить список терминалов</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Tooltip" xml:space="preserve">
+    <value>Обновите профили после установки оболочки или изменения параметров Windows Terminal.</value>
+  </data>
+  <data name="TerminalDefaults_SaveButton_Title" xml:space="preserve">
+    <value>Сохранить настройки терминала по умолчанию</value>
+  </data>
+  <data name="TerminalDefaults_AppField_Label" xml:space="preserve">
+    <value>Приложение терминала</value>
+  </data>
+  <data name="TerminalDefaults_ProfileField_Label" xml:space="preserve">
+    <value>Профиль по умолчанию</value>
+  </data>
+  <data name="HomeDisplay_SectionHeader" xml:space="preserve">
+    <value>Отображение главной страницы</value>
+  </data>
+  <data name="ResetWorkspaces_Confirm_Title" xml:space="preserve">
+    <value>Сбросить все рабочие пространства?</value>
+  </data>
+  <data name="ResetWorkspaces_NoneSavedFormat" xml:space="preserve">
+    <value>У вас нет сохранённых {0}.</value>
+  </data>
+  <data name="ResetWorkspaces_DeleteCountFormat" xml:space="preserve">
+    <value>Это удалит {0} сохранённых {1}.</value>
+  </data>
+  <data name="ResetWorkspaces_BackupNoteFormat" xml:space="preserve">
+    <value>{0} Резервная копия последнего сохранения останется как {1} в той же папке.</value>
+  </data>
+  <data name="ShortcutTransfer_SectionHeader" xml:space="preserve">
+    <value>Резервное копирование и перенос</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Title" xml:space="preserve">
+    <value>Рабочие пространства</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Description" xml:space="preserve">
+    <value>Экспортируйте, импортируйте или сбрасывайте сохранённые папки рабочих пространств и избранное.</value>
+  </data>
+  <data name="ShortcutTransfer_ExportButton_Title" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="ShortcutTransfer_ImportButton_Title" xml:space="preserve">
+    <value>Импорт</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Title" xml:space="preserve">
+    <value>Сбросить</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
+    <value>Удаляет все сохранённые рабочие пространства. Используйте «Отменить» (Ctrl+Z), чтобы восстановить.</value>
+  </data>
+  <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
+    <value>Импорт приостановлен: {0} повторяющихся {1} в {2} ({3} {4}). Выберите способ завершения.</value>
+  </data>
+  <data name="ImportConflict_MergeButton_Title" xml:space="preserve">
+    <value>Объединить (переименовать дубликаты)</value>
+  </data>
+  <data name="ImportConflict_ReplaceButton_Title" xml:space="preserve">
+    <value>Заменить все рабочие пространства</value>
+  </data>
+  <data name="ImportConflict_CancelButton_Title" xml:space="preserve">
+    <value>Отменить импорт</value>
+  </data>
+  <data name="ImportConflict_HelpText" xml:space="preserve">
+    <value>«Объединить» сохраняет все уже существующие рабочие пространства и добавляет файл. Конфликтующие имена переименовываются (например, «Моё приложение (2)»). «Заменить всё» удаляет все текущие рабочие пространства и избранное, затем загружает только содержимое файла.</value>
+  </data>
+
+  <data name="ImportConflictPage_Cancelled" xml:space="preserve">
+    <value>&#1048;&#1084;&#1087;&#1086;&#1088;&#1090; &#1086;&#1090;&#1084;&#1077;&#1085;&#1105;&#1085;.</value>
+  </data>
+  <data name="ImportConflictPage_Name" xml:space="preserve">
+    <value>&#1048;&#1084;&#1087;&#1086;&#1088;&#1090;</value>
+  </data>
+  <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
+    <value>&#1053;&#1077;&#1090; &#1086;&#1078;&#1080;&#1076;&#1072;&#1102;&#1097;&#1077;&#1075;&#1086; &#1080;&#1084;&#1087;&#1086;&#1088;&#1090;&#1072;.</value>
+  </data>
+  <data name="Common_Discard" xml:space="preserve">
+    <value>&#1054;&#1090;&#1084;&#1077;&#1085;&#1080;&#1090;&#1100;</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>&#1048;&#1079;&#1084;&#1077;&#1085;&#1080;&#1090;&#1100;</value>
+  </data>
+  <data name="PendingEdit_ResumeName" xml:space="preserve">
+    <value>&#1055;&#1088;&#1086;&#1076;&#1086;&#1083;&#1078;&#1080;&#1090;&#1100; &#1088;&#1077;&#1076;&#1072;&#1082;&#1090;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;&#1080;&#1077;</value>
+  </data>
+  <data name="Command_Delete_Name" xml:space="preserve">
+    <value>&#1059;&#1076;&#1072;&#1083;&#1080;&#1090;&#1100;</value>
+  </data>
+  <data name="DeletedWorkspaceConfirmedFormat" xml:space="preserve">
+    <value>&#1056;&#1072;&#1073;&#1086;&#1095;&#1072;&#1103; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1100; &#171;{0}&#187; &#1091;&#1076;&#1072;&#1083;&#1077;&#1085;&#1072;.</value>
+  </data>
+  <data name="Command_Undo_Name" xml:space="preserve">
+    <value>&#1054;&#1090;&#1084;&#1077;&#1085;&#1080;&#1090;&#1100;</value>
+  </data>
+  <data name="Undo_NothingToUndo" xml:space="preserve">
+    <value>&#1053;&#1077;&#1095;&#1077;&#1075;&#1086; &#1086;&#1090;&#1084;&#1077;&#1085;&#1103;&#1090;&#1100;.</value>
+  </data>
+  <data name="Undo_Confirmation" xml:space="preserve">
+    <value>&#1055;&#1086;&#1089;&#1083;&#1077;&#1076;&#1085;&#1077;&#1077; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1080;&#1077; &#1086;&#1090;&#1084;&#1077;&#1085;&#1077;&#1085;&#1086;.</value>
+  </data>
+  <data name="Command_Redo_Name" xml:space="preserve">
+    <value>&#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</value>
+  </data>
+  <data name="Redo_NothingToRedo" xml:space="preserve">
+    <value>&#1053;&#1077;&#1095;&#1077;&#1075;&#1086; &#1087;&#1086;&#1074;&#1090;&#1086;&#1088;&#1103;&#1090;&#1100;.</value>
+  </data>
+  <data name="Redo_Confirmation" xml:space="preserve">
+    <value>&#1055;&#1086;&#1089;&#1083;&#1077;&#1076;&#1085;&#1077;&#1077; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1080;&#1077; &#1074;&#1086;&#1089;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1083;&#1077;&#1085;&#1086;.</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>&#1069;&#1082;&#1089;&#1087;&#1086;&#1088;&#1090; &#1086;&#1090;&#1084;&#1077;&#1085;&#1077;&#1085;.</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>&#1048;&#1084;&#1087;&#1086;&#1088;&#1090; &#1086;&#1090;&#1084;&#1077;&#1085;&#1077;&#1085;.</value>
+  </data>
+  <data name="Saved_Toast" xml:space="preserve">
+    <value>&#1057;&#1086;&#1093;&#1088;&#1072;&#1085;&#1077;&#1085;&#1086;</value>
+  </data>
+  <data name="ShortcutDetails_PageTitle" xml:space="preserve">
+    <value>&#1057;&#1074;&#1077;&#1076;&#1077;&#1085;&#1080;&#1103; &#1086; &#1088;&#1072;&#1073;&#1086;&#1095;&#1077;&#1081; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1080;</value>
+  </data>
+  <data name="ShortcutDetails_PageName" xml:space="preserve">
+    <value>&#1056;&#1077;&#1076;&#1072;&#1082;&#1090;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100;</value>
+  </data>
+  <data name="ShortcutDetails_FolderRequired" xml:space="preserve">
+    <value>&#1058;&#1088;&#1077;&#1073;&#1091;&#1077;&#1090;&#1089;&#1103; &#1087;&#1091;&#1090;&#1100; &#1082; &#1087;&#1072;&#1087;&#1082;&#1077;.</value>
+  </data>
+  <data name="ShortcutDetails_UpdatedToast" xml:space="preserve">
+    <value>&#1057;&#1074;&#1077;&#1076;&#1077;&#1085;&#1080;&#1103; &#1086; &#1088;&#1072;&#1073;&#1086;&#1095;&#1077;&#1081; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1080; &#1086;&#1073;&#1085;&#1086;&#1074;&#1083;&#1077;&#1085;&#1099;.</value>
+  </data>
+  <data name="ShortcutDetails_BrowseButton" xml:space="preserve">
+    <value>&#1054;&#1073;&#1079;&#1086;&#1088; &#1087;&#1072;&#1087;&#1082;&#1080;</value>
+  </data>
+  <data name="ShortcutDetails_PasteButton" xml:space="preserve">
+    <value>&#1042;&#1089;&#1090;&#1072;&#1074;&#1080;&#1090;&#1100; &#1087;&#1091;&#1090;&#1100;</value>
+  </data>
+  <data name="ShortcutDetails_ApplyButton" xml:space="preserve">
+    <value>&#1055;&#1088;&#1080;&#1084;&#1077;&#1085;&#1080;&#1090;&#1100;</value>
+  </data>
+  <data name="ShortcutDetails_CancelButton" xml:space="preserve">
+    <value>&#1054;&#1090;&#1084;&#1077;&#1085;&#1072;</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Title" xml:space="preserve">
+    <value>&#1057;&#1086;&#1079;&#1076;&#1072;&#1090;&#1100; &#1088;&#1072;&#1073;&#1086;&#1095;&#1091;&#1102; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1100;</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Subtitle" xml:space="preserve">
+    <value>Ctrl+N</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
+    <value>&#1054;&#1073;&#1085;&#1072;&#1088;&#1091;&#1078;&#1080;&#1090;&#1100; &#1088;&#1077;&#1087;&#1086;&#1079;&#1080;&#1090;&#1086;&#1088;&#1080;&#1080; git</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
+    <value>&#1057;&#1082;&#1072;&#1085;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100; &#1083;&#1086;&#1082;&#1072;&#1083;&#1100;&#1085;&#1099;&#1077; &#1087;&#1072;&#1087;&#1082;&#1080; &#1080; &#1076;&#1086;&#1073;&#1072;&#1074;&#1080;&#1090;&#1100; &#1082;&#1072;&#1082; &#1088;&#1072;&#1073;&#1086;&#1095;&#1080;&#1077; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1080;</value>
+  </data>
+  <data name="PageActions_Settings_Subtitle" xml:space="preserve">
+    <value>&#1058;&#1077;&#1088;&#1084;&#1080;&#1085;&#1072;&#1083;, &#1080;&#1084;&#1087;&#1086;&#1088;&#1090;/&#1101;&#1082;&#1089;&#1087;&#1086;&#1088;&#1090;, &#1086;&#1090;&#1084;&#1077;&#1085;&#1080;&#1090;&#1100; (Ctrl+Z)&#160;/ &#1087;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100; (Ctrl+Y)</value>
+  </data>
+  <data name="TaskActions_OpenWorkspace" xml:space="preserve">
+    <value>&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#1088;&#1072;&#1073;&#1086;&#1095;&#1091;&#1102; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1100;</value>
+  </data>
+  <data name="TaskActions_RunTaskNormally" xml:space="preserve">
+    <value>&#1047;&#1072;&#1087;&#1091;&#1089;&#1090;&#1080;&#1090;&#1100; &#1079;&#1072;&#1076;&#1072;&#1095;&#1091; &#1086;&#1073;&#1099;&#1095;&#1085;&#1086;</value>
+  </data>
+  <data name="TaskActions_RunTaskAsAdmin" xml:space="preserve">
+    <value>&#1047;&#1072;&#1087;&#1091;&#1089;&#1090;&#1080;&#1090;&#1100; &#1079;&#1072;&#1076;&#1072;&#1095;&#1091; &#1086;&#1090; &#1080;&#1084;&#1077;&#1085;&#1080; &#1072;&#1076;&#1084;&#1080;&#1085;&#1080;&#1089;&#1090;&#1088;&#1072;&#1090;&#1086;&#1088;&#1072;</value>
+  </data>
+  <data name="CheckWorkspace_NotFound" xml:space="preserve">
+    <value>&#1069;&#1090;&#1072; &#1088;&#1072;&#1073;&#1086;&#1095;&#1072;&#1103; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1100; &#1085;&#1077; &#1085;&#1072;&#1081;&#1076;&#1077;&#1085;&#1072;.</value>
+  </data>
+  <data name="ResetProjects_Title" xml:space="preserve">
+    <value>&#1057;&#1073;&#1088;&#1086;&#1089;&#1080;&#1090;&#1100; &#1074;&#1089;&#1077; &#1088;&#1072;&#1073;&#1086;&#1095;&#1080;&#1077; &#1086;&#1073;&#1083;&#1072;&#1089;&#1090;&#1080;?</value>
+  </data>
+  <data name="ImportNoImportPending" xml:space="preserve">
+    <value>&#1053;&#1077;&#1090; &#1086;&#1078;&#1080;&#1076;&#1072;&#1102;&#1097;&#1077;&#1075;&#1086; &#1080;&#1084;&#1087;&#1086;&#1088;&#1090;&#1072;.</value>
+  </data>
+</root>

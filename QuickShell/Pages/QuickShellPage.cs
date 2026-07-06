@@ -31,11 +31,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         Icon = QuickShellBrandIcons.App;
         Title = QuickShellBrand.DisplayName;
         Name = "Open";
-        PlaceholderText = "Search workspaces by name, path, or command...";
+        PlaceholderText = Strings.SearchPlaceholder;
         EmptyContent = new CommandItem(_createShortcutCommand)
         {
-            Title = "Create your first workspace",
-            Subtitle = "Pick a folder and configure terminal launches",
+            Title = Strings.EmptyState_Title,
+            Subtitle = Strings.EmptyState_Subtitle,
             Icon = new IconInfo("\uE710"),
             MoreCommands =
             [
@@ -218,8 +218,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             {
                 items.Add(new ListItem(new NoOpCommand())
                 {
-                    Title = "No matching workspaces",
-                    Subtitle = "Try a different search",
+                    Title = Strings.NoMatch_Title,
+                    Subtitle = Strings.NoMatch_Subtitle,
                     MoreCommands =
                     [
                         ..ShortcutContextCommands.BuildUndoRedoCommands(Reload),

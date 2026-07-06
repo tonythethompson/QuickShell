@@ -57,7 +57,7 @@ internal static class ShortcutTaskActionListItems
         {
             new(new OpenTerminalShortcutCommand(action.Workspace, settings))
             {
-                Title = "Open workspace",
+                Title = Strings.TaskActions_OpenWorkspace,
                 Icon = new IconInfo(ShortcutHealth.GetListGlyph(action.Workspace)),
             },
         };
@@ -66,7 +66,7 @@ internal static class ShortcutTaskActionListItems
         {
             items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, runAsStandard: true))
             {
-                Title = "Run task normally",
+                Title = Strings.TaskActions_RunTaskNormally,
                 Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(action.Launch)),
             });
         }
@@ -74,7 +74,7 @@ internal static class ShortcutTaskActionListItems
         {
             items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, runAsAdmin: true))
             {
-                Title = "Run task as Admin",
+                Title = Strings.TaskActions_RunTaskAsAdmin,
                 Icon = new IconInfo(ShortcutGlyphs.AdminLaunch),
             });
         }

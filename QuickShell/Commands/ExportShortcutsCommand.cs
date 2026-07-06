@@ -13,7 +13,7 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
     public ExportShortcutsCommand(bool stayOnSettings = true)
     {
         _stayOnSettings = stayOnSettings;
-        Name = "Export workspaces";
+        Name = Strings.Command_ExportWorkspaces_Name;
         Icon = new IconInfo("\uE896");
     }
 
@@ -22,17 +22,17 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
         var path = ShortcutFilePickerService.PickExportFile();
         if (path is null)
         {
-            return Finish("Export cancelled.");
+            return Finish(Strings.Export_Cancelled);
         }
 
         using var cancellation = new CancellationTokenSource(IoTimeout);
         var result = QuickShellRuntimeServices.Shortcuts.TryExportToFileAsync(path, cancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
-            return Finish($"Export failed: {result.Error}");
+            return Finish(Strings.ExportFailedFormat(result.Error));
         }
 
-        return Finish($"Exported workspaces to {path}.");
+        return Finish(Strings.ExportedWorkspacesFormat(path));
     }
 
     private CommandResult Finish(string? message) =>
