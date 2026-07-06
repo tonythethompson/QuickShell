@@ -281,7 +281,7 @@ internal static class GitRepoIndex
             {
                 handler();
             }
-            catch
+            catch (Exception)
             {
                 // Best effort; UI callbacks should not break cache refresh.
             }
