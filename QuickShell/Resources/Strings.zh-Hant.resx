@@ -440,22 +440,22 @@
   </data>
 
   <data name="ImportConflictPage_Cancelled" xml:space="preserve">
-    <value>&#21319;&#20837;&#24050;&#21462;&#28040;&#12290;</value>
+    <value>匯入已取消。</value>
   </data>
   <data name="ImportConflictPage_Name" xml:space="preserve">
-    <value>&#21319;&#20837;</value>
+    <value>匯入</value>
   </data>
   <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
-    <value>&#27794;&#26377;&#24453;&#34389;&#29702;&#30340;&#21319;&#20837;&#12290;</value>
+    <value>沒有待處理的匯入。</value>
   </data>
   <data name="Common_Discard" xml:space="preserve">
-    <value>&#25918;&#26285;</value>
+    <value>放棄</value>
   </data>
   <data name="Menu_Edit" xml:space="preserve">
     <value>&#32232;&#36655;</value>
   </data>
   <data name="PendingEdit_ResumeName" xml:space="preserve">
-    <value>&#32397;&#32396;&#32232;&#36655;</value>
+    <value>繼續編輯</value>
   </data>
   <data name="Command_Delete_Name" xml:space="preserve">
     <value>刪除</value>

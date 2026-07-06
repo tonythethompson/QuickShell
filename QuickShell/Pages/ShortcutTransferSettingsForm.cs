@@ -248,19 +248,19 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "{{Strings.ImportConflict_MergeButton_Title}}",
+              "title": "{{Escape(Strings.ImportConflict_MergeButton_Title)}}",
               "associatedInputs": "none",
               "data": { "action": "merge" }
             },
             {
               "type": "Action.Submit",
-              "title": "{{Strings.ImportConflict_ReplaceButton_Title}}",
+              "title": "{{Escape(Strings.ImportConflict_ReplaceButton_Title)}}",
               "associatedInputs": "none",
               "data": { "action": "replace" }
             },
             {
               "type": "Action.Submit",
-              "title": "{{Strings.ImportConflict_CancelButton_Title}}",
+              "title": "{{Escape(Strings.ImportConflict_CancelButton_Title)}}",
               "associatedInputs": "none",
               "data": { "action": "cancel" }
             }

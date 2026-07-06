@@ -342,7 +342,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
                       "id": "{{TerminalApplicationField}}",
 
-                      "label": "{{Strings.TerminalDefaults_AppField_Label}}",
+                      "label": "{{EscapeJson(Strings.TerminalDefaults_AppField_Label)}}",
 
                       "style": "compact",
 
@@ -386,7 +386,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
                       "id": "{{DefaultProfileField}}",
 
-                      "label": "{{Strings.TerminalDefaults_ProfileField_Label}}",
+                      "label": "{{EscapeJson(Strings.TerminalDefaults_ProfileField_Label)}}",
 
                       "style": "compact",
 
