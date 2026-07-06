@@ -16,6 +16,7 @@ import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
 import { assessWorkspaceHealth } from "./lib/workspace-health";
+import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 
 type LoadedData = {
@@ -218,7 +219,7 @@ export default function OpenWorkspaceCommand() {
         key={launch ? `${workspace.id}:${launch.id}` : workspace.id}
         title={title}
         subtitle={health.ok ? workspaceSubtitle(workspace, launch) : health.issues[0]?.message}
-        icon={workspace.isPinned ? Icon.Star : Icon.Folder}
+        icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
         accessories={accessories}
         actions={
           <ActionPanel>

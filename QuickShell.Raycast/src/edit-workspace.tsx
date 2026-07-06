@@ -8,6 +8,7 @@ import {
   additionalLaunchCount,
   filterWorkspacesForEdit,
 } from "./lib/workspace-form-state";
+import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import type { QuickShellSettings, Workspace } from "./lib/schema";
 
 type EditWorkspaceCommandProps = {
@@ -129,7 +130,7 @@ function renderWorkspacePickerItem(
       key={workspace.id}
       title={workspace.name}
       subtitle={health.ok ? workspaceSubtitle(workspace) : health.issues[0]?.message}
-      icon={workspace.isPinned ? Icon.Star : Icon.Pencil}
+      icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
       accessories={accessories}
       actions={
         <ActionPanel>
