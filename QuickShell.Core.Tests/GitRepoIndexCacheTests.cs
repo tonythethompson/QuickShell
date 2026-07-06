@@ -159,6 +159,27 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     }
 
     [Fact]
+    public void GetAll_DoesNotRescanImmediatelyAfterEmptyRefreshResult()
+    {
+        var refreshCount = 0;
+        GitRepoIndex.DiscoverOverride = _ =>
+        {
+            Interlocked.Increment(ref refreshCount);
+            return [];
+        };
+
+        GitRepoIndex.Invalidate();
+        _ = GitRepoIndex.GetAll([]);
+        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, Volatile.Read(ref refreshCount));
+
+        _ = GitRepoIndex.GetAll([]);
+        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(1));
+        Assert.Equal(1, Volatile.Read(ref refreshCount));
+        Assert.Empty(GitRepoIndex.GetAll([]));
+    }
+
+    [Fact]
     public void Prewarm_StartsBackgroundRefresh_WithoutThrowing()
     {
         var completed = new ManualResetEventSlim(false);

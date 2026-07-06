@@ -122,6 +122,24 @@ public sealed class WorktreeBranchTests : IDisposable
     }
 
     [Fact]
+    public void WorktreeTargets_IgnoresUnreadableTargetFile()
+    {
+        var repoRoot = Path.Combine(_root, "repo");
+        Directory.CreateDirectory(repoRoot);
+        ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
+
+        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
+        File.WriteAllText(targetsPath, "not-json");
+
+        WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorktreeBranchTargetStore.SetTargetOverride = null;
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+        WorktreeBranchTargetStore.ResetForTests();
+
+        Assert.Null(WorktreeBranchTargetStore.GetTargetForDirectory(repoRoot));
+    }
+
+    [Fact]
     public void Launch_DirtyMismatchWithBlockOn_PreventsAllSideEffects()
     {
         var repoRoot = Path.Combine(_root, "repo");

@@ -229,8 +229,8 @@ internal static class GitRepoIndex
     }
 
     private static bool IsCacheFreshLocked(string rootKey) =>
-        _cache.Count > 0
-        && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
+        string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
+        && _refreshedUtc != DateTime.MinValue
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
 
     private static void StartRefreshLocked(string rootKey, string[] rootSnapshot)

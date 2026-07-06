@@ -150,7 +150,7 @@ internal static class WorktreeBranchTargetStore
                 }
             }
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             Targets.Clear();
         }
