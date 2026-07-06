@@ -1,0 +1,547 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>按名称、路径或命令搜索工作区…</value>
+  </data>
+  <data name="EmptyState_Title" xml:space="preserve">
+    <value>创建您的第一个工作区</value>
+  </data>
+  <data name="EmptyState_Subtitle" xml:space="preserve">
+    <value>选择一个文件夹并配置终端启动方式</value>
+  </data>
+  <data name="NoMatch_Title" xml:space="preserve">
+    <value>没有匹配的工作区</value>
+  </data>
+  <data name="NoMatch_Subtitle" xml:space="preserve">
+    <value>请尝试其他搜索词</value>
+  </data>
+  <data name="SettingsTitleFormat" xml:space="preserve">
+    <value>{0} 设置</value>
+  </data>
+  <data name="Menu_OpenInFileExplorer" xml:space="preserve">
+    <value>在文件资源管理器中打开</value>
+  </data>
+  <data name="Menu_CopyPath" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+  <data name="Menu_OpenDevServer" xml:space="preserve">
+    <value>打开开发服务器</value>
+  </data>
+  <data name="Menu_OpenRepository" xml:space="preserve">
+    <value>打开仓库</value>
+  </data>
+  <data name="Menu_CreateWorkspace" xml:space="preserve">
+    <value>创建工作区</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>撤消</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="Menu_RunAsAdmin" xml:space="preserve">
+    <value>以管理员身份运行</value>
+  </data>
+  <data name="Menu_RunNormally" xml:space="preserve">
+    <value>正常运行</value>
+  </data>
+  <data name="Menu_OpenCompanionAppFormat" xml:space="preserve">
+    <value>打开 {0}</value>
+  </data>
+  <data name="Section_Favorites" xml:space="preserve">
+    <value>收藏夹</value>
+  </data>
+  <data name="Section_Workspaces" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="Tooltip_Favorite" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="Tooltip_AlwaysRunAsAdmin" xml:space="preserve">
+    <value>始终以管理员身份运行</value>
+  </data>
+  <data name="Section_NotSavedYet" xml:space="preserve">
+    <value>尚未保存</value>
+  </data>
+  <data name="Section_AlreadyWorkspaces" xml:space="preserve">
+    <value>已是工作区</value>
+  </data>
+  <data name="AddAnotherWorkspace" xml:space="preserve">
+    <value>添加另一个工作区</value>
+  </data>
+  <data name="SavedAsFormat" xml:space="preserve">
+    <value>已保存为 {0}</value>
+  </data>
+  <data name="WorkspacesCountFormat" xml:space="preserve">
+    <value>{0} 个工作区</value>
+  </data>
+  <data name="RightClickToOpenOrEdit" xml:space="preserve">
+    <value>右键单击以打开或编辑</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>打开目录</value>
+  </data>
+  <data name="RepairWorkspace" xml:space="preserve">
+    <value>修复工作区</value>
+  </data>
+  <data name="OpenWorkspace" xml:space="preserve">
+    <value>打开工作区</value>
+  </data>
+  <data name="EditNamedFormat" xml:space="preserve">
+    <value>编辑 {0}</value>
+  </data>
+  <data name="DuplicateWorkspace_Title" xml:space="preserve">
+    <value>复制工作区</value>
+  </data>
+  <data name="Command_Duplicate_Name" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Discover_Title" xml:space="preserve">
+    <value>发现 Git 仓库</value>
+  </data>
+  <data name="Discover_Name" xml:space="preserve">
+    <value>发现</value>
+  </data>
+  <data name="Discover_Placeholder" xml:space="preserve">
+    <value>筛选发现的仓库…</value>
+  </data>
+  <data name="Discover_NoReposFound" xml:space="preserve">
+    <value>未找到 Git 仓库</value>
+  </data>
+  <data name="Discover_NoMatchingRepos" xml:space="preserve">
+    <value>没有匹配的仓库</value>
+  </data>
+  <data name="Discover_TrySearching" xml:space="preserve">
+    <value>请尝试在您的个人资料文件夹下搜索 Projects、dev 或 code</value>
+  </data>
+  <data name="ImportConflictPage_Title" xml:space="preserve">
+    <value>完成导入</value>
+  </data>
+  <data name="ImportConflictPage_Heading" xml:space="preserve">
+    <value>导入文件中存在重复名称</value>
+  </data>
+  <data name="ImportConflictPage_ChooseOption" xml:space="preserve">
+    <value>请在下方选择一个选项以完成导入。</value>
+  </data>
+  <data name="ImportConflictPage_HelpText" xml:space="preserve">
+    <value>“合并”会保留现有项目并添加文件内容；重复的名称将被重命名。“全部替换”会删除该类型的所有当前项目，仅加载文件内容。</value>
+  </data>
+  <data name="ImportConflictPage_MergeButton" xml:space="preserve">
+    <value>合并（重命名重复项）</value>
+  </data>
+  <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
+    <value>保留您的工作区并添加导入的工作区。重复的名称将变为“名称 副本”“名称 副本 2”等。</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
+    <value>全部替换</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
+    <value>删除您现有的所有工作区（包括收藏），仅用导入的文件替换它们。</value>
+  </data>
+  <data name="ImportConflictPage_CancelButton" xml:space="preserve">
+    <value>取消导入</value>
+  </data>
+  <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
+    <value>放弃此导入文件，保持您的工作区不变。</value>
+  </data>
+  <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
+    <value>没有待处理的导入。</value>
+  </data>
+  <data name="ImportConflictPage_UnableToReadForm" xml:space="preserve">
+    <value>无法读取表单值。</value>
+  </data>
+  <data name="ImportConflictPage_UnknownImportType" xml:space="preserve">
+    <value>未知的导入类型。</value>
+  </data>
+  <data name="ImportConflictPage_DescriptionFormat" xml:space="preserve">
+    <value>该文件在 {2} 个{3}中包含 {0} 个重复{1}。</value>
+  </data>
+  <data name="Word_Name_Singular" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Word_Name_Plural" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Word_Workspace_Singular" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="Word_Workspace_Plural" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="PendingEdit_Title" xml:space="preserve">
+    <value>未保存的工作区更改</value>
+  </data>
+  <data name="PendingEdit_ValidationNote" xml:space="preserve">
+    <value>“保存”会应用与编辑表单相同的验证。如果缺少必填字段，请再次编辑工作区进行修正。</value>
+  </data>
+  <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
+    <value>保存并关闭</value>
+  </data>
+  <data name="PendingEdit_Discarded" xml:space="preserve">
+    <value>已放弃未保存的工作区更改。</value>
+  </data>
+  <data name="PendingEdit_UnableToReadForm" xml:space="preserve">
+    <value>无法读取表单值。</value>
+  </data>
+  <data name="PendingEdit_NonePending" xml:space="preserve">
+    <value>没有待处理的未保存工作区编辑。</value>
+  </data>
+  <data name="PendingEdit_NoneWaiting" xml:space="preserve">
+    <value>没有等待决定的未保存工作区编辑。</value>
+  </data>
+  <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
+    <value>您在编辑“{0}”时留下了未保存的更改。请将其保存到工作区，或放弃这些更改。</value>
+  </data>
+  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
+    <value>选择配套应用</value>
+  </data>
+  <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
+    <value>导出 {0} 工作区</value>
+  </data>
+  <data name="Dialog_ImportWorkspacesFormat" xml:space="preserve">
+    <value>导入 {0} 工作区</value>
+  </data>
+  <data name="Command_CheckWorkspaceHealth_Name" xml:space="preserve">
+    <value>检查工作区健康状况</value>
+  </data>
+  <data name="Command_ExportWorkspaces_Name" xml:space="preserve">
+    <value>导出工作区</value>
+  </data>
+  <data name="Command_ImportWorkspaces_Name" xml:space="preserve">
+    <value>导入工作区</value>
+  </data>
+  <data name="Command_ResetAllWorkspaces_Name" xml:space="preserve">
+    <value>重置所有工作区</value>
+  </data>
+  <data name="Command_MoveUp_Name" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="Command_MoveDown_Name" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="Command_MoveToTop_Name" xml:space="preserve">
+    <value>移到顶部</value>
+  </data>
+  <data name="Command_MoveToBottom_Name" xml:space="preserve">
+    <value>移到底部</value>
+  </data>
+  <data name="Command_Move_Name" xml:space="preserve">
+    <value>移动</value>
+  </data>
+  <data name="Command_Favorite_Name" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="Command_Unfavorite_Name" xml:space="preserve">
+    <value>取消收藏</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>未找到该工作区。</value>
+  </data>
+  <data name="PathCopiedToClipboard" xml:space="preserve">
+    <value>路径已复制到剪贴板。</value>
+  </data>
+  <data name="CompanionAppLaunchFailed" xml:space="preserve">
+    <value>无法启动配套应用。</value>
+  </data>
+  <data name="DeletedWorkspaceFormat" xml:space="preserve">
+    <value>已删除工作区“{0}”。</value>
+  </data>
+  <data name="WorkspaceNotFoundNamedFormat" xml:space="preserve">
+    <value>未找到工作区“{0}”。</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>导出失败：{0}</value>
+  </data>
+  <data name="ExportedWorkspacesFormat" xml:space="preserve">
+    <value>已将工作区导出到 {0}。</value>
+  </data>
+  <data name="ChooseCompanionApp_Title" xml:space="preserve">
+    <value>选择配套应用</value>
+  </data>
+  <data name="ItemHealth_ChooseFolder" xml:space="preserve">
+    <value>选择工作区文件夹 · 在编辑中修复</value>
+  </data>
+  <data name="ItemHealth_InvalidFolderPath" xml:space="preserve">
+    <value>文件夹路径无效 · 在编辑中修复</value>
+  </data>
+  <data name="ItemHealth_FolderNotFoundFormat" xml:space="preserve">
+    <value>未找到文件夹 · {0}</value>
+  </data>
+  <data name="ItemHealth_InvalidWorkspaceFormat" xml:space="preserve">
+    <value>无效的工作区 · {0}</value>
+  </data>
+  <data name="ItemHealth_CompanionAppMissingFormat" xml:space="preserve">
+    <value>缺少配套应用 · {0}</value>
+  </data>
+  <data name="CreateNewWorkspace_Title" xml:space="preserve">
+    <value>创建新工作区</value>
+  </data>
+  <data name="CreateNewWorkspace_Subtitle" xml:space="preserve">
+    <value>目录和可选命令</value>
+  </data>
+  <data name="CompanionApp_Generic_Label" xml:space="preserve">
+    <value>配套应用</value>
+  </data>
+  <data name="CompanionApp_PathWarning" xml:space="preserve">
+    <value>未找到可执行文件。请选择其他应用，或将应用预设设置为“无”。</value>
+  </data>
+  <data name="Terminal_DefaultFromSettings_Choice" xml:space="preserve">
+    <value>默认（来自设置）</value>
+  </data>
+  <data name="Terminal_DefaultProfileSuffixFormat" xml:space="preserve">
+    <value>{0}（默认配置文件）</value>
+  </data>
+  <data name="TaskType_Frontend" xml:space="preserve">
+    <value>前端</value>
+  </data>
+  <data name="TaskType_Database" xml:space="preserve">
+    <value>数据库</value>
+  </data>
+  <data name="TaskType_Logs" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="ShortcutForm_CreateTitle" xml:space="preserve">
+    <value>新建工作区</value>
+  </data>
+  <data name="ShortcutForm_EditTitleFormat" xml:space="preserve">
+    <value>编辑 {0}</value>
+  </data>
+  <data name="ShortcutForm_CreateName" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="ShortcutForm_EditName" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="AddLaunch_Toast" xml:space="preserve">
+    <value>已添加命令行。</value>
+  </data>
+  <data name="RefreshTerminals_Toast" xml:space="preserve">
+    <value>终端列表已刷新。</value>
+  </data>
+  <data name="PasteClipboard_NoTextError" xml:space="preserve">
+    <value>剪贴板中没有可粘贴的文本。</value>
+  </data>
+  <data name="DirectoryNotFound_ErrorFormat" xml:space="preserve">
+    <value>未找到目录：{0}</value>
+  </data>
+  <data name="FormValues_ReadError" xml:space="preserve">
+    <value>无法读取表单值。</value>
+  </data>
+  <data name="TerminalDefaults_PickAppAndProfile_Error" xml:space="preserve">
+    <value>请选择终端应用和配置文件。</value>
+  </data>
+  <data name="TerminalDefaults_ListRefreshed_Status" xml:space="preserve">
+    <value>终端列表已刷新。</value>
+  </data>
+  <data name="TerminalDefaults_SectionHeader" xml:space="preserve">
+    <value>终端默认设置</value>
+  </data>
+  <data name="TerminalDefaults_SubtleText" xml:space="preserve">
+    <value>用于设置为“默认”的工作区的默认主机和配置文件。选择值后会自动保存更改。</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Title" xml:space="preserve">
+    <value>刷新终端列表</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Tooltip" xml:space="preserve">
+    <value>安装新 Shell 或编辑 Windows Terminal 设置后请重新加载配置文件。</value>
+  </data>
+  <data name="TerminalDefaults_SaveButton_Title" xml:space="preserve">
+    <value>保存终端默认设置</value>
+  </data>
+  <data name="TerminalDefaults_AppField_Label" xml:space="preserve">
+    <value>终端应用</value>
+  </data>
+  <data name="TerminalDefaults_ProfileField_Label" xml:space="preserve">
+    <value>默认配置文件</value>
+  </data>
+  <data name="HomeDisplay_SectionHeader" xml:space="preserve">
+    <value>主页显示</value>
+  </data>
+  <data name="ResetWorkspaces_Confirm_Title" xml:space="preserve">
+    <value>要重置所有工作区吗？</value>
+  </data>
+  <data name="ResetWorkspaces_NoneSavedFormat" xml:space="preserve">
+    <value>您没有已保存的{0}。</value>
+  </data>
+  <data name="ResetWorkspaces_DeleteCountFormat" xml:space="preserve">
+    <value>这将删除 {0} 个已保存的{1}。</value>
+  </data>
+  <data name="ResetWorkspaces_BackupNoteFormat" xml:space="preserve">
+    <value>{0} 上次保存的备份将以 {1} 的形式保留在同一文件夹中。</value>
+  </data>
+  <data name="ShortcutTransfer_SectionHeader" xml:space="preserve">
+    <value>备份和传输</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Title" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Description" xml:space="preserve">
+    <value>导出、导入或重置已保存的工作区文件夹和收藏。</value>
+  </data>
+  <data name="ShortcutTransfer_ExportButton_Title" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="ShortcutTransfer_ImportButton_Title" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Title" xml:space="preserve">
+    <value>重置</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
+    <value>删除您保存的所有工作区。使用撤消（Ctrl+Z）可恢复。</value>
+  </data>
+  <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
+    <value>导入已暂停：{2} 中有 {0} 个重复{1}（共 {3} {4}）。请选择如何完成。</value>
+  </data>
+  <data name="ImportConflict_MergeButton_Title" xml:space="preserve">
+    <value>合并（重命名重复项）</value>
+  </data>
+  <data name="ImportConflict_ReplaceButton_Title" xml:space="preserve">
+    <value>替换所有工作区</value>
+  </data>
+  <data name="ImportConflict_CancelButton_Title" xml:space="preserve">
+    <value>取消导入</value>
+  </data>
+  <data name="ImportConflict_HelpText" xml:space="preserve">
+    <value>“合并”会保留您现有的所有工作区并添加文件内容。冲突的名称将被重命名（例如“我的应用 (2)”）。“全部替换”会删除所有当前工作区和收藏，然后仅加载文件中的内容。</value>
+  </data>
+
+  <data name="ImportConflictPage_Cancelled" xml:space="preserve">
+    <value>&#23548;&#20837;&#24050;&#21462;&#28040;&#12290;</value>
+  </data>
+  <data name="ImportConflictPage_Name" xml:space="preserve">
+    <value>&#23548;&#20837;</value>
+  </data>
+  <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
+    <value>&#27809;&#26377;&#24453;&#22788;&#29702;&#30340;&#23548;&#20837;&#12290;</value>
+  </data>
+  <data name="Common_Discard" xml:space="preserve">
+    <value>&#25918;&#24323;</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>&#32534;&#36753;</value>
+  </data>
+  <data name="PendingEdit_ResumeName" xml:space="preserve">
+    <value>&#32493;&#32493;&#32534;&#36753;</value>
+  </data>
+  <data name="Command_Delete_Name" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="DeletedWorkspaceConfirmedFormat" xml:space="preserve">
+    <value>工作区"{0}"已删除。</value>
+  </data>
+  <data name="Command_Undo_Name" xml:space="preserve">
+    <value>撤消</value>
+  </data>
+  <data name="Undo_NothingToUndo" xml:space="preserve">
+    <value>没有可撤消的操作。</value>
+  </data>
+  <data name="Undo_Confirmation" xml:space="preserve">
+    <value>已撤消上一次工作区更改。</value>
+  </data>
+  <data name="Command_Redo_Name" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="Redo_NothingToRedo" xml:space="preserve">
+    <value>没有可重做的操作。</value>
+  </data>
+  <data name="Redo_Confirmation" xml:space="preserve">
+    <value>已重做上一次更改。</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>导出已取消。</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>导入已取消。</value>
+  </data>
+  <data name="Saved_Toast" xml:space="preserve">
+    <value>已保存</value>
+  </data>
+  <data name="ShortcutDetails_PageTitle" xml:space="preserve">
+    <value>工作区详细信息</value>
+  </data>
+  <data name="ShortcutDetails_PageName" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="ShortcutDetails_FolderRequired" xml:space="preserve">
+    <value>文件夹路径为必填项。</value>
+  </data>
+  <data name="ShortcutDetails_UpdatedToast" xml:space="preserve">
+    <value>工作区详细信息已更新。</value>
+  </data>
+  <data name="ShortcutDetails_BrowseButton" xml:space="preserve">
+    <value>浏览文件夹</value>
+  </data>
+  <data name="ShortcutDetails_PasteButton" xml:space="preserve">
+    <value>粘贴路径</value>
+  </data>
+  <data name="ShortcutDetails_ApplyButton" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="ShortcutDetails_CancelButton" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Title" xml:space="preserve">
+    <value>创建工作区</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Subtitle" xml:space="preserve">
+    <value>Ctrl+N</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
+    <value>发现 Git 存储库</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
+    <value>扫描本地文件夹并添加为工作区</value>
+  </data>
+  <data name="PageActions_Settings_Subtitle" xml:space="preserve">
+    <value>终端、导入/导出、撤消 (Ctrl+Z) / 重做 (Ctrl+Y)</value>
+  </data>
+  <data name="TaskActions_OpenWorkspace" xml:space="preserve">
+    <value>打开工作区</value>
+  </data>
+  <data name="TaskActions_RunTaskNormally" xml:space="preserve">
+    <value>正常运行任务</value>
+  </data>
+  <data name="TaskActions_RunTaskAsAdmin" xml:space="preserve">
+    <value>以管理员身份运行任务</value>
+  </data>
+  <data name="CheckWorkspace_NotFound" xml:space="preserve">
+    <value>未找到该工作区。</value>
+  </data>
+  <data name="ResetProjects_Title" xml:space="preserve">
+    <value>重置所有工作区？</value>
+  </data>
+  <data name="ImportNoImportPending" xml:space="preserve">
+    <value>没有待处理的导入。</value>
+  </data>
+</root>

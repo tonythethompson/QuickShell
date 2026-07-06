@@ -1,0 +1,547 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>名前、パス、コマンドでワークスペースを検索…</value>
+  </data>
+  <data name="EmptyState_Title" xml:space="preserve">
+    <value>最初のワークスペースを作成</value>
+  </data>
+  <data name="EmptyState_Subtitle" xml:space="preserve">
+    <value>フォルダーを選択し、ターミナルの起動を設定します</value>
+  </data>
+  <data name="NoMatch_Title" xml:space="preserve">
+    <value>一致するワークスペースがありません</value>
+  </data>
+  <data name="NoMatch_Subtitle" xml:space="preserve">
+    <value>別のキーワードで検索してください</value>
+  </data>
+  <data name="SettingsTitleFormat" xml:space="preserve">
+    <value>{0} の設定</value>
+  </data>
+  <data name="Menu_OpenInFileExplorer" xml:space="preserve">
+    <value>エクスプローラーで開く</value>
+  </data>
+  <data name="Menu_CopyPath" xml:space="preserve">
+    <value>パスをコピー</value>
+  </data>
+  <data name="Menu_OpenDevServer" xml:space="preserve">
+    <value>開発サーバーを開く</value>
+  </data>
+  <data name="Menu_OpenRepository" xml:space="preserve">
+    <value>リポジトリを開く</value>
+  </data>
+  <data name="Menu_CreateWorkspace" xml:space="preserve">
+    <value>ワークスペースを作成</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>元に戻す</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>やり直し</value>
+  </data>
+  <data name="Menu_RunAsAdmin" xml:space="preserve">
+    <value>管理者として実行</value>
+  </data>
+  <data name="Menu_RunNormally" xml:space="preserve">
+    <value>通常どおり実行</value>
+  </data>
+  <data name="Menu_OpenCompanionAppFormat" xml:space="preserve">
+    <value>{0} を開く</value>
+  </data>
+  <data name="Section_Favorites" xml:space="preserve">
+    <value>お気に入り</value>
+  </data>
+  <data name="Section_Workspaces" xml:space="preserve">
+    <value>ワークスペース</value>
+  </data>
+  <data name="Tooltip_Favorite" xml:space="preserve">
+    <value>お気に入り</value>
+  </data>
+  <data name="Tooltip_AlwaysRunAsAdmin" xml:space="preserve">
+    <value>常に管理者として実行する</value>
+  </data>
+  <data name="Section_NotSavedYet" xml:space="preserve">
+    <value>未保存</value>
+  </data>
+  <data name="Section_AlreadyWorkspaces" xml:space="preserve">
+    <value>既にワークスペース</value>
+  </data>
+  <data name="AddAnotherWorkspace" xml:space="preserve">
+    <value>別のワークスペースを追加</value>
+  </data>
+  <data name="SavedAsFormat" xml:space="preserve">
+    <value>{0} として保存済み</value>
+  </data>
+  <data name="WorkspacesCountFormat" xml:space="preserve">
+    <value>{0} 件のワークスペース</value>
+  </data>
+  <data name="RightClickToOpenOrEdit" xml:space="preserve">
+    <value>右クリックで開くか編集します</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>ディレクトリを開く</value>
+  </data>
+  <data name="RepairWorkspace" xml:space="preserve">
+    <value>ワークスペースを修復</value>
+  </data>
+  <data name="OpenWorkspace" xml:space="preserve">
+    <value>ワークスペースを開く</value>
+  </data>
+  <data name="EditNamedFormat" xml:space="preserve">
+    <value>{0} を編集</value>
+  </data>
+  <data name="DuplicateWorkspace_Title" xml:space="preserve">
+    <value>ワークスペースを複製</value>
+  </data>
+  <data name="Command_Duplicate_Name" xml:space="preserve">
+    <value>複製</value>
+  </data>
+  <data name="Discover_Title" xml:space="preserve">
+    <value>Git リポジトリを検出</value>
+  </data>
+  <data name="Discover_Name" xml:space="preserve">
+    <value>検出</value>
+  </data>
+  <data name="Discover_Placeholder" xml:space="preserve">
+    <value>検出されたリポジトリを絞り込む…</value>
+  </data>
+  <data name="Discover_NoReposFound" xml:space="preserve">
+    <value>Git リポジトリが見つかりません</value>
+  </data>
+  <data name="Discover_NoMatchingRepos" xml:space="preserve">
+    <value>一致するリポジトリがありません</value>
+  </data>
+  <data name="Discover_TrySearching" xml:space="preserve">
+    <value>プロファイルフォルダー配下の Projects、dev、code を検索してみてください</value>
+  </data>
+  <data name="ImportConflictPage_Title" xml:space="preserve">
+    <value>インポートを完了</value>
+  </data>
+  <data name="ImportConflictPage_Heading" xml:space="preserve">
+    <value>インポートファイル内に重複した名前があります</value>
+  </data>
+  <data name="ImportConflictPage_ChooseOption" xml:space="preserve">
+    <value>以下からオプションを選択してインポートを完了してください。</value>
+  </data>
+  <data name="ImportConflictPage_HelpText" xml:space="preserve">
+    <value>「マージ」は既存の項目を保持したままファイルを追加します。重複する名前は変更されます。「すべて置き換え」はその種類の現在の項目をすべて削除し、ファイルのみを読み込みます。</value>
+  </data>
+  <data name="ImportConflictPage_MergeButton" xml:space="preserve">
+    <value>マージ（重複を名前変更）</value>
+  </data>
+  <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
+    <value>既存のワークスペースを保持したままインポートしたものを追加します。重複する名前は「名前 コピー」「名前 コピー 2」のようになります。</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
+    <value>すべて置き換え</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
+    <value>現在のすべてのワークスペース（お気に入りを含む）を削除し、インポートしたファイルのみに置き換えます。</value>
+  </data>
+  <data name="ImportConflictPage_CancelButton" xml:space="preserve">
+    <value>インポートをキャンセル</value>
+  </data>
+  <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
+    <value>このインポートファイルを破棄し、ワークスペースを変更せずに保持します。</value>
+  </data>
+  <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
+    <value>判断待ちのインポートはありません。</value>
+  </data>
+  <data name="ImportConflictPage_UnableToReadForm" xml:space="preserve">
+    <value>フォームの値を読み取れませんでした。</value>
+  </data>
+  <data name="ImportConflictPage_UnknownImportType" xml:space="preserve">
+    <value>不明なインポートの種類です。</value>
+  </data>
+  <data name="ImportConflictPage_DescriptionFormat" xml:space="preserve">
+    <value>ファイルには {2} 件の{3}のうち {0} 件の重複した{1}が含まれています。</value>
+  </data>
+  <data name="Word_Name_Singular" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="Word_Name_Plural" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="Word_Workspace_Singular" xml:space="preserve">
+    <value>ワークスペース</value>
+  </data>
+  <data name="Word_Workspace_Plural" xml:space="preserve">
+    <value>ワークスペース</value>
+  </data>
+  <data name="PendingEdit_Title" xml:space="preserve">
+    <value>未保存のワークスペースの変更</value>
+  </data>
+  <data name="PendingEdit_ValidationNote" xml:space="preserve">
+    <value>保存すると編集フォームと同じ検証が適用されます。必須項目が不足している場合は、もう一度ワークスペースを編集して修正してください。</value>
+  </data>
+  <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
+    <value>保存して閉じる</value>
+  </data>
+  <data name="PendingEdit_Discarded" xml:space="preserve">
+    <value>未保存のワークスペースの変更を破棄しました。</value>
+  </data>
+  <data name="PendingEdit_UnableToReadForm" xml:space="preserve">
+    <value>フォームの値を読み取れませんでした。</value>
+  </data>
+  <data name="PendingEdit_NonePending" xml:space="preserve">
+    <value>保留中の未保存ワークスペース編集はありません。</value>
+  </data>
+  <data name="PendingEdit_NoneWaiting" xml:space="preserve">
+    <value>判断待ちの未保存ワークスペース編集はありません。</value>
+  </data>
+  <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
+    <value>「{0}」の編集を未保存の変更があるまま終了しました。ワークスペースに保存するか、破棄してください。</value>
+  </data>
+  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
+    <value>コンパニオンアプリを選択</value>
+  </data>
+  <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
+    <value>{0} のワークスペースをエクスポート</value>
+  </data>
+  <data name="Dialog_ImportWorkspacesFormat" xml:space="preserve">
+    <value>{0} のワークスペースをインポート</value>
+  </data>
+  <data name="Command_CheckWorkspaceHealth_Name" xml:space="preserve">
+    <value>ワークスペースの状態を確認</value>
+  </data>
+  <data name="Command_ExportWorkspaces_Name" xml:space="preserve">
+    <value>ワークスペースをエクスポート</value>
+  </data>
+  <data name="Command_ImportWorkspaces_Name" xml:space="preserve">
+    <value>ワークスペースをインポート</value>
+  </data>
+  <data name="Command_ResetAllWorkspaces_Name" xml:space="preserve">
+    <value>すべてのワークスペースをリセット</value>
+  </data>
+  <data name="Command_MoveUp_Name" xml:space="preserve">
+    <value>上へ移動</value>
+  </data>
+  <data name="Command_MoveDown_Name" xml:space="preserve">
+    <value>下へ移動</value>
+  </data>
+  <data name="Command_MoveToTop_Name" xml:space="preserve">
+    <value>先頭へ移動</value>
+  </data>
+  <data name="Command_MoveToBottom_Name" xml:space="preserve">
+    <value>末尾へ移動</value>
+  </data>
+  <data name="Command_Move_Name" xml:space="preserve">
+    <value>移動</value>
+  </data>
+  <data name="Command_Favorite_Name" xml:space="preserve">
+    <value>お気に入り</value>
+  </data>
+  <data name="Command_Unfavorite_Name" xml:space="preserve">
+    <value>お気に入り解除</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>そのワークスペースが見つかりませんでした。</value>
+  </data>
+  <data name="PathCopiedToClipboard" xml:space="preserve">
+    <value>パスをクリップボードにコピーしました。</value>
+  </data>
+  <data name="CompanionAppLaunchFailed" xml:space="preserve">
+    <value>コンパニオンアプリを起動できませんでした。</value>
+  </data>
+  <data name="DeletedWorkspaceFormat" xml:space="preserve">
+    <value>ワークスペース「{0}」を削除しました。</value>
+  </data>
+  <data name="WorkspaceNotFoundNamedFormat" xml:space="preserve">
+    <value>ワークスペース「{0}」が見つかりませんでした。</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>エクスポートに失敗しました: {0}</value>
+  </data>
+  <data name="ExportedWorkspacesFormat" xml:space="preserve">
+    <value>ワークスペースを {0} にエクスポートしました。</value>
+  </data>
+  <data name="ChooseCompanionApp_Title" xml:space="preserve">
+    <value>コンパニオンアプリを選択</value>
+  </data>
+  <data name="ItemHealth_ChooseFolder" xml:space="preserve">
+    <value>ワークスペースフォルダーを選択 · 編集で修正</value>
+  </data>
+  <data name="ItemHealth_InvalidFolderPath" xml:space="preserve">
+    <value>フォルダーパスが無効です · 編集で修正</value>
+  </data>
+  <data name="ItemHealth_FolderNotFoundFormat" xml:space="preserve">
+    <value>フォルダーが見つかりません · {0}</value>
+  </data>
+  <data name="ItemHealth_InvalidWorkspaceFormat" xml:space="preserve">
+    <value>無効なワークスペース · {0}</value>
+  </data>
+  <data name="ItemHealth_CompanionAppMissingFormat" xml:space="preserve">
+    <value>コンパニオンアプリがありません · {0}</value>
+  </data>
+  <data name="CreateNewWorkspace_Title" xml:space="preserve">
+    <value>新しいワークスペースを作成</value>
+  </data>
+  <data name="CreateNewWorkspace_Subtitle" xml:space="preserve">
+    <value>ディレクトリと任意のコマンド</value>
+  </data>
+  <data name="CompanionApp_Generic_Label" xml:space="preserve">
+    <value>コンパニオンアプリ</value>
+  </data>
+  <data name="CompanionApp_PathWarning" xml:space="preserve">
+    <value>実行ファイルが見つかりません。別のアプリを選択するか、アプリのプリセットを「なし」に設定してください。</value>
+  </data>
+  <data name="Terminal_DefaultFromSettings_Choice" xml:space="preserve">
+    <value>既定（設定から）</value>
+  </data>
+  <data name="Terminal_DefaultProfileSuffixFormat" xml:space="preserve">
+    <value>{0}（既定のプロファイル）</value>
+  </data>
+  <data name="TaskType_Frontend" xml:space="preserve">
+    <value>フロントエンド</value>
+  </data>
+  <data name="TaskType_Database" xml:space="preserve">
+    <value>データベース</value>
+  </data>
+  <data name="TaskType_Logs" xml:space="preserve">
+    <value>ログ</value>
+  </data>
+  <data name="ShortcutForm_CreateTitle" xml:space="preserve">
+    <value>新しいワークスペース</value>
+  </data>
+  <data name="ShortcutForm_EditTitleFormat" xml:space="preserve">
+    <value>{0} を編集</value>
+  </data>
+  <data name="ShortcutForm_CreateName" xml:space="preserve">
+    <value>作成</value>
+  </data>
+  <data name="ShortcutForm_EditName" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="AddLaunch_Toast" xml:space="preserve">
+    <value>コマンド行を追加しました。</value>
+  </data>
+  <data name="RefreshTerminals_Toast" xml:space="preserve">
+    <value>ターミナル一覧を更新しました。</value>
+  </data>
+  <data name="PasteClipboard_NoTextError" xml:space="preserve">
+    <value>クリップボードに貼り付け可能なテキストがありません。</value>
+  </data>
+  <data name="DirectoryNotFound_ErrorFormat" xml:space="preserve">
+    <value>ディレクトリが見つかりません: {0}</value>
+  </data>
+  <data name="FormValues_ReadError" xml:space="preserve">
+    <value>フォームの値を読み取れませんでした。</value>
+  </data>
+  <data name="TerminalDefaults_PickAppAndProfile_Error" xml:space="preserve">
+    <value>ターミナルアプリとプロファイルを選択してください。</value>
+  </data>
+  <data name="TerminalDefaults_ListRefreshed_Status" xml:space="preserve">
+    <value>ターミナル一覧を更新しました。</value>
+  </data>
+  <data name="TerminalDefaults_SectionHeader" xml:space="preserve">
+    <value>ターミナルの既定値</value>
+  </data>
+  <data name="TerminalDefaults_SubtleText" xml:space="preserve">
+    <value>「既定」に設定されたワークスペースの既定のホストとプロファイルです。値を選択すると変更が保存されます。</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Title" xml:space="preserve">
+    <value>ターミナル一覧を更新</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Tooltip" xml:space="preserve">
+    <value>シェルをインストールしたり Windows Terminal の設定を変更したりした後にプロファイルを再読み込みしてください。</value>
+  </data>
+  <data name="TerminalDefaults_SaveButton_Title" xml:space="preserve">
+    <value>ターミナルの既定値を保存</value>
+  </data>
+  <data name="TerminalDefaults_AppField_Label" xml:space="preserve">
+    <value>ターミナルアプリ</value>
+  </data>
+  <data name="TerminalDefaults_ProfileField_Label" xml:space="preserve">
+    <value>既定のプロファイル</value>
+  </data>
+  <data name="HomeDisplay_SectionHeader" xml:space="preserve">
+    <value>ホーム表示</value>
+  </data>
+  <data name="ResetWorkspaces_Confirm_Title" xml:space="preserve">
+    <value>すべてのワークスペースをリセットしますか？</value>
+  </data>
+  <data name="ResetWorkspaces_NoneSavedFormat" xml:space="preserve">
+    <value>保存された{0}がありません。</value>
+  </data>
+  <data name="ResetWorkspaces_DeleteCountFormat" xml:space="preserve">
+    <value>保存済みの{1} {0} 件が削除されます。</value>
+  </data>
+  <data name="ResetWorkspaces_BackupNoteFormat" xml:space="preserve">
+    <value>{0} 前回保存時のバックアップは同じフォルダー内に {1} として残ります。</value>
+  </data>
+  <data name="ShortcutTransfer_SectionHeader" xml:space="preserve">
+    <value>バックアップと転送</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Title" xml:space="preserve">
+    <value>ワークスペース</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Description" xml:space="preserve">
+    <value>保存済みのワークスペースフォルダーとお気に入りをエクスポート、インポート、またはリセットします。</value>
+  </data>
+  <data name="ShortcutTransfer_ExportButton_Title" xml:space="preserve">
+    <value>エクスポート</value>
+  </data>
+  <data name="ShortcutTransfer_ImportButton_Title" xml:space="preserve">
+    <value>インポート</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Title" xml:space="preserve">
+    <value>リセット</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
+    <value>保存済みのすべてのワークスペースを削除します。復元するには元に戻す（Ctrl+Z）を使用してください。</value>
+  </data>
+  <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
+    <value>インポートを一時停止しました: {2} 内に {0} 件の重複した{1}（全 {3} {4} 中）。完了方法を選択してください。</value>
+  </data>
+  <data name="ImportConflict_MergeButton_Title" xml:space="preserve">
+    <value>マージ（重複を名前変更）</value>
+  </data>
+  <data name="ImportConflict_ReplaceButton_Title" xml:space="preserve">
+    <value>すべてのワークスペースを置き換え</value>
+  </data>
+  <data name="ImportConflict_CancelButton_Title" xml:space="preserve">
+    <value>インポートをキャンセル</value>
+  </data>
+  <data name="ImportConflict_HelpText" xml:space="preserve">
+    <value>「マージ」は既存のすべてのワークスペースを保持したままファイルを追加します。競合する名前は変更されます（例:「My App (2)」）。「すべて置き換え」は現在のすべてのワークスペースとお気に入りを削除し、ファイルの内容のみを読み込みます。</value>
+  </data>
+
+  <data name="ImportConflictPage_Cancelled" xml:space="preserve">
+    <value>&#12452;&#12531;&#12509;&#12540;&#12488;&#12434;&#12461;&#12515;&#12531;&#12475;&#12523;&#12375;&#12414;&#12375;&#12383;&#12290;</value>
+  </data>
+  <data name="ImportConflictPage_Name" xml:space="preserve">
+    <value>&#12452;&#12531;&#12509;&#12540;&#12488;</value>
+  </data>
+  <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
+    <value>&#12452;&#12531;&#12509;&#12540;&#12488;&#12398;&#20445;&#30041;&#12399;&#12354;&#12426;&#12414;&#12379;&#12435;&#12290;</value>
+  </data>
+  <data name="Common_Discard" xml:space="preserve">
+    <value>&#30834;&#26522;</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>&#32232;&#38598;</value>
+  </data>
+  <data name="PendingEdit_ResumeName" xml:space="preserve">
+    <value>&#32232;&#38598;&#12434;&#20877;&#38283;</value>
+  </data>
+  <data name="Command_Delete_Name" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="DeletedWorkspaceConfirmedFormat" xml:space="preserve">
+    <value>ワークスペース「{0}」を削除しました。</value>
+  </data>
+  <data name="Command_Undo_Name" xml:space="preserve">
+    <value>元に戻す</value>
+  </data>
+  <data name="Undo_NothingToUndo" xml:space="preserve">
+    <value>元に戻す操作はありません。</value>
+  </data>
+  <data name="Undo_Confirmation" xml:space="preserve">
+    <value>最後のワークスペース変更を元に戻しました。</value>
+  </data>
+  <data name="Command_Redo_Name" xml:space="preserve">
+    <value>やり直し</value>
+  </data>
+  <data name="Redo_NothingToRedo" xml:space="preserve">
+    <value>やり直し操作はありません。</value>
+  </data>
+  <data name="Redo_Confirmation" xml:space="preserve">
+    <value>最後の変更をやり直しました。</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>エクスポートをキャンセルしました。</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>インポートをキャンセルしました。</value>
+  </data>
+  <data name="Saved_Toast" xml:space="preserve">
+    <value>保存しました</value>
+  </data>
+  <data name="ShortcutDetails_PageTitle" xml:space="preserve">
+    <value>ワークスペースの詳細</value>
+  </data>
+  <data name="ShortcutDetails_PageName" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="ShortcutDetails_FolderRequired" xml:space="preserve">
+    <value>フォルダーのパスは必須です。</value>
+  </data>
+  <data name="ShortcutDetails_UpdatedToast" xml:space="preserve">
+    <value>ワークスペースの詳細を更新しました。</value>
+  </data>
+  <data name="ShortcutDetails_BrowseButton" xml:space="preserve">
+    <value>フォルダーを参照</value>
+  </data>
+  <data name="ShortcutDetails_PasteButton" xml:space="preserve">
+    <value>パスを貼り付け</value>
+  </data>
+  <data name="ShortcutDetails_ApplyButton" xml:space="preserve">
+    <value>適用</value>
+  </data>
+  <data name="ShortcutDetails_CancelButton" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Title" xml:space="preserve">
+    <value>ワークスペースを作成</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Subtitle" xml:space="preserve">
+    <value>Ctrl+N</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
+    <value>Git リポジトリを検出</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
+    <value>ローカルフォルダーをスキャンしてワークスペースとして追加</value>
+  </data>
+  <data name="PageActions_Settings_Subtitle" xml:space="preserve">
+    <value>ターミナル、インポート/エクスポート、元に戻す (Ctrl+Z) / やり直し (Ctrl+Y)</value>
+  </data>
+  <data name="TaskActions_OpenWorkspace" xml:space="preserve">
+    <value>ワークスペースを開く</value>
+  </data>
+  <data name="TaskActions_RunTaskNormally" xml:space="preserve">
+    <value>タスクを通常実行</value>
+  </data>
+  <data name="TaskActions_RunTaskAsAdmin" xml:space="preserve">
+    <value>管理者としてタスクを実行</value>
+  </data>
+  <data name="CheckWorkspace_NotFound" xml:space="preserve">
+    <value>そのワークスペースは見つかりませんでした。</value>
+  </data>
+  <data name="ResetProjects_Title" xml:space="preserve">
+    <value>すべてのワークスペースをリセットしますか？</value>
+  </data>
+  <data name="ImportNoImportPending" xml:space="preserve">
+    <value>インポートの保留はありません。</value>
+  </data>
+</root>

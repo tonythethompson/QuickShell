@@ -1,0 +1,547 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Cerca aree di lavoro per nome, percorso o comando...</value>
+  </data>
+  <data name="EmptyState_Title" xml:space="preserve">
+    <value>Crea la tua prima area di lavoro</value>
+  </data>
+  <data name="EmptyState_Subtitle" xml:space="preserve">
+    <value>Scegli una cartella e configura gli avvii del terminale</value>
+  </data>
+  <data name="NoMatch_Title" xml:space="preserve">
+    <value>Nessuna area di lavoro corrispondente</value>
+  </data>
+  <data name="NoMatch_Subtitle" xml:space="preserve">
+    <value>Prova una ricerca diversa</value>
+  </data>
+  <data name="SettingsTitleFormat" xml:space="preserve">
+    <value>Impostazioni di {0}</value>
+  </data>
+  <data name="Menu_OpenInFileExplorer" xml:space="preserve">
+    <value>Apri in Esplora file</value>
+  </data>
+  <data name="Menu_CopyPath" xml:space="preserve">
+    <value>Copia percorso</value>
+  </data>
+  <data name="Menu_OpenDevServer" xml:space="preserve">
+    <value>Apri server di sviluppo</value>
+  </data>
+  <data name="Menu_OpenRepository" xml:space="preserve">
+    <value>Apri repository</value>
+  </data>
+  <data name="Menu_CreateWorkspace" xml:space="preserve">
+    <value>Crea area di lavoro</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>Ripeti</value>
+  </data>
+  <data name="Menu_RunAsAdmin" xml:space="preserve">
+    <value>Esegui come amministratore</value>
+  </data>
+  <data name="Menu_RunNormally" xml:space="preserve">
+    <value>Esegui normalmente</value>
+  </data>
+  <data name="Menu_OpenCompanionAppFormat" xml:space="preserve">
+    <value>Apri {0}</value>
+  </data>
+  <data name="Section_Favorites" xml:space="preserve">
+    <value>Preferiti</value>
+  </data>
+  <data name="Section_Workspaces" xml:space="preserve">
+    <value>Aree di lavoro</value>
+  </data>
+  <data name="Tooltip_Favorite" xml:space="preserve">
+    <value>Preferito</value>
+  </data>
+  <data name="Tooltip_AlwaysRunAsAdmin" xml:space="preserve">
+    <value>Esegui sempre come amministratore</value>
+  </data>
+  <data name="Section_NotSavedYet" xml:space="preserve">
+    <value>Non ancora salvato</value>
+  </data>
+  <data name="Section_AlreadyWorkspaces" xml:space="preserve">
+    <value>Già aree di lavoro</value>
+  </data>
+  <data name="AddAnotherWorkspace" xml:space="preserve">
+    <value>Aggiungi un'altra area di lavoro</value>
+  </data>
+  <data name="SavedAsFormat" xml:space="preserve">
+    <value>Salvato come {0}</value>
+  </data>
+  <data name="WorkspacesCountFormat" xml:space="preserve">
+    <value>{0} aree di lavoro</value>
+  </data>
+  <data name="RightClickToOpenOrEdit" xml:space="preserve">
+    <value>Clic destro per aprire o modificare</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>Apri directory</value>
+  </data>
+  <data name="RepairWorkspace" xml:space="preserve">
+    <value>Ripara area di lavoro</value>
+  </data>
+  <data name="OpenWorkspace" xml:space="preserve">
+    <value>Apri area di lavoro</value>
+  </data>
+  <data name="EditNamedFormat" xml:space="preserve">
+    <value>Modifica {0}</value>
+  </data>
+  <data name="DuplicateWorkspace_Title" xml:space="preserve">
+    <value>Duplica area di lavoro</value>
+  </data>
+  <data name="Command_Duplicate_Name" xml:space="preserve">
+    <value>Duplica</value>
+  </data>
+  <data name="Discover_Title" xml:space="preserve">
+    <value>Scopri repository Git</value>
+  </data>
+  <data name="Discover_Name" xml:space="preserve">
+    <value>Scopri</value>
+  </data>
+  <data name="Discover_Placeholder" xml:space="preserve">
+    <value>Filtra i repository trovati...</value>
+  </data>
+  <data name="Discover_NoReposFound" xml:space="preserve">
+    <value>Nessun repository Git trovato</value>
+  </data>
+  <data name="Discover_NoMatchingRepos" xml:space="preserve">
+    <value>Nessun repository corrispondente</value>
+  </data>
+  <data name="Discover_TrySearching" xml:space="preserve">
+    <value>Prova a cercare Projects, dev o code nella tua cartella profilo</value>
+  </data>
+  <data name="ImportConflictPage_Title" xml:space="preserve">
+    <value>Termina importazione</value>
+  </data>
+  <data name="ImportConflictPage_Heading" xml:space="preserve">
+    <value>Nomi duplicati nel file di importazione</value>
+  </data>
+  <data name="ImportConflictPage_ChooseOption" xml:space="preserve">
+    <value>Scegli un'opzione qui sotto per completare l'importazione.</value>
+  </data>
+  <data name="ImportConflictPage_HelpText" xml:space="preserve">
+    <value>Unisci mantiene gli elementi esistenti e aggiunge il file; i nomi duplicati vengono rinominati. Sostituisci tutto elimina ogni elemento attuale di quel tipo e carica solo il file.</value>
+  </data>
+  <data name="ImportConflictPage_MergeButton" xml:space="preserve">
+    <value>Unisci (rinomina duplicati)</value>
+  </data>
+  <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
+    <value>Mantieni le tue aree di lavoro e aggiungi quelle importate. I nomi duplicati diventano "Nome Copia", "Nome Copia 2" e così via.</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
+    <value>Sostituisci tutto</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
+    <value>Elimina tutte le aree di lavoro attuali (compresi i preferiti) e le sostituisce solo con il file importato.</value>
+  </data>
+  <data name="ImportConflictPage_CancelButton" xml:space="preserve">
+    <value>Annulla importazione</value>
+  </data>
+  <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
+    <value>Ignora questo file di importazione e mantieni invariate le tue aree di lavoro.</value>
+  </data>
+  <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
+    <value>Nessuna importazione in attesa di una decisione.</value>
+  </data>
+  <data name="ImportConflictPage_UnableToReadForm" xml:space="preserve">
+    <value>Impossibile leggere i valori del modulo.</value>
+  </data>
+  <data name="ImportConflictPage_UnknownImportType" xml:space="preserve">
+    <value>Tipo di importazione sconosciuto.</value>
+  </data>
+  <data name="ImportConflictPage_DescriptionFormat" xml:space="preserve">
+    <value>Il file contiene {0} {1} duplicati su {2} {3}.</value>
+  </data>
+  <data name="Word_Name_Singular" xml:space="preserve">
+    <value>nome</value>
+  </data>
+  <data name="Word_Name_Plural" xml:space="preserve">
+    <value>nomi</value>
+  </data>
+  <data name="Word_Workspace_Singular" xml:space="preserve">
+    <value>area di lavoro</value>
+  </data>
+  <data name="Word_Workspace_Plural" xml:space="preserve">
+    <value>aree di lavoro</value>
+  </data>
+  <data name="PendingEdit_Title" xml:space="preserve">
+    <value>Modifiche non salvate dell'area di lavoro</value>
+  </data>
+  <data name="PendingEdit_ValidationNote" xml:space="preserve">
+    <value>Salva applica la stessa convalida del modulo di modifica. Se mancano campi obbligatori, correggili modificando di nuovo l'area di lavoro.</value>
+  </data>
+  <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
+    <value>Salva e chiudi</value>
+  </data>
+  <data name="PendingEdit_Discarded" xml:space="preserve">
+    <value>Modifiche non salvate dell'area di lavoro ignorate.</value>
+  </data>
+  <data name="PendingEdit_UnableToReadForm" xml:space="preserve">
+    <value>Impossibile leggere i valori del modulo.</value>
+  </data>
+  <data name="PendingEdit_NonePending" xml:space="preserve">
+    <value>Nessuna modifica non salvata dell'area di lavoro in sospeso.</value>
+  </data>
+  <data name="PendingEdit_NoneWaiting" xml:space="preserve">
+    <value>Nessuna modifica non salvata dell'area di lavoro è in attesa di una decisione.</value>
+  </data>
+  <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
+    <value>Hai lasciato la modifica di "{0}" con modifiche non salvate. Salvale nelle tue aree di lavoro oppure ignorale.</value>
+  </data>
+  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
+    <value>Scegli app associata</value>
+  </data>
+  <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
+    <value>Esporta aree di lavoro {0}</value>
+  </data>
+  <data name="Dialog_ImportWorkspacesFormat" xml:space="preserve">
+    <value>Importa aree di lavoro {0}</value>
+  </data>
+  <data name="Command_CheckWorkspaceHealth_Name" xml:space="preserve">
+    <value>Controlla stato area di lavoro</value>
+  </data>
+  <data name="Command_ExportWorkspaces_Name" xml:space="preserve">
+    <value>Esporta aree di lavoro</value>
+  </data>
+  <data name="Command_ImportWorkspaces_Name" xml:space="preserve">
+    <value>Importa aree di lavoro</value>
+  </data>
+  <data name="Command_ResetAllWorkspaces_Name" xml:space="preserve">
+    <value>Reimposta tutte le aree di lavoro</value>
+  </data>
+  <data name="Command_MoveUp_Name" xml:space="preserve">
+    <value>Sposta su</value>
+  </data>
+  <data name="Command_MoveDown_Name" xml:space="preserve">
+    <value>Sposta giù</value>
+  </data>
+  <data name="Command_MoveToTop_Name" xml:space="preserve">
+    <value>Sposta in cima</value>
+  </data>
+  <data name="Command_MoveToBottom_Name" xml:space="preserve">
+    <value>Sposta in fondo</value>
+  </data>
+  <data name="Command_Move_Name" xml:space="preserve">
+    <value>Sposta</value>
+  </data>
+  <data name="Command_Favorite_Name" xml:space="preserve">
+    <value>Preferito</value>
+  </data>
+  <data name="Command_Unfavorite_Name" xml:space="preserve">
+    <value>Rimuovi dai preferiti</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>Quell'area di lavoro non è stata trovata.</value>
+  </data>
+  <data name="PathCopiedToClipboard" xml:space="preserve">
+    <value>Percorso copiato negli appunti.</value>
+  </data>
+  <data name="CompanionAppLaunchFailed" xml:space="preserve">
+    <value>Impossibile avviare l'app associata.</value>
+  </data>
+  <data name="DeletedWorkspaceFormat" xml:space="preserve">
+    <value>Area di lavoro '{0}' eliminata.</value>
+  </data>
+  <data name="WorkspaceNotFoundNamedFormat" xml:space="preserve">
+    <value>L'area di lavoro '{0}' non è stata trovata.</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>Esportazione non riuscita: {0}</value>
+  </data>
+  <data name="ExportedWorkspacesFormat" xml:space="preserve">
+    <value>Aree di lavoro esportate in {0}.</value>
+  </data>
+  <data name="ChooseCompanionApp_Title" xml:space="preserve">
+    <value>Scegli app associata</value>
+  </data>
+  <data name="ItemHealth_ChooseFolder" xml:space="preserve">
+    <value>Scegli la cartella dell'area di lavoro · correggi in modifica</value>
+  </data>
+  <data name="ItemHealth_InvalidFolderPath" xml:space="preserve">
+    <value>Percorso cartella non valido · correggi in modifica</value>
+  </data>
+  <data name="ItemHealth_FolderNotFoundFormat" xml:space="preserve">
+    <value>Cartella non trovata · {0}</value>
+  </data>
+  <data name="ItemHealth_InvalidWorkspaceFormat" xml:space="preserve">
+    <value>Area di lavoro non valida · {0}</value>
+  </data>
+  <data name="ItemHealth_CompanionAppMissingFormat" xml:space="preserve">
+    <value>App associata mancante · {0}</value>
+  </data>
+  <data name="CreateNewWorkspace_Title" xml:space="preserve">
+    <value>Crea nuova area di lavoro</value>
+  </data>
+  <data name="CreateNewWorkspace_Subtitle" xml:space="preserve">
+    <value>Directory e comando facoltativo</value>
+  </data>
+  <data name="CompanionApp_Generic_Label" xml:space="preserve">
+    <value>App associata</value>
+  </data>
+  <data name="CompanionApp_PathWarning" xml:space="preserve">
+    <value>Eseguibile non trovato. Scegli un'altra app o imposta la preimpostazione app su Nessuna.</value>
+  </data>
+  <data name="Terminal_DefaultFromSettings_Choice" xml:space="preserve">
+    <value>Predefinito (dalle impostazioni)</value>
+  </data>
+  <data name="Terminal_DefaultProfileSuffixFormat" xml:space="preserve">
+    <value>{0} (profilo predefinito)</value>
+  </data>
+  <data name="TaskType_Frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="TaskType_Database" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="TaskType_Logs" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="ShortcutForm_CreateTitle" xml:space="preserve">
+    <value>Nuova area di lavoro</value>
+  </data>
+  <data name="ShortcutForm_EditTitleFormat" xml:space="preserve">
+    <value>Modifica {0}</value>
+  </data>
+  <data name="ShortcutForm_CreateName" xml:space="preserve">
+    <value>Crea</value>
+  </data>
+  <data name="ShortcutForm_EditName" xml:space="preserve">
+    <value>Modifica</value>
+  </data>
+  <data name="AddLaunch_Toast" xml:space="preserve">
+    <value>Riga di comando aggiunta.</value>
+  </data>
+  <data name="RefreshTerminals_Toast" xml:space="preserve">
+    <value>Elenco terminali aggiornato.</value>
+  </data>
+  <data name="PasteClipboard_NoTextError" xml:space="preserve">
+    <value>Gli appunti non contengono testo da incollare.</value>
+  </data>
+  <data name="DirectoryNotFound_ErrorFormat" xml:space="preserve">
+    <value>Directory non trovata: {0}</value>
+  </data>
+  <data name="FormValues_ReadError" xml:space="preserve">
+    <value>Impossibile leggere i valori del modulo.</value>
+  </data>
+  <data name="TerminalDefaults_PickAppAndProfile_Error" xml:space="preserve">
+    <value>Scegli un'applicazione terminale e un profilo.</value>
+  </data>
+  <data name="TerminalDefaults_ListRefreshed_Status" xml:space="preserve">
+    <value>Elenco terminali aggiornato.</value>
+  </data>
+  <data name="TerminalDefaults_SectionHeader" xml:space="preserve">
+    <value>Impostazioni predefinite terminale</value>
+  </data>
+  <data name="TerminalDefaults_SubtleText" xml:space="preserve">
+    <value>Host e profilo predefiniti per le aree di lavoro impostate su Predefinito. Le modifiche vengono salvate quando scegli un valore.</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Title" xml:space="preserve">
+    <value>Aggiorna elenco terminali</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Tooltip" xml:space="preserve">
+    <value>Ricarica i profili dopo aver installato una shell o modificato le impostazioni di Windows Terminal.</value>
+  </data>
+  <data name="TerminalDefaults_SaveButton_Title" xml:space="preserve">
+    <value>Salva impostazioni predefinite terminale</value>
+  </data>
+  <data name="TerminalDefaults_AppField_Label" xml:space="preserve">
+    <value>Applicazione terminale</value>
+  </data>
+  <data name="TerminalDefaults_ProfileField_Label" xml:space="preserve">
+    <value>Profilo predefinito</value>
+  </data>
+  <data name="HomeDisplay_SectionHeader" xml:space="preserve">
+    <value>Visualizzazione home</value>
+  </data>
+  <data name="ResetWorkspaces_Confirm_Title" xml:space="preserve">
+    <value>Reimpostare tutte le aree di lavoro?</value>
+  </data>
+  <data name="ResetWorkspaces_NoneSavedFormat" xml:space="preserve">
+    <value>Non hai {0} salvate.</value>
+  </data>
+  <data name="ResetWorkspaces_DeleteCountFormat" xml:space="preserve">
+    <value>Questo elimina {0} {1} salvate.</value>
+  </data>
+  <data name="ResetWorkspaces_BackupNoteFormat" xml:space="preserve">
+    <value>{0} Un backup dell'ultimo salvataggio rimane come {1} nella stessa cartella.</value>
+  </data>
+  <data name="ShortcutTransfer_SectionHeader" xml:space="preserve">
+    <value>Backup e trasferimento</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Title" xml:space="preserve">
+    <value>Aree di lavoro</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Description" xml:space="preserve">
+    <value>Esporta, importa o reimposta le cartelle delle aree di lavoro salvate e i preferiti.</value>
+  </data>
+  <data name="ShortcutTransfer_ExportButton_Title" xml:space="preserve">
+    <value>Esporta</value>
+  </data>
+  <data name="ShortcutTransfer_ImportButton_Title" xml:space="preserve">
+    <value>Importa</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Title" xml:space="preserve">
+    <value>Reimposta</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
+    <value>Elimina ogni area di lavoro salvata. Usa Annulla (Ctrl+Z) per ripristinare.</value>
+  </data>
+  <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
+    <value>Importazione in pausa: {0} {1} duplicati in {2} ({3} {4}). Scegli come completare.</value>
+  </data>
+  <data name="ImportConflict_MergeButton_Title" xml:space="preserve">
+    <value>Unisci (rinomina duplicati)</value>
+  </data>
+  <data name="ImportConflict_ReplaceButton_Title" xml:space="preserve">
+    <value>Sostituisci tutte le aree di lavoro</value>
+  </data>
+  <data name="ImportConflict_CancelButton_Title" xml:space="preserve">
+    <value>Annulla importazione</value>
+  </data>
+  <data name="ImportConflict_HelpText" xml:space="preserve">
+    <value>Unisci mantiene tutte le aree di lavoro già presenti e aggiunge il file. I nomi in conflitto vengono rinominati (ad esempio "La mia app (2)"). Sostituisci tutto elimina tutte le aree di lavoro e i preferiti attuali, quindi carica solo ciò che è nel file.</value>
+  </data>
+
+  <data name="ImportConflictPage_Cancelled" xml:space="preserve">
+    <value>Importazione annullata.</value>
+  </data>
+  <data name="ImportConflictPage_Name" xml:space="preserve">
+    <value>Importa</value>
+  </data>
+  <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
+    <value>Nessuna importazione in attesa.</value>
+  </data>
+  <data name="Common_Discard" xml:space="preserve">
+    <value>Ignora</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>Modifica</value>
+  </data>
+  <data name="PendingEdit_ResumeName" xml:space="preserve">
+    <value>Riprendi modifica</value>
+  </data>
+  <data name="Command_Delete_Name" xml:space="preserve">
+    <value>Elimina</value>
+  </data>
+  <data name="DeletedWorkspaceConfirmedFormat" xml:space="preserve">
+    <value>Area di lavoro &#171;{0}&#187; eliminata.</value>
+  </data>
+  <data name="Command_Undo_Name" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="Undo_NothingToUndo" xml:space="preserve">
+    <value>Niente da annullare.</value>
+  </data>
+  <data name="Undo_Confirmation" xml:space="preserve">
+    <value>Ultima modifica annullata.</value>
+  </data>
+  <data name="Command_Redo_Name" xml:space="preserve">
+    <value>Ripristina</value>
+  </data>
+  <data name="Redo_NothingToRedo" xml:space="preserve">
+    <value>Niente da ripristinare.</value>
+  </data>
+  <data name="Redo_Confirmation" xml:space="preserve">
+    <value>Ultima modifica ripristinata.</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Esportazione annullata.</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>Importazione annullata.</value>
+  </data>
+  <data name="Saved_Toast" xml:space="preserve">
+    <value>Salvato</value>
+  </data>
+  <data name="ShortcutDetails_PageTitle" xml:space="preserve">
+    <value>Dettagli area di lavoro</value>
+  </data>
+  <data name="ShortcutDetails_PageName" xml:space="preserve">
+    <value>Modifica</value>
+  </data>
+  <data name="ShortcutDetails_FolderRequired" xml:space="preserve">
+    <value>Il percorso della cartella &#232; obbligatorio.</value>
+  </data>
+  <data name="ShortcutDetails_UpdatedToast" xml:space="preserve">
+    <value>Dettagli area di lavoro aggiornati.</value>
+  </data>
+  <data name="ShortcutDetails_BrowseButton" xml:space="preserve">
+    <value>Sfoglia cartella</value>
+  </data>
+  <data name="ShortcutDetails_PasteButton" xml:space="preserve">
+    <value>Incolla percorso</value>
+  </data>
+  <data name="ShortcutDetails_ApplyButton" xml:space="preserve">
+    <value>Applica</value>
+  </data>
+  <data name="ShortcutDetails_CancelButton" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Title" xml:space="preserve">
+    <value>Crea area di lavoro</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Subtitle" xml:space="preserve">
+    <value>Ctrl+N</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
+    <value>Scopri repository git</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
+    <value>Scansiona le cartelle locali e aggiungile come aree di lavoro</value>
+  </data>
+  <data name="PageActions_Settings_Subtitle" xml:space="preserve">
+    <value>Terminale, importa/esporta, annulla (Ctrl+Z)&#160;/ ripristina (Ctrl+Y)</value>
+  </data>
+  <data name="TaskActions_OpenWorkspace" xml:space="preserve">
+    <value>Apri area di lavoro</value>
+  </data>
+  <data name="TaskActions_RunTaskNormally" xml:space="preserve">
+    <value>Esegui attivit&#224; normalmente</value>
+  </data>
+  <data name="TaskActions_RunTaskAsAdmin" xml:space="preserve">
+    <value>Esegui attivit&#224; come amministratore</value>
+  </data>
+  <data name="CheckWorkspace_NotFound" xml:space="preserve">
+    <value>Area di lavoro non trovata.</value>
+  </data>
+  <data name="ResetProjects_Title" xml:space="preserve">
+    <value>Reimpostare tutte le aree di lavoro?</value>
+  </data>
+  <data name="ImportNoImportPending" xml:space="preserve">
+    <value>Nessuna importazione in sospeso.</value>
+  </data>
+</root>

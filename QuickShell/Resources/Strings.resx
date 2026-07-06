@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search workspaces by name, path, or command...</value>
+  </data>
+  <data name="EmptyState_Title" xml:space="preserve">
+    <value>Create your first workspace</value>
+  </data>
+  <data name="EmptyState_Subtitle" xml:space="preserve">
+    <value>Pick a folder and configure terminal launches</value>
+  </data>
+  <data name="NoMatch_Title" xml:space="preserve">
+    <value>No matching workspaces</value>
+  </data>
+  <data name="NoMatch_Subtitle" xml:space="preserve">
+    <value>Try a different search</value>
+  </data>
+  <data name="SettingsTitleFormat" xml:space="preserve">
+    <value>{0} settings</value>
+  </data>
+  <data name="Menu_OpenInFileExplorer" xml:space="preserve">
+    <value>Open in File Explorer</value>
+  </data>
+  <data name="Menu_CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="Menu_OpenDevServer" xml:space="preserve">
+    <value>Open dev server</value>
+  </data>
+  <data name="Menu_OpenRepository" xml:space="preserve">
+    <value>Open repository</value>
+  </data>
+  <data name="Menu_CreateWorkspace" xml:space="preserve">
+    <value>Create workspace</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="Menu_RunAsAdmin" xml:space="preserve">
+    <value>Run as Admin</value>
+  </data>
+  <data name="Menu_RunNormally" xml:space="preserve">
+    <value>Run normally</value>
+  </data>
+  <data name="Menu_OpenCompanionAppFormat" xml:space="preserve">
+    <value>Open {0}</value>
+  </data>
+  <data name="Section_Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="Section_Workspaces" xml:space="preserve">
+    <value>Workspaces</value>
+  </data>
+  <data name="Tooltip_Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="Tooltip_AlwaysRunAsAdmin" xml:space="preserve">
+    <value>Always run as administrator</value>
+  </data>
+  <data name="Section_NotSavedYet" xml:space="preserve">
+    <value>Not saved yet</value>
+  </data>
+  <data name="Section_AlreadyWorkspaces" xml:space="preserve">
+    <value>Already workspaces</value>
+  </data>
+  <data name="AddAnotherWorkspace" xml:space="preserve">
+    <value>Add another workspace</value>
+  </data>
+  <data name="SavedAsFormat" xml:space="preserve">
+    <value>Saved as {0}</value>
+  </data>
+  <data name="WorkspacesCountFormat" xml:space="preserve">
+    <value>{0} workspaces</value>
+  </data>
+  <data name="RightClickToOpenOrEdit" xml:space="preserve">
+    <value>Right-click to open or edit</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>Open directory</value>
+  </data>
+  <data name="RepairWorkspace" xml:space="preserve">
+    <value>Repair workspace</value>
+  </data>
+  <data name="OpenWorkspace" xml:space="preserve">
+    <value>Open workspace</value>
+  </data>
+  <data name="EditNamedFormat" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="DuplicateWorkspace_Title" xml:space="preserve">
+    <value>Duplicate workspace</value>
+  </data>
+  <data name="Command_Duplicate_Name" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="Discover_Title" xml:space="preserve">
+    <value>Discover git repos</value>
+  </data>
+  <data name="Discover_Name" xml:space="preserve">
+    <value>Discover</value>
+  </data>
+  <data name="Discover_Placeholder" xml:space="preserve">
+    <value>Filter discovered repositories...</value>
+  </data>
+  <data name="Discover_NoReposFound" xml:space="preserve">
+    <value>No git repositories found</value>
+  </data>
+  <data name="Discover_NoMatchingRepos" xml:space="preserve">
+    <value>No matching repositories</value>
+  </data>
+  <data name="Discover_TrySearching" xml:space="preserve">
+    <value>Try searching Projects, dev, or code under your profile folder</value>
+  </data>
+  <data name="ImportConflictPage_Title" xml:space="preserve">
+    <value>Finish importing</value>
+  </data>
+  <data name="ImportConflictPage_Heading" xml:space="preserve">
+    <value>Duplicate names in import file</value>
+  </data>
+  <data name="ImportConflictPage_ChooseOption" xml:space="preserve">
+    <value>Choose an option below to complete the import.</value>
+  </data>
+  <data name="ImportConflictPage_HelpText" xml:space="preserve">
+    <value>Merge keeps your existing items and adds the file; duplicate names are renamed. Replace all deletes every current item of that type and loads only the file.</value>
+  </data>
+  <data name="ImportConflictPage_MergeButton" xml:space="preserve">
+    <value>Merge (rename duplicates)</value>
+  </data>
+  <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
+    <value>Keep your workspaces and add imported ones. Duplicate names become "Name Copy", "Name Copy 2", and so on.</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
+    <value>Replace all</value>
+  </data>
+  <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
+    <value>Delete every workspace you have now (including favorites) and replace them with the imported file only.</value>
+  </data>
+  <data name="ImportConflictPage_CancelButton" xml:space="preserve">
+    <value>Cancel import</value>
+  </data>
+  <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
+    <value>Discard this import file and keep your workspaces unchanged.</value>
+  </data>
+  <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
+    <value>No import is waiting for a decision.</value>
+  </data>
+  <data name="ImportConflictPage_UnableToReadForm" xml:space="preserve">
+    <value>Unable to read form values.</value>
+  </data>
+  <data name="ImportConflictPage_UnknownImportType" xml:space="preserve">
+    <value>Unknown import type.</value>
+  </data>
+  <data name="ImportConflictPage_DescriptionFormat" xml:space="preserve">
+    <value>The file contains {0} duplicate {1} among {2} {3}.</value>
+  </data>
+  <data name="Word_Name_Singular" xml:space="preserve">
+    <value>name</value>
+  </data>
+  <data name="Word_Name_Plural" xml:space="preserve">
+    <value>names</value>
+  </data>
+  <data name="Word_Workspace_Singular" xml:space="preserve">
+    <value>workspace</value>
+  </data>
+  <data name="Word_Workspace_Plural" xml:space="preserve">
+    <value>workspaces</value>
+  </data>
+  <data name="PendingEdit_Title" xml:space="preserve">
+    <value>Unsaved workspace changes</value>
+  </data>
+  <data name="PendingEdit_ValidationNote" xml:space="preserve">
+    <value>Save applies the same validation as the edit form. If required fields are missing, fix them by editing the workspace again.</value>
+  </data>
+  <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
+    <value>Save and close</value>
+  </data>
+  <data name="PendingEdit_Discarded" xml:space="preserve">
+    <value>Discarded unsaved workspace changes.</value>
+  </data>
+  <data name="PendingEdit_UnableToReadForm" xml:space="preserve">
+    <value>Unable to read form values.</value>
+  </data>
+  <data name="PendingEdit_NonePending" xml:space="preserve">
+    <value>No unsaved workspace edit is pending.</value>
+  </data>
+  <data name="PendingEdit_NoneWaiting" xml:space="preserve">
+    <value>No unsaved workspace edit is waiting for a decision.</value>
+  </data>
+  <data name="PendingEdit_LeftEditingFormat" xml:space="preserve">
+    <value>You left editing "{0}" with unsaved changes. Save them to your workspaces, or discard them.</value>
+  </data>
+  <data name="ChooseCompanionApp_DialogTitle" xml:space="preserve">
+    <value>Choose companion app</value>
+  </data>
+  <data name="Dialog_ExportWorkspacesFormat" xml:space="preserve">
+    <value>Export {0} workspaces</value>
+  </data>
+  <data name="Dialog_ImportWorkspacesFormat" xml:space="preserve">
+    <value>Import {0} workspaces</value>
+  </data>
+  <data name="Command_CheckWorkspaceHealth_Name" xml:space="preserve">
+    <value>Check workspace health</value>
+  </data>
+  <data name="Command_ExportWorkspaces_Name" xml:space="preserve">
+    <value>Export workspaces</value>
+  </data>
+  <data name="Command_ImportWorkspaces_Name" xml:space="preserve">
+    <value>Import workspaces</value>
+  </data>
+  <data name="Command_ResetAllWorkspaces_Name" xml:space="preserve">
+    <value>Reset all workspaces</value>
+  </data>
+  <data name="Command_MoveUp_Name" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="Command_MoveDown_Name" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="Command_MoveToTop_Name" xml:space="preserve">
+    <value>Move to top</value>
+  </data>
+  <data name="Command_MoveToBottom_Name" xml:space="preserve">
+    <value>Move to bottom</value>
+  </data>
+  <data name="Command_Move_Name" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Command_Favorite_Name" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="Command_Unfavorite_Name" xml:space="preserve">
+    <value>Unfavorite</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>That workspace was not found.</value>
+  </data>
+  <data name="PathCopiedToClipboard" xml:space="preserve">
+    <value>Path copied to clipboard.</value>
+  </data>
+  <data name="CompanionAppLaunchFailed" xml:space="preserve">
+    <value>Companion app could not be launched.</value>
+  </data>
+  <data name="DeletedWorkspaceFormat" xml:space="preserve">
+    <value>Deleted workspace '{0}'.</value>
+  </data>
+  <data name="WorkspaceNotFoundNamedFormat" xml:space="preserve">
+    <value>Workspace '{0}' was not found.</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="ExportedWorkspacesFormat" xml:space="preserve">
+    <value>Exported workspaces to {0}.</value>
+  </data>
+  <data name="ChooseCompanionApp_Title" xml:space="preserve">
+    <value>Choose companion app</value>
+  </data>
+  <data name="ItemHealth_ChooseFolder" xml:space="preserve">
+    <value>Choose workspace folder · fix in edit</value>
+  </data>
+  <data name="ItemHealth_InvalidFolderPath" xml:space="preserve">
+    <value>Invalid folder path · fix in edit</value>
+  </data>
+  <data name="ItemHealth_FolderNotFoundFormat" xml:space="preserve">
+    <value>Folder not found · {0}</value>
+  </data>
+  <data name="ItemHealth_InvalidWorkspaceFormat" xml:space="preserve">
+    <value>Invalid workspace · {0}</value>
+  </data>
+  <data name="ItemHealth_CompanionAppMissingFormat" xml:space="preserve">
+    <value>Companion app missing · {0}</value>
+  </data>
+  <data name="CreateNewWorkspace_Title" xml:space="preserve">
+    <value>Create new workspace</value>
+  </data>
+  <data name="CreateNewWorkspace_Subtitle" xml:space="preserve">
+    <value>Directory and optional command</value>
+  </data>
+  <data name="CompanionApp_Generic_Label" xml:space="preserve">
+    <value>Companion app</value>
+  </data>
+  <data name="CompanionApp_PathWarning" xml:space="preserve">
+    <value>Executable not found. Choose another app or set App preset to None.</value>
+  </data>
+  <data name="Terminal_DefaultFromSettings_Choice" xml:space="preserve">
+    <value>Default (from settings)</value>
+  </data>
+  <data name="Terminal_DefaultProfileSuffixFormat" xml:space="preserve">
+    <value>{0} (default profile)</value>
+  </data>
+  <data name="TaskType_Frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="TaskType_Database" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="TaskType_Logs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="ShortcutForm_CreateTitle" xml:space="preserve">
+    <value>New workspace</value>
+  </data>
+  <data name="ShortcutForm_EditTitleFormat" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="ShortcutForm_CreateName" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="ShortcutForm_EditName" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="AddLaunch_Toast" xml:space="preserve">
+    <value>Added command row.</value>
+  </data>
+  <data name="RefreshTerminals_Toast" xml:space="preserve">
+    <value>Terminal list refreshed.</value>
+  </data>
+  <data name="PasteClipboard_NoTextError" xml:space="preserve">
+    <value>Clipboard does not contain text to paste.</value>
+  </data>
+  <data name="DirectoryNotFound_ErrorFormat" xml:space="preserve">
+    <value>Directory not found: {0}</value>
+  </data>
+  <data name="FormValues_ReadError" xml:space="preserve">
+    <value>Unable to read form values.</value>
+  </data>
+  <data name="TerminalDefaults_PickAppAndProfile_Error" xml:space="preserve">
+    <value>Pick a terminal application and profile.</value>
+  </data>
+  <data name="TerminalDefaults_ListRefreshed_Status" xml:space="preserve">
+    <value>Terminal list refreshed.</value>
+  </data>
+  <data name="TerminalDefaults_SectionHeader" xml:space="preserve">
+    <value>Terminal defaults</value>
+  </data>
+  <data name="TerminalDefaults_SubtleText" xml:space="preserve">
+    <value>Default host and profile for workspaces set to Default. Changes save when you pick a value.</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Title" xml:space="preserve">
+    <value>Refresh terminal list</value>
+  </data>
+  <data name="TerminalDefaults_RefreshButton_Tooltip" xml:space="preserve">
+    <value>Reload profiles after installing a shell or editing Windows Terminal settings.</value>
+  </data>
+  <data name="TerminalDefaults_SaveButton_Title" xml:space="preserve">
+    <value>Save terminal defaults</value>
+  </data>
+  <data name="TerminalDefaults_AppField_Label" xml:space="preserve">
+    <value>Terminal application</value>
+  </data>
+  <data name="TerminalDefaults_ProfileField_Label" xml:space="preserve">
+    <value>Default profile</value>
+  </data>
+  <data name="HomeDisplay_SectionHeader" xml:space="preserve">
+    <value>Home display</value>
+  </data>
+  <data name="ResetWorkspaces_Confirm_Title" xml:space="preserve">
+    <value>Reset all workspaces?</value>
+  </data>
+  <data name="ResetWorkspaces_NoneSavedFormat" xml:space="preserve">
+    <value>You have no saved {0}.</value>
+  </data>
+  <data name="ResetWorkspaces_DeleteCountFormat" xml:space="preserve">
+    <value>This deletes {0} saved {1}.</value>
+  </data>
+  <data name="ResetWorkspaces_BackupNoteFormat" xml:space="preserve">
+    <value>{0} A backup from your last save remains as {1} in the same folder.</value>
+  </data>
+  <data name="ShortcutTransfer_SectionHeader" xml:space="preserve">
+    <value>Backup &amp; transfer</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Title" xml:space="preserve">
+    <value>Workspaces</value>
+  </data>
+  <data name="ShortcutTransfer_WorkspacesRow_Description" xml:space="preserve">
+    <value>Export, import, or reset saved workspace folders and favorites.</value>
+  </data>
+  <data name="ShortcutTransfer_ExportButton_Title" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="ShortcutTransfer_ImportButton_Title" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Title" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
+    <value>Delete every workspace you have saved. Use Undo (Ctrl+Z) to restore.</value>
+  </data>
+  <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
+    <value>Import paused: {0} duplicate {1} in {2} ({3} {4}). Choose how to finish.</value>
+  </data>
+  <data name="ImportConflict_MergeButton_Title" xml:space="preserve">
+    <value>Merge (rename duplicates)</value>
+  </data>
+  <data name="ImportConflict_ReplaceButton_Title" xml:space="preserve">
+    <value>Replace all workspaces</value>
+  </data>
+  <data name="ImportConflict_CancelButton_Title" xml:space="preserve">
+    <value>Cancel import</value>
+  </data>
+  <data name="ImportConflict_HelpText" xml:space="preserve">
+    <value>Merge keeps every workspace you already have and adds the file. Names that clash are renamed (for example "My App (2)"). Replace all deletes all current workspaces and favorites, then loads only what is in the file.</value>
+  </data>
+  <data name="ImportConflictPage_Name" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="ImportConflictPage_NoImportPending" xml:space="preserve">
+    <value>No import is pending.</value>
+  </data>
+  <data name="ImportConflictPage_Cancelled" xml:space="preserve">
+    <value>Import cancelled.</value>
+  </data>
+  <data name="PendingEdit_ResumeName" xml:space="preserve">
+    <value>Resume edit</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Common_Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="Command_Delete_Name" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DeletedWorkspaceConfirmedFormat" xml:space="preserve">
+    <value>Deleted workspace '{0}'.</value>
+  </data>
+  <data name="Command_Undo_Name" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Undo_NothingToUndo" xml:space="preserve">
+    <value>Nothing to undo.</value>
+  </data>
+  <data name="Undo_Confirmation" xml:space="preserve">
+    <value>Undid the last workspace change.</value>
+  </data>
+  <data name="Command_Redo_Name" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="Redo_NothingToRedo" xml:space="preserve">
+    <value>Nothing to redo.</value>
+  </data>
+  <data name="Redo_Confirmation" xml:space="preserve">
+    <value>Redid the last workspace change.</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Export cancelled.</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>Import cancelled.</value>
+  </data>
+  <data name="Saved_Toast" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="ShortcutDetails_PageTitle" xml:space="preserve">
+    <value>Workspace details</value>
+  </data>
+  <data name="ShortcutDetails_PageName" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="ShortcutDetails_FolderRequired" xml:space="preserve">
+    <value>Folder path is required.</value>
+  </data>
+  <data name="ShortcutDetails_UpdatedToast" xml:space="preserve">
+    <value>Workspace details updated.</value>
+  </data>
+  <data name="ShortcutDetails_BrowseButton" xml:space="preserve">
+    <value>Browse folder</value>
+  </data>
+  <data name="ShortcutDetails_PasteButton" xml:space="preserve">
+    <value>Paste path</value>
+  </data>
+  <data name="ShortcutDetails_ApplyButton" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="ShortcutDetails_CancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Title" xml:space="preserve">
+    <value>Create workspace</value>
+  </data>
+  <data name="PageActions_CreateWorkspace_Subtitle" xml:space="preserve">
+    <value>Ctrl+N</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
+    <value>Discover git repos</value>
+  </data>
+  <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
+    <value>Scan local folders and add as workspaces</value>
+  </data>
+  <data name="PageActions_Settings_Subtitle" xml:space="preserve">
+    <value>Terminal, import/export, undo (Ctrl+Z) / redo (Ctrl+Y)</value>
+  </data>
+  <data name="TaskActions_OpenWorkspace" xml:space="preserve">
+    <value>Open workspace</value>
+  </data>
+  <data name="TaskActions_RunTaskNormally" xml:space="preserve">
+    <value>Run task normally</value>
+  </data>
+  <data name="TaskActions_RunTaskAsAdmin" xml:space="preserve">
+    <value>Run task as Admin</value>
+  </data>
+  <data name="CheckWorkspace_NotFound" xml:space="preserve">
+    <value>That workspace was not found.</value>
+  </data>
+  <data name="ResetProjects_Title" xml:space="preserve">
+    <value>Reset all workspaces?</value>
+  </data>
+  <data name="ImportNoImportPending" xml:space="preserve">
+    <value>No import is pending.</value>
+  </data>
+</root>
