@@ -1,13 +1,22 @@
-import { Action, ActionPanel, Alert, Icon, List, Toast, confirmAlert, open, showToast } from "@raycast/api";
+import { Action, ActionPanel, Alert, Color, Icon, List, confirmAlert, open } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
+import {
+  showHealthFailure,
+  showLaunchFailure,
+  showLaunchSuccess,
+  showStorageFailure,
+} from "./lib/failure-feedback";
+import { executeWorkspaceLaunch } from "./lib/launch-executor";
+import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
+import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import { searchTaskActions, searchWorkspaces } from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
-import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
-import { buildWorkspaceLaunchPlan, formatLaunchPlanSummary } from "./lib/windows-launch";
+import { assessWorkspaceHealth } from "./lib/workspace-health";
+import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 
 type LoadedData = {
   workspaces: Workspace[];
@@ -96,34 +105,37 @@ export default function OpenWorkspaceCommand() {
       return;
     }
 
-    const plan = buildWorkspaceLaunchPlan(
-      launch
-        ? {
-            ...workspace,
-            launches: workspace.launches.map((entry) =>
-              entry.id === launch.id ? { ...entry, isEnabled: true } : { ...entry, isEnabled: false },
-            ),
-          }
-        : workspace,
-      data.settings,
-    );
+    const launchWorkspace = launch
+      ? {
+          ...workspace,
+          launches: workspace.launches.map((entry) =>
+            entry.id === launch.id ? { ...entry, isEnabled: true } : { ...entry, isEnabled: false },
+          ),
+        }
+      : workspace;
 
-    if (plan.errors.length > 0) {
-      await showToast({ style: Toast.Style.Failure, title: "Cannot open workspace", message: plan.errors[0] });
+    const health = assessWorkspaceHealth(launchWorkspace, data.settings);
+    if (!health.ok) {
+      await showHealthFailure(health.issues);
+      return;
+    }
+
+    const plan = buildWorkspaceLaunchPlan(launchWorkspace, data.settings);
+    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec);
+    if (!result.ok) {
+      await showLaunchFailure(result);
       return;
     }
 
     try {
       await storage.markWorkspaceUsed(workspace.id);
       await revalidate();
-      await showToast({
-        style: Toast.Style.Success,
-        title: launch ? `Launching ${launch.label}` : `Opening ${workspace.name}`,
-        message: formatLaunchPlanSummary(plan),
-      });
-    } catch (launchError) {
-      const message = launchError instanceof Error ? launchError.message : "Launch failed.";
-      await showToast({ style: Toast.Style.Failure, title: "Open failed", message });
+      await showLaunchSuccess(
+        launch ? `Launching ${launch.label}` : `Opening ${workspace.name}`,
+        result.summary,
+      );
+    } catch (markError) {
+      await showStorageFailure("Update recent workspaces", markError);
     }
   }
 
@@ -131,13 +143,12 @@ export default function OpenWorkspaceCommand() {
     try {
       await storage.setFavorite(workspace.id, !workspace.isPinned);
       await revalidate();
-      await showToast({
-        style: Toast.Style.Success,
-        title: workspace.isPinned ? "Removed from favorites" : "Added to favorites",
-      });
+      await showLaunchSuccess(
+        workspace.isPinned ? "Removed from favorites" : "Added to favorites",
+        workspace.name,
+      );
     } catch (favoriteError) {
-      const message = favoriteError instanceof Error ? favoriteError.message : "Favorite update failed.";
-      await showToast({ style: Toast.Style.Failure, title: "Favorite failed", message });
+      await showStorageFailure("Favorite update", favoriteError);
     }
   }
 
@@ -145,10 +156,9 @@ export default function OpenWorkspaceCommand() {
     try {
       const duplicate = await storage.duplicateWorkspace(workspace.id);
       await revalidate();
-      await showToast({ style: Toast.Style.Success, title: "Workspace duplicated", message: duplicate.name });
+      await showLaunchSuccess("Workspace duplicated", duplicate.name);
     } catch (duplicateError) {
-      const message = duplicateError instanceof Error ? duplicateError.message : "Duplicate failed.";
-      await showToast({ style: Toast.Style.Failure, title: "Duplicate failed", message });
+      await showStorageFailure("Duplicate workspace", duplicateError);
     }
   }
 
@@ -165,10 +175,9 @@ export default function OpenWorkspaceCommand() {
     try {
       await storage.deleteWorkspace(workspace.id);
       await revalidate();
-      await showToast({ style: Toast.Style.Success, title: "Workspace deleted" });
+      await showLaunchSuccess("Workspace deleted", workspace.name);
     } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Delete failed.";
-      await showToast({ style: Toast.Style.Failure, title: "Delete failed", message });
+      await showStorageFailure("Delete workspace", deleteError);
     }
   }
 
@@ -176,16 +185,23 @@ export default function OpenWorkspaceCommand() {
     try {
       await open(workspace.directory);
     } catch (openError) {
-      const message = openError instanceof Error ? openError.message : "Could not open folder.";
-      await showToast({ style: Toast.Style.Failure, title: "Open folder failed", message });
+      await showStorageFailure("Open folder", openError);
     }
   }
 
   function renderWorkspaceItem({ workspace, launch }: WorkspaceRow) {
+    if (!data) {
+      return null;
+    }
+
     const title = launch ? `${workspace.name} — ${launch.label}` : workspace.name;
+    const health = assessWorkspaceHealth(workspace, data.settings);
     const accessories: List.Item.Accessory[] = [];
     if (workspace.abbreviation) {
       accessories.push({ text: workspace.abbreviation });
+    }
+    if (!health.ok) {
+      accessories.push({ icon: { source: Icon.ExclamationMark, tintColor: Color.Orange }, tooltip: health.issues[0]?.message });
     }
     if (workspace.isPinned) {
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
@@ -195,7 +211,7 @@ export default function OpenWorkspaceCommand() {
       <List.Item
         key={launch ? `${workspace.id}:${launch.id}` : workspace.id}
         title={title}
-        subtitle={workspaceSubtitle(workspace, launch)}
+        subtitle={health.ok ? workspaceSubtitle(workspace, launch) : health.issues[0]?.message}
         icon={workspace.isPinned ? Icon.Star : Icon.Folder}
         accessories={accessories}
         actions={
