@@ -71,7 +71,7 @@ public sealed class WorktreeBranchTests : IDisposable
     [Fact]
     public void WorktreeTargets_PersistAndReloadFromDisk()
     {
-        var repoRoot = Path.Combine(_root, "repo");
+        var repoRoot = Path.Join(_root, "repo");
         Directory.CreateDirectory(repoRoot);
         ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
         Assert.True(WorkspaceGitOperations.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
