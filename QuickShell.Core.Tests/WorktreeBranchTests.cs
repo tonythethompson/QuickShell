@@ -1,5 +1,7 @@
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Text.Json;
+using QuickShell;
 
 namespace QuickShell.Core.Tests;
 
@@ -17,11 +19,13 @@ public sealed class WorktreeBranchTests : IDisposable
         Directory.CreateDirectory(_root);
 
         ResetSeams();
+        LaunchExecutorTestEnvironment.Apply();
     }
 
     public void Dispose()
     {
         ResetSeams();
+        LaunchExecutorTestEnvironment.Reset();
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -64,6 +68,77 @@ public sealed class WorktreeBranchTests : IDisposable
 
         Assert.Equal("main", WorktreeBranchTargetStore.GetTarget(mainKey));
         Assert.Equal("feature/x", WorktreeBranchTargetStore.GetTarget(featureKey));
+    }
+
+    [Fact]
+    public void WorktreeTargets_PersistAndReloadFromDisk()
+    {
+        var repoRoot = Path.Join(_root, "repo");
+        Directory.CreateDirectory(repoRoot);
+        ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
+        Assert.True(WorkspaceGitOperations.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
+
+        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
+        WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorktreeBranchTargetStore.SetTargetOverride = null;
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+        WorktreeBranchTargetStore.ResetForTests();
+
+        WorktreeBranchTargetStore.SetTarget(worktreeKey, "feature/persisted");
+        Assert.True(File.Exists(targetsPath));
+
+        WorktreeBranchTargetStore.ResetForTests();
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+
+        Assert.Equal("feature/persisted", WorktreeBranchTargetStore.GetTarget(worktreeKey));
+    }
+
+    [Fact]
+    public void WorktreeTargets_LoadsLegacyLowercaseTargetsProperty()
+    {
+        var repoRoot = Path.Combine(_root, "repo");
+        Directory.CreateDirectory(repoRoot);
+        ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
+        Assert.True(WorkspaceGitOperations.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
+
+        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
+        var json = JsonSerializer.Serialize(
+            new WorktreeBranchTargetsDocument
+            {
+                Targets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [worktreeKey] = "feature/legacy",
+                },
+            },
+            QuickShellJsonContext.Default.WorktreeBranchTargetsDocument);
+        File.WriteAllText(
+            targetsPath,
+            json.Replace("\"Targets\"", "\"targets\"", StringComparison.Ordinal));
+
+        WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorktreeBranchTargetStore.SetTargetOverride = null;
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+        WorktreeBranchTargetStore.ResetForTests();
+
+        Assert.Equal("feature/legacy", WorktreeBranchTargetStore.GetTarget(worktreeKey));
+    }
+
+    [Fact]
+    public void WorktreeTargets_IgnoresUnreadableTargetFile()
+    {
+        var repoRoot = Path.Combine(_root, "repo");
+        Directory.CreateDirectory(repoRoot);
+        ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
+
+        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
+        File.WriteAllText(targetsPath, "not-json");
+
+        WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorktreeBranchTargetStore.SetTargetOverride = null;
+        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
+        WorktreeBranchTargetStore.ResetForTests();
+
+        Assert.Null(WorktreeBranchTargetStore.GetTargetForDirectory(repoRoot));
     }
 
     [Fact]
@@ -361,6 +436,7 @@ public sealed class WorktreeBranchTests : IDisposable
         WorkspaceGitOperations.GitRunOverride = null;
         WorkspaceGitOperations.GitStatusOverride = null;
         WorktreeBranchTargetStore.ResetForTests();
+        WorktreeBranchTargetStore.FilePathOverride = null;
         WorktreeBranchTargetStore.GetTargetOverride = key =>
             _branchTargets.TryGetValue(key, out var branch) ? branch : null;
         WorktreeBranchTargetStore.SetTargetOverride = (key, branch) =>

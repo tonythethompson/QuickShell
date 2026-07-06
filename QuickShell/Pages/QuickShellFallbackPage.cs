@@ -166,7 +166,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private ListItem BuildShortcutItem(TerminalShortcut shortcut)
     {
         var item = ShortcutListItems.CreateOpen(shortcut, _settings, _onReload);
-        if (ShortcutHealth.NeedsRepair(shortcut))
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return item;
         }

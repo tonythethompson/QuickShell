@@ -4,13 +4,6 @@ namespace QuickShell.Services;
 
 internal static class ShortcutHealth
 {
-    public static bool NeedsRepair(TerminalShortcut shortcut)
-    {
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-
-        return WouldNeedRepair(shortcut);
-    }
-
     public static bool WouldNeedRepair(TerminalShortcut shortcut)
     {
         if (string.IsNullOrWhiteSpace(shortcut.Name) || string.IsNullOrWhiteSpace(shortcut.Directory))
@@ -38,7 +31,7 @@ internal static class ShortcutHealth
 
     public static string GetListGlyph(TerminalShortcut shortcut)
     {
-        if (NeedsRepair(shortcut))
+        if (WouldNeedRepair(shortcut))
         {
             return ShortcutGlyphs.IncidentTriangle;
         }
@@ -53,8 +46,6 @@ internal static class ShortcutHealth
 
     public static string BuildListSubtitle(TerminalShortcut shortcut)
     {
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-
         if (string.IsNullOrWhiteSpace(shortcut.Directory))
         {
             return "Choose workspace folder · fix in edit";
@@ -70,7 +61,8 @@ internal static class ShortcutHealth
             return $"Folder not found · {ShortcutDisplay.ShortenPathForDisplay(shortcut.Directory)}";
         }
 
-        if (!ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out var launchError)
+        if (shortcut.Launches is { Count: > 0 }
+            && !ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out var launchError)
             && !string.IsNullOrWhiteSpace(launchError))
         {
             return $"Invalid workspace · {launchError}";

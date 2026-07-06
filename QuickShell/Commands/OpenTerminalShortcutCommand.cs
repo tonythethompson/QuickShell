@@ -38,7 +38,7 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
     {
         if (runAsStandard)
         {
-            return ShortcutHealth.NeedsRepair(shortcut)
+            return ShortcutHealth.WouldNeedRepair(shortcut)
                 ? ShortcutGlyphs.IncidentTriangle
                 : TerminalLaunchGlyphs.GetForShortcut(shortcut);
         }

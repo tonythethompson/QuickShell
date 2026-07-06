@@ -14,7 +14,7 @@ internal static class ShortcutListItems
         Action? onChanged = null,
         CreateShortcutCommand? createShortcutCommand = null)
     {
-        var needsRepair = ShortcutHealth.NeedsRepair(shortcut);
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
         ICommand primaryCommand = needsRepair
             ? new ShortcutFormPage(shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, settings);

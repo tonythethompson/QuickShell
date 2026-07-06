@@ -1,4 +1,4 @@
-# Quick Shell for CmdPal
+# Quick Shell
 
 **Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) — in one search.**
 
@@ -11,7 +11,13 @@ Save directories you use every day, open them in whichever terminal you actually
 - **Save workspaces** to folders you open often, with optional **home keywords** for fast root search
 - **Any terminal you use** — Windows Terminal, Intelligent Terminal, every profile on your PC, plus WSL and classic shells
 - **Multiple launches per workspace** — run several terminals or commands from one folder (API + frontend, shell + dev server, and so on)
+- **Tabbed multi-launch** — when several launches share the same Windows Terminal host, they open as **tabs in one window** instead of separate windows
 - **Run commands on open** — start dev servers, scripts, or anything else automatically
+- **Quick add commands** — pick a task type (API, Frontend, Services, and so on) and Quick Shell suggests a command based on what's in the folder (`package.json`, `*.csproj`, `docker-compose.yml`, and more)
+- **Repo-aware workspace setup** — creating or discovering a workspace can pre-fill multiple launch rows from the project layout
+- **Task search** — search by launch label or command (e.g. `dev`, `frontend`, `dotnet watch`) from the Command Palette home screen or inside Quick Shell
+- **Git branch targets** — pin a branch per worktree folder; Quick Shell switches before launch and remembers targets across linked worktrees
+- **Workspace health checks** — pre-launch validation, runtime signals (ports in use, matching processes), and status badges on the list
 - **Discover git repos** — scan local folders and add repositories as workspaces
 - **Favorite workspaces** so they stay at the top of your list, with **Recent** and **Workspaces** sections below
 - **Create and edit in Command Palette** — no hand-editing JSON required
@@ -21,6 +27,52 @@ Save directories you use every day, open them in whichever terminal you actually
 - **Open elevated** when you need admin — from the ⋯ menu or with **Ctrl+Enter**
 - **Optional dev server, repo, and companion app links** — open a browser tab or editor when a workspace runs
 - **Search from the root palette** — type a home keyword like `api` and matching workspaces appear without opening the extension first
+
+---
+
+## Workspace health
+
+Before a workspace launches, Quick Shell runs a **health check** and surfaces problems early.
+
+| Signal | What it means |
+| --- | --- |
+| **Blocking errors** | Missing folder, invalid launch, unknown terminal profile, missing executable, or WSL distro — launch is blocked with a clear message |
+| **Warnings** | Dev-server port already in use, or a matching process already running |
+| **Git state** | Current branch and whether the working tree is clean or dirty |
+| **Branch mismatch** | Configured target branch differs from the checked-out branch |
+| **Running** | Port or process heuristics suggest the workspace may already be up |
+
+In the workspace list, badges call out items that need attention (warning icon) or appear to be running (activity icon). Open **⋯** → **Workspace status…** for a full snapshot — launches, git, runtime signals, and attention items — with **Refresh** and **Copy launch diagnostics** after a failed launch.
+
+---
+
+## Git branches and worktrees
+
+Quick Shell understands **git worktrees**: each linked worktree folder gets its own **target branch**, stored in `%LOCALAPPDATA%\QuickShell\worktree-branch-targets.json` (separate from `shortcuts.json`).
+
+- Set a **target branch** in workspace details, or use **⋯** → **Workspace status…** → **Switch branch…**
+- On launch, Quick Shell checks out the target branch when it differs from HEAD
+- **Use current branch** clears the target so launches follow whatever is checked out
+- **Git launch** settings control whether launch is blocked when the tree is **dirty** and a branch switch would be required (on by default)
+
+Need two branches open at once? Use `git worktree add` for a second folder, then save it as its own workspace with its own target.
+
+---
+
+## Quick add commands
+
+When editing a workspace, the **Quick add commands** picker appears for folders Quick Shell recognizes. Choose a task type and a new launch row is inserted with a **project-aware suggestion**:
+
+| Task type | Typical use |
+| --- | --- |
+| **API** | Backend dev server (`dotnet watch`, `uvicorn`, and similar) |
+| **Frontend** | UI dev server (`npm run dev`, Vite, and similar) |
+| **Services** | Databases, Docker Compose stacks, supporting services |
+| **Logs** | Tail or follow log output |
+| **Test** | Test runners |
+| **Build** | Compile or production builds |
+
+Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. When you **create** a workspace or **discover git repos**, Quick Shell can seed multiple launch rows automatically when the project layout is clear.
 
 ---
 
@@ -96,15 +148,15 @@ No JSON required. Pick a folder, optional command, profile, and whether to launc
 
 ![Shortcut editor](QuickShell/Assets/Screenshot_2.png)
 
-### 3. Settings — defaults, backup, import
+### 3. Settings — defaults, backup, import, git launch
 
-Set your default terminal host and profile, export a backup, or import workspaces from another PC. **Merge** keeps yours and adds new names; **Replace all** swaps the whole file.
+Set your default terminal host and profile, configure **git launch** safety (block when dirty + branch switch), export a backup, or import workspaces from another PC. **Merge** keeps yours and adds new names; **Replace all** swaps the whole file.
 
 ![Quick Shell settings](QuickShell/Assets/Screenshot_3.png)
 
 At the top of the list: **Create workspace** (**Ctrl+N**), then **Discover git repos**, then **Quick Shell settings**. You can also open settings from **⋯** → **Quick Shell settings** on any workspace.
 
-Your workspaces are stored in `%LOCALAPPDATA%\QuickShell\shortcuts.json`. The app creates this on first run; you can also manage everything from Command Palette.
+Your workspaces are stored in `%LOCALAPPDATA%\QuickShell\shortcuts.json`. Git branch targets live in `%LOCALAPPDATA%\QuickShell\worktree-branch-targets.json`. The app creates these on first run; you can also manage everything from Command Palette.
 
 > **Tip:** If the extension does not appear, confirm Command Palette is on in PowerToys → Command Palette, then run **Reload Command Palette Extension** again.
 
@@ -117,9 +169,15 @@ Open the **⋯** menu on any workspace (or press **Ctrl+K**) for edit, favorite,
 | What you want | How |
 | --- | --- |
 | Open a saved folder | Search **Quick Shell**, pick a workspace, **Enter** |
+| Run one launch from a multi-launch workspace | **⋯** → pick the launch by label (e.g. **Frontend**, **API**) |
 | Jump straight to a workspace | Type its **home keyword** at the Command Palette home screen (e.g. `api`) |
+| Run a specific task from anywhere | At the Command Palette home screen, search by launch label or command (e.g. `dev`, `dotnet watch`) |
 | Create a workspace | **Create workspace** at the top of the list (**Ctrl+N**), or **⋯** → **Create workspace** |
 | Discover local git repos | **Discover git repos** on the home list |
+| Check workspace health | **⋯** → **Workspace status…** |
+| Set or switch git branch target | Edit workspace details → **Target branch**, or **Workspace status…** → **Switch branch…** |
+| Allow launch on a dirty tree | **Quick Shell settings** → **Git launch** → turn off **Block launch when dirty and branch would change** |
+| Add a suggested command row | In the workspace editor, use **Quick add commands** when shown |
 | Favorite a workspace | **⋯** → **Favorite**, or **Ctrl+F** |
 | Duplicate a workspace | **⋯** → **Duplicate**, or **Ctrl+Shift+D** |
 | Delete a workspace | **⋯** → **Delete**, or **Ctrl+Delete** |
@@ -131,6 +189,7 @@ Open the **⋯** menu on any workspace (or press **Ctrl+K**) for edit, favorite,
 | Change default terminal or profile | Open **Quick Shell settings** (list row or **⋯** on any workspace) |
 | Set how many recents to show | **Quick Shell settings** → **Recent workspaces to show** |
 | Refresh terminal list | **Quick Shell settings** → **Refresh terminal list**, or **↻** in the editor |
+| Copy last launch diagnostics | **⋯** → **Copy launch diagnostics**, or **Quick Shell settings** after a failed launch |
 | Back up or move workspaces | **Quick Shell settings** → **Export workspaces** / **Import workspaces** |
 | Reset all workspaces | **Quick Shell settings** → **Reset all workspaces** (backup `.bak` is kept) |
 | Resolve import conflicts | **Merge** (keep yours, add new, rename duplicates) or **Replace all** (file only) |
@@ -151,6 +210,8 @@ Each workspace is stored in `%LOCALAPPDATA%\QuickShell\shortcuts.json`. The file
 | `Abbreviation` | No | **Home keyword** — type at the Command Palette home screen to jump to this workspace (e.g. `api`). JSON field name stays `Abbreviation`. |
 | `IsPinned` | No | `true` to favorite the workspace (keeps it at the top under **Favorites**) |
 | `RunAsAdmin` | No | `true` to always launch elevated (UAC prompt); also available as a checkbox when editing |
+
+**Target branch** is not stored in `shortcuts.json`. Set it in the workspace editor or **Workspace status…**; Quick Shell persists it in `%LOCALAPPDATA%\QuickShell\worktree-branch-targets.json` keyed by git worktree.
 
 ### Legacy single-launch fields
 
@@ -175,6 +236,7 @@ Preferred for multiple terminals or commands per workspace. Each entry:
 | `RunAsAdmin` | No | `true` to launch this entry elevated |
 | `IsEnabled` | No | `false` to skip this launch (default `true`) |
 | `Order` | No | Sort order when multiple launches are enabled |
+| `TaskType` | No | Task category for the editor and **Quick add commands** picker: `none`, `api`, `frontend`, `services`, `logs`, `test`, or `build` |
 
 ### Optional links and companion app
 
@@ -270,8 +332,6 @@ MIT — see [LICENSE](LICENSE).
 ## Website
 
 [quickshell.trackdub.com](https://quickshell.trackdub.com/) — install steps, getting started, support, and privacy policy.
-
-**Microsoft Store:** [Quick Shell for CmdPal](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`)
 
 **Microsoft Store:** [Quick Shell for CmdPal](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`)
 

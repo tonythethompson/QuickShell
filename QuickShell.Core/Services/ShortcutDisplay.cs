@@ -43,10 +43,8 @@ internal static class ShortcutDisplay
 
     public static string BuildSubtitle(TerminalShortcut shortcut)
     {
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-
         var parts = new List<string> { ShortenPath(shortcut.Directory) };
-        var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
+        var enabledLaunches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         if (enabledLaunches.Count == 1)
         {
             parts.Add(BuildPrimaryLaunchSummary(enabledLaunches[0]));

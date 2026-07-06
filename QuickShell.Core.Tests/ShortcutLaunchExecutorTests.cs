@@ -8,8 +8,19 @@ namespace QuickShell.Core.Tests;
 // because both mutate the process-wide static TerminalLauncher.StartProcessOverride
 // seam, which two test classes running in parallel could otherwise clobber.
 [Collection(TerminalLauncherOverrideCollection.Name)]
-public sealed class ShortcutLaunchExecutorTests
+public sealed class ShortcutLaunchExecutorTests : IDisposable
 {
+    public ShortcutLaunchExecutorTests()
+    {
+        LaunchExecutorTestEnvironment.Apply();
+    }
+
+    public void Dispose()
+    {
+        LaunchExecutorTestEnvironment.Reset();
+        TerminalLauncher.StartProcessOverride = null;
+    }
+
     [Fact]
     public void LaunchAll_ThreeWindowsTerminalEntries_OpenAsSingleProcessWithTabs()
     {

@@ -102,7 +102,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage
 
             if (items.Count == 0)
             {
-                items.Add(new ListItem(new NoOpCommand())
+                if (string.IsNullOrWhiteSpace(query))
                 {
                     Title = string.IsNullOrWhiteSpace(query) ? Strings.Discover_NoReposFound : Strings.Discover_NoMatchingRepos,
                     Subtitle = Strings.Discover_TrySearching,

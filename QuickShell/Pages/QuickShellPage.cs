@@ -237,7 +237,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     {
         var item = ShortcutListItems.CreateOpen(shortcut, _settings, Reload);
 
-        if (ShortcutHealth.NeedsRepair(shortcut))
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return item;
         }

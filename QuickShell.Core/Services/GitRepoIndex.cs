@@ -8,9 +8,58 @@ internal static class GitRepoIndex
     private static IReadOnlyList<GitRepoCandidate> _cache = [];
     private static string _cacheRootKey = string.Empty;
     private static DateTime _refreshedUtc = DateTime.MinValue;
+    private static bool _hasCompletedRefreshForRoot;
     private static RefreshInFlight? _refreshInFlight;
+    private static readonly List<Action> RefreshCompletedHandlers = [];
+    private static readonly object RefreshHandlerSync = new();
 
     internal static Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? DiscoverOverride { get; set; }
+
+    /// <summary>
+    /// CmdPal extension thread captured at provider startup; refresh waiters must run there.
+    /// </summary>
+    internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
+
+    public static bool IsRefreshInFlight
+    {
+        get
+        {
+            lock (Sync)
+            {
+                return _refreshInFlight is not null;
+            }
+        }
+    }
+
+    public static void RunAfterNextRefresh(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        lock (RefreshHandlerSync)
+        {
+            RefreshCompletedHandlers.Add(callback);
+        }
+    }
+
+    public static bool TryRunAfterNextRefreshIfInFlight(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        lock (Sync)
+        {
+            if (_refreshInFlight is null)
+            {
+                return false;
+            }
+
+            lock (RefreshHandlerSync)
+            {
+                RefreshCompletedHandlers.Add(callback);
+            }
+
+            return true;
+        }
+    }
 
     public static IReadOnlyList<GitRepoCandidate> Search(
         string query,
@@ -50,6 +99,7 @@ internal static class GitRepoIndex
             _cache = [];
             _refreshedUtc = DateTime.MinValue;
             _cacheRootKey = string.Empty;
+            _hasCompletedRefreshForRoot = false;
             _refreshInFlight = null;
         });
 
@@ -127,8 +177,13 @@ internal static class GitRepoIndex
             _cache = [];
             _cacheRootKey = string.Empty;
             _refreshedUtc = DateTime.MinValue;
+            _hasCompletedRefreshForRoot = false;
             _refreshInFlight = null;
             DiscoverOverride = null;
+            lock (RefreshHandlerSync)
+            {
+                RefreshCompletedHandlers.Clear();
+            }
         }
     }
 
@@ -142,6 +197,7 @@ internal static class GitRepoIndex
             _cache = cache;
             _cacheRootKey = rootKey;
             _refreshedUtc = refreshedUtc;
+            _hasCompletedRefreshForRoot = true;
             _refreshInFlight = null;
         }
     }
@@ -177,7 +233,7 @@ internal static class GitRepoIndex
     }
 
     private static bool IsCacheFreshLocked(string rootKey) =>
-        _cache.Count > 0
+        _hasCompletedRefreshForRoot
         && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
 
@@ -207,6 +263,7 @@ internal static class GitRepoIndex
 
     private static void CompleteRefresh(RefreshInFlight inFlight, Task<IReadOnlyList<GitRepoCandidate>> task)
     {
+        var shouldNotify = false;
         lock (Sync)
         {
             if (!ReferenceEquals(_refreshInFlight, inFlight))
@@ -214,17 +271,84 @@ internal static class GitRepoIndex
                 return;
             }
 
-            _refreshInFlight = null;
+            shouldNotify = true;
 
-            if (task.IsFaulted || task.IsCanceled)
+            if (!task.IsFaulted && !task.IsCanceled)
+            {
+                _cache = task.Result;
+                _cacheRootKey = inFlight.RootKey;
+                _refreshedUtc = DateTime.UtcNow;
+                _hasCompletedRefreshForRoot = true;
+            }
+
+            _refreshInFlight = null;
+        }
+
+        if (shouldNotify)
+        {
+            NotifyRefreshCompleted();
+        }
+    }
+
+    private static void NotifyRefreshCompleted()
+    {
+        Action[] handlers;
+        lock (RefreshHandlerSync)
+        {
+            if (RefreshCompletedHandlers.Count == 0)
             {
                 return;
             }
 
-            _cache = task.Result;
-            _cacheRootKey = inFlight.RootKey;
-            _refreshedUtc = DateTime.UtcNow;
+            handlers = RefreshCompletedHandlers.ToArray();
+            RefreshCompletedHandlers.Clear();
         }
+
+        foreach (var handler in handlers)
+        {
+            try
+            {
+                RunOnExtensionThread(handler);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not AccessViolationException
+                                       and not AppDomainUnloadedException
+                                       and not BadImageFormatException
+                                       and not CannotUnloadAppDomainException
+                                       and not System.Threading.ThreadAbortException)
+            {
+                // Best effort; UI callbacks should not break cache refresh.
+            }
+        }
+    }
+
+    private static void RunOnExtensionThread(Action action)
+    {
+        var extensionContext = ExtensionSynchronizationContext;
+        if (extensionContext is null || ReferenceEquals(SynchronizationContext.Current, extensionContext))
+        {
+            action();
+            return;
+        }
+
+        extensionContext.Post(static state =>
+        {
+            try
+            {
+                ((Action)state!).Invoke();
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not AccessViolationException
+                                       and not AppDomainUnloadedException
+                                       and not BadImageFormatException
+                                       and not CannotUnloadAppDomainException
+                                       and not System.Threading.ThreadAbortException)
+            {
+                System.Diagnostics.Trace.TraceWarning("Ignored exception in extension-thread callback: {0}", ex);
+            }
+        }, action);
     }
 
     private static string[] SnapshotRoots(IEnumerable<string>? extraRoots) =>

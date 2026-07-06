@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickShell;
 
 namespace QuickShell.Services;
 
@@ -106,58 +107,62 @@ internal static class WorktreeBranchTargetStore
                 return;
             }
 
-            LoadLocked();
-            _loaded = true;
+            if (LoadLocked())
+            {
+                _loaded = true;
+            }
         }
     }
 
-    private static void LoadLocked()
+    private static bool LoadLocked()
     {
         Targets.Clear();
 
         var path = ResolveFilePath();
         if (!File.Exists(path))
         {
-            return;
+            return true;
         }
 
         try
         {
             using var stream = File.OpenRead(path);
-            using var document = JsonDocument.Parse(stream);
-            if (!document.RootElement.TryGetProperty("targets", out var targetsElement)
-                || targetsElement.ValueKind != JsonValueKind.Object)
+            var document = JsonSerializer.Deserialize(
+                stream,
+                QuickShellJsonContext.Default.WorktreeBranchTargetsDocument);
+            if (document?.Targets is not { Count: > 0 } persistedTargets)
             {
-                return;
+                return true;
             }
 
-            foreach (var property in targetsElement.EnumerateObject())
+            foreach (var (worktreeKey, branch) in persistedTargets)
             {
-                if (string.IsNullOrWhiteSpace(property.Name)
-                    || property.Value.ValueKind != JsonValueKind.String)
+                if (string.IsNullOrWhiteSpace(worktreeKey) || string.IsNullOrWhiteSpace(branch))
                 {
                     continue;
                 }
 
-                var branch = property.Value.GetString();
-                if (string.IsNullOrWhiteSpace(branch))
-                {
-                    continue;
-                }
-
-                if (WorkspaceGitOperations.TryNormalizeWorktreeKey(property.Name, out var normalizedKey))
+                if (WorkspaceGitOperations.TryNormalizeWorktreeKey(worktreeKey, out var normalizedKey))
                 {
                     Targets[normalizedKey] = branch.Trim();
                 }
                 else
                 {
-                    Targets[property.Name] = branch.Trim();
+                    Targets[worktreeKey] = branch.Trim();
                 }
             }
+
+            return true;
         }
-        catch
+        catch (IOException)
         {
             Targets.Clear();
+            return false;
+        }
+        catch (Exception ex) when (ex is JsonException or UnauthorizedAccessException)
+        {
+            Targets.Clear();
+            return true;
         }
     }
 
