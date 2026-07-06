@@ -74,7 +74,7 @@ public sealed class WorktreeBranchTests : IDisposable
         ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
         Assert.True(WorkspaceGitOperations.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
 
-        var targetsPath = Path.Combine(_root, "worktree-branch-targets.json");
+        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
         WorktreeBranchTargetStore.GetTargetOverride = null;
         WorktreeBranchTargetStore.SetTargetOverride = null;
         WorktreeBranchTargetStore.FilePathOverride = targetsPath;
