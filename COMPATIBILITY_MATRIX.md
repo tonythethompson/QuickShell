@@ -16,12 +16,12 @@ so a regression is traceable to the release that introduced it.
 | Install route | CmdPal | PowerToys Run | Upgrade behavior | Uninstall behavior |
 |---|---|---|---|---|
 | Microsoft Store | Required (this is the only thing the Store package installs) | Optional — user must separately grab the `QuickShell.Run-*.zip` from GitHub Releases and drop the plugin in manually; Store package does **not** include it | Verify | Verify |
-| WinGet | Required | Required — bundled into the same Inno Setup installer as CmdPal; both register on one install | Verify | Verify |
-| GitHub installer (EXE) | Required | Required — same installer artifact as WinGet (`winget/tonythethompson.QuickShell.installer.yaml` points at the same GitHub Release asset) | Verify | Verify |
+| WinGet `tonythethompson.QuickShell` | Required | Required — bundled into the same Inno Setup installer as CmdPal; both register on one install | Verify | Verify |
+| WinGet `tonythethompson.QuickShellforCmdPal` | Required | Not included — CmdPal-only installer (`QuickShellforCmdPal-Setup-*.exe`), same scope as Store | Verify | Verify |
+| GitHub installer (EXE) | Required | Optional per artifact — bundled `QuickShell-Setup-*.exe` includes Run; `QuickShellforCmdPal-Setup-*.exe` is CmdPal only | Verify | Verify |
 
 Source of truth for the route descriptions: [docs/install.md](docs/install.md).
-WinGet and the GitHub EXE installer are **the same binary** distributed two
-ways, not two independently-built packages — a bug in one is a bug in both.
+WinGet has two package IDs (`tonythethompson.QuickShell` bundled, `tonythethompson.QuickShellforCmdPal` CmdPal-only). GitHub Releases ships both installer variants plus optional Run ZIPs.
 
 ## What "Verify" means, concretely
 
