@@ -75,4 +75,18 @@ describe("storage", () => {
     const loaded = await storage.getWorkspaces();
     expect(loaded[0].lastUsedUtc).toBe("2026-07-06T12:00:00.000Z");
   });
+
+  it("persists settings updates", async () => {
+    const storage = new QuickShellStorage(createMemoryStorageAdapter());
+    await storage.updateSettings({
+      terminalApplication: "conhost",
+      defaultProfile: "pwsh",
+      recentWorkspaceCount: 0,
+    });
+
+    const settings = await storage.getSettings();
+    expect(settings.terminalApplication).toBe("conhost");
+    expect(settings.defaultProfile).toBe("pwsh");
+    expect(settings.recentWorkspaceCount).toBe(0);
+  });
 });

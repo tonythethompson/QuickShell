@@ -83,6 +83,16 @@ function compareAbbreviationMatch(left: Workspace, right: Workspace, range: Quer
   return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
 }
 
+export function hasAbbreviationMatch(workspaces: Workspace[], query: string): boolean {
+  const range = getQueryRange(query);
+  if (!range) {
+    return false;
+  }
+  return workspaces.some((workspace) =>
+    containsText(workspace.abbreviation, range.query, range.start, range.length),
+  );
+}
+
 export function searchWorkspaces(workspaces: Workspace[], query: string): Workspace[] {
   const range = getQueryRange(query);
   if (!range) {
