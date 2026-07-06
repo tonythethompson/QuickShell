@@ -36,4 +36,4 @@ description: "LTM memory operations. Activates when the user asks to resume work
 - Purge all: `python ltm/bin/ltm.py purge-all --confirm`
 - Teardown: `python ltm/bin/ltm.py teardown --confirm`
 
-Read `python_cmd` from `ltm/config.json`.
+Use `python_cmd` from `ltm/config.json` (default: `python`).
