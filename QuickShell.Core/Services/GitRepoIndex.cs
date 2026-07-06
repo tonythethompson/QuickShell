@@ -346,7 +346,7 @@ internal static class GitRepoIndex
                                        and not CannotUnloadAppDomainException
                                        and not System.Threading.ThreadAbortException)
             {
-                System.Diagnostics.Trace.TraceWarning($"Ignored exception in extension-thread callback: {ex}");
+                System.Diagnostics.Trace.TraceWarning("Ignored exception in extension-thread callback: {0}", ex);
             }
         }, action);
     }
