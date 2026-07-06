@@ -125,7 +125,13 @@ internal static class WorktreeBranchTargetStore
         try
         {
             using var stream = File.OpenRead(path);
-            using var jsonDoc = JsonDocument.Parse(stream);
+            using var jsonDoc = JsonDocument.Parse(
+                stream,
+                new JsonDocumentOptions
+                {
+                    AllowTrailingCommas = true,
+                    CommentHandling = JsonCommentHandling.Skip,
+                });
 
             if (!jsonDoc.RootElement.TryGetProperty("Targets", out var targetsElement))
             {
