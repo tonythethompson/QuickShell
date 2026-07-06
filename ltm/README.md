@@ -9,7 +9,7 @@ Project-local memory managed by ltm-power.
 
 If the hook uses an absolute path, review `.kiro/hooks/ltm-postturn-capture.kiro.hook` before committing.
 
-The post-turn hook calls `ltm/bin/run-ltm.py`, which reads `python_cmd` from config before invoking `ltm/bin/ltm.py`. If your bootstrap Python is not `python`, edit the hook command accordingly (for example `py` or `python3`).
+The post-turn hook calls `ltm/bin/run-ltm.py`, which reads `python_cmd` from config before invoking `ltm/bin/ltm.py`. If your bootstrap Python is not `python`, edit the hook command accordingly (for example `py` or `python3`) and update `python_cmd` in `ltm/config.json` to match.
 
 ## Commands
 
