@@ -102,8 +102,6 @@ internal static class Strings
     public static string ItemHealth_CompanionAppMissingFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(ItemHealth_CompanionAppMissingFormat)), arg0);
     public static string CreateNewWorkspace_Title => Get(nameof(CreateNewWorkspace_Title));
     public static string CreateNewWorkspace_Subtitle => Get(nameof(CreateNewWorkspace_Subtitle));
-    public static string CompanionApp_Generic_Label => Get(nameof(CompanionApp_Generic_Label));
-    public static string CompanionApp_PathWarning => Get(nameof(CompanionApp_PathWarning));
     public static string Terminal_DefaultFromSettings_Choice => Get(nameof(Terminal_DefaultFromSettings_Choice));
     public static string Terminal_DefaultProfileSuffixFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(Terminal_DefaultProfileSuffixFormat)), arg0);
     public static string TaskType_Frontend => Get(nameof(TaskType_Frontend));
