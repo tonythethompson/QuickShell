@@ -419,12 +419,41 @@ internal static partial class WorkspaceHealthCheck
                 continue;
             }
 
+            if (!ShouldTreatPortAsRunningSignal(shortcut, port))
+            {
+                continue;
+            }
+
             findings.Add(new WorkspaceHealthFinding(
                 WorkspaceHealthSeverity.Warning,
                 WorkspaceHealthFindingKind.PortInUse,
                 $"Port {port} is already in use.",
                 "The dev server may already be running."));
         }
+    }
+
+    private static bool ShouldTreatPortAsRunningSignal(TerminalShortcut shortcut, int port)
+    {
+        if (shortcut.OpenDevServerOnLaunch
+            && Uri.TryCreate(shortcut.DevServerUrl, UriKind.Absolute, out var uri)
+            && uri.Port == port)
+        {
+            return true;
+        }
+
+        foreach (var launch in ShortcutLaunchNormalization.GetEnabledLaunches(shortcut))
+        {
+            var command = launch.Command ?? string.Empty;
+            foreach (Match match in CommandPortRegex().Matches(command))
+            {
+                if (int.TryParse(match.Groups[1].Value, out var commandPort) && commandPort == port)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static void CheckProcesses(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
@@ -451,6 +480,11 @@ internal static partial class WorkspaceHealthCheck
 
             if (processNames.Contains(processName, StringComparer.OrdinalIgnoreCase))
             {
+                if (!ShouldReportExistingProcess(shortcut, launch, processName))
+                {
+                    continue;
+                }
+
                 findings.Add(new WorkspaceHealthFinding(
                     WorkspaceHealthSeverity.Warning,
                     WorkspaceHealthFindingKind.ExistingProcess,
@@ -522,6 +556,47 @@ internal static partial class WorkspaceHealthCheck
         return Path.GetFileName(token);
     }
 
+    private static bool ShouldReportExistingProcess(
+        TerminalShortcut shortcut,
+        WorkspaceEntry launch,
+        string processName)
+    {
+        if (!IsLikelyGlobalProcessName(processName))
+        {
+            return true;
+        }
+
+        var command = launch.Command ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return false;
+        }
+
+        if (!ShortcutValidation.TryNormalizeDirectory(shortcut.Directory, out var directory, out _))
+        {
+            return false;
+        }
+
+        return command.Contains(directory, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLikelyGlobalProcessName(string processName) =>
+        processName.Equals("node", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("npm", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("npx", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("dotnet", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("python", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("py", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("code", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("cursor", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("pwsh", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("powershell", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("cmd", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("WindowsTerminal", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("wt", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("OpenConsole", StringComparison.OrdinalIgnoreCase)
+        || processName.Equals("conhost", StringComparison.OrdinalIgnoreCase);
+
     private static bool IsGenericShellExecutable(string executable)
     {
         var name = Path.GetFileNameWithoutExtension(executable);
@@ -531,6 +606,9 @@ internal static partial class WorkspaceHealthCheck
             || name.Equals("wsl", StringComparison.OrdinalIgnoreCase)
             || name.Equals("wt", StringComparison.OrdinalIgnoreCase)
             || name.Equals("wtai", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("windowsterminal", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("openconsole", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("conhost", StringComparison.OrdinalIgnoreCase)
             || name.Equals("git", StringComparison.OrdinalIgnoreCase);
     }
 

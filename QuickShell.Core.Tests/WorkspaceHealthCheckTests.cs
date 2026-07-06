@@ -89,6 +89,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
         var shortcut = BuildShortcut(_root);
         shortcut.DevServerUrl = "http://localhost:5173";
+        shortcut.OpenDevServerOnLaunch = true;
 
         var health = WorkspaceHealthCheck.Check(
             shortcut,
@@ -101,10 +102,27 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     }
 
     [Fact]
+    public void Check_PortInUseWithoutOpenDevServer_DoesNotCreateRunningWarning()
+    {
+        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        var shortcut = BuildShortcut(_root);
+        shortcut.DevServerUrl = "http://localhost:5173";
+        shortcut.OpenDevServerOnLaunch = false;
+
+        var health = WorkspaceHealthCheck.Check(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.DoesNotContain(health.Findings, finding => finding.Kind == WorkspaceHealthFindingKind.PortInUse);
+        Assert.False(health.HasRunningSignal);
+    }
+
+    [Fact]
     public void Check_ExistingProcessCreatesRunningWarning()
     {
         WorkspaceHealthCheck.ProcessNamesOverride = () => ["node"];
-        var shortcut = BuildShortcut(_root, "node server.js");
+        var shortcut = BuildShortcut(_root, $"node \"{Path.Combine(_root, "server.js")}\"");
 
         var health = WorkspaceHealthCheck.Check(
             shortcut,
@@ -188,6 +206,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
         var shortcut = BuildShortcut(_root);
         shortcut.DevServerUrl = "http://localhost:5173";
+        shortcut.OpenDevServerOnLaunch = true;
         TerminalLauncher.StartProcessOverride = _ => true;
 
         var result = ShortcutLaunchExecutor.Launch(
@@ -206,6 +225,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
         var shortcut = BuildShortcut(_root, "npm run dev");
         shortcut.DevServerUrl = "http://localhost:5173";
+        shortcut.OpenDevServerOnLaunch = true;
         var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
 
         var tags = ShortcutDisplayTags.BuildTags(
@@ -226,6 +246,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
         var shortcut = BuildShortcut(_root, "npm run dev");
         shortcut.DevServerUrl = "http://localhost:5173";
+        shortcut.OpenDevServerOnLaunch = true;
         shortcut.RunAsAdmin = true;
         shortcut.IsPinned = true;
 

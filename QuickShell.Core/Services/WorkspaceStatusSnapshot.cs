@@ -81,6 +81,16 @@ internal static class WorkspaceStatusService
         string defaultProfileId) =>
         Capture(shortcut, terminalApplicationId, defaultProfileId, forceRefresh: false);
 
+    public static bool TryGetCached(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId,
+        out WorkspaceStatusSnapshot snapshot)
+    {
+        var key = BuildCacheKey(shortcut.Directory, terminalApplicationId, defaultProfileId);
+        return TryGetFresh(key, out snapshot);
+    }
+
     public static WorkspaceStatusSnapshot Capture(
         TerminalShortcut shortcut,
         string terminalApplicationId,

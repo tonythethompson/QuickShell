@@ -6,6 +6,7 @@ internal sealed class QuickShellSettingsReader
 {
     private const string TerminalApplicationSettingId = "terminalApplication";
     private const string DefaultProfileSettingId = "defaultProfile";
+    private const string BlockDirtyBranchSwitchSettingId = "blockDirtyBranchSwitch";
 
     public QuickShellSettingsReader()
     {
@@ -26,14 +27,26 @@ internal sealed class QuickShellSettingsReader
     {
         var app = EnsureValidTerminalApplication(terminalApplicationId);
         var profile = EnsureValidDefaultProfile(app, defaultProfileId);
-        var directory = Path.GetDirectoryName(SettingsPath)!;
-        Directory.CreateDirectory(directory);
-        var recentCount = ReadRecentWorkspaceCount();
-        var json =
-            $$"""{"terminalApplication":"{{EscapeJson(app)}}","defaultProfile":"{{EscapeJson(profile)}}","{{QuickShellRecentSettings.SettingKey}}":"{{QuickShellRecentSettings.FormatCount(recentCount)}}"}""";
-        File.WriteAllText(SettingsPath, json);
+        WriteSettings(settings =>
+        {
+            settings[TerminalApplicationSettingId] = app;
+            settings[DefaultProfileSettingId] = profile;
+        });
         TerminalCatalog.InvalidateCache();
     }
+
+    public bool ReadBlockDirtyBranchSwitch()
+    {
+        var raw = ReadSetting(BlockDirtyBranchSwitchSettingId);
+        return !string.Equals(raw?.Trim(), "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void SaveBlockDirtyBranchSwitch(bool enabled) =>
+        WriteSettings(settings => settings[BlockDirtyBranchSwitchSettingId] = enabled ? "true" : "false");
+
+    public void SaveRecentWorkspaceCount(int count) =>
+        WriteSettings(settings =>
+            settings[QuickShellRecentSettings.SettingKey] = QuickShellRecentSettings.FormatCount(count));
 
     public int ReadRecentWorkspaceCount() => ReadRecentWorkspaceCountFromFile(SettingsPath);
 
@@ -84,6 +97,55 @@ internal sealed class QuickShellSettingsReader
         }
 
         return null;
+    }
+
+    private void WriteSettings(Action<Dictionary<string, string>> mutate)
+    {
+        var settings = LoadSettingsDictionary();
+        mutate(settings);
+        var directory = Path.GetDirectoryName(SettingsPath)!;
+        Directory.CreateDirectory(directory);
+        using var stream = File.Create(SettingsPath);
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+        writer.WriteStartObject();
+        foreach (var entry in settings.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        {
+            writer.WriteString(entry.Key, entry.Value);
+        }
+
+        writer.WriteEndObject();
+    }
+
+    private Dictionary<string, string> LoadSettingsDictionary()
+    {
+        var settings = new Dictionary<string, string>(StringComparer.Ordinal);
+        try
+        {
+            if (!File.Exists(SettingsPath))
+            {
+                return settings;
+            }
+
+            using var stream = File.OpenRead(SettingsPath);
+            using var document = JsonDocument.Parse(stream);
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                settings[property.Name] = property.Value.ValueKind switch
+                {
+                    JsonValueKind.String => property.Value.GetString() ?? string.Empty,
+                    JsonValueKind.Number => property.Value.GetRawText(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    _ => property.Value.GetRawText(),
+                };
+            }
+        }
+        catch
+        {
+            return settings;
+        }
+
+        return settings;
     }
 
     private static string EscapeJson(string value) =>

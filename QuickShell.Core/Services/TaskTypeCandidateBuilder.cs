@@ -72,8 +72,8 @@ internal static class TaskTypeCandidateBuilder
     }
 
     private static void AddCandidate(
-        ICollection<TaskTypeCandidate> candidates,
-        ISet<string> seenCommands,
+        List<TaskTypeCandidate> candidates,
+        HashSet<string> seenCommands,
         string label,
         string command,
         string source,

@@ -20,7 +20,7 @@ internal static class RunWorkspaceSubtitle
         QuickShellSettingsReader settings,
         bool listMode)
     {
-        if (ShortcutHealth.NeedsRepair(shortcut))
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return null;
         }

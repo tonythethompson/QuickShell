@@ -160,6 +160,7 @@ public sealed class WorkspaceStatusSnapshotTests
                 Name = "Sample",
                 Directory = root,
                 DevServerUrl = "http://localhost:5173",
+                OpenDevServerOnLaunch = true,
                 Launches =
                 [
                     new WorkspaceEntry

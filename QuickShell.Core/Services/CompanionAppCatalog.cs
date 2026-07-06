@@ -77,22 +77,28 @@ internal static class CompanionAppCatalog
 
     public static string BuildFormChoicesJson()
     {
-        var choices = new List<object>
+        return JsonSerializer.Serialize(
+            GetInstalledFormChoices()
+                .Select(choice => new { title = choice.Title, value = choice.Id }));
+    }
+
+    public static IReadOnlyList<(string Id, string Title)> GetInstalledFormChoices()
+    {
+        var choices = new List<(string Id, string Title)>
         {
-            new { title = FormChoiceTitleNone, value = PresetNone },
+            (PresetNone, FormChoiceTitleNone),
         };
 
         foreach (var definition in Definitions)
         {
             if (IsPresetInstalled(definition.Id))
             {
-                choices.Add(new { title = definition.Title, value = definition.Id });
+                choices.Add((definition.Id, definition.Title));
             }
         }
 
-        choices.Add(new { title = FormChoiceTitleCustom, value = PresetCustom });
-
-        return JsonSerializer.Serialize(choices);
+        choices.Add((PresetCustom, FormChoiceTitleCustom));
+        return choices;
     }
 
     /// <summary>
