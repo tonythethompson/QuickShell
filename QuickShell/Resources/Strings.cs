@@ -5,7 +5,7 @@ namespace QuickShell.Services;
 
 internal static class Strings
 {
-    private static readonly ResourceManager Rm = new("QuickShell.Resources.Strings", typeof(Strings).Assembly);
+    private static readonly ResourceManager Rm = new("QuickShell.Services.Strings", typeof(Strings).Assembly);
 
     private static string Get(string key) => Rm.GetString(key, CultureInfo.CurrentUICulture) ?? key;
 
