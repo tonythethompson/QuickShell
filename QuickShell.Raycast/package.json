@@ -8,6 +8,9 @@
   "platforms": ["Windows"],
   "categories": ["Developer Tools", "Productivity"],
   "license": "MIT",
+  "engines": {
+    "node": ">=22.14.0"
+  },
   "commands": [
     {
       "name": "open-workspace",
@@ -60,6 +63,8 @@
     "vitest": "^3.0.8"
   },
   "scripts": {
+    "predev": "node scripts/verify-raycast-cli.js",
+    "prebuild": "node scripts/verify-raycast-cli.js",
     "build": "ray build",
     "dev": "ray develop",
     "lint": "ray lint",
