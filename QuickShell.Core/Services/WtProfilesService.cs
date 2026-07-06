@@ -155,7 +155,7 @@ internal static class WtProfilesService
 
     private static void RefreshCacheIfNeeded()
     {
-        var forceRefresh = _cached.Length == 0;
+        var forceRefresh = _cached.Length == 0 && _writeTimes.Count == 0 && _profilesBySettingsPath.Count == 0;
         var sawChanges = forceRefresh;
         var locations = GetLocations();
         var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
