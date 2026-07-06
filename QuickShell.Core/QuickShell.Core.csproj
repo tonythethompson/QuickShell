@@ -16,8 +16,4 @@
     <InternalsVisibleTo Include="QuickShell.Core.Tests" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
-
 </Project>

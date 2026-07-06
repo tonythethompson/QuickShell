@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+
+PackageIdentifier: tonythethompson.QuickShellforCmdPal
+PackageVersion: 0.2.0.0
+MinimumOSVersion: 10.0.19041.0
+InstallerType: inno
+Scope: user
+InstallModes:
+- interactive
+- silent
+- silentWithProgress
+InstallerSwitches:
+  Silent: /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+  SilentWithProgress: /SILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+AppsAndFeaturesEntries:
+- DisplayName: Quick Shell for CmdPal
+  Publisher: Tony Thompson
+  ProductCode: '{8C4E2F91-6B3D-4A5E-9F1C-2D7E8A0B4C6D}}_is1'
+InstallationMetadata:
+  DefaultInstallLocation: '%LOCALAPPDATA%\Programs\QuickShell'
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/tonythethompson/QuickShell/releases/download/v0.2.0.0/QuickShellforCmdPal-Setup-0.2.0.0-x64.exe
+  InstallerSha256: PLACEHOLDER_UPDATE_ON_RELEASE
+- Architecture: arm64
+  InstallerUrl: https://github.com/tonythethompson/QuickShell/releases/download/v0.2.0.0/QuickShellforCmdPal-Setup-0.2.0.0-arm64.exe
+  InstallerSha256: PLACEHOLDER_UPDATE_ON_RELEASE
+ManifestType: installer
+ManifestVersion: 1.9.0
+ReleaseDate: 2026-07-03

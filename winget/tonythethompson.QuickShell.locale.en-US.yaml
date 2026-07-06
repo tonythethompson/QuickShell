@@ -10,15 +10,18 @@ PackageName: Quick Shell
 PackageUrl: https://github.com/tonythethompson/QuickShell
 License: MIT
 LicenseUrl: https://github.com/tonythethompson/QuickShell/blob/master/LICENSE
-ShortDescription: Open saved folders in any terminal from PowerToys Command Palette
+ShortDescription: Open saved folders in any terminal from PowerToys Command Palette and Run
 Description: |
   Quick Shell is a PowerToys Command Palette extension that saves project folders
-  and opens them in the terminal you already use — every Windows Terminal profile
+  and opens them in the terminal you already use: every Windows Terminal profile
   (including custom installs), WSL, PowerShell, cmd, and more. Optionally run a
   command when the folder opens.
 
-  After installing, open PowerToys Command Palette and run "Reload Command Palette Extension".
-  For full Command Palette integration, MSIX install via scripts/deploy.ps1 is recommended.
+  This WinGet package also installs the PowerToys Run plugin (`qs`). For
+  Command Palette only, use tonythethompson.QuickShellforCmdPal instead.
+
+  After installing, open PowerToys Command Palette and run
+  "Reload Command Palette Extension".
 Tags:
 - command-palette
 - commandline
