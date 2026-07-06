@@ -47,6 +47,29 @@ public sealed class TerminalCatalogChoicesTests
     }
 
     [Fact]
+    public void NormalizeShortcut_PreservesSameAsPreviousTerminal()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Label = "Test",
+                    Command = "npm test",
+                    Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId,
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        };
+
+        ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
+
+        Assert.Equal(TerminalCatalog.SameAsPreviousLaunchTargetId, shortcut.Launches[0].Terminal);
+    }
+
+    [Fact]
     public void GetProfileLabel_StandalonePwsh_ReturnsPowerShell7()
     {
         var shortcut = new TerminalShortcut { Terminal = "pwsh" };

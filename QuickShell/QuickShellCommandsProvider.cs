@@ -5,6 +5,7 @@ using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Pages.Dev;
 using QuickShell.Services;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuickShell;
@@ -25,6 +26,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public QuickShellCommandsProvider()
     {
+        GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {

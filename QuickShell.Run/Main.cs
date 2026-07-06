@@ -184,7 +184,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             return [];
         }
 
-        if (ShortcutHealth.NeedsRepair(shortcut))
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             var repairMenus = new List<ContextMenuResult>
             {
@@ -382,7 +382,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private Result CreateShortcutResult(TerminalShortcut shortcut, string search, bool directActivationBrowse)
     {
-        var needsRepair = ShortcutHealth.NeedsRepair(shortcut);
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
         var result = new Result
         {
             Title = shortcut.Name,

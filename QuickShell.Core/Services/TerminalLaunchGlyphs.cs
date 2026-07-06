@@ -6,8 +6,7 @@ internal static class TerminalLaunchGlyphs
 {
     public static string GetForShortcut(TerminalShortcut shortcut)
     {
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-        var launches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
+        var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         return launches.Count == 0 ? ShortcutGlyphs.NewWindow : GetForLaunch(launches[0]);
     }
 
