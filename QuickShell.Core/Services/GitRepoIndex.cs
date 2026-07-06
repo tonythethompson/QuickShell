@@ -301,7 +301,13 @@ internal static class GitRepoIndex
             {
                 handler();
             }
-            catch (Exception)
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not AccessViolationException
+                                       and not AppDomainUnloadedException
+                                       and not BadImageFormatException
+                                       and not CannotUnloadAppDomainException
+                                       and not System.Threading.ThreadAbortException)
             {
                 // Best effort; UI callbacks should not break cache refresh.
             }
