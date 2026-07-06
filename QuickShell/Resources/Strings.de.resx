@@ -127,19 +127,19 @@
     <value>Duplizieren</value>
   </data>
   <data name="Discover_Title" xml:space="preserve">
-    <value>Git-Repositorys entdecken</value>
+    <value>Git-Repositories entdecken</value>
   </data>
   <data name="Discover_Name" xml:space="preserve">
     <value>Entdecken</value>
   </data>
   <data name="Discover_Placeholder" xml:space="preserve">
-    <value>Gefundene Repositorys filtern …</value>
+    <value>Gefundene Repositories filtern …</value>
   </data>
   <data name="Discover_NoReposFound" xml:space="preserve">
-    <value>Keine Git-Repositorys gefunden</value>
+    <value>Keine Git-Repositories gefunden</value>
   </data>
   <data name="Discover_NoMatchingRepos" xml:space="preserve">
-    <value>Keine passenden Repositorys</value>
+    <value>Keine passenden Repositories</value>
   </data>
   <data name="Discover_TrySearching" xml:space="preserve">
     <value>Versuchen Sie, unter Ihrem Profilordner nach Projects, dev oder code zu suchen</value>
@@ -518,7 +518,7 @@
     <value>Ctrl+N</value>
   </data>
   <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
-    <value>Git-Repos entdecken</value>
+    <value>Git-Repositories entdecken</value>
   </data>
   <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
     <value>Lokale Ordner scannen und als Arbeitsbereiche hinzuf&#252;gen</value>

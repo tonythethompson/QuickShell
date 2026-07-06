@@ -518,7 +518,7 @@
     <value>Ctrl+N</value>
   </data>
   <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
-    <value>探索 Git 存放庫</value>
+    <value>探索 Git 儲存庫</value>
   </data>
   <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
     <value>掃描本機資料夾並新增為工作區</value>

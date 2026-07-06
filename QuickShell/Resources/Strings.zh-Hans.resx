@@ -518,7 +518,7 @@
     <value>Ctrl+N</value>
   </data>
   <data name="PageActions_DiscoverRepos_Title" xml:space="preserve">
-    <value>发现 Git 存储库</value>
+    <value>发现 Git 仓库</value>
   </data>
   <data name="PageActions_DiscoverRepos_Subtitle" xml:space="preserve">
     <value>扫描本地文件夹并添加为工作区</value>

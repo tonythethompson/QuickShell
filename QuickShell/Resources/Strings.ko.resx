@@ -31,16 +31,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="SearchPlaceholder" xml:space="preserve">
-    <value>이름, 경로 또는 명령으로 작업 영역 검색…</value>
+    <value>이름, 경로 또는 명령으로 작업 공간 검색…</value>
   </data>
   <data name="EmptyState_Title" xml:space="preserve">
-    <value>첫 작업 영역 만들기</value>
+    <value>첫 작업 공간 만들기</value>
   </data>
   <data name="EmptyState_Subtitle" xml:space="preserve">
     <value>폴더를 선택하고 터미널 실행을 구성하세요</value>
   </data>
   <data name="NoMatch_Title" xml:space="preserve">
-    <value>일치하는 작업 영역이 없습니다</value>
+    <value>일치하는 작업 공간이 없습니다</value>
   </data>
   <data name="NoMatch_Subtitle" xml:space="preserve">
     <value>다른 검색어를 시도해 보세요</value>
@@ -61,7 +61,7 @@
     <value>저장소 열기</value>
   </data>
   <data name="Menu_CreateWorkspace" xml:space="preserve">
-    <value>작업 영역 만들기</value>
+    <value>작업 공간 만들기</value>
   </data>
   <data name="Menu_Undo" xml:space="preserve">
     <value>실행 취소</value>
@@ -82,7 +82,7 @@
     <value>즐겨찾기</value>
   </data>
   <data name="Section_Workspaces" xml:space="preserve">
-    <value>작업 영역</value>
+    <value>작업 공간</value>
   </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>즐겨찾기</value>
@@ -94,16 +94,16 @@
     <value>아직 저장되지 않음</value>
   </data>
   <data name="Section_AlreadyWorkspaces" xml:space="preserve">
-    <value>이미 작업 영역임</value>
+    <value>이미 작업 공간임</value>
   </data>
   <data name="AddAnotherWorkspace" xml:space="preserve">
-    <value>다른 작업 영역 추가</value>
+    <value>다른 작업 공간 추가</value>
   </data>
   <data name="SavedAsFormat" xml:space="preserve">
     <value>{0}(으)로 저장됨</value>
   </data>
   <data name="WorkspacesCountFormat" xml:space="preserve">
-    <value>작업 영역 {0}개</value>
+    <value>작업 공간 {0}개</value>
   </data>
   <data name="RightClickToOpenOrEdit" xml:space="preserve">
     <value>마우스 오른쪽 버튼을 클릭하여 열거나 편집</value>
@@ -112,16 +112,16 @@
     <value>디렉터리 열기</value>
   </data>
   <data name="RepairWorkspace" xml:space="preserve">
-    <value>작업 영역 복구</value>
+    <value>작업 공간 복구</value>
   </data>
   <data name="OpenWorkspace" xml:space="preserve">
-    <value>작업 영역 열기</value>
+    <value>작업 공간 열기</value>
   </data>
   <data name="EditNamedFormat" xml:space="preserve">
     <value>{0} 편집</value>
   </data>
   <data name="DuplicateWorkspace_Title" xml:space="preserve">
-    <value>작업 영역 복제</value>
+    <value>작업 공간 복제</value>
   </data>
   <data name="Command_Duplicate_Name" xml:space="preserve">
     <value>복제</value>
@@ -160,19 +160,19 @@
     <value>병합(중복 항목 이름 변경)</value>
   </data>
   <data name="ImportConflictPage_MergeTooltip" xml:space="preserve">
-    <value>기존 작업 영역을 유지하면서 가져온 항목을 추가합니다. 중복된 이름은 '이름 사본', '이름 사본 2' 등으로 변경됩니다.</value>
+    <value>기존 작업 공간을 유지하면서 가져온 항목을 추가합니다. 중복된 이름은 '이름 사본', '이름 사본 2' 등으로 변경됩니다.</value>
   </data>
   <data name="ImportConflictPage_ReplaceButton" xml:space="preserve">
     <value>모두 바꾸기</value>
   </data>
   <data name="ImportConflictPage_ReplaceTooltip" xml:space="preserve">
-    <value>현재 있는 모든 작업 영역(즐겨찾기 포함)을 삭제하고 가져온 파일로만 바꿉니다.</value>
+    <value>현재 있는 모든 작업 공간(즐겨찾기 포함)을 삭제하고 가져온 파일로만 바꿉니다.</value>
   </data>
   <data name="ImportConflictPage_CancelButton" xml:space="preserve">
     <value>가져오기 취소</value>
   </data>
   <data name="ImportConflictPage_CancelTooltip" xml:space="preserve">
-    <value>이 가져오기 파일을 취소하고 작업 영역을 변경하지 않고 유지합니다.</value>
+    <value>이 가져오기 파일을 취소하고 작업 공간을 변경하지 않고 유지합니다.</value>
   </data>
   <data name="ImportConflictPage_NoneWaiting" xml:space="preserve">
     <value>결정을 기다리는 가져오기가 없습니다.</value>
@@ -193,16 +193,16 @@
     <value>이름</value>
   </data>
   <data name="Word_Workspace_Singular" xml:space="preserve">
-    <value>작업 영역</value>
+    <value>작업 공간</value>
   </data>
   <data name="Word_Workspace_Plural" xml:space="preserve">
-    <value>작업 영역</value>
+    <value>작업 공간</value>
   </data>
   <data name="PendingEdit_Title" xml:space="preserve">
     <value>저장되지 않은 작업 영역 변경 사항</value>
   </data>
   <data name="PendingEdit_ValidationNote" xml:space="preserve">
-    <value>저장 시 편집 양식과 동일한 유효성 검사가 적용됩니다. 필수 필드가 누락된 경우 작업 영역을 다시 편집하여 수정하세요.</value>
+    <value>저장 시 편집 양식과 동일한 유효성 검사가 적용됩니다. 필수 필드가 누락된 경우 작업 공간을 다시 편집하여 수정하세요.</value>
   </data>
   <data name="PendingEdit_SaveAndCloseButton" xml:space="preserve">
     <value>저장하고 닫기</value>
