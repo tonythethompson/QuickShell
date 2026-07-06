@@ -13,7 +13,7 @@ The post-turn hook calls `ltm/bin/run-ltm.py`, which reads `python_cmd` from con
 
 ## Commands
 
-Use `python_cmd` from `ltm/config.json` (default: `python`).
+Use `python_cmd` from `ltm/config.json` (default: `python`); replace `python` in the commands below with your configured value.
 
 - `python ltm/bin/ltm.py files --limit 10`
 - `python ltm/bin/ltm.py health`
