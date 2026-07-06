@@ -170,8 +170,9 @@ internal static class WorktreeBranchTargetStore
         {
             Targets.Clear();
         }
-        catch
+        catch (Exception)
         {
+            Targets.Clear();
         }
     }
 
