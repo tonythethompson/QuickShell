@@ -12,7 +12,7 @@ import { executeWorkspaceLaunch } from "./lib/launch-executor";
 import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
-import { searchTaskActions, searchWorkspaces } from "./lib/search";
+import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
 import { assessWorkspaceHealth } from "./lib/workspace-health";
@@ -77,6 +77,12 @@ export default function OpenWorkspaceCommand() {
       }
 
       return groups;
+    }
+
+    if (hasAbbreviationMatch(data.workspaces, query)) {
+      const abbreviationMatches = searchWorkspaces(data.workspaces, query);
+      const ranked = buildSearchResults(abbreviationMatches, query);
+      return [{ rows: ranked.map((workspace) => ({ workspace })) }];
     }
 
     const taskActions = searchTaskActions(data.workspaces, query);

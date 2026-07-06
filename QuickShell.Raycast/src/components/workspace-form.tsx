@@ -1,17 +1,20 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useMemo, useState } from "react";
 import { getQuickShellStorage } from "../lib/raycast-storage";
+import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/directory-helpers";
 import { showStorageFailure, showWorkspaceValidationFailure } from "../lib/failure-feedback";
+import { createStableId } from "../lib/ids";
+import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
 import type { Workspace } from "../lib/schema";
 import {
-  TERMINAL_APPLICATION_CHOICES,
-  WORKSPACE_TERMINAL_CHOICES,
-  getWorkspaceProfileChoices,
-} from "../lib/terminal-options";
-import { createStableId } from "../lib/ids";
+  choiceForTerminalState,
+  discoverWorkspaceTerminalChoices,
+} from "../lib/terminal-catalog";
+import { TERMINAL_APPLICATION_CHOICES } from "../lib/terminal-options";
 import {
-  additionalLaunchCount,
   buildWorkspaceFromFormState,
+  launchRowsFromSuggestions,
+  type LaunchFormRow,
   workspaceFormStateFromWorkspace,
 } from "../lib/workspace-form-state";
 import { normalizeWorkspace, validateWorkspace } from "../lib/validation";
@@ -26,36 +29,94 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
   const initialState = workspaceFormStateFromWorkspace(initialWorkspace);
+  const terminalChoices = useMemo(() => discoverWorkspaceTerminalChoices(), []);
+
   const [name, setName] = useState(initialState.name);
   const [abbreviation, setAbbreviation] = useState(initialState.abbreviation);
   const [directory, setDirectory] = useState(initialState.directory);
-  const [terminal, setTerminal] = useState(initialState.terminal);
-  const [wtProfile, setWtProfile] = useState(initialState.wtProfile);
-  const [command, setCommand] = useState(initialState.command);
+  const [terminalChoiceId, setTerminalChoiceId] = useState(
+    choiceForTerminalState(initialState.terminal, initialState.wtProfile, terminalChoices),
+  );
   const [isPinned, setIsPinned] = useState(initialState.isPinned);
   const [runAsAdmin, setRunAsAdmin] = useState(initialState.runAsAdmin);
-  const [launchLabel, setLaunchLabel] = useState(initialState.launchLabel);
+  const [launches, setLaunches] = useState<LaunchFormRow[]>(initialState.launches);
+  const [nameCustomized, setNameCustomized] = useState(mode === "edit" && Boolean(initialState.name));
+  const [abbreviationCustomized, setAbbreviationCustomized] = useState(
+    mode === "edit" && Boolean(initialState.abbreviation),
+  );
+  const [commandsCustomized, setCommandsCustomized] = useState(
+    mode === "edit" && initialState.launches.some((launch) => launch.command.trim()),
+  );
 
-  const profileChoices = useMemo(() => getWorkspaceProfileChoices(terminal), [terminal]);
-  const showProfileField = profileChoices.length > 0;
-  const extraLaunches = mode === "edit" ? additionalLaunchCount(initialWorkspace) : 0;
+  const selectedTerminal = terminalChoices.find((choice) => choice.id === terminalChoiceId) ?? terminalChoices[0];
+
+  function applyDirectorySuggestions(nextDirectory: string) {
+    if (!nameCustomized && nextDirectory.trim()) {
+      const derivedName = deriveNameFromDirectory(nextDirectory);
+      setName(derivedName);
+      if (!abbreviationCustomized && derivedName) {
+        setAbbreviation(deriveAbbreviationFromName(derivedName));
+      }
+    }
+
+    if (!commandsCustomized && nextDirectory.trim()) {
+      const suggestions = buildProjectSetupSuggestions(nextDirectory);
+      if (suggestions.length > 0) {
+        setLaunches(launchRowsFromSuggestions(suggestions, selectedTerminal?.terminal ?? "default"));
+      }
+    }
+  }
+
+  function handleDirectoryChange(paths: string[]) {
+    const nextDirectory = paths[0] ?? "";
+    setDirectory(nextDirectory);
+    applyDirectorySuggestions(nextDirectory);
+  }
+
+  function updateLaunch(index: number, patch: Partial<LaunchFormRow>) {
+    setCommandsCustomized(true);
+    setLaunches((current) =>
+      current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function addLaunchRow() {
+    setCommandsCustomized(true);
+    setLaunches((current) => [
+      ...current,
+      {
+        id: createStableId(),
+        command: "",
+        terminal: selectedTerminal?.terminal ?? "default",
+        wtProfile: selectedTerminal?.wtProfile ?? null,
+        runAsAdmin,
+        isEnabled: true,
+        label: `Launch ${current.length + 1}`,
+      },
+    ]);
+  }
+
+  function removeLaunchRow(index: number) {
+    setCommandsCustomized(true);
+    setLaunches((current) => {
+      if (current.length <= 1) {
+        return current;
+      }
+      return current.filter((_, rowIndex) => rowIndex !== index);
+    });
+  }
 
   function buildWorkspace(): Workspace {
-    return buildWorkspaceFromFormState(
-      initialWorkspace,
-      {
-        name,
-        abbreviation,
-        directory,
-        terminal,
-        wtProfile,
-        command,
-        isPinned,
-        runAsAdmin,
-        launchLabel,
-      },
-      { showProfileField },
-    );
+    return buildWorkspaceFromFormState(initialWorkspace, {
+      name,
+      abbreviation,
+      directory,
+      terminal: selectedTerminal?.terminal ?? "default",
+      wtProfile: selectedTerminal?.wtProfile ?? null,
+      isPinned,
+      runAsAdmin,
+      launches,
+    });
   }
 
   async function handleSave() {
@@ -80,8 +141,20 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
         setName("");
         setAbbreviation("");
         setDirectory("");
-        setCommand("");
-        setLaunchLabel("Launch");
+        setLaunches([
+          {
+            id: createStableId(),
+            command: "",
+            terminal: "default",
+            wtProfile: null,
+            runAsAdmin: false,
+            isEnabled: true,
+            label: "Launch",
+          },
+        ]);
+        setNameCustomized(false);
+        setAbbreviationCustomized(false);
+        setCommandsCustomized(false);
         setIsPinned(false);
         setRunAsAdmin(false);
       }
@@ -99,67 +172,81 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
             icon={Icon.Check}
             onAction={handleSave}
           />
+          <Action title="Add Command" icon={Icon.Plus} onAction={addLaunchRow} />
+          {launches.length > 1 ? (
+            <ActionPanel.Section title="Remove command">
+              {launches.map((launch, index) => (
+                <Action
+                  key={`remove-${launch.id}`}
+                  title={`Remove Command ${index + 1}`}
+                  icon={Icon.Minus}
+                  onAction={() => removeLaunchRow(index)}
+                />
+              ))}
+            </ActionPanel.Section>
+          ) : null}
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Name" value={name} onChange={setName} autoFocus />
-      <Form.TextField
-        id="abbreviation"
-        title="Abbreviation"
-        value={abbreviation}
-        onChange={setAbbreviation}
-        placeholder="api"
-      />
       <Form.FilePicker
         id="directory"
         title="Directory"
         value={directory ? [directory] : []}
-        onChange={(paths) => setDirectory(paths[0] ?? "")}
+        onChange={handleDirectoryChange}
         canChooseDirectories
         canChooseFiles={false}
       />
       <Form.TextField
-        id="launchLabel"
-        title="Launch Label"
-        value={launchLabel}
-        onChange={setLaunchLabel}
-        placeholder="Web"
+        id="name"
+        title="Name"
+        value={name}
+        onChange={(value) => {
+          setNameCustomized(true);
+          setName(value);
+        }}
       />
-      <Form.Dropdown id="terminal" title="Terminal" value={terminal} onChange={setTerminal}>
-        {WORKSPACE_TERMINAL_CHOICES.map((choice) => (
+      <Form.TextField
+        id="abbreviation"
+        title="Home keyword"
+        info="Type this in Open Workspace for a fast match (for example: home, api, fe)."
+        value={abbreviation}
+        onChange={(value) => {
+          setAbbreviationCustomized(true);
+          setAbbreviation(value);
+        }}
+        placeholder="home"
+      />
+      <Form.Dropdown
+        id="terminal"
+        title="Terminal"
+        value={terminalChoiceId}
+        onChange={setTerminalChoiceId}
+      >
+        {terminalChoices.map((choice) => (
           <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
         ))}
       </Form.Dropdown>
-      {showProfileField ? (
-        <Form.Dropdown
-          id="profile"
-          title="Profile"
-          value={wtProfile || profileChoices[0]?.id || ""}
-          onChange={setWtProfile}
-        >
-          {profileChoices.map((choice) => (
-            <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
-          ))}
-        </Form.Dropdown>
-      ) : null}
-      <Form.TextField
-        id="command"
-        title="Startup Command"
-        value={command}
-        onChange={setCommand}
-        placeholder="npm run dev"
-      />
-      <Form.Checkbox id="favorite" label="Favorite" value={isPinned} onChange={setIsPinned} />
-      <Form.Checkbox id="admin" label="Run as administrator" value={runAsAdmin} onChange={setRunAsAdmin} />
-      {extraLaunches > 0 ? (
+      {launches.map((launch, index) => (
+        <Form.TextField
+          key={launch.id}
+          id={`command-${launch.id}`}
+          title={launches.length === 1 ? "Startup Command" : `Command ${index + 1}`}
+          value={launch.command}
+          onChange={(value) => updateLaunch(index, { command: value })}
+          placeholder={index === 0 ? "npm run dev" : "dotnet watch"}
+        />
+      ))}
+      {launches.length > 1 ? (
         <Form.Description
-          title="Additional launches"
-          text={`This workspace has ${extraLaunches} more enabled launch ${extraLaunches === 1 ? "entry" : "entries"}. Saving updates the primary launch only; the others are preserved.`}
+          title="Multiple commands"
+          text="Each command opens as its own launch entry. Use Actions → Remove command to delete a row."
         />
       ) : null}
+      <Form.Checkbox id="favorite" label="Favorite" value={isPinned} onChange={setIsPinned} />
+      <Form.Checkbox id="admin" label="Run as administrator" value={runAsAdmin} onChange={setRunAsAdmin} />
       <Form.Description
         title="Defaults"
-        text={`Workspace terminals set to "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "your QuickShell settings"}.`}
+        text={`Commands and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "your QuickShell settings"}.`}
       />
     </Form>
   );

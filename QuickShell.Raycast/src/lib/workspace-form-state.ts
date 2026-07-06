@@ -1,76 +1,113 @@
 import { createStableId } from "./ids";
-import type { Workspace } from "./schema";
+import { suggestionLabelForCommand } from "./project-setup-suggestion";
+import type { LaunchEntry, Workspace } from "./schema";
 import { normalizeWorkspace } from "./validation";
+
+export type LaunchFormRow = {
+  id: string;
+  command: string;
+  terminal: string;
+  wtProfile?: string | null;
+  runAsAdmin: boolean;
+  isEnabled: boolean;
+  label: string;
+};
 
 export type WorkspaceFormState = {
   name: string;
   abbreviation: string;
   directory: string;
   terminal: string;
-  wtProfile: string;
-  command: string;
+  wtProfile?: string | null;
   isPinned: boolean;
   runAsAdmin: boolean;
-  launchLabel: string;
+  launches: LaunchFormRow[];
 };
 
 export function buildWorkspaceFromFormState(
   initialWorkspace: Workspace,
   state: WorkspaceFormState,
-  options?: { showProfileField?: boolean },
 ): Workspace {
-  const showProfileField = options?.showProfileField ?? false;
-  const profile = showProfileField && state.wtProfile.trim() ? state.wtProfile.trim() : null;
-  const primaryLaunchId = initialWorkspace.launches.find((entry) => entry.isEnabled)?.id
-    ?? initialWorkspace.launches[0]?.id
-    ?? createStableId();
-
-  const updatedPrimary = {
-    id: primaryLaunchId,
-    label: state.launchLabel.trim() || state.name.trim() || "Launch",
-    terminal: state.terminal,
-    wtProfile: profile,
-    command: state.command.trim() || null,
-    runAsAdmin: state.runAsAdmin,
-    isEnabled: true,
-    order: 0,
-    taskType: "none" as const,
-  };
-
-  const remainingLaunches = initialWorkspace.launches
-    .filter((entry) => entry.id !== primaryLaunchId)
-    .map((entry, index) => ({
-      ...entry,
-      order: index + 1,
+  const launches: LaunchEntry[] = state.launches
+    .filter((row) => row.command.trim())
+    .map((row, index) => ({
+      id: row.id || createStableId(),
+      label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
+      terminal: row.terminal || state.terminal || "default",
+      wtProfile: row.wtProfile ?? state.wtProfile ?? null,
+      command: row.command.trim() || null,
+      runAsAdmin: row.runAsAdmin || state.runAsAdmin,
+      isEnabled: row.isEnabled,
+      order: index,
+      taskType: "none",
     }));
+
+  const primary = launches.find((entry) => entry.isEnabled) ?? launches[0];
 
   return normalizeWorkspace({
     ...initialWorkspace,
     name: state.name.trim(),
     abbreviation: state.abbreviation.trim() || null,
     directory: state.directory.trim(),
-    terminal: state.terminal,
-    wtProfile: profile,
-    command: state.command.trim() || null,
+    terminal: primary?.terminal ?? state.terminal,
+    wtProfile: primary?.wtProfile ?? state.wtProfile ?? null,
+    command: primary?.command ?? null,
     isPinned: state.isPinned,
     runAsAdmin: state.runAsAdmin,
-    launches: [updatedPrimary, ...remainingLaunches],
+    launches,
   });
 }
 
 export function workspaceFormStateFromWorkspace(workspace: Workspace): WorkspaceFormState {
-  const primaryLaunch = workspace.launches.find((entry) => entry.isEnabled) ?? workspace.launches[0];
+  const launches = workspace.launches.length
+    ? workspace.launches.map((launch) => ({
+        id: launch.id,
+        command: launch.command ?? "",
+        terminal: launch.terminal || workspace.terminal || "default",
+        wtProfile: launch.wtProfile ?? workspace.wtProfile ?? null,
+        runAsAdmin: launch.runAsAdmin,
+        isEnabled: launch.isEnabled,
+        label: launch.label,
+      }))
+    : [
+        {
+          id: createStableId(),
+          command: workspace.command ?? "",
+          terminal: workspace.terminal || "default",
+          wtProfile: workspace.wtProfile ?? null,
+          runAsAdmin: workspace.runAsAdmin,
+          isEnabled: true,
+          label: workspace.name || "Launch",
+        },
+      ];
+
+  const primary = launches.find((launch) => launch.isEnabled) ?? launches[0];
+
   return {
     name: workspace.name,
     abbreviation: workspace.abbreviation ?? "",
     directory: workspace.directory,
-    terminal: workspace.terminal || "default",
-    wtProfile: workspace.wtProfile ?? primaryLaunch?.wtProfile ?? "",
-    command: primaryLaunch?.command ?? workspace.command ?? "",
+    terminal: primary?.terminal ?? workspace.terminal ?? "default",
+    wtProfile: primary?.wtProfile ?? workspace.wtProfile ?? null,
     isPinned: workspace.isPinned,
-    runAsAdmin: workspace.runAsAdmin || primaryLaunch?.runAsAdmin || false,
-    launchLabel: primaryLaunch?.label ?? "Launch",
+    runAsAdmin: workspace.runAsAdmin,
+    launches,
   };
+}
+
+export function launchRowsFromSuggestions(
+  suggestions: Array<{ label: string; command: string }>,
+  terminal = "default",
+): LaunchFormRow[] {
+  return suggestions.map((suggestion) => ({
+    id: createStableId(),
+    command: suggestion.command,
+    terminal,
+    wtProfile: null,
+    runAsAdmin: false,
+    isEnabled: true,
+    label: suggestion.label,
+  }));
 }
 
 export function filterWorkspacesForEdit(workspaces: Workspace[], query: string): Workspace[] {
@@ -95,3 +132,4 @@ export function filterWorkspacesForEdit(workspaces: Workspace[], query: string):
 export function additionalLaunchCount(workspace: Workspace): number {
   return Math.max(0, workspace.launches.filter((entry) => entry.isEnabled).length - 1);
 }
+

@@ -1,0 +1,49 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  buildProjectSetupSuggestions,
+  suggestionLabelForCommand,
+} from "../lib/project-setup-suggestion";
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  tempDirs.length = 0;
+});
+
+function createTempProjectDir(): string {
+  const dir = mkdtempSync(path.join(tmpdir(), "quickshell-raycast-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+describe("project-setup-suggestion", () => {
+  it("suggests npm scripts from package.json", () => {
+    const directory = createTempProjectDir();
+    writeFileSync(
+      path.join(directory, "package.json"),
+      JSON.stringify({ scripts: { dev: "vite", test: "vitest" } }),
+      "utf8",
+    );
+
+    const suggestions = buildProjectSetupSuggestions(directory);
+    expect(suggestions.map((item) => item.command)).toEqual(["npm run dev", "npm run test"]);
+  });
+
+  it("suggests dotnet commands when a csproj is present", () => {
+    const directory = createTempProjectDir();
+    writeFileSync(path.join(directory, "App.csproj"), "<Project />", "utf8");
+
+    const suggestions = buildProjectSetupSuggestions(directory);
+    expect(suggestions.some((item) => item.command === "dotnet build")).toBe(true);
+    expect(suggestions.some((item) => item.command.includes("dotnet run --project"))).toBe(true);
+  });
+
+  it("derives labels from common command prefixes", () => {
+    expect(suggestionLabelForCommand("npm run dev", "Launch")).toBe("Dev");
+    expect(suggestionLabelForCommand("dotnet watch", "Launch")).toBe("Watch");
+    expect(suggestionLabelForCommand("", "Fallback")).toBe("Fallback");
+  });
+});

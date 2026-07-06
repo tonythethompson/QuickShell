@@ -1,4 +1,5 @@
 import type { QuickShellSettings, TerminalApplication } from "./schema";
+import { discoverDefaultProfileChoices } from "./terminal-catalog";
 
 export type TerminalChoice = { id: string; title: string };
 
@@ -18,13 +19,6 @@ export const TERMINAL_APPLICATION_CHOICES: TerminalChoice[] = [
   { id: "it", title: "Intelligent Terminal" },
 ];
 
-const WT_PROFILE_CHOICES: TerminalChoice[] = [
-  { id: "__default__", title: "Default profile for this app" },
-  { id: "PowerShell", title: "PowerShell" },
-  { id: "Command Prompt", title: "Command Prompt" },
-  { id: "Ubuntu", title: "Ubuntu (WSL)" },
-];
-
 const CONHOST_PROFILE_CHOICES: TerminalChoice[] = [
   { id: "__default__", title: "Default profile for this app" },
   { id: "powershell", title: "PowerShell" },
@@ -33,15 +27,14 @@ const CONHOST_PROFILE_CHOICES: TerminalChoice[] = [
 ];
 
 export function getDefaultProfileChoices(terminalApplication: TerminalApplication): TerminalChoice[] {
-  if (terminalApplication === "wt" || terminalApplication === "it") {
-    return WT_PROFILE_CHOICES;
-  }
-  return CONHOST_PROFILE_CHOICES;
+  return discoverDefaultProfileChoices(terminalApplication);
 }
 
 export function getWorkspaceProfileChoices(terminal: string): TerminalChoice[] {
   if (terminal === "wt" || terminal === "wsl") {
-    return WT_PROFILE_CHOICES.filter((choice) => choice.id !== "__default__" || terminal === "wt");
+    return discoverDefaultProfileChoices("wt").filter(
+      (choice) => choice.id !== "__default__" || terminal === "wt",
+    );
   }
   return [];
 }
