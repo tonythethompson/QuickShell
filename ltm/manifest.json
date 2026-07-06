@@ -9,7 +9,8 @@
     "ltm/store/sessions.jsonl", "ltm/store/open_threads.jsonl",
     "ltm/runtime/active-context.json", "ltm/runtime/last-recall.md",
     "ltm/runtime/current-session.json", "ltm/runtime/health.json",
-    "ltm/bin/ltm.py"
+    "ltm/bin/ltm.py",
+    "ltm/bin/run-ltm.py"
   ],
   "hooks": [".kiro/hooks/ltm-postturn-capture.kiro.hook"],
   "steering": [".kiro/steering/ltm-operations.md", ".kiro/steering/ltm-memory-format.md"],

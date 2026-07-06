@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/inject-pr-review-policy.py",
+        "timeout": 20
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/enforce-pr-review-resolution.py",
+        "timeout": 45,
+        "loop_limit": 3
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": ".cursor/hooks/enforce-pr-review-resolution.py",
+        "timeout": 45,
+        "loop_limit": 3
+      }
+    ]
+  }
+}

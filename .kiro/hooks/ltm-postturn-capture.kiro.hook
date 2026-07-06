@@ -5,6 +5,6 @@
   "when": { "type": "agentStop" },
   "then": {
     "type": "runCommand",
-    "command": "python ltm/bin/ltm.py capture-turn"
+    "command": "python ltm/bin/run-ltm.py capture-turn"
   }
 }
