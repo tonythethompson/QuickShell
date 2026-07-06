@@ -168,4 +168,10 @@
     <InternalsVisibleTo Include="QuickShell.Core.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <LogicalName>QuickShell.Resources.Strings.resources</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

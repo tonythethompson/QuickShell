@@ -173,5 +173,8 @@ internal sealed partial class OpenDiscoverGitReposCommand : DiscoverGitReposPage
     public OpenDiscoverGitReposCommand(Action onReload)
         : base(onReload)
     {
+        Title = Strings.Discover_Title;
+        Name = Strings.Discover_Name;
+        PlaceholderText = Strings.Discover_Placeholder;
     }
 }

@@ -20,9 +20,6 @@ internal partial class DiscoverGitReposPage : DynamicListPage
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);
-        Title = Strings.Discover_Title;
-        Name = Strings.Discover_Name;
-        PlaceholderText = Strings.Discover_Placeholder;
         GitRepoIndex.Invalidate();
         SetOpeningItems();
         ScheduleRefreshItems();
