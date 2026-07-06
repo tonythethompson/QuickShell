@@ -20,9 +20,9 @@ internal partial class DiscoverGitReposPage : DynamicListPage
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);
-        Title = "Discover git repos";
-        Name = "Discover";
-        PlaceholderText = "Filter discovered repositories...";
+        Title = Strings.Discover_Title;
+        Name = Strings.Discover_Name;
+        PlaceholderText = Strings.Discover_Placeholder;
         GitRepoIndex.Invalidate();
         SetOpeningItems();
         ScheduleRefreshItems();
@@ -107,8 +107,8 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             {
                 items.Add(new ListItem(new NoOpCommand())
                 {
-                    Title = string.IsNullOrWhiteSpace(query) ? "No git repositories found" : "No matching repositories",
-                    Subtitle = "Try searching Projects, dev, code, repos, source, src, Documents, or a non-system drive root.",
+                    Title = string.IsNullOrWhiteSpace(query) ? Strings.Discover_NoReposFound : Strings.Discover_NoMatchingRepos,
+                    Subtitle = Strings.Discover_TrySearching,
                     Icon = new IconInfo("\uE946"),
                 });
             }

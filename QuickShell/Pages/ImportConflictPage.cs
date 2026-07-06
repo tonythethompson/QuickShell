@@ -15,8 +15,8 @@ internal sealed partial class ImportConflictPage : ContentPage
     {
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
-        Title = "Finish importing";
-        Name = "Import";
+        Title = Strings.ImportConflictPage_Title;
+        Name = Strings.ImportConflictPage_Name;
         _onReload = onReload;
     }
 
@@ -37,7 +37,14 @@ internal sealed partial class ImportConflictForm : FormContent
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
 
-        TemplateJson = """
+        RebuildTemplate();
+
+        ApplyPendingState();
+    }
+
+    private void RebuildTemplate()
+    {
+        TemplateJson = $$"""
         {
           "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
           "type": "AdaptiveCard",
@@ -45,7 +52,7 @@ internal sealed partial class ImportConflictForm : FormContent
           "body": [
             {
               "type": "TextBlock",
-              "text": "Duplicate names in import file",
+              "text": "{{EscapeJson(Strings.ImportConflictPage_Heading)}}",
               "weight": "Bolder",
               "size": "Large"
             },
@@ -63,14 +70,14 @@ internal sealed partial class ImportConflictForm : FormContent
             },
             {
               "type": "TextBlock",
-              "text": "Choose an option below to complete the import.",
+              "text": "{{EscapeJson(Strings.ImportConflictPage_ChooseOption)}}",
               "wrap": true,
               "weight": "Bolder",
               "spacing": "Large"
             },
             {
               "type": "TextBlock",
-              "text": "Merge keeps your existing items and adds the file; duplicate names are renamed. Replace all deletes every current item of that type and loads only the file.",
+              "text": "{{EscapeJson(Strings.ImportConflictPage_HelpText)}}",
               "wrap": true,
               "isSubtle": true,
               "spacing": "Small"
@@ -79,30 +86,28 @@ internal sealed partial class ImportConflictForm : FormContent
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "Merge (rename duplicates)",
-              "tooltip": "Keep your workspaces and add imported ones. Duplicate names become \"Name Copy\", \"Name Copy 2\", and so on.",
+              "title": "{{EscapeJson(Strings.ImportConflictPage_MergeButton)}}",
+              "tooltip": "{{EscapeJson(Strings.ImportConflictPage_MergeTooltip)}}",
               "data": { "action": "merge" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "Replace all",
-              "tooltip": "Delete every workspace you have now (including favorites) and replace them with the imported file only.",
+              "title": "{{EscapeJson(Strings.ImportConflictPage_ReplaceButton)}}",
+              "tooltip": "{{EscapeJson(Strings.ImportConflictPage_ReplaceTooltip)}}",
               "data": { "action": "replace" },
               "associatedInputs": "none"
             },
             {
               "type": "Action.Submit",
-              "title": "Cancel import",
-              "tooltip": "Discard this import file and keep your workspaces unchanged.",
+              "title": "{{EscapeJson(Strings.ImportConflictPage_CancelButton)}}",
+              "tooltip": "{{EscapeJson(Strings.ImportConflictPage_CancelTooltip)}}",
               "data": { "action": "cancel" },
               "associatedInputs": "none"
             }
           ]
         }
         """;
-
-        ApplyPendingState();
     }
 
     public override CommandResult SubmitForm(string inputs, string data) =>
@@ -117,13 +122,13 @@ internal sealed partial class ImportConflictForm : FormContent
         {
             ImportConflictState.Clear();
             SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
-            return QuickShellNavigation.StayOnSettings("Import cancelled.");
+            return QuickShellNavigation.StayOnSettings(Strings.ImportConflictPage_Cancelled);
         }
 
         var pending = ImportConflictState.Pending;
         if (pending is null)
         {
-            return QuickShellNavigation.StayOnSettings("No import is pending.");
+            return QuickShellNavigation.StayOnSettings(Strings.ImportConflictPage_NoImportPending);
         }
 
         var result = action switch
@@ -135,7 +140,7 @@ internal sealed partial class ImportConflictForm : FormContent
 
         if (result is null)
         {
-            return QuickShellNavigation.StayOnSettings("Unable to read form values.");
+            return QuickShellNavigation.StayOnSettings(Strings.ImportConflictPage_UnableToReadForm);
         }
 
         if (!result.Success)
@@ -154,9 +159,9 @@ internal sealed partial class ImportConflictForm : FormContent
         var pending = ImportConflictState.Pending;
         if (pending is null)
         {
-            DataJson = """
+            DataJson = $$"""
             {
-              "Description": "No import is waiting for a decision.",
+              "Description": "{{EscapeJson(Strings.ImportConflictPage_NoneWaiting)}}",
               "FileName": ""
             }
             """;
@@ -164,12 +169,14 @@ internal sealed partial class ImportConflictForm : FormContent
         }
 
         var fileName = Path.GetFileName(pending.Path);
-        var conflictLabel = pending.ConflictCount == 1 ? "name" : "names";
-        var itemLabel = "workspace";
-        var importLabel = pending.ImportCount == 1 ? itemLabel : $"{itemLabel}s";
-        var description =
-            $"The file contains {pending.ConflictCount} duplicate {conflictLabel} " +
-            $"among {pending.ImportCount} {importLabel}.";
+        var conflictLabel = pending.ConflictCount == 1
+            ? Strings.Word_Name_Singular
+            : Strings.Word_Name_Plural;
+        var importLabel = pending.ImportCount == 1
+            ? Strings.Word_Workspace_Singular
+            : Strings.Word_Workspace_Plural;
+        var description = Strings.ImportConflictPage_DescriptionFormat(
+            pending.ConflictCount, conflictLabel, pending.ImportCount, importLabel);
 
         DataJson = $$"""
         {
@@ -187,7 +194,7 @@ internal sealed partial class ImportConflictForm : FormContent
             ImportTransferKind.Projects => merge
                 ? QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult()
                 : QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult(),
-            _ => new ShortcutTransferResult { Success = false, Message = "Unknown import type." },
+            _ => new ShortcutTransferResult { Success = false, Message = Strings.ImportConflictPage_UnknownImportType },
         };
     }
 
@@ -205,5 +212,8 @@ internal sealed partial class ImportConflictForm : FormContent
     }
 
     private static string Escape(string value) =>
+        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    private static string EscapeJson(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

@@ -64,21 +64,22 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var count = QuickShellRuntimeServices.Shortcuts.GetShortcuts().Count;
         return CommandResult.Confirm(new ConfirmationArgs
         {
-            Title = "Reset all workspaces?",
-            Description = BuildResetDescription("workspace", count, QuickShellRuntimeServices.Shortcuts.ConfigPath),
+            Title = Strings.ResetProjects_Title,
+            Description = BuildResetDescription(count, QuickShellRuntimeServices.Shortcuts.ConfigPath),
             PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged),
         });
     }
 
-    private static string BuildResetDescription(string itemLabel, int count, string configPath)
+    private static string BuildResetDescription(int count, string configPath)
     {
-        var itemsLabel = count == 1 ? itemLabel : $"{itemLabel}s";
+        var itemLabel = Strings.Word_Workspace_Singular;
+        var itemsLabel = count == 1 ? itemLabel : Strings.Word_Workspace_Plural;
         var countLine = count == 0
-            ? $"You have no saved {itemsLabel}."
-            : $"This deletes {count} saved {itemsLabel}.";
+            ? Strings.ResetWorkspaces_NoneSavedFormat(itemsLabel)
+            : Strings.ResetWorkspaces_DeleteCountFormat(count, itemsLabel);
 
         var backupName = Path.GetFileName(configPath) + ".bak";
-        return $"{countLine} A backup from your last save remains as {backupName} in the same folder.";
+        return Strings.ResetWorkspaces_BackupNoteFormat(countLine, backupName);
     }
 
     private CommandResult ResolveImportConflict(bool merge)
@@ -86,7 +87,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var pending = ImportConflictState.Pending;
         if (pending is null)
         {
-            return Finish("No import is pending.");
+            return Finish(Strings.ImportNoImportPending);
         }
 
         var transferResult = pending.Kind switch
@@ -127,14 +128,14 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var hasConflict = ImportConflictState.HasPending;
         var bodyParts = new List<string>
         {
-            SettingsCardJson.SectionHeader("Backup & transfer"),
+            SettingsCardJson.SectionHeader(Strings.ShortcutTransfer_SectionHeader),
         };
 
         if (!hasConflict)
         {
             bodyParts.Add(SettingsCardJson.TransferRow(
-                "Workspaces",
-                "Export, import, or reset saved workspace folders and favorites.",
+                Strings.ShortcutTransfer_WorkspacesRow_Title,
+                Strings.ShortcutTransfer_WorkspacesRow_Description,
                 BuildWorkspaceTransferActionSet(),
                 topSpacing: "Small"));
 
@@ -172,28 +173,28 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private static string BuildWorkspaceTransferActionSet() =>
         SettingsCardJson.TransferActionRow(
-            """
+            $$"""
             {
               "type": "Action.Submit",
-              "title": "Export",
+              "title": "{{Strings.ShortcutTransfer_ExportButton_Title}}",
               "associatedInputs": "none",
               "data": { "action": "exportWorkspaces" }
             }
             """,
-            """
+            $$"""
             {
               "type": "Action.Submit",
-              "title": "Import",
+              "title": "{{Strings.ShortcutTransfer_ImportButton_Title}}",
               "associatedInputs": "none",
               "data": { "action": "importWorkspaces" }
             }
             """,
-            """
+            $$"""
             {
               "type": "Action.Submit",
-              "title": "Reset",
+              "title": "{{Strings.ShortcutTransfer_ResetButton_Title}}",
               "style": "destructive",
-              "tooltip": "Delete every workspace you have saved. Use Undo (Ctrl+Z) to restore.",
+              "tooltip": "{{Strings.ShortcutTransfer_ResetButton_Tooltip}}",
               "associatedInputs": "none",
               "data": { "action": "resetWorkspaces" }
             }
@@ -229,38 +230,36 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         }
 
         var fileName = Path.GetFileName(pending.Path);
-        var itemsLabel = pending.ImportCount == 1 ? "workspace" : "workspaces";
-        var conflictLabel = pending.ConflictCount == 1 ? "name" : "names";
-        var summary =
-            $"Import paused: {pending.ConflictCount} duplicate {conflictLabel} in {fileName} ({pending.ImportCount} {itemsLabel}). Choose how to finish.";
+        var itemsLabel = pending.ImportCount == 1 ? Strings.Word_Workspace_Singular : Strings.Word_Workspace_Plural;
+        var conflictLabel = pending.ConflictCount == 1 ? Strings.Word_Name_Singular : Strings.Word_Name_Plural;
+        var summary = Strings.ImportConflict_Summary_WarningFormat(
+            pending.ConflictCount, conflictLabel, fileName, pending.ImportCount, itemsLabel);
 
         return SettingsCardJson.StatusText(summary, SettingsFeedbackTone.Warning);
     }
 
-    private static string BuildImportConflictHelpText() =>
-        "Merge keeps every workspace you already have and adds the file. Names that clash are renamed (for example \"My App (2)\"). " +
-        "Replace all deletes all current workspaces and favorites, then loads only what is in the file.";
+    private static string BuildImportConflictHelpText() => Strings.ImportConflict_HelpText;
 
-    private static string BuildImportConflictActionSet() => """
+    private static string BuildImportConflictActionSet() => $$"""
         {
           "type": "ActionSet",
           "spacing": "Small",
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "Merge (rename duplicates)",
+              "title": "{{Strings.ImportConflict_MergeButton_Title}}",
               "associatedInputs": "none",
               "data": { "action": "merge" }
             },
             {
               "type": "Action.Submit",
-              "title": "Replace all workspaces",
+              "title": "{{Strings.ImportConflict_ReplaceButton_Title}}",
               "associatedInputs": "none",
               "data": { "action": "replace" }
             },
             {
               "type": "Action.Submit",
-              "title": "Cancel import",
+              "title": "{{Strings.ImportConflict_CancelButton_Title}}",
               "associatedInputs": "none",
               "data": { "action": "cancel" }
             }

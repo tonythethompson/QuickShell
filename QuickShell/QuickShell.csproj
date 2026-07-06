@@ -140,9 +140,9 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release' and '$(WinGetBuild)'!='true'">
     <PublishTrimmed>false</PublishTrimmed>
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
-    <!-- WinForms ships many localized satellite assemblies; Quick Shell is English-only.
-         Keeping them out of the MSIX avoids PRI263 MakePRI warnings and shrinks the package. -->
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- WinForms ships many localized satellite assemblies. List only the cultures Quick Shell
+         actually ships so MakePRI stays quiet and the MSIX stays lean. -->
+    <SatelliteResourceLanguages>en;fr;de;it;ru;zh-Hans;zh-Hant;es;ja;ko;pt-BR</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <!-- Release MSIX for Microsoft Store (scripts/build-store.ps1 sets StoreBuild=true).

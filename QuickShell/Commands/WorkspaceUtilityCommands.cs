@@ -12,7 +12,7 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
     public CopyShortcutPathCommand(string shortcutId)
     {
         _shortcutId = shortcutId;
-        Name = "Copy path";
+        Name = Strings.Menu_CopyPath;
         Icon = new IconInfo(ShortcutGlyphs.CopyPath);
     }
 
@@ -21,7 +21,7 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That workspace was not found.");
+            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
         if (!FolderPathActions.TryCopyPath(shortcut.Directory, out var error))
@@ -29,7 +29,7 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(error);
         }
 
-        return QuickShellNavigation.StayOpen("Path copied to clipboard.");
+        return QuickShellNavigation.StayOpen(Strings.PathCopiedToClipboard);
     }
 }
 
@@ -55,7 +55,7 @@ internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCom
     public OpenShortcutFolderInExplorerCommand(string shortcutId)
     {
         _shortcutId = shortcutId;
-        Name = "Open in File Explorer";
+        Name = Strings.Menu_OpenInFileExplorer;
         Icon = new IconInfo("\uE838");
     }
 
@@ -64,7 +64,7 @@ internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCom
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That workspace was not found.");
+            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
         if (!FolderPathActions.TryOpenInExplorer(shortcut.Directory, out var error))
@@ -83,7 +83,7 @@ internal sealed partial class OpenDirectoryInExplorerCommand : InvokableCommand
     public OpenDirectoryInExplorerCommand(string directory)
     {
         _directory = directory;
-        Name = "Open directory";
+        Name = Strings.OpenDirectory;
         Icon = new IconInfo("\uE838");
     }
 
@@ -115,8 +115,8 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
         _kind = kind;
         Name = kind switch
         {
-            WorkspaceLinkKind.DevServer => "Open dev server",
-            WorkspaceLinkKind.Repo => "Open repository",
+            WorkspaceLinkKind.DevServer => Strings.Menu_OpenDevServer,
+            WorkspaceLinkKind.Repo => Strings.Menu_OpenRepository,
             _ => "Open link",
         };
         Icon = new IconInfo(
@@ -128,7 +128,7 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That workspace was not found.");
+            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
         var url = _kind == WorkspaceLinkKind.DevServer ? shortcut.DevServerUrl : shortcut.RepoUrl;
@@ -148,7 +148,7 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
     public OpenCompanionAppCommand(TerminalShortcut shortcut)
     {
         _shortcutId = shortcut.Id;
-        Name = $"Open {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}";
+        Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath));
         Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath));
     }
 
@@ -157,12 +157,12 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That workspace was not found.");
+            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
         if (!CompanionAppLauncher.TryLaunch(shortcut, onDemand: true, out var error))
         {
-            return QuickShellNavigation.StayOpen(error ?? "Companion app could not be launched.");
+            return QuickShellNavigation.StayOpen(error ?? Strings.CompanionAppLaunchFailed);
         }
 
         return CommandResult.Dismiss();

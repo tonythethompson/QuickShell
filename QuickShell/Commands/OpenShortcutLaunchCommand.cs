@@ -43,7 +43,7 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
         var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
-            return QuickShellNavigation.StayOpen("That workspace was not found.");
+            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
         var launch = shortcut.Launches.FirstOrDefault(entry => entry.Id.Equals(_launchId, StringComparison.OrdinalIgnoreCase));

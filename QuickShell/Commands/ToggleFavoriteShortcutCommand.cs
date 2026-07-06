@@ -13,7 +13,7 @@ internal sealed partial class ToggleFavoriteShortcutCommand : InvokableCommand
         _name = name;
         _onChanged = onChanged;
         Id = ShortcutCommandIds.FavoriteToggle(name);
-        Name = isFavorite ? "Unfavorite" : "Favorite";
+        Name = isFavorite ? Strings.Command_Unfavorite_Name : Strings.Command_Favorite_Name;
         Icon = new IconInfo(isFavorite ? ShortcutGlyphs.FavoriteFilled : ShortcutGlyphs.FavoriteOutline);
     }
 

@@ -421,7 +421,7 @@ internal sealed partial class ShortcutForm : FormContent
             LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId,
         });
         ApplyDraft(_draft);
-        return QuickShellNavigation.StayOpen("Added command row.");
+        return QuickShellNavigation.StayOpen(Strings.AddLaunch_Toast);
     }
 
     private CommandResult HandleRemoveLaunch(string inputs, int index)
@@ -554,7 +554,7 @@ internal sealed partial class ShortcutForm : FormContent
         SyncDraftLaunchTargetFromCommands();
 
         ApplyDraft(_draft, forceTemplateRebuild: true);
-        return QuickShellNavigation.StayOpen("Terminal list refreshed.");
+        return QuickShellNavigation.StayOpen(Strings.RefreshTerminals_Toast);
     }
 
     private CommandResult HandleBrowse(string inputs)
@@ -700,7 +700,7 @@ internal sealed partial class ShortcutForm : FormContent
         var raw = StaClipboard.TryReadText()?.Trim();
         if (string.IsNullOrWhiteSpace(raw))
         {
-            error = "Clipboard does not contain text to paste.";
+            error = Strings.PasteClipboard_NoTextError;
             return false;
         }
 
@@ -714,7 +714,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (!ShortcutValidation.DirectoryExists(normalized))
         {
-            error = $"Directory not found: {normalized}";
+            error = Strings.DirectoryNotFound_ErrorFormat(normalized);
             return false;
         }
 
@@ -743,7 +743,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (!MergeDraftFromInputs(payload, out _))
         {
-            return QuickShellNavigation.StayOpen("Unable to read form values.");
+            return QuickShellNavigation.StayOpen(Strings.FormValues_ReadError);
         }
 
         if (!HasUnsavedChanges())
@@ -772,7 +772,7 @@ internal sealed partial class ShortcutForm : FormContent
             return SaveCurrentDraft();
         }
 
-        return QuickShellNavigation.StayOpen("Unable to read form values.");
+        return QuickShellNavigation.StayOpen(Strings.FormValues_ReadError);
     }
 
     private void ShowDiscardPrompt()
@@ -786,7 +786,7 @@ internal sealed partial class ShortcutForm : FormContent
     {
         if (!MergeDraftFromInputs(payload, out _))
         {
-            return QuickShellNavigation.StayOpen("Unable to read form values.");
+            return QuickShellNavigation.StayOpen(Strings.FormValues_ReadError);
         }
 
         return SaveCurrentDraft();

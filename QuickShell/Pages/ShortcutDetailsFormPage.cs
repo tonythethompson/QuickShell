@@ -15,8 +15,8 @@ internal sealed partial class ShortcutDetailsFormPage : ContentPage
     {
         Id = $"com.quickshell.shortcut.details.{Guid.NewGuid():N}";
         Icon = new IconInfo("\uE70F");
-        Title = "Workspace details";
-        Name = "Edit";
+        Title = Strings.ShortcutDetails_PageTitle;
+        Name = Strings.ShortcutDetails_PageName;
         _shortcut = shortcut;
         _onChanged = onChanged;
     }
@@ -145,7 +145,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
 
         if (string.IsNullOrWhiteSpace(_draft.Directory))
         {
-            return QuickShellNavigation.StayOpen("Folder path is required.");
+            return QuickShellNavigation.StayOpen(Strings.ShortcutDetails_FolderRequired);
         }
 
         if (!ShortcutValidation.TryNormalizeDirectory(_draft.Directory, out var normalized, out var directoryError))
@@ -170,7 +170,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
 
         _onChanged(_shortcut);
         _releaseForm?.Invoke();
-        return QuickShellNavigation.GoBack("Workspace details updated.");
+        return QuickShellNavigation.GoBack(Strings.ShortcutDetails_UpdatedToast);
     }
 
     private void CaptureInputs(string payload)
@@ -283,12 +283,12 @@ internal sealed partial class ShortcutDetailsForm : FormContent
       "actions": [
         {
           "type": "Action.Submit",
-          "title": "Apply",
+          "title": "{{Strings.ShortcutDetails_ApplyButton}}",
           "associatedInputs": "auto"
         },
         {
           "type": "Action.Submit",
-          "title": "Cancel",
+          "title": "{{Strings.ShortcutDetails_CancelButton}}",
           "data": { "action": "cancel" },
           "associatedInputs": "none"
         }
@@ -320,7 +320,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         var raw = StaClipboard.TryReadText()?.Trim();
         if (string.IsNullOrWhiteSpace(raw))
         {
-            error = "Clipboard does not contain text to paste.";
+            error = Strings.PasteClipboard_NoTextError;
             return false;
         }
 

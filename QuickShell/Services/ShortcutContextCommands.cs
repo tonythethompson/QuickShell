@@ -82,7 +82,7 @@ internal static class ShortcutContextCommands
                 alt: false,
                 shift: false,
                 VirtualKey.E,
-                title: "Edit",
+                title: Strings.Menu_Edit,
                 showInHoverActions: true,
                 hoverOrder: HoverOrderEdit));
         }
@@ -154,7 +154,7 @@ internal static class ShortcutContextCommands
             alt: false,
             shift: false,
             VirtualKey.E,
-            title: "Edit",
+            title: Strings.Menu_Edit,
             showInHoverActions: true,
             hoverOrder: HoverOrderEdit));
 
@@ -180,7 +180,7 @@ internal static class ShortcutContextCommands
             alt: false,
             shift: false,
             VirtualKey.E,
-            title: "Edit",
+            title: Strings.Menu_Edit,
             showInHoverActions: true,
             hoverOrder: HoverOrderEdit));
 
@@ -218,13 +218,13 @@ internal static class ShortcutContextCommands
         WithShortcut(
             new UndoShortcutCommand(onChanged),
             QuickShellKeyboardShortcuts.Undo,
-            title: "Undo",
+            title: Strings.Menu_Undo,
             showInHoverActions: true,
             hoverOrder: HoverOrderUndo),
         WithShortcut(
             new RedoShortcutCommand(onChanged),
             QuickShellKeyboardShortcuts.Redo,
-            title: "Redo",
+            title: Strings.Menu_Redo,
             showInHoverActions: true,
             hoverOrder: HoverOrderRedo),
     ];
@@ -294,7 +294,7 @@ internal static class ShortcutContextCommands
     {
         items.Add(new CommandContextItem(new OpenShortcutFolderInExplorerCommand(shortcut.Id))
         {
-            Title = "Open in File Explorer",
+            Title = Strings.Menu_OpenInFileExplorer,
             Icon = new IconInfo(""),
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = true,
@@ -304,7 +304,7 @@ internal static class ShortcutContextCommands
 
         items.Add(new CommandContextItem(new CopyShortcutPathCommand(shortcut.Id))
         {
-            Title = "Copy path",
+            Title = Strings.Menu_CopyPath,
             Icon = new IconInfo(ShortcutGlyphs.CopyPath),
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = true,
@@ -316,7 +316,7 @@ internal static class ShortcutContextCommands
         {
             items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.DevServer))
             {
-                Title = "Open dev server",
+                Title = Strings.Menu_OpenDevServer,
                 Icon = new IconInfo(""),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
@@ -329,7 +329,7 @@ internal static class ShortcutContextCommands
         {
             items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.Repo))
             {
-                Title = "Open repository",
+                Title = Strings.Menu_OpenRepository,
                 Icon = new IconInfo(ShortcutGlyphs.OpenRepository),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
@@ -342,7 +342,7 @@ internal static class ShortcutContextCommands
         {
             items.Add(new CommandContextItem(new OpenCompanionAppCommand(shortcut))
             {
-                Title = $"Open {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}",
+                Title = Strings.Menu_OpenCompanionAppFormat(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)),
                 Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath)),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
@@ -420,7 +420,7 @@ internal static class ShortcutContextCommands
         bool showInHoverActions = false) =>
         new(command)
         {
-            Title = "Run as Admin",
+            Title = Strings.Menu_RunAsAdmin,
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = HoverOrderElevation,
@@ -438,7 +438,7 @@ internal static class ShortcutContextCommands
         bool showInHoverActions = false) =>
         new(command)
         {
-            Title = "Run normally",
+            Title = Strings.Menu_RunNormally,
 #if CMDPAL_HOVER_ACTIONS
             ShowInHoverActions = showInHoverActions,
             HoverOrder = HoverOrderElevation,

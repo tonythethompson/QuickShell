@@ -148,7 +148,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
         {
 
-            return QuickShellNavigation.StayOnSettings("Pick a terminal application and profile.");
+            return QuickShellNavigation.StayOnSettings(Strings.TerminalDefaults_PickAppAndProfile_Error);
 
         }
 
@@ -170,7 +170,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
         {
 
-            QuickShellStatus.ShowToast("Saved");
+            QuickShellStatus.ShowToast(Strings.Saved_Toast);
 
         }
 
@@ -196,7 +196,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
         SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
 
-        return QuickShellNavigation.StayOnSettings("Terminal list refreshed.");
+        return QuickShellNavigation.StayOnSettings(Strings.TerminalDefaults_ListRefreshed_Status);
 
     }
 
@@ -284,7 +284,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
               "type": "TextBlock",
 
-              "text": "Terminal defaults",
+              "text": "{{Strings.TerminalDefaults_SectionHeader}}",
 
               "weight": "Bolder",
 
@@ -304,7 +304,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
               "type": "TextBlock",
 
-              "text": "Default host and profile for workspaces set to Default.",
+              "text": "{{Strings.TerminalDefaults_SubtleText}}",
 
               "wrap": true,
 
@@ -340,7 +340,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
                       "id": "{{TerminalApplicationField}}",
 
-                      "label": "Terminal application",
+                      "label": "{{Strings.TerminalDefaults_AppField_Label}}",
 
                       "style": "compact",
 
@@ -384,7 +384,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
                       "id": "{{DefaultProfileField}}",
 
-                      "label": "Default profile",
+                      "label": "{{Strings.TerminalDefaults_ProfileField_Label}}",
 
                       "style": "compact",
 

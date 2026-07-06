@@ -12,7 +12,7 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
     {
         _name = name;
         _onDeleted = onDeleted;
-        Name = "Delete";
+        Name = Strings.Command_Delete_Name;
         Icon = new IconInfo("\uE74D");
     }
 
@@ -22,9 +22,9 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
         if (deleted)
         {
             _onDeleted();
-            return QuickShellNavigation.StayOpen($"Deleted workspace '{_name}'.");
+            return QuickShellNavigation.StayOpen(Strings.DeletedWorkspaceConfirmedFormat(_name));
         }
 
-        return QuickShellNavigation.StayOpen($"Workspace '{_name}' was not found.");
+        return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFoundNamedFormat(_name));
     }
 }

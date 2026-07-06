@@ -16,8 +16,8 @@ internal static class QuickShellPageActions
     {
         yield return new ListItem(createShortcutCommand)
         {
-            Title = "Create workspace",
-            Subtitle = "Ctrl+N",
+            Title = Strings.PageActions_CreateWorkspace_Title,
+            Subtitle = Strings.PageActions_CreateWorkspace_Subtitle,
             Icon = new IconInfo("\uE710"),
             MoreCommands =
             [
@@ -28,8 +28,8 @@ internal static class QuickShellPageActions
 
         yield return new ListItem(discoverGitReposCommand)
         {
-            Title = "Discover git repos",
-            Subtitle = "Scan local folders and add as workspaces",
+            Title = Strings.PageActions_DiscoverRepos_Title,
+            Subtitle = Strings.PageActions_DiscoverRepos_Subtitle,
             Icon = new IconInfo(ShortcutGlyphs.Discover),
             MoreCommands =
             [
@@ -47,7 +47,7 @@ internal static class QuickShellPageActions
         new(settings.SettingsPage)
         {
             Title = QuickShellBrand.SettingsTitle,
-            Subtitle = "Terminal, import/export, undo (Ctrl+Z) / redo (Ctrl+Y)",
+            Subtitle = Strings.PageActions_Settings_Subtitle,
             Icon = new IconInfo("\uE713"),
             MoreCommands = ShortcutContextCommands.BuildUndoRedoCommands(onReload),
         };

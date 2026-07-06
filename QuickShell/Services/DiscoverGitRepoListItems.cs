@@ -8,9 +8,9 @@ namespace QuickShell.Services;
 
 internal static class DiscoverGitRepoListItems
 {
-    public const string NotSavedSectionTitle = "Not saved yet";
+    public static string NotSavedSectionTitle => Strings.Section_NotSavedYet;
 
-    public const string SavedSectionTitle = "Already workspaces";
+    public static string SavedSectionTitle => Strings.Section_AlreadyWorkspaces;
 
     public static IEnumerable<IListItem> BuildSectionedItems(
         IEnumerable<GitRepoCandidate> discovered,
@@ -123,16 +123,16 @@ internal static class DiscoverGitRepoListItems
         GitRepoCandidate candidate,
         IReadOnlyList<TerminalShortcut> matchingShortcuts)
     {
-        var parts = new List<string> { "Add another workspace" };
+        var parts = new List<string> { Strings.AddAnotherWorkspace };
 
         switch (matchingShortcuts.Count)
         {
             case 1:
-                parts.Add($"Saved as {matchingShortcuts[0].Name}");
+                parts.Add(Strings.SavedAsFormat(matchingShortcuts[0].Name));
                 break;
             case > 1:
-                parts.Add($"{matchingShortcuts.Count} workspaces");
-                parts.Add("Right-click to open or edit");
+                parts.Add(Strings.WorkspacesCountFormat(matchingShortcuts.Count));
+                parts.Add(Strings.RightClickToOpenOrEdit);
                 break;
         }
 
@@ -170,7 +170,7 @@ internal static class DiscoverGitRepoListItems
     [
         new(new OpenDirectoryInExplorerCommand(directory))
         {
-            Title = "Open directory",
+            Title = Strings.OpenDirectory,
             Icon = new IconInfo("\uE838"),
         },
     ];
@@ -189,7 +189,7 @@ internal static class DiscoverGitRepoListItems
                 items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged))
                 {
                     Title = shortcut.Name,
-                    Subtitle = "Repair workspace",
+                    Subtitle = Strings.RepairWorkspace,
                     Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
                 });
                 continue;
@@ -198,13 +198,13 @@ internal static class DiscoverGitRepoListItems
             items.Add(new CommandContextItem(new OpenTerminalShortcutCommand(shortcut, settings))
             {
                 Title = shortcut.Name,
-                Subtitle = "Open workspace",
+                Subtitle = Strings.OpenWorkspace,
                 Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
             });
 
             items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged))
             {
-                Title = $"Edit {shortcut.Name}",
+                Title = Strings.EditNamedFormat(shortcut.Name),
                 Icon = new IconInfo("\uE70F"),
             });
         }
