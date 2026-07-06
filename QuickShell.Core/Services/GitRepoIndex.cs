@@ -326,7 +326,22 @@ internal static class GitRepoIndex
             return;
         }
 
-        extensionContext.Post(static state => ((Action)state!).Invoke(), action);
+        extensionContext.Post(static state =>
+        {
+            try
+            {
+                ((Action)state!).Invoke();
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not AccessViolationException
+                                       and not AppDomainUnloadedException
+                                       and not BadImageFormatException
+                                       and not CannotUnloadAppDomainException
+                                       and not System.Threading.ThreadAbortException)
+            {
+            }
+        }, action);
     }
 
     private static string[] SnapshotRoots(IEnumerable<string>? extraRoots) =>
