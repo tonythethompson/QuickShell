@@ -63,6 +63,26 @@ internal static class RunFileDialogs
         return result.Success;
     }
 
+    public static bool TryPickExecutable(Window? owner, out string path)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Choose companion app",
+            Filter = "Executables (*.exe)|*.exe|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+
+        if (dialog.ShowDialog(owner) != true)
+        {
+            path = string.Empty;
+            return false;
+        }
+
+        path = dialog.FileName;
+        return true;
+    }
+
     public static bool OpenPathInEditor(string path)
     {
         if (!File.Exists(path))

@@ -26,6 +26,7 @@ env:
   EXTENSION_NAME: QuickShell
   GITHUB_REPO_URL: https://github.com/tonythethompson/QuickShell
   WINGET_PACKAGE_ID: tonythethompson.QuickShell
+  WINGET_CMDPAL_PACKAGE_ID: tonythethompson.QuickShellforCmdPal
 
 jobs:
   build:
@@ -112,10 +113,17 @@ jobs:
 
             ## Install
 
+            ### Command Palette + PowerToys Run (bundled)
+
             - **x64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
             - **ARM64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
 
-            Includes **Command Palette** registration and the **PowerToys Run** plugin. Restart PowerToys after install.
+            Restart PowerToys after install so Run picks up the plugin.
+
+            ### Command Palette only (matches Microsoft Store)
+
+            - **x64**: `QuickShellforCmdPal-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
+            - **ARM64**: `QuickShellforCmdPal-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
 
             ### PowerToys Run plugin (ZIP only)
 
@@ -131,7 +139,11 @@ jobs:
             ## WinGet
 
             ```powershell
+            # Command Palette + PowerToys Run
             winget install ${{ env.WINGET_PACKAGE_ID }}
+
+            # Command Palette only (Store-equivalent)
+            winget install ${{ env.WINGET_CMDPAL_PACKAGE_ID }}
             ```
           files: |
             QuickShell/bin/Release/installer/*.exe
@@ -162,7 +174,7 @@ jobs:
           wingetcreate version
         shell: pwsh
 
-      - name: Submit WinGet manifest update
+      - name: Submit WinGet manifest update (bundled)
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
@@ -178,11 +190,40 @@ jobs:
           $x64Url = "$baseUrl/QuickShell-Setup-$version-x64.exe"
           $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
 
-          Write-Host "Submitting WinGet update for $version"
+          Write-Host "Submitting bundled WinGet update for $version"
           Write-Host "  x64:   $x64Url"
           Write-Host "  arm64: $arm64Url"
 
           wingetcreate update "${{ env.WINGET_PACKAGE_ID }}" `
+            --version $version `
+            --urls $x64Url $arm64Url `
+            --submit `
+            --token $env:WINGET_PAT
+        shell: pwsh
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+
+      - name: Submit WinGet manifest update (CmdPal only)
+        run: |
+          $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
+
+          if (-not $env:WINGET_PAT) {
+            Write-Warning "WINGET_PAT secret is not configured. Skipping WinGet submission."
+            exit 0
+          }
+
+          $version = "${{ needs.build.outputs.version }}"
+          $tag = "${{ needs.build.outputs.tag }}"
+          $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $x64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe"
+          $arm64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe"
+
+          Write-Host "Submitting CmdPal-only WinGet update for $version"
+          Write-Host "  x64:   $x64Url"
+          Write-Host "  arm64: $arm64Url"
+
+          wingetcreate update "${{ env.WINGET_CMDPAL_PACKAGE_ID }}" `
             --version $version `
             --urls $x64Url $arm64Url `
             --submit `

@@ -2,6 +2,7 @@ namespace QuickShell.Run;
 
 internal enum RunManageAction
 {
+    OpenQuickShellSettings,
     CreateShortcut,
     ExportShortcuts,
     ImportMerge,

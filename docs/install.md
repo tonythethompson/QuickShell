@@ -28,27 +28,31 @@ Or search **Quick Shell for CmdPal** in the Store app (listing title). After ins
 
 ### WinGet (Command Line)
 
-Install from PowerShell or Command Prompt:
+Two packages:
 
 ```powershell
+# Command Palette + PowerToys Run
 winget install tonythethompson.QuickShell
+
+# Command Palette only (Store-equivalent)
+winget install tonythethompson.QuickShellforCmdPal
 ```
 
-This installer registers the **Command Palette** extension and installs the **PowerToys Run** plugin (`qs` in Alt+Space). Restart PowerToys after install so Run picks up the plugin.
+Restart PowerToys after the bundled install so Run picks up the plugin.
 
 ### GitHub Releases
 
-Download the installer directly:
+Download an installer directly:
 
 1. Go to [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases){:target="_blank"}
-2. Download the latest **x64** or **ARM64** **EXE** installer (`QuickShell-Setup-*-x64.exe` or `*-arm64.exe`)
+2. Pick the installer for your PC:
+   - **Bundled:** `QuickShell-Setup-*-x64.exe` or `*-arm64.exe` (CmdPal + Run)
+   - **CmdPal only:** `QuickShellforCmdPal-Setup-*-x64.exe` or `*-arm64.exe`
 3. Run the installer
-
-Same as WinGet: includes both Command Palette and PowerToys Run. Restart PowerToys after install.
 
 Choose **x64** for most PCs, **ARM64** only if you're on an ARM-based Windows device.
 
-Standalone Run-only ZIPs (`QuickShell.Run-*.zip`) are also on Releases if you already use the Store build and only want the Run plugin.
+Standalone Run-only ZIPs (`QuickShell.Run-*.zip`) are also on Releases if you already use the Store or CmdPal-only build and only want the Run plugin.
 
 ## Complete setup
 

@@ -22,17 +22,19 @@ param(
 $ErrorActionPreference = "Stop"
 $failures = @()
 
-function Test-InstallerArtifact([string]$Platform) {
-    $path = Join-Path $InstallerDirectory "QuickShell-Setup-$Version-$Platform.exe"
+function Test-InstallerArtifact(
+    [string]$Platform,
+    [string]$InstallerBaseName) {
+    $path = Join-Path $InstallerDirectory "$InstallerBaseName-Setup-$Version-$Platform.exe"
 
     if (-not (Test-Path $path)) {
-        $script:failures += "Missing installer for ${Platform}: $path"
+        $script:failures += "Missing installer for ${Platform} ($InstallerBaseName): $path"
         return
     }
 
     $file = Get-Item $path
     if ($file.Length -lt $MinimumInstallerBytes) {
-        $script:failures += "Installer for $Platform is suspiciously small ($($file.Length) bytes, expected at least $MinimumInstallerBytes): $path"
+        $script:failures += "Installer for $Platform ($InstallerBaseName) is suspiciously small ($($file.Length) bytes, expected at least $MinimumInstallerBytes): $path"
     }
 
     # Inno Setup stamps the compiled installer's own file version from
@@ -40,10 +42,10 @@ function Test-InstallerArtifact([string]$Platform) {
     # so this should always equal the release version being cut.
     $fileVersion = $file.VersionInfo.FileVersion
     if ([string]::IsNullOrWhiteSpace($fileVersion)) {
-        $script:failures += "Installer for $Platform has no embedded file version metadata: $path"
+        $script:failures += "Installer for $Platform ($InstallerBaseName) has no embedded file version metadata: $path"
     }
     elseif ($fileVersion -ne $Version) {
-        $script:failures += "Installer for $Platform has file version '$fileVersion', expected '$Version': $path"
+        $script:failures += "Installer for $Platform ($InstallerBaseName) has file version '$fileVersion', expected '$Version': $path"
     }
 }
 
@@ -70,8 +72,11 @@ function Test-RunPluginZip([string]$Path, [string]$Label) {
 
 Write-Host "Verifying release artifacts for version $Version..." -ForegroundColor Cyan
 
-Test-InstallerArtifact -Platform "x64"
-Test-InstallerArtifact -Platform "arm64"
+foreach ($installerBaseName in @("QuickShell", "QuickShellforCmdPal")) {
+    Test-InstallerArtifact -Platform "x64" -InstallerBaseName $installerBaseName
+    Test-InstallerArtifact -Platform "arm64" -InstallerBaseName $installerBaseName
+}
+
 Test-RunPluginZip -Path $RunPluginX64Zip -Label "x64"
 Test-RunPluginZip -Path $RunPluginArm64Zip -Label "ARM64"
 
@@ -84,4 +89,4 @@ if ($failures.Count -gt 0) {
     throw "Release artifact verification failed with $($failures.Count) issue(s). See above."
 }
 
-Write-Host "Release artifact verification passed: x64 + ARM64 installer and plugin zips present, correctly named, and version-stamped." -ForegroundColor Green
+Write-Host "Release artifact verification passed: bundled + CmdPal installers, plugin zips present, correctly named, and version-stamped." -ForegroundColor Green

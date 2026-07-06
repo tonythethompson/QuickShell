@@ -128,27 +128,37 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     public List<Result> Query(Query query)
     {
         _lastQuery = query.RawQuery;
+        var hasActionKeyword = !string.IsNullOrEmpty(query.ActionKeyword);
         var search = query.Search?.Trim() ?? string.Empty;
+        var rawQuery = query.RawQuery?.Trim() ?? string.Empty;
 
-        if (ShouldSuppressGlobalQuery(query, search))
+        var activation = new QueryActivationContext(hasActionKeyword, string.IsNullOrWhiteSpace(search) ? rawQuery : search);
+        if (RunGlobalQuery.ShouldSuppressEmptyGlobalQuery(activation))
         {
             return [];
         }
 
-        var directActivationBrowse = IsActionKeywordQuery(query);
+        var directActivationBrowse = hasActionKeyword;
+        var filter = search;
+        if (!hasActionKeyword && RunGlobalQuery.TryActivate(search, rawQuery, out var remainingSearch))
+        {
+            directActivationBrowse = true;
+            filter = remainingSearch;
+        }
+
         var results = new List<Result>();
 
         if (directActivationBrowse)
         {
-            results.AddRange(GetManageResults(search));
+            results.AddRange(GetManageResults(filter));
         }
 
-        var shortcuts = string.IsNullOrWhiteSpace(search)
+        var shortcuts = string.IsNullOrWhiteSpace(filter)
             ? Shortcuts.GetShortcuts()
-            : MergeSearchResults(search);
+            : MergeSearchResults(filter);
 
         results.AddRange(shortcuts
-            .Select(shortcut => CreateShortcutResult(shortcut, search, directActivationBrowse)));
+            .Select(shortcut => CreateShortcutResult(shortcut, filter, directActivationBrowse)));
 
         return results
             .OrderByDescending(result => result.Score)
@@ -270,12 +280,13 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     {
         var utilities = new (RunManageAction Action, string Title, string Subtitle, int Score, string[] Keywords)[]
         {
+            (RunManageAction.OpenQuickShellSettings, "Quick Shell settings", "Terminal defaults, git launch, recents, import/export", 2100, ["settings", "config", "preferences", "quickshell", "quick shell"]),
             (RunManageAction.CreateShortcut, "Create shortcut", "Add a new folder shortcut", 2000, ["new", "create", "add"]),
             (RunManageAction.ExportShortcuts, "Export shortcuts", "Save shortcuts to a JSON file", 1900, ["export", "backup"]),
             (RunManageAction.ImportMerge, "Import shortcuts (merge)", "Add shortcuts from a JSON file", 1850, ["import", "merge", "restore"]),
             (RunManageAction.ImportReplace, "Import shortcuts (replace all)", "Replace all shortcuts from a JSON file", 1840, ["replace"]),
             (RunManageAction.OpenShortcutsFile, "Open shortcuts.json", Shortcuts.ConfigPath, 1800, ["json", "shortcuts", "file"]),
-            (RunManageAction.OpenSettingsFile, "Open Quick Shell settings", Settings.SettingsPath, 1750, ["settings", "config"]),
+            (RunManageAction.OpenSettingsFile, "Open settings.json", Settings.SettingsPath, 1750, ["settings", "config", "json"]),
         };
 
         var utilityOrder = 0;
@@ -306,6 +317,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     {
         switch (action)
         {
+            case RunManageAction.OpenQuickShellSettings:
+                QuickShellRunSettingsDialog.Show(Settings, Shortcuts);
+                _settingsPanel?.Reload();
+                break;
             case RunManageAction.CreateShortcut:
                 if (ShortcutEditor.TryShowDialog(null, Shortcuts, out var createMessage))
                 {
@@ -345,6 +360,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             case RunManageAction.OpenSettingsFile:
                 RunFileDialogs.OpenPathInEditor(Settings.SettingsPath);
                 break;
+            default:
+                throw new InvalidOperationException($"Unhandled manage action: {action}");
         }
     }
 
@@ -358,7 +375,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     }
 
     private static bool ShouldHideRunAfterManage(RunManageAction action) =>
-        action is RunManageAction.OpenShortcutsFile or RunManageAction.OpenSettingsFile;
+        action is RunManageAction.OpenShortcutsFile
+            or RunManageAction.OpenSettingsFile
+            or RunManageAction.OpenQuickShellSettings;
 
     private void NotifyStatus(string message)
     {
@@ -386,7 +405,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         var result = new Result
         {
             Title = shortcut.Name,
-            SubTitle = ShortcutHealth.BuildListSubtitle(shortcut),
+            SubTitle = RunWorkspaceSubtitle.Build(shortcut, Settings, listMode: true),
             Score = RunQueryScoring.ComputeShortcutScore(shortcut, search, directActivationBrowse),
             ContextData = new RunContextData(RunContextKind.Shortcut, shortcut.Id),
             Action = action =>
@@ -403,7 +422,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             },
         };
 
-        RunResultIcons.ApplyToResult(result, ShortcutHealth.GetListGlyph(shortcut));
+        RunResultIcons.ApplyToResult(result, ShortcutHealth.GetListGlyph(shortcut), shortcut);
         return result;
     }
 
@@ -424,7 +443,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             shortcut,
             Settings!.TerminalApplicationId,
             Settings.DefaultProfileId,
-            new ShortcutLaunchOptions(runAsAdmin, runAsStandard));
+            new ShortcutLaunchOptions(
+                runAsAdmin,
+                runAsStandard,
+                BlockDirtyBranchSwitch: Settings.ReadBlockDirtyBranchSwitch()));
 
         if (result.MarkUsed)
         {
@@ -435,21 +457,6 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         {
             _context?.API.ShowMsg("Quick Shell", result.StayOpenMessage, string.Empty);
         }
-    }
-
-    private static bool ShouldSuppressGlobalQuery(Query query, string search)
-    {
-        if (!string.IsNullOrEmpty(query.ActionKeyword))
-        {
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(search))
-        {
-            return true;
-        }
-
-        return search.Contains("quick shell", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsActionKeywordQuery(Query query) =>

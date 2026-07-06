@@ -1,0 +1,102 @@
+name: Release PowerToys Run plugin
+
+on:
+  push:
+    tags:
+      - 'run-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Plugin version (leave empty to use plugin.json Version)
+        required: false
+        type: string
+      release_notes:
+        description: Release notes
+        required: false
+        default: Quick Shell PowerToys Run plugin update.
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-2022
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      tag: ${{ steps.version.outputs.TAG }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Get version
+        id: version
+        run: |
+          if ("${{ github.event_name }}" -eq "push") {
+            $version = "${{ github.ref_name }}" -replace '^run-v', ''
+            $tag = "${{ github.ref_name }}"
+          } elseif ("${{ github.event.inputs.version }}" -ne "") {
+            $version = "${{ github.event.inputs.version }}"
+            $tag = "run-v$version"
+          } else {
+            $pluginJson = Get-Content "QuickShell.Run/plugin.json" -Raw | ConvertFrom-Json
+            $version = $pluginJson.Version
+            $tag = "run-v$version"
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "TAG=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "Using version: $version (tag: $tag)"
+        shell: pwsh
+
+      - name: Sync plugin.json version
+        run: |
+          $pluginPath = "QuickShell.Run/plugin.json"
+          $json = Get-Content $pluginPath -Raw | ConvertFrom-Json
+          $json.Version = "${{ steps.version.outputs.VERSION }}"
+          $json | ConvertTo-Json -Depth 5 | Set-Content $pluginPath -Encoding utf8
+        shell: pwsh
+
+      - name: Build PowerToys Run plugin (x64)
+        run: .\scripts\build-run-plugin.ps1 -Platform x64
+        shell: pwsh
+
+      - name: Build PowerToys Run plugin (ARM64)
+        run: .\scripts\build-run-plugin.ps1 -Platform ARM64
+        shell: pwsh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG }}
+          name: Quick Shell Run v${{ steps.version.outputs.VERSION }}
+          generate_release_notes: true
+          body: |
+            ## Quick Shell Run v${{ steps.version.outputs.VERSION }}
+
+            ${{ github.event.inputs.release_notes }}
+
+            PowerToys Run plugin only. Does not update the Command Palette extension or WinGet installers.
+
+            ## Install
+
+            Extract the ZIP for your CPU architecture into:
+
+            `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\QuickShell\`
+
+            Restart PowerToys after copying files.
+
+            - Activate with the **qs** action keyword, or type **Quick Shell** / **quickshell** in global Run.
+            - See [docs/powertoys-run-plugin.md](https://github.com/tonythethompson/QuickShell/blob/main/docs/powertoys-run-plugin.md).
+          files: |
+            QuickShell.Run/bin/x64/Release/QuickShell.Run-x64.zip
+            QuickShell.Run/bin/ARM64/Release/QuickShell.Run-ARM64.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
