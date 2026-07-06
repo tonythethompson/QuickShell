@@ -35,6 +35,26 @@ internal static class GitRepoIndex
         }
     }
 
+    public static bool TryRunAfterNextRefreshIfInFlight(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        lock (Sync)
+        {
+            if (_refreshInFlight is null)
+            {
+                return false;
+            }
+
+            lock (RefreshHandlerSync)
+            {
+                RefreshCompletedHandlers.Add(callback);
+            }
+
+            return true;
+        }
+    }
+
     public static IReadOnlyList<GitRepoCandidate> Search(
         string query,
         IEnumerable<string>? extraRoots = null,
@@ -243,6 +263,7 @@ internal static class GitRepoIndex
             }
 
             _refreshInFlight = null;
+            shouldNotify = true;
 
             if (task.IsFaulted || task.IsCanceled)
             {
@@ -252,7 +273,6 @@ internal static class GitRepoIndex
             _cache = task.Result;
             _cacheRootKey = inFlight.RootKey;
             _refreshedUtc = DateTime.UtcNow;
-            shouldNotify = true;
         }
 
         if (shouldNotify)

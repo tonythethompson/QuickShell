@@ -107,10 +107,9 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             {
                 if (string.IsNullOrWhiteSpace(query))
                 {
-                    if (GitRepoIndex.IsRefreshInFlight)
+                    if (GitRepoIndex.TryRunAfterNextRefreshIfInFlight(ScheduleRefreshItems))
                     {
                         SetOpeningItems();
-                        GitRepoIndex.RunAfterNextRefresh(ScheduleRefreshItems);
                         RaiseItemsChanged();
                         return;
                     }

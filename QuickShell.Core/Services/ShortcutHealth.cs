@@ -4,13 +4,6 @@ namespace QuickShell.Services;
 
 internal static class ShortcutHealth
 {
-    public static bool NeedsRepair(TerminalShortcut shortcut)
-    {
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-
-        return WouldNeedRepair(shortcut);
-    }
-
     public static bool WouldNeedRepair(TerminalShortcut shortcut)
     {
         if (string.IsNullOrWhiteSpace(shortcut.Name) || string.IsNullOrWhiteSpace(shortcut.Directory))

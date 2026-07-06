@@ -1036,7 +1036,7 @@ public sealed class ShortcutHealthTests : IDisposable
     }
 
     [Fact]
-    public void NeedsRepair_ReturnsTrueWhenDirectoryMissingOnDisk()
+    public void WouldNeedRepair_ReturnsTrueWhenDirectoryMissingOnDisk()
     {
         var shortcut = new TerminalShortcut
         {
@@ -1045,13 +1045,13 @@ public sealed class ShortcutHealthTests : IDisposable
             Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
         };
 
-        Assert.True(ShortcutHealth.NeedsRepair(shortcut));
+        Assert.True(ShortcutHealth.WouldNeedRepair(shortcut));
         Assert.Equal(ShortcutGlyphs.IncidentTriangle, ShortcutHealth.GetListGlyph(shortcut));
         Assert.Contains("Folder not found", ShortcutHealth.BuildListSubtitle(shortcut), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void NeedsRepair_ReturnsFalseForHealthyShortcut()
+    public void WouldNeedRepair_ReturnsFalseForHealthyShortcut()
     {
         var shortcut = new TerminalShortcut
         {
@@ -1060,7 +1060,7 @@ public sealed class ShortcutHealthTests : IDisposable
             Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
         };
 
-        Assert.False(ShortcutHealth.NeedsRepair(shortcut));
+        Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
         var glyph = ShortcutHealth.GetListGlyph(shortcut);
         Assert.False(string.IsNullOrWhiteSpace(glyph));
     }
@@ -1076,7 +1076,7 @@ public sealed class ShortcutHealthTests : IDisposable
             Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
         };
 
-        Assert.False(ShortcutHealth.NeedsRepair(shortcut));
+        Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
         Assert.Equal(ShortcutGlyphs.AdminLaunch, ShortcutHealth.GetListGlyph(shortcut));
     }
 
@@ -1092,7 +1092,7 @@ public sealed class ShortcutHealthTests : IDisposable
             Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
         };
 
-        Assert.False(ShortcutHealth.NeedsRepair(shortcut));
+        Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
         Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut), StringComparison.Ordinal);
     }
 

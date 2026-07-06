@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repoRoot 'QuickShell.Run\QuickShell.Run.csproj'
-$outputRoot = Join-Path $repoRoot "QuickShell.Run\bin\$Platform\$Configuration\net9.0-windows10.0.22621.0"
+$outputRoot = Join-Path $repoRoot "QuickShell.Run\bin\$Platform\$Configuration\net10.0-windows10.0.26100.0"
 $pluginRoot = Join-Path $env:LOCALAPPDATA 'Microsoft\PowerToys\PowerToys Run\Plugins\QuickShell'
 $stagingRoot = Join-Path $repoRoot "QuickShell.Run\bin\$Platform\$Configuration\package"
 $zipPath = Join-Path $repoRoot "QuickShell.Run\bin\$Platform\$Configuration\QuickShell.Run-$Platform.zip"
