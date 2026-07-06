@@ -29,7 +29,10 @@ declare namespace Arguments {
   /** Arguments passed to the `create-workspace` command */
   export type CreateWorkspace = {}
   /** Arguments passed to the `edit-workspace` command */
-  export type EditWorkspace = {}
+  export type EditWorkspace = {
+  /** Workspace ID */
+  "workspaceId": string
+}
   /** Arguments passed to the `settings` command */
   export type Settings = {}
 }

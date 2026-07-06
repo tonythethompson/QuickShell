@@ -6,7 +6,7 @@ Raycast-native workspace launcher for QuickShell.
 
 - **Open Workspace** — search, launch, favorite, duplicate, edit, and open saved workspaces
 - **Create Workspace** — create a workspace with name, directory, terminal, and launch command
-- **Edit Workspace** — edit from Open Workspace, or use the standalone command placeholder
+- **Edit Workspace** — searchable picker with inline form; optional `workspaceId` argument for direct edit
 - **Settings** — default terminal app, default profile, and recent workspaces toggle
 
 ## Development

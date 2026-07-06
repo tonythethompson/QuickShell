@@ -2,13 +2,18 @@ import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from
 import { useMemo, useState } from "react";
 import { getQuickShellStorage } from "../lib/raycast-storage";
 import { showStorageFailure, showWorkspaceValidationFailure } from "../lib/failure-feedback";
-import { createStableId } from "../lib/ids";
 import type { Workspace } from "../lib/schema";
 import {
   TERMINAL_APPLICATION_CHOICES,
   WORKSPACE_TERMINAL_CHOICES,
   getWorkspaceProfileChoices,
 } from "../lib/terminal-options";
+import { createStableId } from "../lib/ids";
+import {
+  additionalLaunchCount,
+  buildWorkspaceFromFormState,
+  workspaceFormStateFromWorkspace,
+} from "../lib/workspace-form-state";
 import { normalizeWorkspace, validateWorkspace } from "../lib/validation";
 
 export type WorkspaceFormProps = {
@@ -20,51 +25,37 @@ export type WorkspaceFormProps = {
 export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: WorkspaceFormProps) {
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
-  const [name, setName] = useState(initialWorkspace.name);
-  const [abbreviation, setAbbreviation] = useState(initialWorkspace.abbreviation ?? "");
-  const [directory, setDirectory] = useState(initialWorkspace.directory);
-  const [terminal, setTerminal] = useState(initialWorkspace.terminal || "default");
-  const [wtProfile, setWtProfile] = useState(initialWorkspace.wtProfile ?? "");
-  const [command, setCommand] = useState(
-    initialWorkspace.launches.find((entry) => entry.isEnabled)?.command ??
-      initialWorkspace.command ??
-      "",
-  );
-  const [isPinned, setIsPinned] = useState(initialWorkspace.isPinned);
-  const [runAsAdmin, setRunAsAdmin] = useState(initialWorkspace.runAsAdmin);
-  const [launchLabel, setLaunchLabel] = useState(
-    initialWorkspace.launches.find((entry) => entry.isEnabled)?.label ?? "Launch",
-  );
+  const initialState = workspaceFormStateFromWorkspace(initialWorkspace);
+  const [name, setName] = useState(initialState.name);
+  const [abbreviation, setAbbreviation] = useState(initialState.abbreviation);
+  const [directory, setDirectory] = useState(initialState.directory);
+  const [terminal, setTerminal] = useState(initialState.terminal);
+  const [wtProfile, setWtProfile] = useState(initialState.wtProfile);
+  const [command, setCommand] = useState(initialState.command);
+  const [isPinned, setIsPinned] = useState(initialState.isPinned);
+  const [runAsAdmin, setRunAsAdmin] = useState(initialState.runAsAdmin);
+  const [launchLabel, setLaunchLabel] = useState(initialState.launchLabel);
 
   const profileChoices = useMemo(() => getWorkspaceProfileChoices(terminal), [terminal]);
   const showProfileField = profileChoices.length > 0;
+  const extraLaunches = mode === "edit" ? additionalLaunchCount(initialWorkspace) : 0;
 
   function buildWorkspace(): Workspace {
-    const launchId = initialWorkspace.launches[0]?.id ?? createStableId();
-    return normalizeWorkspace({
-      ...initialWorkspace,
-      name: name.trim(),
-      abbreviation: abbreviation.trim() || null,
-      directory: directory.trim(),
-      terminal,
-      wtProfile: showProfileField && wtProfile.trim() ? wtProfile.trim() : null,
-      command: command.trim() || null,
-      isPinned,
-      runAsAdmin,
-      launches: [
-        {
-          id: launchId,
-          label: launchLabel.trim() || name.trim() || "Launch",
-          terminal,
-          wtProfile: showProfileField && wtProfile.trim() ? wtProfile.trim() : null,
-          command: command.trim() || null,
-          runAsAdmin,
-          isEnabled: true,
-          order: 0,
-          taskType: "none",
-        },
-      ],
-    });
+    return buildWorkspaceFromFormState(
+      initialWorkspace,
+      {
+        name,
+        abbreviation,
+        directory,
+        terminal,
+        wtProfile,
+        command,
+        isPinned,
+        runAsAdmin,
+        launchLabel,
+      },
+      { showProfileField },
+    );
   }
 
   async function handleSave() {
@@ -160,6 +151,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
       />
       <Form.Checkbox id="favorite" label="Favorite" value={isPinned} onChange={setIsPinned} />
       <Form.Checkbox id="admin" label="Run as administrator" value={runAsAdmin} onChange={setRunAsAdmin} />
+      {extraLaunches > 0 ? (
+        <Form.Description
+          title="Additional launches"
+          text={`This workspace has ${extraLaunches} more enabled launch ${extraLaunches === 1 ? "entry" : "entries"}. Saving updates the primary launch only; the others are preserved.`}
+        />
+      ) : null}
       <Form.Description
         title="Defaults"
         text={`Workspace terminals set to "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "your QuickShell settings"}.`}

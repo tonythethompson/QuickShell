@@ -24,7 +24,15 @@
       "name": "edit-workspace",
       "title": "Edit Workspace",
       "description": "Edit an existing workspace",
-      "mode": "view"
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "workspaceId",
+          "type": "text",
+          "required": false,
+          "placeholder": "Workspace ID"
+        }
+      ]
     },
     {
       "name": "settings",
