@@ -17,11 +17,13 @@ public sealed class WorktreeBranchTests : IDisposable
         Directory.CreateDirectory(_root);
 
         ResetSeams();
+        LaunchExecutorTestEnvironment.Apply();
     }
 
     public void Dispose()
     {
         ResetSeams();
+        LaunchExecutorTestEnvironment.Reset();
         try
         {
             Directory.Delete(_root, recursive: true);
