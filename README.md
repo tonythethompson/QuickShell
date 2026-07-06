@@ -1,6 +1,6 @@
 # Quick Shell
 
-**Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) — in one search.**
+**Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) in one search.**
 
 Save directories you use every day, open them in whichever terminal you actually use, optionally run a command on open (`dotnet run`, `npm run dev`, and so on), and jump there without digging through File Explorer.
 
@@ -9,24 +9,25 @@ Save directories you use every day, open them in whichever terminal you actually
 ## What you can do
 
 - **Save workspaces** to folders you open often, with optional **home keywords** for fast root search
-- **Any terminal you use** — Windows Terminal, Intelligent Terminal, every profile on your PC, plus WSL and classic shells
-- **Multiple launches per workspace** — run several terminals or commands from one folder (API + frontend, shell + dev server, and so on)
-- **Tabbed multi-launch** — when several launches share the same Windows Terminal host, they open as **tabs in one window** instead of separate windows
-- **Run commands on open** — start dev servers, scripts, or anything else automatically
-- **Quick add commands** — pick a task type (API, Frontend, Services, and so on) and Quick Shell suggests a command based on what's in the folder (`package.json`, `*.csproj`, `docker-compose.yml`, and more)
-- **Repo-aware workspace setup** — creating or discovering a workspace can pre-fill multiple launch rows from the project layout
-- **Task search** — search by launch label or command (e.g. `dev`, `frontend`, `dotnet watch`) from the Command Palette home screen or inside Quick Shell
-- **Git branch targets** — pin a branch per worktree folder; Quick Shell switches before launch and remembers targets across linked worktrees
-- **Workspace health checks** — pre-launch validation, runtime signals (ports in use, matching processes), and status badges on the list
-- **Discover git repos** — scan local folders and add repositories as workspaces
+- **Any terminal you use:** Windows Terminal, Intelligent Terminal, every profile on your PC, plus WSL and classic shells
+- **Multiple launches per workspace:** run several terminals or commands from one folder (API + frontend, shell + dev server, and so on)
+- **Tabbed multi-launch:** when several launches share the same Windows Terminal host, they open as **tabs in one window** instead of separate windows
+- **Run commands on open:** start dev servers, scripts, or anything else automatically
+- **Quick add commands:** pick a task type (API, Frontend, Services, and so on) and Quick Shell suggests a command based on what's in the folder (`package.json`, `*.csproj`, `docker-compose.yml`, and more)
+- **Repo-aware workspace setup:** creating or discovering a workspace can pre-fill multiple launch rows from the project layout
+- **Task search:** search by launch label or command (e.g. `dev`, `frontend`, `dotnet watch`) from the Command Palette home screen or inside Quick Shell
+- **Git branch targets:** pin a branch per worktree folder; Quick Shell switches before launch and remembers targets across linked worktrees
+- **Workspace health checks:** pre-launch validation, runtime signals (ports in use, matching processes), and status badges on the list
+- **Discover git repos:** scan local folders and add repositories as workspaces
 - **Favorite workspaces** so they stay at the top of your list, with **Recent** and **Workspaces** sections below
-- **Create and edit in Command Palette** — no hand-editing JSON required
+- **Create and edit in Command Palette:** no hand-editing JSON required
 - **Undo and redo** edits from the list, settings row, or **Ctrl+Z** / **Ctrl+Y**
 - **Section headers** in your list to group projects
 - **Import and export workspaces** as JSON from **Quick Shell settings** (backup, sharing, migration)
-- **Open elevated** when you need admin — from the ⋯ menu or with **Ctrl+Enter**
-- **Optional dev server, repo, and companion app links** — open a browser tab or editor when a workspace runs
-- **Search from the root palette** — type a home keyword like `api` and matching workspaces appear without opening the extension first
+- **Open elevated** when you need admin, from the ⋯ menu or with **Ctrl+Enter**
+- **Optional dev server, repo, and companion app links:** open a browser tab or editor when a workspace runs
+- **Search from the root palette:** type a home keyword like `api` and matching workspaces appear without opening the extension first
+- **PowerToys Run** on WinGet and GitHub installs: type **`qs`** in Run (**Alt+Space**) to open the same workspaces from a second launcher
 
 ---
 
@@ -36,13 +37,13 @@ Before a workspace launches, Quick Shell runs a **health check** and surfaces pr
 
 | Signal | What it means |
 | --- | --- |
-| **Blocking errors** | Missing folder, invalid launch, unknown terminal profile, missing executable, or WSL distro — launch is blocked with a clear message |
+| **Blocking errors** | Missing folder, invalid launch, unknown terminal profile, missing executable, or WSL distro. Launch is blocked with a clear message. |
 | **Warnings** | Dev-server port already in use, or a matching process already running |
 | **Git state** | Current branch and whether the working tree is clean or dirty |
 | **Branch mismatch** | Configured target branch differs from the checked-out branch |
 | **Running** | Port or process heuristics suggest the workspace may already be up |
 
-In the workspace list, badges call out items that need attention (warning icon) or appear to be running (activity icon). Open **⋯** → **Workspace status…** for a full snapshot — launches, git, runtime signals, and attention items — with **Refresh** and **Copy launch diagnostics** after a failed launch.
+In the workspace list, badges call out items that need attention (warning icon) or appear to be running (activity icon). Open **⋯** → **Workspace status…** for a full snapshot (launches, git, runtime signals, and attention items), with **Refresh** and **Copy launch diagnostics** after a failed launch.
 
 ---
 
@@ -78,14 +79,14 @@ Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml
 
 ## Terminals
 
-Quick Shell reads **Windows Terminal** and **Intelligent Terminal** `settings.json` files and lists **every profile** you have configured — including custom shells such as Alacritty, WezTerm, Git Bash, or Ubuntu. It also discovers **WSL** distros and classic shells on your PATH (**PowerShell**, **pwsh**, **cmd**).
+Quick Shell reads **Windows Terminal** and **Intelligent Terminal** `settings.json` files and lists **every profile** you have configured, including custom shells such as Alacritty, WezTerm, Git Bash, or Ubuntu. It also discovers **WSL** distros and classic shells on your PATH (**PowerShell**, **pwsh**, **cmd**).
 
 **Quick Shell settings** splits terminal choice the same way Windows does:
 
 | Setting | What it controls |
 | --- | --- |
 | **Terminal application** | Host executable (`wt.exe` or `wtai.exe`) for Default launches and profile launches |
-| **Default profile** | Profile used when a workspace’s terminal is set to **Default** |
+| **Default profile** | Profile used when a workspace's terminal is set to **Default** |
 
 Per-workspace **profile** choices stay on each workspace in the editor. Host options include **Let Windows choose** and **Windows Console Host** for classic `cmd` / PowerShell launches.
 
@@ -97,58 +98,89 @@ After you install a new terminal or edit profiles, use **Refresh terminal list**
 
 ## Requirements
 
-- Windows 10 version 2004 (build 19041) or later — **Windows 11 recommended**
+- Windows 10 version 2004 (build 19041) or later. **Windows 11 recommended.**
 - [PowerToys](https://learn.microsoft.com/windows/powertoys/install) with **Command Palette** enabled
 
 ---
 
 ## Install
 
-### Option 1 — Microsoft Store (recommended)
+### Option 1: Microsoft Store (recommended)
 
 [Get Quick Shell for CmdPal from the Microsoft Store](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`). In Command Palette, search **Quick Shell**.
 
-### Option 2 — WinGet
+The Store package is **Command Palette only**. For PowerToys Run, see [PowerToys Run](#powertoys-run) below.
+
+### Option 2: WinGet
+
+Two packages, same extension, different extras:
+
+| Package | What you get |
+| --- | --- |
+| `tonythethompson.QuickShell` | Command Palette **and** PowerToys Run (`qs`) |
+| `tonythethompson.QuickShellforCmdPal` | Command Palette only (same as Microsoft Store) |
 
 ```powershell
+# Bundled (CmdPal + Run)
 winget install tonythethompson.QuickShell
+
+# CmdPal only
+winget install tonythethompson.QuickShellforCmdPal
 ```
 
-Includes **Command Palette** and **PowerToys Run** (`qs`). Restart PowerToys after install.
+Restart PowerToys after the bundled install so Run picks up the plugin.
 
-### Option 3 — Download an installer
+### Option 3: Download an installer
 
-Get the latest **x64** or **ARM64** installer from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases). Same bundle as WinGet (CmdPal + Run).
+Get the latest **x64** or **ARM64** installers from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases):
 
-**Store** installs CmdPal only; use the [Run plugin ZIP](docs/powertoys-run-plugin.md) if you want Alt+Space as well.
+| Installer | What you get |
+| --- | --- |
+| `QuickShell-Setup-*-x64.exe` / `*-arm64.exe` | Command Palette + PowerToys Run |
+| `QuickShellforCmdPal-Setup-*-x64.exe` / `*-arm64.exe` | Command Palette only |
 
 ### After installing
 
-1. Open **PowerToys Command Palette** (default: **Win + Alt + Space**)
-2. Run **`Reload Command Palette Extension`**
-3. Search **`Quick Shell`**
+1. **Restart PowerToys** (required for the Run plugin on WinGet and GitHub installs)
+2. Open **PowerToys Command Palette** (default: **Win + Alt + Space**)
+3. Run **`Reload Command Palette Extension`**
+4. Search **`Quick Shell`**
 
 You should see **Quick Shell** with the subtitle *Open saved folders in any terminal you use*.
 
 ---
 
+## PowerToys Run
+
+**WinGet** and the **GitHub EXE** installer ship the PowerToys Run plugin alongside Command Palette. The **`tonythethompson.QuickShellforCmdPal`** WinGet package and **`QuickShellforCmdPal-Setup-*.exe`** installers are CmdPal only (Store-equivalent). No separate download.
+
+1. Restart PowerToys after install
+2. Open **PowerToys Run** (**Alt+Space**)
+3. Type **`qs`** to browse workspaces, or **`qs`** plus a keyword to filter (e.g. `qs api`)
+
+Run uses the same `shortcuts.json` and settings as Command Palette. You can create, edit, and launch workspaces from either launcher.
+
+**Microsoft Store** installs do not include Run. Download `QuickShell.Run-x64.zip` or `QuickShell.Run-ARM64.zip` from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases), or follow [docs/powertoys-run-plugin.md](docs/powertoys-run-plugin.md).
+
+---
+
 ## Quick start
 
-Open Command Palette, search **Quick Shell**, and you’re in.
+Open Command Palette, search **Quick Shell**, and you're in.
 
-### 1. Browse workspaces — **Ctrl+K** for everything else
+### 1. Browse workspaces (**Ctrl+K** for everything else)
 
-Search, favorite, edit, duplicate, undo, and run — all from the list and its context menu.
+Search, favorite, edit, duplicate, undo, and run, all from the list and its context menu.
 
 ![Shortcut list with the context menu open](QuickShell/Assets/Screenshot_1.png)
 
-### 2. Edit in place — folder, command, terminal, admin
+### 2. Edit in place (folder, command, terminal, admin)
 
 No JSON required. Pick a folder, optional command, profile, and whether to launch elevated.
 
 ![Shortcut editor](QuickShell/Assets/Screenshot_2.png)
 
-### 3. Settings — defaults, backup, import, git launch
+### 3. Settings (defaults, backup, import, git launch)
 
 Set your default terminal host and profile, configure **git launch** safety (block when dirty + branch switch), export a backup, or import workspaces from another PC. **Merge** keeps yours and adds new names; **Replace all** swaps the whole file.
 
@@ -169,6 +201,7 @@ Open the **⋯** menu on any workspace (or press **Ctrl+K**) for edit, favorite,
 | What you want | How |
 | --- | --- |
 | Open a saved folder | Search **Quick Shell**, pick a workspace, **Enter** |
+| Open from PowerToys Run | **Alt+Space** → `qs`, pick a workspace (WinGet / GitHub install) |
 | Run one launch from a multi-launch workspace | **⋯** → pick the launch by label (e.g. **Frontend**, **API**) |
 | Jump straight to a workspace | Type its **home keyword** at the Command Palette home screen (e.g. `api`) |
 | Run a specific task from anywhere | At the Command Palette home screen, search by launch label or command (e.g. `dev`, `dotnet watch`) |
@@ -207,7 +240,7 @@ Each workspace is stored in `%LOCALAPPDATA%\QuickShell\shortcuts.json`. The file
 | --- | --- | --- |
 | `Name` | Yes | Display name in Command Palette |
 | `Directory` | Yes | Folder to open |
-| `Abbreviation` | No | **Home keyword** — type at the Command Palette home screen to jump to this workspace (e.g. `api`). JSON field name stays `Abbreviation`. |
+| `Abbreviation` | No | **Home keyword:** type at the Command Palette home screen to jump to this workspace (e.g. `api`). JSON field name stays `Abbreviation`. |
 | `IsPinned` | No | `true` to favorite the workspace (keeps it at the top under **Favorites**) |
 | `RunAsAdmin` | No | `true` to always launch elevated (UAC prompt); also available as a checkbox when editing |
 
@@ -258,7 +291,7 @@ Mix **section headers** into the same array with workspace objects:
 
 Favorited workspaces (`IsPinned`) appear under **Favorites** at the top, then **Recent**, then the rest under **Workspaces** (favorites and recents are not repeated in the workspace list). Configure how many recents appear in **Quick Shell settings**.
 
-Example (legacy single-launch shape — still valid):
+Example (legacy single-launch shape, still valid):
 
 ```json
 [
@@ -291,14 +324,14 @@ More examples: [`shortcuts.example.json`](shortcuts.example.json).
 **Extension missing after install**  
 Run **Reload Command Palette Extension** in Command Palette. Restart PowerToys if needed.
 
+**PowerToys Run (`qs`) not showing**  
+Restart PowerToys after install. WinGet and GitHub EXE installs bundle the plugin automatically; Store users need the Run ZIP from Releases (see [PowerToys Run](#powertoys-run)).
+
 **Shortcuts disappeared after an update**  
 Check `%LOCALAPPDATA%\QuickShell\shortcuts.json.bak` for a backup. Older installs may also have left a copy at `%LOCALAPPDATA%\TerminalShortcutsCmdPal\shortcuts.json`.
 
 **Duplicate or broken Quick Shell in Windows Settings**  
-You may have an old installer alongside a newer one. In **Settings → Apps**, uninstall extra **Quick Shell** entries and keep a single install.
-
-**WinGet install works but Command Palette integration is incomplete**  
-The WinGet installer registers the extension for discovery. For local development or the fullest MSIX integration, see [Building from source](#building-from-source) below.
+You may have an old installer alongside a newer one, or both Store and WinGet installed. In **Settings → Apps**, uninstall extra **Quick Shell** entries and keep a single install.
 
 ---
 
@@ -309,7 +342,7 @@ For contributors and local MSIX installs (recommended for development):
 **Prerequisites:** Windows 11, .NET 10 SDK, Visual Studio 2022 (Windows workload), PowerToys with Command Palette enabled.
 
 ```powershell
-# Default dev loop: stop CmdPal → build/install MSIX → start CmdPal
+# Default dev loop: stop CmdPal, build/install MSIX, start CmdPal
 .\scripts\deploy.ps1
 
 # Same, with local PowerToys CmdPal SDK (sibling PowerToys checkout)
@@ -319,7 +352,7 @@ For contributors and local MSIX installs (recommended for development):
 .\scripts\deploy.ps1 -SkipElevation
 ```
 
-After the first successful install, `deploy.ps1` stays in your current terminal — it only elevates when the dev certificate is not trusted yet. Approve UAC once if prompted; later runs skip elevation automatically.
+After the first successful install, `deploy.ps1` stays in your current terminal. It only elevates when the dev certificate is not trusted yet. Approve UAC once if prompted; later runs skip elevation automatically.
 
 Then run **Reload Command Palette Extension** in Command Palette.
 
@@ -327,11 +360,11 @@ Then run **Reload Command Palette Extension** in Command Palette.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ## Website
 
-[quickshell.trackdub.com](https://quickshell.trackdub.com/) — install steps, getting started, support, and privacy policy.
+[quickshell.trackdub.com](https://quickshell.trackdub.com/): install steps, getting started, support, and privacy policy.
 
 **Microsoft Store:** [Quick Shell for CmdPal](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`)
 
