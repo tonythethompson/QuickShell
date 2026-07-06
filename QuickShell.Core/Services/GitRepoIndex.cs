@@ -14,6 +14,11 @@ internal static class GitRepoIndex
 
     internal static Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? DiscoverOverride { get; set; }
 
+    /// <summary>
+    /// CmdPal extension thread captured at provider startup; refresh waiters must run there.
+    /// </summary>
+    internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
+
     public static bool IsRefreshInFlight
     {
         get
@@ -265,14 +270,12 @@ internal static class GitRepoIndex
             _refreshInFlight = null;
             shouldNotify = true;
 
-            if (task.IsFaulted || task.IsCanceled)
+            if (!task.IsFaulted && !task.IsCanceled)
             {
-                return;
+                _cache = task.Result;
+                _cacheRootKey = inFlight.RootKey;
+                _refreshedUtc = DateTime.UtcNow;
             }
-
-            _cache = task.Result;
-            _cacheRootKey = inFlight.RootKey;
-            _refreshedUtc = DateTime.UtcNow;
         }
 
         if (shouldNotify)
@@ -299,7 +302,7 @@ internal static class GitRepoIndex
         {
             try
             {
-                handler();
+                RunOnExtensionThread(handler);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException
                                        and not StackOverflowException
@@ -312,6 +315,18 @@ internal static class GitRepoIndex
                 // Best effort; UI callbacks should not break cache refresh.
             }
         }
+    }
+
+    private static void RunOnExtensionThread(Action action)
+    {
+        var extensionContext = ExtensionSynchronizationContext;
+        if (extensionContext is null || ReferenceEquals(SynchronizationContext.Current, extensionContext))
+        {
+            action();
+            return;
+        }
+
+        extensionContext.Post(static state => ((Action)state!).Invoke(), action);
     }
 
     private static string[] SnapshotRoots(IEnumerable<string>? extraRoots) =>

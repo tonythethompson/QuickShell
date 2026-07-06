@@ -125,39 +125,17 @@ internal static class WorktreeBranchTargetStore
         try
         {
             using var stream = File.OpenRead(path);
-            using var jsonDoc = JsonDocument.Parse(
+            var document = JsonSerializer.Deserialize(
                 stream,
-                new JsonDocumentOptions
-                {
-                    AllowTrailingCommas = true,
-                    CommentHandling = JsonCommentHandling.Skip,
-                });
-
-            if (!jsonDoc.RootElement.TryGetProperty("Targets", out var targetsElement))
+                QuickShellJsonContext.Default.WorktreeBranchTargetsDocument);
+            if (document?.Targets is not { Count: > 0 } persistedTargets)
             {
                 return;
             }
 
-            if (targetsElement.ValueKind != JsonValueKind.Object)
+            foreach (var (worktreeKey, branch) in persistedTargets)
             {
-                return;
-            }
-
-            foreach (var property in targetsElement.EnumerateObject())
-            {
-                var worktreeKey = property.Name;
-                if (string.IsNullOrWhiteSpace(worktreeKey))
-                {
-                    continue;
-                }
-
-                if (property.Value.ValueKind != JsonValueKind.String)
-                {
-                    continue;
-                }
-
-                var branch = property.Value.GetString();
-                if (string.IsNullOrWhiteSpace(branch))
+                if (string.IsNullOrWhiteSpace(worktreeKey) || string.IsNullOrWhiteSpace(branch))
                 {
                     continue;
                 }
@@ -173,10 +151,6 @@ internal static class WorktreeBranchTargetStore
             }
         }
         catch (JsonException)
-        {
-            Targets.Clear();
-        }
-        catch (Exception)
         {
             Targets.Clear();
         }
