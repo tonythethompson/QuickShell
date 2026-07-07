@@ -172,7 +172,11 @@ function walk(
 }
 
 function quoteIfNeeded(value: string): string {
-  return /\s/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+  if (!/\s/.test(value)) {
+    return value;
+  }
+
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function toTitle(value: string): string {
