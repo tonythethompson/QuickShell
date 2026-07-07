@@ -84,7 +84,7 @@ function Get-VariantMetadata([string]$InstallerVariant) {
 
                 InstallerBaseName = "QuickShell"
 
-                DisplayName = "Quick Shell"
+                DisplayName = "Quick Shell for PowerToys"
 
             }
 
