@@ -30,13 +30,21 @@ export type WorkspaceFormState = {
   companionAppArguments: string;
 };
 
+function terminalForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string {
+  if (state.launches.length === 1) {
+    return state.terminal || "default";
+  }
+
+  return row.terminal || state.terminal || "default";
+}
+
 export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: WorkspaceFormState): Workspace {
   const launches: LaunchEntry[] = state.launches
     .filter((row) => row.command.trim())
     .map((row, index) => ({
       id: row.id || createStableId(),
       label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
-      terminal: row.terminal || state.terminal || "default",
+      terminal: terminalForLaunchRow(row, state),
       wtProfile: row.wtProfile ?? state.wtProfile ?? null,
       command: row.command.trim() || null,
       runAsAdmin: row.runAsAdmin || state.runAsAdmin,

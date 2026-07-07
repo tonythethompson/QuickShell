@@ -1,3 +1,4 @@
+import { createStableId } from "./ids";
 import { migrateStoredData } from "./migration";
 import type { StoredData, Workspace } from "./schema";
 import { createEmptyStoredData } from "./schema";
@@ -73,22 +74,29 @@ function importShortcutArray(items: unknown[], existing?: StoredData): ImportRes
 function mergeImportedData(imported: StoredData, existing?: StoredData): ImportResult {
   const base = existing ?? createEmptyStoredData();
   const names = new Set(base.workspaces.map((workspace) => workspace.name.toLowerCase()));
+  const ids = new Set(base.workspaces.map((workspace) => workspace.id));
   let renamed = 0;
   let skipped = 0;
   const merged: Workspace[] = [...base.workspaces];
 
   for (const workspace of imported.workspaces) {
     let next = workspace;
-    if (names.has(workspace.name.toLowerCase())) {
+    if (ids.has(workspace.id)) {
+      next = { ...next, id: createStableId() };
+    }
+
+    if (names.has(next.name.toLowerCase())) {
       const suffixed = `${workspace.name} (imported)`;
       if (names.has(suffixed.toLowerCase())) {
         skipped += 1;
         continue;
       }
-      next = { ...workspace, name: suffixed };
+      next = { ...next, name: suffixed };
       renamed += 1;
     }
+
     names.add(next.name.toLowerCase());
+    ids.add(next.id);
     merged.push(next);
   }
 
