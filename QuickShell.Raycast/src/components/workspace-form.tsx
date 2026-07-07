@@ -54,14 +54,18 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
     nextTerminal = selectedTerminal,
     nextRunAsAdmin = runAsAdmin,
   ) {
-    setLaunches((current) =>
-      current.map((row) => ({
+    setLaunches((current) => {
+      if (current.length !== 1) {
+        return current;
+      }
+
+      return current.map((row) => ({
         ...row,
         terminal: nextTerminal?.terminal ?? "default",
         wtProfile: nextTerminal?.wtProfile ?? null,
         runAsAdmin: nextRunAsAdmin,
-      })),
-    );
+      }));
+    });
   }
 
   function handleTerminalChange(nextChoiceId: string) {
@@ -88,6 +92,18 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
       const suggestions = buildProjectSetupSuggestions(nextDirectory);
       if (suggestions.length > 0) {
         setLaunches(launchRowsFromSuggestions(suggestions, selectedTerminal?.terminal ?? "default"));
+      } else {
+        setLaunches([
+          {
+            id: createStableId(),
+            command: "",
+            terminal: selectedTerminal?.terminal ?? "default",
+            wtProfile: selectedTerminal?.wtProfile ?? null,
+            runAsAdmin: false,
+            isEnabled: true,
+            label: "Launch",
+          },
+        ]);
       }
     }
   }
@@ -132,6 +148,16 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
   }
 
   function buildWorkspace(): Workspace {
+    const normalizedLaunches =
+      launches.length === 1
+        ? launches.map((launch) => ({
+            ...launch,
+            terminal: selectedTerminal?.terminal ?? "default",
+            wtProfile: selectedTerminal?.wtProfile ?? null,
+            runAsAdmin,
+          }))
+        : launches;
+
     return buildWorkspaceFromFormState(initialWorkspace, {
       name,
       abbreviation,
@@ -140,12 +166,7 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
       wtProfile: selectedTerminal?.wtProfile ?? null,
       isPinned,
       runAsAdmin,
-      launches: launches.map((launch) => ({
-        ...launch,
-        terminal: selectedTerminal?.terminal ?? "default",
-        wtProfile: selectedTerminal?.wtProfile ?? null,
-        runAsAdmin,
-      })),
+      launches: normalizedLaunches,
     });
   }
 
