@@ -30,10 +30,7 @@ export type WorkspaceFormState = {
   companionAppArguments: string;
 };
 
-export function buildWorkspaceFromFormState(
-  initialWorkspace: Workspace,
-  state: WorkspaceFormState,
-): Workspace {
+export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: WorkspaceFormState): Workspace {
   const launches: LaunchEntry[] = state.launches
     .filter((row) => row.command.trim())
     .map((row, index) => ({
@@ -131,7 +128,9 @@ export function launchRowsFromSuggestions(
 export function filterWorkspacesForEdit(workspaces: Workspace[], query: string): Workspace[] {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) {
-    return [...workspaces].sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }));
+    return [...workspaces].sort((left, right) =>
+      left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
+    );
   }
 
   return workspaces
@@ -150,4 +149,3 @@ export function filterWorkspacesForEdit(workspaces: Workspace[], query: string):
 export function additionalLaunchCount(workspace: Workspace): number {
   return Math.max(0, workspace.launches.filter((entry) => entry.isEnabled).length - 1);
 }
-

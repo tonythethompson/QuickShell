@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildBrowseSections,
-  computeBrowseScore,
-  getRecentWorkspaces,
-  sortWorkspacesForSearch,
-} from "../lib/ranking";
+import { buildBrowseSections, computeBrowseScore, getRecentWorkspaces, sortWorkspacesForSearch } from "../lib/ranking";
 import type { Workspace } from "../lib/schema";
 
 function workspace(partial: Partial<Workspace> & Pick<Workspace, "id" | "name">): Workspace {

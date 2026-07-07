@@ -105,10 +105,7 @@ export type RankedWorkspaceSections = {
   workspaces: Workspace[];
 };
 
-export function buildBrowseSections(
-  workspaces: Workspace[],
-  recentWorkspaceCount: number,
-): RankedWorkspaceSections {
+export function buildBrowseSections(workspaces: Workspace[], recentWorkspaceCount: number): RankedWorkspaceSections {
   const favorites = getFavoriteWorkspaces(workspaces);
   const favoriteIds = new Set(favorites.map((workspace) => workspace.id));
   const recents = getRecentWorkspaces(workspaces, recentWorkspaceCount);

@@ -9,6 +9,40 @@
   "categories": ["Developer Tools", "Productivity"],
   "license": "MIT",
   "keywords": ["quickshell", "terminal", "windows terminal", "workspace", "developer", "powershell", "wsl", "git"],
+  "preferences": [
+    {
+      "name": "terminalApplication",
+      "title": "Default Terminal App",
+      "description": "Terminal application used when a workspace launch uses the QuickShell default.",
+      "type": "dropdown",
+      "required": false,
+      "default": "wt",
+      "data": [
+        { "title": "Let Windows choose", "value": "system" },
+        { "title": "Windows Terminal", "value": "wt" },
+        { "title": "Windows Console Host", "value": "conhost" },
+        { "title": "Intelligent Terminal", "value": "it" }
+      ]
+    },
+    {
+      "name": "defaultProfile",
+      "title": "Default Profile",
+      "description": "Profile name for the default terminal app. Use __default__ for the app default profile.",
+      "type": "textfield",
+      "required": false,
+      "default": "__default__",
+      "placeholder": "__default__"
+    },
+    {
+      "name": "showRecents",
+      "title": "Recent Workspaces",
+      "description": "Show recently opened workspaces in Open Workspace.",
+      "type": "checkbox",
+      "required": false,
+      "default": true,
+      "label": "Show recent workspaces"
+    }
+  ],
   "engines": {
     "node": ">=22.14.0"
   },
@@ -67,11 +101,11 @@
     },
     {
       "name": "settings",
-      "title": "QuickShell Settings",
+      "title": "Manage Workspaces",
       "subtitle": "QuickShell",
-      "description": "Configure default terminal app, profile, and recents",
+      "description": "Import, export, undo workspace changes, and open extension preferences",
       "icon": "command-settings.png",
-      "keywords": ["quickshell", "settings", "terminal", "profile"],
+      "keywords": ["quickshell", "settings", "import", "export", "preferences"],
       "mode": "view"
     }
   ],

@@ -86,9 +86,9 @@ function addGoSuggestions(directory: string, add: (label: string, command: strin
 
 function addDockerSuggestions(directory: string, add: (label: string, command: string) => void) {
   if (
-    !existsSync(path.join(directory, "docker-compose.yml"))
-    && !existsSync(path.join(directory, "docker-compose.yaml"))
-    && !existsSync(path.join(directory, "compose.yml"))
+    !existsSync(path.join(directory, "docker-compose.yml")) &&
+    !existsSync(path.join(directory, "docker-compose.yaml")) &&
+    !existsSync(path.join(directory, "compose.yml"))
   ) {
     return;
   }
@@ -107,13 +107,7 @@ function findFiles(directory: string, extension: string, maxDepth: number): stri
   return results;
 }
 
-function walk(
-  current: string,
-  depth: number,
-  maxDepth: number,
-  results: string[],
-  extension: string,
-) {
+function walk(current: string, depth: number, maxDepth: number, results: string[], extension: string) {
   if (depth > maxDepth) {
     return;
   }

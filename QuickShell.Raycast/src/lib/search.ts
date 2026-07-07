@@ -88,9 +88,7 @@ export function hasAbbreviationMatch(workspaces: Workspace[], query: string): bo
   if (!range) {
     return false;
   }
-  return workspaces.some((workspace) =>
-    containsText(workspace.abbreviation, range.query, range.start, range.length),
-  );
+  return workspaces.some((workspace) => containsText(workspace.abbreviation, range.query, range.start, range.length));
 }
 
 export function searchWorkspaces(workspaces: Workspace[], query: string): Workspace[] {

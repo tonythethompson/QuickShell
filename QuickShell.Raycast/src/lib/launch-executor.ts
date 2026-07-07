@@ -11,8 +11,7 @@ import {
 export type ExecFn = (command: string, args: string[]) => Promise<void>;
 
 export type LaunchExecutionResult =
-  | { ok: true; summary: string; postLaunchWarnings?: string[] }
-  | { ok: false; message: string; cause?: unknown };
+  { ok: true; summary: string; postLaunchWarnings?: string[] } | { ok: false; message: string; cause?: unknown };
 
 type LaunchGroup = {
   hostExecutable: string;
@@ -123,12 +122,7 @@ async function executeGroup(group: LaunchGroup, execFn: ExecFn): Promise<void> {
   await runProcess(group.hostExecutable, args, group.runAsAdmin, execFn);
 }
 
-async function runProcess(
-  hostExecutable: string,
-  args: string[],
-  runAsAdmin: boolean,
-  execFn: ExecFn,
-): Promise<void> {
+async function runProcess(hostExecutable: string, args: string[], runAsAdmin: boolean, execFn: ExecFn): Promise<void> {
   if (!runAsAdmin) {
     await execFn(hostExecutable, args);
     return;

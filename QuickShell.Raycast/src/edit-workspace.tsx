@@ -5,14 +5,8 @@ import WorkspaceForm from "./components/workspace-form";
 import WindowsRequiredView from "./components/windows-required-view";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import { assessWorkspaceHealthForList } from "./lib/workspace-health";
-import {
-  buildWorkspaceHealthIndex,
-  lookupWorkspaceHealth,
-} from "./lib/workspace-health-index";
-import {
-  additionalLaunchCount,
-  filterWorkspacesForEdit,
-} from "./lib/workspace-form-state";
+import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
+import { additionalLaunchCount, filterWorkspacesForEdit } from "./lib/workspace-form-state";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
@@ -26,10 +20,7 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
   const requestedWorkspaceId = args?.workspaceId?.trim();
 
   const { data, isLoading, error, revalidate } = usePromise(async () => {
-    const [workspaces, settings] = await Promise.all([
-      storage.getWorkspaces(),
-      storage.getSettings(),
-    ]);
+    const [workspaces, settings] = await Promise.all([storage.getWorkspaces(), storage.getSettings()]);
     return { workspaces, settings };
   }, []);
 
@@ -93,11 +84,7 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
       throttle
     >
       {error ? (
-        <List.EmptyView
-          icon={Icon.ExclamationMark}
-          title="Failed to load workspaces"
-          description={error.message}
-        />
+        <List.EmptyView icon={Icon.ExclamationMark} title="Failed to load workspaces" description={error.message} />
       ) : null}
 
       {!error && workspaces.length === 0 ? (
@@ -129,7 +116,10 @@ function renderWorkspacePickerItem(
   const health =
     settings && healthIndex
       ? lookupWorkspaceHealth(healthIndex, workspace, settings)
-      : assessWorkspaceHealthForList(workspace, settings ?? { terminalApplication: "wt", defaultProfile: "__default__", recentWorkspaceCount: 8 });
+      : assessWorkspaceHealthForList(
+          workspace,
+          settings ?? { terminalApplication: "wt", defaultProfile: "__default__", recentWorkspaceCount: 8 },
+        );
   const extraLaunches = additionalLaunchCount(workspace);
   const accessories: List.Item.Accessory[] = [];
   if (workspace.abbreviation) {

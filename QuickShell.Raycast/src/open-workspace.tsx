@@ -1,16 +1,26 @@
-import { Action, ActionPanel, Alert, Clipboard, Color, Icon, LaunchProps, List, confirmAlert, open, showToast, Toast, updateCommandMetadata } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Alert,
+  Clipboard,
+  Color,
+  Icon,
+  LaunchProps,
+  List,
+  confirmAlert,
+  open,
+  showToast,
+  Toast,
+  updateCommandMetadata,
+  Keyboard,
+} from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useEffect, useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
 import WindowsRequiredView from "./components/windows-required-view";
 import WorkspaceForm from "./components/workspace-form";
 import { createBlankWorkspace } from "./lib/create-workspace-initial";
-import {
-  showHealthFailure,
-  showLaunchFailure,
-  showLaunchSuccess,
-  showStorageFailure,
-} from "./lib/failure-feedback";
+import { showHealthFailure, showLaunchFailure, showLaunchSuccess, showStorageFailure } from "./lib/failure-feedback";
 import { executeWorkspaceLaunch } from "./lib/launch-executor";
 import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
@@ -19,11 +29,9 @@ import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
 import { assessWorkspaceHealthForLaunch } from "./lib/workspace-health";
-import {
-  buildWorkspaceHealthIndex,
-  lookupWorkspaceHealth,
-} from "./lib/workspace-health-index";
+import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
+import { resolveOpenWorkspaceSearchSeed } from "./lib/launch-context";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
@@ -45,15 +53,15 @@ type SectionGroup = {
   rows: WorkspaceRow[];
 };
 
-export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
-  const [searchText, setSearchText] = useState(fallbackText ?? "");
+export default function OpenWorkspaceCommand({
+  fallbackText,
+  launchContext,
+}: LaunchProps<{ launchContext: LaunchContext.OpenWorkspace }>) {
+  const [searchText, setSearchText] = useState(() => resolveOpenWorkspaceSearchSeed(fallbackText, launchContext));
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
-    const [workspaces, settings] = await Promise.all([
-      storage.getWorkspaces(),
-      storage.getSettings(),
-    ]);
+    const [workspaces, settings] = await Promise.all([storage.getWorkspaces(), storage.getSettings()]);
     return {
       workspaces,
       settings,
@@ -63,6 +71,13 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
   }, []);
 
   useLoadErrorToast(error, "Failed to load workspaces");
+
+  useEffect(() => {
+    const seeded = resolveOpenWorkspaceSearchSeed(fallbackText, launchContext);
+    if (seeded) {
+      setSearchText(seeded);
+    }
+  }, [fallbackText, launchContext?.focusWorkspaceId, launchContext?.focusWorkspaceName]);
 
   const healthIndex = useMemo(() => {
     if (!data) {
@@ -186,9 +201,7 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
       await storage.flushRecentWrites();
       await revalidate();
       const warningSuffix =
-        result.ok && result.postLaunchWarnings?.length
-          ? ` ${result.postLaunchWarnings.join(" ")}`
-          : "";
+        result.ok && result.postLaunchWarnings?.length ? ` ${result.postLaunchWarnings.join(" ")}` : "";
       await showLaunchSuccess(
         launch ? `Launching ${launch.label}` : `Opening ${workspace.name}`,
         `${result.summary}${warningSuffix}`,
@@ -202,10 +215,7 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
     try {
       await storage.setFavorite(workspace.id, !workspace.isPinned);
       await revalidate();
-      await showLaunchSuccess(
-        workspace.isPinned ? "Removed from favorites" : "Added to favorites",
-        workspace.name,
-      );
+      await showLaunchSuccess(workspace.isPinned ? "Removed from favorites" : "Added to favorites", workspace.name);
     } catch (favoriteError) {
       await showStorageFailure("Favorite update", favoriteError);
     }
@@ -262,7 +272,11 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
     try {
       const text = await Clipboard.readText();
       if (!text.trim()) {
-        await showToast({ style: Toast.Style.Failure, title: "Clipboard empty", message: "Copy QuickShell JSON first." });
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Clipboard empty",
+          message: "Copy QuickShell JSON first.",
+        });
         return;
       }
       const result = await storage.importJson(text, "merge");
@@ -311,7 +325,10 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
       accessories.push({ text: workspace.abbreviation });
     }
     if (!health.ok) {
-      accessories.push({ icon: { source: Icon.ExclamationMark, tintColor: Color.Orange }, tooltip: health.issues[0]?.message });
+      accessories.push({
+        icon: { source: Icon.ExclamationMark, tintColor: Color.Orange },
+        tooltip: health.issues[0]?.message,
+      });
     }
     if (workspace.isPinned) {
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
@@ -349,7 +366,7 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
               <Action
                 title="Open Folder"
                 icon={Icon.Folder}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "o" }}
+                shortcut={Keyboard.Shortcut.Common.OpenWith}
                 onAction={() => handleOpenFolder(workspace)}
               />
               {workspace.repoUrl ? (
@@ -360,7 +377,7 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
               <Action.Push
                 title="Edit Workspace"
                 icon={Icon.Pencil}
-                shortcut={{ modifiers: ["cmd"], key: "e" }}
+                shortcut={Keyboard.Shortcut.Common.Edit}
                 target={
                   <EditWorkspaceView
                     workspaceId={workspace.id}
@@ -411,23 +428,33 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
       actions={
         <ActionPanel>
           <ActionPanel.Section title="Workspaces">
-            <Action.Push title="Create Workspace" icon={Icon.Plus} target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />} />
+            <Action.Push
+              title="Create Workspace"
+              icon={Icon.Plus}
+              target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />}
+            />
             <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
             <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
           </ActionPanel.Section>
           <ActionPanel.Section title="History">
-            <Action title="Undo" icon={Icon.ArrowCounterClockwise} shortcut={{ modifiers: ["cmd"], key: "z" }} onAction={handleUndo} />
-            <Action title="Redo" icon={Icon.ArrowClockwise} shortcut={{ modifiers: ["cmd", "shift"], key: "z" }} onAction={handleRedo} />
+            <Action
+              title="Undo"
+              icon={Icon.ArrowCounterClockwise}
+              shortcut={{ modifiers: ["cmd"], key: "z" }}
+              onAction={handleUndo}
+            />
+            <Action
+              title="Redo"
+              icon={Icon.ArrowClockwise}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "z" }}
+              onAction={handleRedo}
+            />
           </ActionPanel.Section>
         </ActionPanel>
       }
     >
       {error ? (
-        <List.EmptyView
-          icon={Icon.ExclamationMark}
-          title="Failed to load workspaces"
-          description={error.message}
-        />
+        <List.EmptyView icon={Icon.ExclamationMark} title="Failed to load workspaces" description={error.message} />
       ) : null}
 
       {!error && isEmpty ? (
@@ -440,7 +467,11 @@ export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
           }
           actions={
             <ActionPanel>
-              <Action.Push title="Create Workspace" icon={Icon.Plus} target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />} />
+              <Action.Push
+                title="Create Workspace"
+                icon={Icon.Plus}
+                target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />}
+              />
             </ActionPanel>
           }
         />

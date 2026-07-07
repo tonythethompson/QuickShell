@@ -58,7 +58,7 @@ export function assessWorkspaceHealth(
   }
 
   if (includeLaunchPlan) {
-    for (const error of validateLaunchPlanErrors(workspace, settings)) {
+    for (const error of validateLaunchPlanErrors(workspace)) {
       issues.push({ code: "launch_plan", message: error, severity: "error" });
     }
   }

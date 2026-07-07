@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Icon, List, showToast, Toast } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
-import WorkspaceForm, { createBlankWorkspace } from "./components/workspace-form";
+import WorkspaceForm from "./components/workspace-form";
 import WindowsRequiredView from "./components/windows-required-view";
 import { buildProjectSetupSuggestions } from "./lib/project-setup-suggestion";
 import { discoverGitReposCached } from "./lib/git-repo-discovery";

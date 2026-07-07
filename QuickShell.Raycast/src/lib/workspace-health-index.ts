@@ -11,10 +11,7 @@ function settingsFingerprint(settings: QuickShellSettings): string {
   return `${settings.terminalApplication}|${settings.defaultProfile}|${settings.recentWorkspaceCount}`;
 }
 
-export function buildWorkspaceHealthIndex(
-  workspaces: Workspace[],
-  settings: QuickShellSettings,
-): WorkspaceHealthIndex {
+export function buildWorkspaceHealthIndex(workspaces: Workspace[], settings: QuickShellSettings): WorkspaceHealthIndex {
   const index: WorkspaceHealthIndex = new Map();
   const settingsKey = settingsFingerprint(settings);
 

@@ -20,7 +20,10 @@ export class QuickShellStorage {
   private recentWriteTimer: ReturnType<typeof setTimeout> | null = null;
   private recentWriteDirty = false;
 
-  constructor(private readonly adapter: StorageAdapter) {}
+  constructor(
+    private readonly adapter: StorageAdapter,
+    private readonly settingsProvider?: () => QuickShellSettings,
+  ) {}
 
   async load(): Promise<StoredData> {
     await this.ensureLoaded();
@@ -77,7 +80,8 @@ export class QuickShellStorage {
 
   async exportJson(): Promise<string> {
     const data = await this.load();
-    return JSON.stringify(data, null, 2);
+    const settings = await this.getSettings();
+    return JSON.stringify({ ...data, settings }, null, 2);
   }
 
   async importJson(raw: string, mode: "merge" | "replace" = "merge"): Promise<ImportResult> {
@@ -122,6 +126,10 @@ export class QuickShellStorage {
   }
 
   async getSettings(): Promise<QuickShellSettings> {
+    if (this.settingsProvider) {
+      return { ...this.settingsProvider() };
+    }
+
     await this.ensureLoaded();
     return { ...this.cache!.settings };
   }
@@ -236,6 +244,10 @@ export class QuickShellStorage {
   }
 
   async updateSettings(settings: QuickShellSettings): Promise<void> {
+    if (this.settingsProvider) {
+      throw new Error("Settings are managed in Raycast extension preferences.");
+    }
+
     await this.flushRecentWrites();
     const data = await this.load();
     data.settings = { ...settings };
@@ -318,7 +330,9 @@ export function createMemoryStorageAdapter(initial?: StoredData): StorageAdapter
 export function workspaceSubtitle(workspace: Workspace, launch?: LaunchEntry): string {
   if (launch) {
     const command = launch.command?.trim();
-    return command ? `${workspace.directory} • ${launch.label}: ${command}` : `${workspace.directory} • ${launch.label}`;
+    return command
+      ? `${workspace.directory} • ${launch.label}: ${command}`
+      : `${workspace.directory} • ${launch.label}`;
   }
 
   const enabledLaunches = workspace.launches.filter((entry) => entry.isEnabled);

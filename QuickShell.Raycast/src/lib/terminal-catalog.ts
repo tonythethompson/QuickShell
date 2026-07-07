@@ -58,11 +58,14 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
     choices.push({ id: "wsl", title: "WSL", terminal: "wsl", wtProfile: null });
   }
 
-  cachedChoices = choices.length > 1 ? choices : WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
-    ...choice,
-    terminal: choice.id,
-    wtProfile: null,
-  }));
+  cachedChoices =
+    choices.length > 1
+      ? choices
+      : WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
+          ...choice,
+          terminal: choice.id,
+          wtProfile: null,
+        }));
   return cachedChoices;
 }
 
@@ -105,9 +108,7 @@ export function choiceForTerminalState(
   choices: DiscoveredTerminalChoice[] = discoverWorkspaceTerminalChoices(),
 ): string {
   if (wtProfile) {
-    const profileMatch = choices.find(
-      (choice) => choice.terminal === terminal && choice.wtProfile === wtProfile,
-    );
+    const profileMatch = choices.find((choice) => choice.terminal === terminal && choice.wtProfile === wtProfile);
     if (profileMatch) {
       return profileMatch.id;
     }
@@ -118,10 +119,7 @@ export function choiceForTerminalState(
 
 function executableExists(command: string): boolean {
   const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
-  const candidates = [
-    path.join(systemRoot, "System32", command),
-    path.join(systemRoot, "Sysnative", command),
-  ];
+  const candidates = [path.join(systemRoot, "System32", command), path.join(systemRoot, "Sysnative", command)];
 
   if (command === "wt.exe") {
     const localAppData = process.env.LOCALAPPDATA;
@@ -139,7 +137,13 @@ function executableExists(command: string): boolean {
 function readWindowsTerminalProfiles(): string[] {
   const settingsPaths = [
     process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, "Packages", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "LocalState", "settings.json")
+      ? path.join(
+          process.env.LOCALAPPDATA,
+          "Packages",
+          "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
+          "LocalState",
+          "settings.json",
+        )
       : null,
     process.env.LOCALAPPDATA
       ? path.join(process.env.LOCALAPPDATA, "Microsoft", "Windows Terminal", "settings.json")

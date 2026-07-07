@@ -1,11 +1,8 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  buildProjectSetupSuggestions,
-  suggestionLabelForCommand,
-} from "../lib/project-setup-suggestion";
+import { buildProjectSetupSuggestions, suggestionLabelForCommand } from "../lib/project-setup-suggestion";
 
 const tempDirs: string[] = [];
 

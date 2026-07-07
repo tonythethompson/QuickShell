@@ -29,16 +29,7 @@ export type LaunchOptions = {
   runAsStandard?: boolean;
 };
 
-const PACKAGE_MANAGER_COMMANDS = new Set([
-  "npm",
-  "pnpm",
-  "yarn",
-  "bun",
-  "npx",
-  "dotnet",
-  "cargo",
-  "go",
-]);
+const PACKAGE_MANAGER_COMMANDS = new Set(["npm", "pnpm", "yarn", "bun", "npx", "dotnet", "cargo", "go"]);
 
 export function resolveTerminalForLaunch(
   launch: LaunchEntry,
@@ -157,11 +148,7 @@ export function buildLaunchArguments(entry: LaunchPlanEntry): string[] {
     }
     args.push("-d", directory);
     if (command) {
-      args.push(
-        shouldRouteThroughCmd(command)
-          ? buildWindowsTerminalCmdSuffix(directory, command)
-          : command,
-      );
+      args.push(shouldRouteThroughCmd(command) ? buildWindowsTerminalCmdSuffix(directory, command) : command);
     }
     return args;
   }
@@ -210,7 +197,7 @@ export function shouldRouteThroughCmd(command: string | null | undefined): boole
   return usesPackageManager(command);
 }
 
-export function validateLaunchPlanErrors(workspace: Workspace, settings: QuickShellSettings): string[] {
+export function validateLaunchPlanErrors(workspace: Workspace): string[] {
   const errors: string[] = [];
   const directory = workspace.directory.trim();
   if (!directory) {
@@ -230,7 +217,7 @@ export function buildWorkspaceLaunchPlan(
   settings: QuickShellSettings,
   options: LaunchOptions = {},
 ): LaunchPlan {
-  const errors = validateLaunchPlanErrors(workspace, settings);
+  const errors = validateLaunchPlanErrors(workspace);
   const directory = workspace.directory.trim();
 
   const enabledLaunches = workspace.launches.filter((launch) => launch.isEnabled);
@@ -243,7 +230,7 @@ export function buildWorkspaceLaunchPlan(
     const target = resolveLaunchTarget(resolved.terminal, resolved.wtProfile);
     const command = launch.command?.trim() || null;
     const wantsAdmin = launch.runAsAdmin || workspace.runAsAdmin;
-    const runAsAdmin = options.runAsStandard ? false : options.runAsAdmin ?? wantsAdmin;
+    const runAsAdmin = options.runAsStandard ? false : (options.runAsAdmin ?? wantsAdmin);
 
     entries.push({
       workspace,

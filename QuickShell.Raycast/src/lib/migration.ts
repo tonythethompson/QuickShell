@@ -83,13 +83,9 @@ function migrateWorkspace(raw: unknown): Workspace | null {
   }
 
   const launches = Array.isArray(record.launches)
-    ? record.launches
-        .map((entry) => migrateLaunchEntry(entry))
-        .filter((entry): entry is LaunchEntry => entry !== null)
+    ? record.launches.map((entry) => migrateLaunchEntry(entry)).filter((entry): entry is LaunchEntry => entry !== null)
     : Array.isArray(record.entries)
-      ? record.entries
-          .map((entry) => migrateLaunchEntry(entry))
-          .filter((entry): entry is LaunchEntry => entry !== null)
+      ? record.entries.map((entry) => migrateLaunchEntry(entry)).filter((entry): entry is LaunchEntry => entry !== null)
       : [];
 
   const workspace: Workspace = {

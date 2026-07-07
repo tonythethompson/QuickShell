@@ -57,10 +57,7 @@ async function launchCompanionApp(workspace: Workspace): Promise<void> {
   await spawnDetached(executable, args);
 }
 
-export function buildCompanionArguments(
-  rawArguments: string | null | undefined,
-  directory: string,
-): string[] {
+export function buildCompanionArguments(rawArguments: string | null | undefined, directory: string): string[] {
   if (!rawArguments?.trim()) {
     return [directory];
   }
