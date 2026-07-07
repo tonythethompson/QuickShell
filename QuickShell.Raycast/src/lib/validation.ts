@@ -106,9 +106,7 @@ export function validateLaunches(launches: LaunchEntry[]): ValidationResult {
   return { ok: true };
 }
 
-export function validateCommand(
-  command: string | null | undefined,
-): ValidationResult {
+export function validateCommand(command: string | null | undefined): ValidationResult {
   if (!command) {
     return { ok: true };
   }
@@ -127,9 +125,7 @@ export function validateCommand(
   return { ok: true };
 }
 
-export function validateProfile(
-  profile: string | null | undefined,
-): ValidationResult {
+export function validateProfile(profile: string | null | undefined): ValidationResult {
   if (!profile) {
     return { ok: true };
   }
@@ -184,10 +180,7 @@ export function normalizeWorkspace(workspace: Workspace): Workspace {
   };
 }
 
-export function normalizeLaunches(
-  launches: LaunchEntry[],
-  workspace: Workspace,
-): LaunchEntry[] {
+export function normalizeLaunches(launches: LaunchEntry[], workspace: Workspace): LaunchEntry[] {
   if (launches.length === 0) {
     return [
       {

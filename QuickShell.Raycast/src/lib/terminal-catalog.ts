@@ -1,9 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import {
-  WORKSPACE_TERMINAL_CHOICES,
-  type TerminalChoice,
-} from "./terminal-options";
+import { WORKSPACE_TERMINAL_CHOICES, type TerminalChoice } from "./terminal-options";
 
 export type DiscoveredTerminalChoice = TerminalChoice & {
   terminal: string;
@@ -101,14 +98,8 @@ export function resetTerminalCatalogCacheForTests(): void {
   cachedChoices = null;
 }
 
-export function discoverDefaultProfileChoices(
-  terminalApplication: string,
-): TerminalChoice[] {
-  if (
-    terminalApplication === "wt" ||
-    terminalApplication === "it" ||
-    terminalApplication === "system"
-  ) {
+export function discoverDefaultProfileChoices(terminalApplication: string): TerminalChoice[] {
+  if (terminalApplication === "wt" || terminalApplication === "it" || terminalApplication === "system") {
     const profiles = readWindowsTerminalProfiles();
     return [
       { id: "__default__", title: "Default profile for this app" },
@@ -116,9 +107,7 @@ export function discoverDefaultProfileChoices(
     ];
   }
 
-  const choices: TerminalChoice[] = [
-    { id: "__default__", title: "Default profile for this app" },
-  ];
+  const choices: TerminalChoice[] = [{ id: "__default__", title: "Default profile for this app" }];
   if (executableExists("powershell.exe")) {
     choices.push({ id: "powershell", title: "PowerShell" });
   }
@@ -149,9 +138,7 @@ export function choiceForTerminalState(
       return profileMatch.id;
     }
   }
-  const match = choices.find(
-    (choice) => choice.terminal === terminal && !choice.wtProfile,
-  );
+  const match = choices.find((choice) => choice.terminal === terminal && !choice.wtProfile);
   return match?.id ?? "default";
 }
 
@@ -172,13 +159,7 @@ function executableExists(command: string): boolean {
     if (localAppData) {
       candidates.push(
         path.join(localAppData, "Microsoft", "WindowsApps", "wt.exe"),
-        path.join(
-          localAppData,
-          "Microsoft",
-          "WindowsApps",
-          "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
-          "wt.exe",
-        ),
+        path.join(localAppData, "Microsoft", "WindowsApps", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "wt.exe"),
       );
     }
   }
@@ -198,12 +179,7 @@ function readWindowsTerminalProfiles(): string[] {
         )
       : null,
     process.env.LOCALAPPDATA
-      ? path.join(
-          process.env.LOCALAPPDATA,
-          "Microsoft",
-          "Windows Terminal",
-          "settings.json",
-        )
+      ? path.join(process.env.LOCALAPPDATA, "Microsoft", "Windows Terminal", "settings.json")
       : null,
   ].filter((value): value is string => Boolean(value));
 

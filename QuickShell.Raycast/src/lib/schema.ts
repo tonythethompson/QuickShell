@@ -57,15 +57,7 @@ export const DEFAULT_SETTINGS: QuickShellSettings = {
 
 export const DEFAULT_TERMINAL = "default";
 
-export const TASK_TYPES = [
-  "none",
-  "api",
-  "frontend",
-  "services",
-  "logs",
-  "test",
-  "build",
-] as const;
+export const TASK_TYPES = ["none", "api", "frontend", "services", "logs", "test", "build"] as const;
 
 export type TaskType = (typeof TASK_TYPES)[number];
 

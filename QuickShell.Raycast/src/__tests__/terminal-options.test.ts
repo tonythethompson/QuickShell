@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  getDefaultProfileChoices,
-  normalizeDefaultProfile,
-} from "../lib/terminal-options";
+import { getDefaultProfileChoices, normalizeDefaultProfile } from "../lib/terminal-options";
 
 describe("terminal-options", () => {
   it("returns wt profiles for windows terminal defaults", () => {

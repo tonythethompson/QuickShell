@@ -57,9 +57,7 @@ export default function OpenWorkspaceCommand({
   fallbackText,
   launchContext,
 }: LaunchProps<{ launchContext?: OpenWorkspaceLaunchContext }>) {
-  const [searchText, setSearchText] = useState(() =>
-    resolveOpenWorkspaceSearchSeed(fallbackText, launchContext),
-  );
+  const [searchText, setSearchText] = useState(() => resolveOpenWorkspaceSearchSeed(fallbackText, launchContext));
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {

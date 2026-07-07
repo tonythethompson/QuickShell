@@ -63,9 +63,7 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
       terminal: terminalForLaunchRow(row, state),
       wtProfile: wtProfileForLaunchRow(row, state),
       command: row.command.trim() || null,
-      runAsAdmin: usesSharedLaunchControls(state)
-        ? state.runAsAdmin
-        : row.runAsAdmin || state.runAsAdmin,
+      runAsAdmin: usesSharedLaunchControls(state) ? state.runAsAdmin : row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
       order: index,
       taskType: "none",

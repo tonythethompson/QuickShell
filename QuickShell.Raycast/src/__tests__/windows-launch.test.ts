@@ -37,9 +37,7 @@ const workspace: Workspace = {
 
 describe("windows-launch", () => {
   it("escapes arguments with spaces", () => {
-    expect(escapeWindowsArgument("C:\\Projects\\My App")).toBe(
-      '"C:\\Projects\\My App"',
-    );
+    expect(escapeWindowsArgument("C:\\Projects\\My App")).toBe('"C:\\Projects\\My App"');
   });
 
   it("resolves windows terminal targets", () => {

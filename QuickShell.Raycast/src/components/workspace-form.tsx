@@ -414,20 +414,9 @@ export default function WorkspaceForm({
       <Form.Checkbox {...itemProps.isPinned} label="Favorite" />
       <Form.Checkbox {...itemProps.runAsAdmin} label="Run as administrator" />
       <Form.Separator />
-      <Form.TextField
-        {...itemProps.devServerUrl}
-        title="Dev Server URL"
-        placeholder="http://localhost:5173"
-      />
-      <Form.Checkbox
-        {...itemProps.openDevServerOnLaunch}
-        label="Open dev server link on launch"
-      />
-      <Form.TextField
-        {...itemProps.repoUrl}
-        title="Repository URL"
-        placeholder="https://github.com/org/repo"
-      />
+      <Form.TextField {...itemProps.devServerUrl} title="Dev Server URL" placeholder="http://localhost:5173" />
+      <Form.Checkbox {...itemProps.openDevServerOnLaunch} label="Open dev server link on launch" />
+      <Form.TextField {...itemProps.repoUrl} title="Repository URL" placeholder="https://github.com/org/repo" />
       <Form.TextField
         {...itemProps.companionAppPath}
         title="Companion App"
@@ -439,10 +428,7 @@ export default function WorkspaceForm({
         info="Use {folder} or . for the workspace directory."
         placeholder="{folder}"
       />
-      <Form.Checkbox
-        {...itemProps.openCompanionAppOnLaunch}
-        label="Open companion app on launch"
-      />
+      <Form.Checkbox {...itemProps.openCompanionAppOnLaunch} label="Open companion app on launch" />
       <Form.Description
         title="Defaults"
         text={`Commands and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "Raycast extension preferences"}.`}

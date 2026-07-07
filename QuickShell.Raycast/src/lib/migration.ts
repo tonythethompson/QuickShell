@@ -47,9 +47,7 @@ function migrateSettings(raw: unknown): QuickShellSettings {
   }
 
   const record = raw as UnknownRecord;
-  const terminalApplication = parseTerminalApplication(
-    record.terminalApplication,
-  );
+  const terminalApplication = parseTerminalApplication(record.terminalApplication);
   const defaultProfile =
     typeof record.defaultProfile === "string" && record.defaultProfile.trim()
       ? record.defaultProfile.trim()
@@ -79,8 +77,7 @@ function migrateWorkspace(raw: unknown): Workspace | null {
 
   const record = raw as UnknownRecord;
   const name = typeof record.name === "string" ? record.name.trim() : "";
-  const directory =
-    typeof record.directory === "string" ? record.directory.trim() : "";
+  const directory = typeof record.directory === "string" ? record.directory.trim() : "";
   if (!name || !directory) {
     return null;
   }
@@ -94,13 +91,11 @@ function migrateWorkspace(raw: unknown): Workspace | null {
   const workspace: Workspace = {
     id: ensureStableId(typeof record.id === "string" ? record.id : undefined),
     name,
-    abbreviation:
-      typeof record.abbreviation === "string" ? record.abbreviation : null,
+    abbreviation: typeof record.abbreviation === "string" ? record.abbreviation : null,
     directory,
     isPinned: parseStrictBoolean(record.isPinned),
     pinOrder: typeof record.pinOrder === "number" ? record.pinOrder : null,
-    lastUsedUtc:
-      typeof record.lastUsedUtc === "string" ? record.lastUsedUtc : null,
+    lastUsedUtc: typeof record.lastUsedUtc === "string" ? record.lastUsedUtc : null,
     terminal: typeof record.terminal === "string" ? record.terminal : "default",
     wtProfile: typeof record.wtProfile === "string" ? record.wtProfile : null,
     command: typeof record.command === "string" ? record.command : null,
@@ -144,15 +139,8 @@ function migrateLaunchEntry(raw: unknown): LaunchEntry | null {
   };
 }
 
-function parseTerminalApplication(
-  value: unknown,
-): QuickShellSettings["terminalApplication"] {
-  if (
-    value === "system" ||
-    value === "wt" ||
-    value === "conhost" ||
-    value === "it"
-  ) {
+function parseTerminalApplication(value: unknown): QuickShellSettings["terminalApplication"] {
+  if (value === "system" || value === "wt" || value === "conhost" || value === "it") {
     return value;
   }
   return DEFAULT_SETTINGS.terminalApplication;
