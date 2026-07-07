@@ -84,7 +84,7 @@ function Get-VariantMetadata([string]$InstallerVariant) {
 
                 InstallerBaseName = "QuickShell"
 
-                DisplayName = "Quick Shell"
+                DisplayName = "Quick Shell for PowerToys"
 
             }
 
@@ -123,18 +123,11 @@ foreach ($Platform in $Platforms) {
     Write-Host "Publishing $Platform application..." -ForegroundColor Yellow
 
     dotnet publish $ProjectFile `
-
         --configuration $Configuration `
-
         --runtime "win-$Platform" `
-
         --self-contained true `
-
         -p:WinGetBuild=true `
-
         --output $publishDir
-
-
 
     if ($LASTEXITCODE -ne 0) {
 

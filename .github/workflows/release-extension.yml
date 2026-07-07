@@ -13,7 +13,7 @@ on:
       release_notes:
         description: Release notes
         required: false
-        default: Quick Shell release for PowerToys Command Palette.
+        default: Quick Shell release for PowerToys and Raycast.
         type: string
       submit_winget:
         description: Open a WinGet manifest update PR after release
@@ -27,6 +27,8 @@ env:
   GITHUB_REPO_URL: https://github.com/tonythethompson/QuickShell
   WINGET_PACKAGE_ID: tonythethompson.QuickShell
   WINGET_CMDPAL_PACKAGE_ID: tonythethompson.QuickShellforCmdPal
+  WINGET_RUN_PACKAGE_ID: tonythethompson.QuickShellforRun
+  WINGET_RAYCAST_PACKAGE_ID: tonythethompson.QuickShellforRaycast
 
 jobs:
   build:
@@ -46,6 +48,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: QuickShell.Raycast/package-lock.json
 
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
@@ -68,7 +77,7 @@ jobs:
           Write-Host "Using version: $version"
         shell: pwsh
 
-      - name: Build EXE installers
+      - name: Build EXE installers (CmdPal variants)
         run: |
           Set-Location QuickShell
           .\build-exe.ps1 -Version "${{ steps.version.outputs.VERSION }}"
@@ -82,23 +91,17 @@ jobs:
         run: .\scripts\build-run-plugin.ps1 -Platform ARM64
         shell: pwsh
 
+      - name: Build PowerToys Run standalone installers
+        run: .\scripts\build-run-installer.ps1 -Version "${{ steps.version.outputs.VERSION }}"
+        shell: pwsh
+
+      - name: Build Raycast extension package
+        run: .\scripts\build-raycast-extension.ps1 -Version "${{ steps.version.outputs.VERSION }}"
+        shell: pwsh
+
       - name: Verify release artifacts
         run: .\scripts\verify-release-artifacts.ps1 -Version "${{ steps.version.outputs.VERSION }}"
         shell: pwsh
-
-      - name: Upload x64 installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: QuickShell-x64-installer
-          path: QuickShell/bin/Release/installer/*-x64.exe
-          if-no-files-found: error
-
-      - name: Upload ARM64 installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: QuickShell-arm64-installer
-          path: QuickShell/bin/Release/installer/*-arm64.exe
-          if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -111,44 +114,52 @@ jobs:
 
             ${{ github.event.inputs.release_notes }}
 
+            Package matrix: [docs/release-packages.md](https://github.com/tonythethompson/QuickShell/blob/main/docs/release-packages.md)
+
             ## Install
 
-            ### Command Palette + PowerToys Run (bundled)
+            ### PowerToys: Command Palette + Run (bundled)
 
             - **x64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
             - **ARM64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
 
             Restart PowerToys after install so Run picks up the plugin.
 
-            ### Command Palette only (matches Microsoft Store)
+            ### PowerToys: Command Palette only (Store-equivalent)
 
             - **x64**: `QuickShellforCmdPal-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
             - **ARM64**: `QuickShellforCmdPal-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
 
-            ### PowerToys Run plugin (ZIP only)
+            ### PowerToys: Run plugin only
 
-            For Store users who want Run without the full EXE:
+            - **x64**: `QuickShellforRun-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
+            - **ARM64**: `QuickShellforRun-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
+            - **ZIP**: `QuickShell.Run-x64.zip` / `QuickShell.Run-ARM64.zip`
 
-            - **x64**: `QuickShell.Run-x64.zip` → extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\QuickShell\`
-            - **ARM64**: `QuickShell.Run-ARM64.zip`
+            ### Raycast for Windows
 
-            See [docs/powertoys-run-plugin.md](https://github.com/tonythethompson/QuickShell/blob/main/docs/powertoys-run-plugin.md).
+            - **x64 EXE**: `QuickShellforRaycast-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
+            - **ZIP**: `QuickShell.Raycast.zip` (Developer → Import Extension)
+
+            Requires [Raycast for Windows](https://www.raycast.com/). Store distribution is separate from these GitHub installers.
 
             After installing the Command Palette extension, run **Reload Command Palette Extension** in PowerToys Command Palette.
 
             ## WinGet
 
             ```powershell
-            # Command Palette + PowerToys Run
-            winget install ${{ env.WINGET_PACKAGE_ID }}
-
-            # Command Palette only (Store-equivalent)
-            winget install ${{ env.WINGET_CMDPAL_PACKAGE_ID }}
+            winget install ${{ env.WINGET_PACKAGE_ID }}              # CmdPal + Run
+            winget install ${{ env.WINGET_CMDPAL_PACKAGE_ID }}       # CmdPal only
+            winget install ${{ env.WINGET_RUN_PACKAGE_ID }}          # Run only
+            winget install ${{ env.WINGET_RAYCAST_PACKAGE_ID }}      # Raycast only
             ```
           files: |
             QuickShell/bin/Release/installer/*.exe
+            QuickShell.Run/bin/Release/installer/*.exe
             QuickShell.Run/bin/x64/Release/QuickShell.Run-x64.zip
             QuickShell.Run/bin/ARM64/Release/QuickShell.Run-ARM64.zip
+            QuickShell.Raycast/bin/Release/installer/*.exe
+            QuickShell.Raycast/bin/Release/QuickShell.Raycast.zip
           draft: false
           prerelease: false
         env:
@@ -174,7 +185,7 @@ jobs:
           wingetcreate version
         shell: pwsh
 
-      - name: Submit WinGet manifest update (bundled)
+      - name: Submit WinGet manifest update (PowerToys bundled)
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
@@ -190,10 +201,6 @@ jobs:
           $x64Url = "$baseUrl/QuickShell-Setup-$version-x64.exe"
           $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
 
-          Write-Host "Submitting bundled WinGet update for $version"
-          Write-Host "  x64:   $x64Url"
-          Write-Host "  arm64: $arm64Url"
-
           wingetcreate update "${{ env.WINGET_PACKAGE_ID }}" `
             --version $version `
             --urls $x64Url $arm64Url `
@@ -208,10 +215,7 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) {
-            Write-Warning "WINGET_PAT secret is not configured. Skipping WinGet submission."
-            exit 0
-          }
+          if (-not $env:WINGET_PAT) { exit 0 }
 
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
@@ -219,15 +223,56 @@ jobs:
           $x64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe"
           $arm64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe"
 
-          Write-Host "Submitting CmdPal-only WinGet update for $version"
-          Write-Host "  x64:   $x64Url"
-          Write-Host "  arm64: $arm64Url"
-
           wingetcreate update "${{ env.WINGET_CMDPAL_PACKAGE_ID }}" `
             --version $version `
             --urls $x64Url $arm64Url `
             --submit `
             --token $env:WINGET_PAT
         shell: pwsh
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+
+      - name: Submit WinGet manifest update (Run only)
+        run: |
+          $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
+
+          if (-not $env:WINGET_PAT) { exit 0 }
+
+          $version = "${{ needs.build.outputs.version }}"
+          $tag = "${{ needs.build.outputs.tag }}"
+          $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $x64Url = "$baseUrl/QuickShellforRun-Setup-$version-x64.exe"
+          $arm64Url = "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe"
+
+          wingetcreate update "${{ env.WINGET_RUN_PACKAGE_ID }}" `
+            --version $version `
+            --urls $x64Url $arm64Url `
+            --submit `
+            --token $env:WINGET_PAT
+        shell: pwsh
+        continue-on-error: true
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+
+      - name: Submit WinGet manifest update (Raycast only)
+        run: |
+          $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
+
+          if (-not $env:WINGET_PAT) { exit 0 }
+
+          $version = "${{ needs.build.outputs.version }}"
+          $tag = "${{ needs.build.outputs.tag }}"
+          $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $x64Url = "$baseUrl/QuickShellforRaycast-Setup-$version-x64.exe"
+
+          wingetcreate update "${{ env.WINGET_RAYCAST_PACKAGE_ID }}" `
+            --version $version `
+            --urls $x64Url `
+            --submit `
+            --token $env:WINGET_PAT
+        shell: pwsh
+        continue-on-error: true
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
