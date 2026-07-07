@@ -8,6 +8,7 @@ import {
   additionalLaunchCount,
   filterWorkspacesForEdit,
 } from "./lib/workspace-form-state";
+import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import type { QuickShellSettings, Workspace } from "./lib/schema";
 
 type EditWorkspaceCommandProps = {
@@ -16,7 +17,9 @@ type EditWorkspaceCommandProps = {
   };
 };
 
-export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceCommandProps) {
+export default function EditWorkspaceCommand({
+  arguments: args,
+}: EditWorkspaceCommandProps) {
   const [searchText, setSearchText] = useState("");
   const storage = getQuickShellStorage();
   const requestedWorkspaceId = args?.workspaceId?.trim();
@@ -40,7 +43,11 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
     if (!data || !requestedWorkspaceId) {
       return null;
     }
-    return data.workspaces.find((workspace) => workspace.id === requestedWorkspaceId) ?? null;
+    return (
+      data.workspaces.find(
+        (workspace) => workspace.id === requestedWorkspaceId,
+      ) ?? null
+    );
   }, [data, requestedWorkspaceId]);
 
   if (preselectedWorkspace) {
@@ -85,7 +92,9 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
 
       {!error && workspaces.length === 0 ? (
         <List.EmptyView
-          title={searchText.trim() ? "No matching workspaces" : "No workspaces yet"}
+          title={
+            searchText.trim() ? "No matching workspaces" : "No workspaces yet"
+          }
           description={
             searchText.trim()
               ? "Try another name, abbreviation, or directory."
@@ -108,14 +117,18 @@ function renderWorkspacePickerItem(
   settings: QuickShellSettings | undefined,
   onSaved: () => Promise<void>,
 ) {
-  const health = settings ? assessWorkspaceHealth(workspace, settings) : { ok: true, issues: [] };
+  const health = settings
+    ? assessWorkspaceHealth(workspace, settings)
+    : { ok: true, issues: [] };
   const extraLaunches = additionalLaunchCount(workspace);
   const accessories: List.Item.Accessory[] = [];
   if (workspace.abbreviation) {
     accessories.push({ text: workspace.abbreviation });
   }
   if (extraLaunches > 0) {
-    accessories.push({ text: `+${extraLaunches} launch${extraLaunches === 1 ? "" : "es"}` });
+    accessories.push({
+      text: `+${extraLaunches} launch${extraLaunches === 1 ? "" : "es"}`,
+    });
   }
   if (!health.ok) {
     accessories.push({
@@ -128,15 +141,23 @@ function renderWorkspacePickerItem(
     <List.Item
       key={workspace.id}
       title={workspace.name}
-      subtitle={health.ok ? workspaceSubtitle(workspace) : health.issues[0]?.message}
-      icon={workspace.isPinned ? Icon.Star : Icon.Pencil}
+      subtitle={
+        health.ok ? workspaceSubtitle(workspace) : health.issues[0]?.message
+      }
+      icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
       accessories={accessories}
       actions={
         <ActionPanel>
           <Action.Push
             title="Edit Workspace"
             icon={Icon.Pencil}
-            target={<WorkspaceForm mode="edit" initialWorkspace={workspace} onSaved={onSaved} />}
+            target={
+              <WorkspaceForm
+                mode="edit"
+                initialWorkspace={workspace}
+                onSaved={onSaved}
+              />
+            }
           />
         </ActionPanel>
       }

@@ -26,11 +26,22 @@ export function assessWorkspaceHealth(
 
   const directory = workspace.directory.trim();
   if (directory && !isAbsoluteDirectory(directory)) {
-    issues.push({ code: "directory_relative", message: "Directory must be an absolute path." });
+    issues.push({
+      code: "directory_relative",
+      message: "Directory must be an absolute path.",
+    });
   }
 
-  if (directory && process.platform === "win32" && !directory.startsWith("\\\\wsl$\\") && !existsSync(directory)) {
-    issues.push({ code: "directory_missing", message: `Directory not found: ${directory}` });
+  if (
+    directory &&
+    process.platform === "win32" &&
+    !directory.startsWith("\\\\wsl$\\") &&
+    !existsSync(directory)
+  ) {
+    issues.push({
+      code: "directory_missing",
+      message: `Directory not found: ${directory}`,
+    });
   }
 
   const plan = buildWorkspaceLaunchPlan(workspace, settings);
@@ -41,7 +52,8 @@ export function assessWorkspaceHealth(
   if (process.platform !== "win32") {
     issues.push({
       code: "platform",
-      message: "Terminal launch requires Windows. You can still edit workspaces on this machine.",
+      message:
+        "Terminal launch requires Windows. You can still edit workspaces on this machine.",
     });
   }
 
@@ -52,6 +64,8 @@ export function formatHealthIssues(issues: WorkspaceHealthIssue[]): string {
   return issues.map((issue) => issue.message).join(" ");
 }
 
-export function primaryHealthIssue(issues: WorkspaceHealthIssue[]): string | undefined {
+export function primaryHealthIssue(
+  issues: WorkspaceHealthIssue[],
+): string | undefined {
   return issues[0]?.message;
 }

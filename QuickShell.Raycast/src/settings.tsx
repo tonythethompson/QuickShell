@@ -1,4 +1,11 @@
-import { Action, ActionPanel, Form, Icon, showToast, Toast } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Form,
+  Icon,
+  showToast,
+  Toast,
+} from "@raycast/api";
 import { useEffect, useMemo, useState } from "react";
 import { getQuickShellStorage } from "./lib/raycast-storage";
 import { showStorageFailure } from "./lib/failure-feedback";
@@ -15,7 +22,8 @@ export default function SettingsCommand() {
   const storage = getQuickShellStorage();
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<QuickShellSettings | null>(null);
-  const [terminalApplication, setTerminalApplication] = useState<QuickShellSettings["terminalApplication"]>("wt");
+  const [terminalApplication, setTerminalApplication] =
+    useState<QuickShellSettings["terminalApplication"]>("wt");
   const [defaultProfile, setDefaultProfile] = useState("__default__");
   const [showRecents, setShowRecents] = useState(true);
 
@@ -49,7 +57,10 @@ export default function SettingsCommand() {
   async function handleSave() {
     const next: QuickShellSettings = {
       terminalApplication,
-      defaultProfile: normalizeDefaultProfile(terminalApplication, defaultProfile),
+      defaultProfile: normalizeDefaultProfile(
+        terminalApplication,
+        defaultProfile,
+      ),
       recentWorkspaceCount: recentCountFromEnabled(showRecents),
     };
 
@@ -71,13 +82,21 @@ export default function SettingsCommand() {
       isLoading={isLoading}
       actions={
         <ActionPanel>
-          <Action title="Save Settings" icon={Icon.Check} onAction={handleSave} />
+          <Action
+            title="Save Settings"
+            icon={Icon.Check}
+            onAction={handleSave}
+          />
         </ActionPanel>
       }
     >
       <Form.Description
         title="Current"
-        text={settings ? settingsSummary(settings) : "Loading QuickShell defaults..."}
+        text={
+          settings
+            ? settingsSummary(settings)
+            : "Loading QuickShell defaults..."
+        }
       />
       <Form.Dropdown
         id="terminalApplication"
@@ -93,7 +112,11 @@ export default function SettingsCommand() {
         }}
       >
         {TERMINAL_APPLICATION_CHOICES.map((choice) => (
-          <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
+          <Form.Dropdown.Item
+            key={choice.id}
+            value={choice.id}
+            title={choice.title}
+          />
         ))}
       </Form.Dropdown>
       <Form.Dropdown
@@ -103,7 +126,11 @@ export default function SettingsCommand() {
         onChange={setDefaultProfile}
       >
         {profileChoices.map((choice) => (
-          <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
+          <Form.Dropdown.Item
+            key={choice.id}
+            value={choice.id}
+            title={choice.title}
+          />
         ))}
       </Form.Dropdown>
       <Form.Checkbox

@@ -16,18 +16,21 @@
       "name": "open-workspace",
       "title": "Open Workspace",
       "description": "Search and open saved workspaces",
+      "icon": "command-open.png",
       "mode": "view"
     },
     {
       "name": "create-workspace",
       "title": "Create Workspace",
       "description": "Create a new workspace",
+      "icon": "command-create.png",
       "mode": "view"
     },
     {
       "name": "edit-workspace",
       "title": "Edit Workspace",
       "description": "Edit an existing workspace",
+      "icon": "command-edit.png",
       "mode": "view",
       "arguments": [
         {
@@ -42,6 +45,7 @@
       "name": "settings",
       "title": "Settings",
       "description": "Configure QuickShell defaults",
+      "icon": "command-settings.png",
       "mode": "view"
     }
   ],
@@ -59,6 +63,9 @@
     "vitest": "^3.0.8"
   },
   "scripts": {
+    "predev": "node scripts/verify-raycast-cli.js",
+    "prebuild": "node scripts/verify-raycast-cli.js",
+    "prelint": "node scripts/verify-raycast-cli.js",
     "build": "ray build",
     "dev": "ray develop",
     "lint": "ray lint",

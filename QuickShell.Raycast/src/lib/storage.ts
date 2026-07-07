@@ -1,8 +1,17 @@
-import type { LaunchEntry, QuickShellSettings, StoredData, Workspace } from "./schema";
+import type {
+  LaunchEntry,
+  QuickShellSettings,
+  StoredData,
+  Workspace,
+} from "./schema";
 import { STORAGE_KEY, createEmptyStoredData } from "./schema";
 import { createStableId, ensureStableId } from "./ids";
 import { migrateStoredData } from "./migration";
-import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
+import {
+  normalizeWorkspace,
+  validateWorkspace,
+  validateWorkspaceCount,
+} from "./validation";
 
 export type StorageAdapter = {
   getItem: (key: string) => Promise<string | undefined>;
@@ -39,7 +48,9 @@ export class QuickShellStorage {
     const normalized: StoredData = {
       version: data.version,
       settings: { ...data.settings },
-      workspaces: data.workspaces.map((workspace) => normalizeWorkspace({ ...workspace })),
+      workspaces: data.workspaces.map((workspace) =>
+        normalizeWorkspace({ ...workspace }),
+      ),
     };
 
     const countResult = validateWorkspaceCount(normalized.workspaces.length);
@@ -50,7 +61,9 @@ export class QuickShellStorage {
     for (const workspace of normalized.workspaces) {
       const validation = validateWorkspace(workspace);
       if (!validation.ok) {
-        throw new Error(`${workspace.name || workspace.id}: ${validation.message}`);
+        throw new Error(
+          `${workspace.name || workspace.id}: ${validation.message}`,
+        );
       }
     }
 
@@ -60,7 +73,10 @@ export class QuickShellStorage {
 
   async getWorkspaces(): Promise<Workspace[]> {
     const data = await this.load();
-    return data.workspaces.map((workspace) => ({ ...workspace, launches: [...workspace.launches] }));
+    return data.workspaces.map((workspace) => ({
+      ...workspace,
+      launches: [...workspace.launches],
+    }));
   }
 
   async getSettings(): Promise<QuickShellSettings> {
@@ -84,7 +100,9 @@ export class QuickShellStorage {
       throw new Error(validation.message);
     }
 
-    const index = data.workspaces.findIndex((item) => item.id === normalized.id);
+    const index = data.workspaces.findIndex(
+      (item) => item.id === normalized.id,
+    );
     if (index >= 0) {
       data.workspaces[index] = normalized;
     } else {
@@ -101,13 +119,17 @@ export class QuickShellStorage {
 
   async deleteWorkspace(workspaceId: string): Promise<void> {
     const data = await this.load();
-    data.workspaces = data.workspaces.filter((workspace) => workspace.id !== workspaceId);
+    data.workspaces = data.workspaces.filter(
+      (workspace) => workspace.id !== workspaceId,
+    );
     await this.save(data);
   }
 
   async duplicateWorkspace(workspaceId: string): Promise<Workspace> {
     const data = await this.load();
-    const source = data.workspaces.find((workspace) => workspace.id === workspaceId);
+    const source = data.workspaces.find(
+      (workspace) => workspace.id === workspaceId,
+    );
     if (!source) {
       throw new Error("Workspace not found.");
     }
@@ -129,7 +151,10 @@ export class QuickShellStorage {
     return this.upsertWorkspace(duplicate);
   }
 
-  async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
+  async setFavorite(
+    workspaceId: string,
+    isPinned: boolean,
+  ): Promise<Workspace> {
     const data = await this.load();
     const workspace = data.workspaces.find((item) => item.id === workspaceId);
     if (!workspace) {
@@ -150,7 +175,10 @@ export class QuickShellStorage {
     return { ...workspace };
   }
 
-  async markWorkspaceUsed(workspaceId: string, usedAt = new Date()): Promise<void> {
+  async markWorkspaceUsed(
+    workspaceId: string,
+    usedAt = new Date(),
+  ): Promise<void> {
     const data = await this.load();
     const workspace = data.workspaces.find((item) => item.id === workspaceId);
     if (!workspace) {
@@ -178,7 +206,9 @@ export class QuickShellStorage {
   }
 }
 
-export function createMemoryStorageAdapter(initial?: StoredData): StorageAdapter {
+export function createMemoryStorageAdapter(
+  initial?: StoredData,
+): StorageAdapter {
   const memory = new Map<string, string>();
   if (initial) {
     memory.set(STORAGE_KEY, JSON.stringify(initial));
@@ -193,16 +223,23 @@ export function createMemoryStorageAdapter(initial?: StoredData): StorageAdapter
   };
 }
 
-export function workspaceSubtitle(workspace: Workspace, launch?: LaunchEntry): string {
+export function workspaceSubtitle(
+  workspace: Workspace,
+  launch?: LaunchEntry,
+): string {
   if (launch) {
     const command = launch.command?.trim();
-    return command ? `${workspace.directory} • ${launch.label}: ${command}` : `${workspace.directory} • ${launch.label}`;
+    return command
+      ? `${workspace.directory} • ${launch.label}: ${command}`
+      : `${workspace.directory} • ${launch.label}`;
   }
 
   const enabledLaunches = workspace.launches.filter((entry) => entry.isEnabled);
   if (enabledLaunches.length === 1) {
     const command = enabledLaunches[0].command?.trim();
-    return command ? `${workspace.directory} • ${command}` : workspace.directory;
+    return command
+      ? `${workspace.directory} • ${command}`
+      : workspace.directory;
   }
 
   if (enabledLaunches.length > 1) {

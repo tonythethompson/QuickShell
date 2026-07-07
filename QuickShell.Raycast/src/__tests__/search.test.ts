@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { searchTaskActions, searchWorkspaces } from "../lib/search";
+import {
+  hasAbbreviationMatch,
+  searchTaskActions,
+  searchWorkspaces,
+} from "../lib/search";
 import type { Workspace } from "../lib/schema";
 
 const workspaces: Workspace[] = [
@@ -83,5 +87,16 @@ describe("search", () => {
     const results = searchTaskActions(workspaces, "codex");
     expect(results).toHaveLength(1);
     expect(results[0].launch?.label).toBe("Codex");
+  });
+
+  it("detects home keyword abbreviation matches", () => {
+    expect(hasAbbreviationMatch(workspaces, "fe")).toBe(true);
+    expect(hasAbbreviationMatch(workspaces, "codex")).toBe(false);
+  });
+
+  it("prioritizes abbreviation matches over partial launch command matches", () => {
+    const abbreviationFirst = searchWorkspaces(workspaces, "fe");
+    expect(abbreviationFirst.map((workspace) => workspace.id)).toEqual(["2"]);
+    expect(hasAbbreviationMatch(workspaces, "fe")).toBe(true);
   });
 });
