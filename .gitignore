@@ -10,8 +10,10 @@ _nupkg/
 _winget-pkgs/
 _winget-pr/
 _winget-test/
-.claude/
-!.claude/worktrees/**
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/**
 .serena/
 .oac.json
 QuickShell/QuickShell_Dev.cer
