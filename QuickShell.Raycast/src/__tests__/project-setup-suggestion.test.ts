@@ -46,4 +46,19 @@ describe("project-setup-suggestion", () => {
     expect(suggestionLabelForCommand("dotnet watch", "Launch")).toBe("Watch");
     expect(suggestionLabelForCommand("", "Fallback")).toBe("Fallback");
   });
+
+  it("keeps launch labels unique across dotnet and go suggestions", () => {
+    const directory = createTempProjectDir();
+    writeFileSync(path.join(directory, "App.csproj"), "<Project />", "utf8");
+    writeFileSync(path.join(directory, "go.mod"), "module example.com/app\n", "utf8");
+
+    const suggestions = buildProjectSetupSuggestions(directory);
+    const labels = suggestions.map((item) => item.label.toLowerCase());
+
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(suggestions.some((item) => item.label === "Dotnet Run")).toBe(true);
+    expect(suggestions.some((item) => item.label === "Go Run")).toBe(true);
+    expect(suggestions.some((item) => item.label === "Dotnet Tests")).toBe(true);
+    expect(suggestions.some((item) => item.label === "Go Tests")).toBe(true);
+  });
 });

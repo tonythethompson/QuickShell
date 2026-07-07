@@ -71,7 +71,7 @@ export function resetTerminalCatalogCacheForTests(): void {
 }
 
 export function discoverDefaultProfileChoices(terminalApplication: string): TerminalChoice[] {
-  if (terminalApplication === "wt" || terminalApplication === "it") {
+  if (terminalApplication === "wt" || terminalApplication === "it" || terminalApplication === "system") {
     const profiles = readWindowsTerminalProfiles();
     return [
       { id: "__default__", title: "Default profile for this app" },
@@ -117,11 +117,19 @@ export function choiceForTerminalState(
 }
 
 function executableExists(command: string): boolean {
+  const candidates: string[] = [];
+  const pathEnv = process.env.PATH ?? process.env.Path ?? "";
+  for (const entry of pathEnv.split(path.delimiter)) {
+    if (entry) {
+      candidates.push(path.join(entry, command));
+    }
+  }
+
   const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
-  const candidates = [
+  candidates.push(
     path.join(systemRoot, "System32", command),
     path.join(systemRoot, "Sysnative", command),
-  ];
+  );
 
   if (command === "wt.exe") {
     const localAppData = process.env.LOCALAPPDATA;

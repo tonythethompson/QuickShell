@@ -50,6 +50,31 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
 
   const selectedTerminal = terminalChoices.find((choice) => choice.id === terminalChoiceId) ?? terminalChoices[0];
 
+  function syncLaunchRowsFromSharedControls(
+    nextTerminal = selectedTerminal,
+    nextRunAsAdmin = runAsAdmin,
+  ) {
+    setLaunches((current) =>
+      current.map((row) => ({
+        ...row,
+        terminal: nextTerminal?.terminal ?? "default",
+        wtProfile: nextTerminal?.wtProfile ?? null,
+        runAsAdmin: nextRunAsAdmin,
+      })),
+    );
+  }
+
+  function handleTerminalChange(nextChoiceId: string) {
+    setTerminalChoiceId(nextChoiceId);
+    const nextTerminal = terminalChoices.find((choice) => choice.id === nextChoiceId) ?? terminalChoices[0];
+    syncLaunchRowsFromSharedControls(nextTerminal);
+  }
+
+  function handleRunAsAdminChange(nextRunAsAdmin: boolean) {
+    setRunAsAdmin(nextRunAsAdmin);
+    syncLaunchRowsFromSharedControls(selectedTerminal, nextRunAsAdmin);
+  }
+
   function applyDirectorySuggestions(nextDirectory: string) {
     if (!nameCustomized && nextDirectory.trim()) {
       const derivedName = deriveNameFromDirectory(nextDirectory);
@@ -225,7 +250,7 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
         id="terminal"
         title="Terminal"
         value={terminalChoiceId}
-        onChange={setTerminalChoiceId}
+        onChange={handleTerminalChange}
       >
         {terminalChoices.map((choice) => (
           <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
@@ -248,7 +273,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
         />
       ) : null}
       <Form.Checkbox id="favorite" label="Favorite" value={isPinned} onChange={setIsPinned} />
-      <Form.Checkbox id="admin" label="Run as administrator" value={runAsAdmin} onChange={setRunAsAdmin} />
+      <Form.Checkbox
+        id="admin"
+        label="Run as administrator"
+        value={runAsAdmin}
+        onChange={handleRunAsAdminChange}
+      />
       <Form.Description
         title="Defaults"
         text={`Commands and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "your QuickShell settings"}.`}

@@ -24,6 +24,26 @@ export type WorkspaceFormState = {
   launches: LaunchFormRow[];
 };
 
+function usesSharedLaunchControls(state: WorkspaceFormState): boolean {
+  return state.launches.length === 1;
+}
+
+function terminalForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string {
+  if (usesSharedLaunchControls(state)) {
+    return state.terminal || "default";
+  }
+
+  return row.terminal || state.terminal || "default";
+}
+
+function wtProfileForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string | null {
+  if (usesSharedLaunchControls(state)) {
+    return state.wtProfile ?? null;
+  }
+
+  return row.wtProfile ?? state.wtProfile ?? null;
+}
+
 export function buildWorkspaceFromFormState(
   initialWorkspace: Workspace,
   state: WorkspaceFormState,
@@ -33,10 +53,10 @@ export function buildWorkspaceFromFormState(
     .map((row, index) => ({
       id: row.id || createStableId(),
       label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
-      terminal: row.terminal || state.terminal || "default",
-      wtProfile: row.wtProfile ?? state.wtProfile ?? null,
+      terminal: terminalForLaunchRow(row, state),
+      wtProfile: wtProfileForLaunchRow(row, state),
       command: row.command.trim() || null,
-      runAsAdmin: row.runAsAdmin || state.runAsAdmin,
+      runAsAdmin: usesSharedLaunchControls(state) ? state.runAsAdmin : row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
       order: index,
       taskType: "none",
