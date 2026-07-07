@@ -1,28 +1,36 @@
 # QuickShell Raycast
 
-Raycast-native workspace launcher for QuickShell.
+Raycast-native workspace launcher for QuickShell on **Windows**.
 
 ## Commands
 
-- **Open Workspace** — search, launch, favorite, duplicate, edit, and open saved workspaces
-- **Create Workspace** — create a workspace with name, directory, terminal, and launch command
-- **Edit Workspace** — searchable picker with inline form; optional `workspaceId` argument for direct edit
-- **Settings** — default terminal app, default profile, and recent workspaces toggle
+- **Open Workspace** — search, launch, favorite, duplicate, edit, import/export, undo/redo
+- **Create Workspace** — directory-first form with auto-fill and multi-command launches
+- **Edit Workspace** — searchable picker with inline form; optional `workspaceId` argument
+- **Discover Git Repos** — scan common project folders and add repositories as workspaces
+- **QuickShell Settings** — default terminal app, default profile, recents, import/export
+
+Root search: type `qs`, `quickshell`, or a workspace home keyword to find commands and matches quickly.
+
+## Requirements
+
+- **Raycast for Windows**
+- **Node.js 22.14+** (development only)
+- Windows terminals such as Windows Terminal, PowerShell, or WSL
 
 ## Development
-
-Requires **Node.js 22.14+** and **Raycast for Windows**.
 
 ```bash
 cd QuickShell.Raycast
 npm install
 npm test
+npm run build
 npm run dev
 ```
 
-### `Cannot find module .../develop/index.js`
+Run `npm run build` before submitting Store changes. Raycast validates the distribution build separately from dev mode.
 
-That means `@raycast/api` did not install completely (common after an interrupted install or antivirus blocking large files).
+### `Cannot find module .../develop/index.js`
 
 PowerShell repair:
 
@@ -40,12 +48,14 @@ Verify Node first:
 node -v   # must be v22.14.0 or newer
 ```
 
-If `npm run dev` still fails, confirm this file exists:
+## Store checklist (in progress)
 
-`node_modules\@raycast\api\dist\commands\develop\index.js`
+- [x] `platforms: ["Windows"]`, MIT license, command subtitles/keywords
+- [x] `CHANGELOG.md` and README for onboarding
+- [ ] Store screenshots (Raycast Window Capture)
+- [ ] Dedicated icon for Discover Git Repos command
+- [ ] Decide Settings command vs Raycast Preferences API
 
-It should be about 3–4 MB. If it is missing or tiny, rerun `npm install` with antivirus exclusions for the repo folder.
+## Scope
 
-## MVP scope
-
-This extension tracks [Project 3](https://github.com/users/tonythethompson/projects/3). Broader parity work lives in [Project 4](https://github.com/users/tonythethompson/projects/4) and stays out of the MVP unless the core path is complete.
+This extension tracks [Project 3](https://github.com/users/tonythethompson/projects/3). Broader CmdPal parity (shared `shortcuts.json`, git branch targets, full health checks) lives in [Project 4](https://github.com/users/tonythethompson/projects/4).

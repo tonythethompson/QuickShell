@@ -190,10 +190,10 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
     <Form
       actions={
         <ActionPanel>
-          <Action
+          <Action.SubmitForm
             title={mode === "create" ? "Create Workspace" : "Save Workspace"}
             icon={Icon.Check}
-            onAction={handleSave}
+            onSubmit={handleSave}
           />
           <Action title="Add Command" icon={Icon.Plus} onAction={addLaunchRow} />
           {launches.length > 1 ? (

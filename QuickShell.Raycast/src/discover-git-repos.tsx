@@ -3,7 +3,7 @@ import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import WorkspaceForm, { createBlankWorkspace } from "./components/workspace-form";
 import { buildProjectSetupSuggestions } from "./lib/project-setup-suggestion";
-import { discoverGitRepos } from "./lib/git-repo-discovery";
+import { discoverGitReposCached } from "./lib/git-repo-discovery";
 import { deriveAbbreviationFromName, deriveNameFromDirectory } from "./lib/directory-helpers";
 import { getQuickShellStorage } from "./lib/raycast-storage";
 import { showStorageFailure } from "./lib/failure-feedback";
@@ -17,7 +17,7 @@ export default function DiscoverGitReposCommand() {
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async () => {
-    const [repos, existing] = await Promise.all([Promise.resolve(discoverGitRepos()), storage.getWorkspaces()]);
+    const [repos, existing] = await Promise.all([discoverGitReposCached(), storage.getWorkspaces()]);
     const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
     return repos.filter((repo) => !existingDirs.has(repo.directory.toLowerCase()));
   }, []);

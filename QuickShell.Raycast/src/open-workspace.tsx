@@ -1,6 +1,6 @@
-import { Action, ActionPanel, Alert, Clipboard, Color, Icon, List, confirmAlert, open, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Alert, Clipboard, Color, Icon, List, confirmAlert, open, showToast, Toast, updateCommandMetadata } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
 import WorkspaceForm, { createBlankWorkspace } from "./components/workspace-form";
 import {
@@ -125,6 +125,21 @@ export default function OpenWorkspaceCommand() {
   }, [data, searchText]);
 
   const isEmpty = !isLoading && !error && sectionGroups.every((group) => group.rows.length === 0);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    const count = data.workspaces.length;
+    void updateCommandMetadata({
+      subtitle: count === 0 ? "No workspaces" : count === 1 ? "1 workspace" : `${count} workspaces`,
+    });
+
+    return () => {
+      void updateCommandMetadata({ subtitle: null });
+    };
+  }, [data?.workspaces.length]);
 
   async function handleOpen(
     workspace: Workspace,

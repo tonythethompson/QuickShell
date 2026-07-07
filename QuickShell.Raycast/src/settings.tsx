@@ -127,7 +127,7 @@ export default function SettingsCommand() {
       isLoading={isLoading}
       actions={
         <ActionPanel>
-          <Action title="Save Settings" icon={Icon.Check} onAction={handleSave} />
+          <Action.SubmitForm title="Save Settings" icon={Icon.Check} onSubmit={handleSave} />
           <Action title="Export Workspaces" icon={Icon.Upload} onAction={handleExport} />
           <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImport} />
           <Action title="Undo" icon={Icon.ArrowCounterClockwise} onAction={handleUndo} />

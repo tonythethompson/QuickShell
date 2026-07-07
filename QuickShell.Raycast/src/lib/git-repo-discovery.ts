@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { withCache } from "@raycast/utils";
 
 export type GitRepoCandidate = {
   directory: string;
@@ -33,6 +34,19 @@ const MAX_SCANNED = 2000;
 const MAX_DEPTH = 5;
 
 export function discoverGitRepos(extraRoots: string[] = []): GitRepoCandidate[] {
+  return discoverGitReposSync(extraRoots);
+}
+
+export async function discoverGitReposCached(extraRoots: string[] = []): Promise<GitRepoCandidate[]> {
+  return cachedDiscoverGitRepos(extraRoots);
+}
+
+const cachedDiscoverGitRepos = withCache(
+  async (extraRoots: string[] = []) => discoverGitReposSync(extraRoots),
+  { maxAge: 5 * 60 * 1000 },
+);
+
+function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
   if (process.platform !== "win32") {
     return [];
   }
