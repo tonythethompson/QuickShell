@@ -63,7 +63,9 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
       terminal: terminalForLaunchRow(row, state),
       wtProfile: wtProfileForLaunchRow(row, state),
       command: row.command.trim() || null,
-      runAsAdmin: row.runAsAdmin || state.runAsAdmin,
+      runAsAdmin: usesSharedLaunchControls(state)
+        ? state.runAsAdmin
+        : row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
       order: index,
       taskType: "none",
@@ -82,12 +84,12 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
     isPinned: state.isPinned,
     runAsAdmin: state.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
-    devServerUrl: state.devServerUrl.trim() || null,
-    openDevServerOnLaunch: state.openDevServerOnLaunch,
-    repoUrl: state.repoUrl.trim() || null,
-    openCompanionAppOnLaunch: state.openCompanionAppOnLaunch,
-    companionAppPath: state.companionAppPath.trim() || null,
-    companionAppArguments: state.companionAppArguments.trim() || null,
+    devServerUrl: state.devServerUrl?.trim() || null,
+    openDevServerOnLaunch: state.openDevServerOnLaunch ?? false,
+    repoUrl: state.repoUrl?.trim() || null,
+    openCompanionAppOnLaunch: state.openCompanionAppOnLaunch ?? false,
+    companionAppPath: state.companionAppPath?.trim() || null,
+    companionAppArguments: state.companionAppArguments?.trim() || null,
   });
 }
 

@@ -1,4 +1,4 @@
+const { defineConfig } = require("eslint/config");
 const raycastConfig = require("@raycast/eslint-config");
 
-/** @type {import("eslint").Linter.Config[]} */
-module.exports = [...raycastConfig];
+module.exports = defineConfig([...raycastConfig]);

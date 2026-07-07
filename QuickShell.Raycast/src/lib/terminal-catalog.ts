@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { WORKSPACE_TERMINAL_CHOICES, type TerminalChoice } from "./terminal-options";
+import {
+  WORKSPACE_TERMINAL_CHOICES,
+  type TerminalChoice,
+} from "./terminal-options";
 
 export type DiscoveredTerminalChoice = TerminalChoice & {
   terminal: string;
@@ -30,11 +33,21 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
   }
 
   const choices: DiscoveredTerminalChoice[] = [
-    { id: "default", title: "Use QuickShell default", terminal: "default", wtProfile: null },
+    {
+      id: "default",
+      title: "Use QuickShell default",
+      terminal: "default",
+      wtProfile: null,
+    },
   ];
 
   if (executableExists("wt.exe")) {
-    choices.push({ id: "wt", title: "Windows Terminal (default profile)", terminal: "wt", wtProfile: null });
+    choices.push({
+      id: "wt",
+      title: "Windows Terminal (default profile)",
+      terminal: "wt",
+      wtProfile: null,
+    });
     for (const profile of readWindowsTerminalProfiles()) {
       choices.push({
         id: `wt:${profile}`,
@@ -46,13 +59,28 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
   }
 
   if (executableExists("pwsh.exe")) {
-    choices.push({ id: "pwsh", title: "PowerShell 7", terminal: "pwsh", wtProfile: null });
+    choices.push({
+      id: "pwsh",
+      title: "PowerShell 7",
+      terminal: "pwsh",
+      wtProfile: null,
+    });
   }
   if (executableExists("powershell.exe")) {
-    choices.push({ id: "powershell", title: "Windows PowerShell", terminal: "powershell", wtProfile: null });
+    choices.push({
+      id: "powershell",
+      title: "Windows PowerShell",
+      terminal: "powershell",
+      wtProfile: null,
+    });
   }
   if (executableExists("cmd.exe")) {
-    choices.push({ id: "cmd", title: "Command Prompt", terminal: "cmd", wtProfile: null });
+    choices.push({
+      id: "cmd",
+      title: "Command Prompt",
+      terminal: "cmd",
+      wtProfile: null,
+    });
   }
   if (executableExists("wsl.exe")) {
     choices.push({ id: "wsl", title: "WSL", terminal: "wsl", wtProfile: null });
@@ -73,8 +101,14 @@ export function resetTerminalCatalogCacheForTests(): void {
   cachedChoices = null;
 }
 
-export function discoverDefaultProfileChoices(terminalApplication: string): TerminalChoice[] {
-  if (terminalApplication === "wt" || terminalApplication === "it") {
+export function discoverDefaultProfileChoices(
+  terminalApplication: string,
+): TerminalChoice[] {
+  if (
+    terminalApplication === "wt" ||
+    terminalApplication === "it" ||
+    terminalApplication === "system"
+  ) {
     const profiles = readWindowsTerminalProfiles();
     return [
       { id: "__default__", title: "Default profile for this app" },
@@ -82,7 +116,9 @@ export function discoverDefaultProfileChoices(terminalApplication: string): Term
     ];
   }
 
-  const choices: TerminalChoice[] = [{ id: "__default__", title: "Default profile for this app" }];
+  const choices: TerminalChoice[] = [
+    { id: "__default__", title: "Default profile for this app" },
+  ];
   if (executableExists("powershell.exe")) {
     choices.push({ id: "powershell", title: "PowerShell" });
   }
@@ -113,20 +149,36 @@ export function choiceForTerminalState(
       return profileMatch.id;
     }
   }
-  const match = choices.find((choice) => choice.terminal === terminal && !choice.wtProfile);
+  const match = choices.find(
+    (choice) => choice.terminal === terminal && !choice.wtProfile,
+  );
   return match?.id ?? "default";
 }
 
 function executableExists(command: string): boolean {
+  const candidates: string[] = [];
+  const pathEnv = process.env.PATH ?? process.env.Path ?? "";
+  for (const entry of pathEnv.split(path.delimiter)) {
+    if (entry) {
+      candidates.push(path.join(entry, command));
+    }
+  }
+
   const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
-  const candidates = [path.join(systemRoot, "System32", command), path.join(systemRoot, "Sysnative", command)];
+  candidates.push(path.join(systemRoot, "System32", command), path.join(systemRoot, "Sysnative", command));
 
   if (command === "wt.exe") {
     const localAppData = process.env.LOCALAPPDATA;
     if (localAppData) {
       candidates.push(
         path.join(localAppData, "Microsoft", "WindowsApps", "wt.exe"),
-        path.join(localAppData, "Microsoft", "WindowsApps", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "wt.exe"),
+        path.join(
+          localAppData,
+          "Microsoft",
+          "WindowsApps",
+          "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
+          "wt.exe",
+        ),
       );
     }
   }
@@ -146,7 +198,12 @@ function readWindowsTerminalProfiles(): string[] {
         )
       : null,
     process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, "Microsoft", "Windows Terminal", "settings.json")
+      ? path.join(
+          process.env.LOCALAPPDATA,
+          "Microsoft",
+          "Windows Terminal",
+          "settings.json",
+        )
       : null,
   ].filter((value): value is string => Boolean(value));
 

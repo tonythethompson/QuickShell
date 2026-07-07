@@ -22,8 +22,13 @@ describe("terminal-catalog", () => {
   it("includes conhost shell choices for console host settings", () => {
     const choices = discoverDefaultProfileChoices("conhost");
     expect(choices.some((choice) => choice.id === "__default__")).toBe(true);
-    expect(choices.some((choice) => choice.id === "powershell" || choice.id === "pwsh" || choice.id === "cmd")).toBe(
-      true,
-    );
+    expect(
+      choices.some(
+        (choice) =>
+          choice.id === "powershell" ||
+          choice.id === "pwsh" ||
+          choice.id === "cmd",
+      ),
+    ).toBe(true);
   });
 });

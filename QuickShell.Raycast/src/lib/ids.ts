@@ -2,7 +2,9 @@ import { randomBytes } from "node:crypto";
 
 const STABLE_ID_PATTERN = /^[0-9a-f]{32}$/i;
 
-export function isStableWorkspaceId(value: string | undefined | null): value is string {
+export function isStableWorkspaceId(
+  value: string | undefined | null,
+): value is string {
   return typeof value === "string" && STABLE_ID_PATTERN.test(value);
 }
 

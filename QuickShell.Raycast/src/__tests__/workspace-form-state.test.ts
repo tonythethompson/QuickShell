@@ -252,4 +252,32 @@ describe("workspace-form-state", () => {
   it("counts additional enabled launches", () => {
     expect(additionalLaunchCount(multiLaunchWorkspace)).toBe(1);
   });
+
+  it("uses shared terminal and admin controls for single-launch workspaces", () => {
+    const next = buildWorkspaceFromFormState(multiLaunchWorkspace, {
+      name: "Single",
+      abbreviation: "one",
+      directory: "C:\\Projects\\one",
+      terminal: "pwsh",
+      wtProfile: null,
+      isPinned: false,
+      runAsAdmin: true,
+      launches: [
+        {
+          id: "1a",
+          command: "npm run dev",
+          terminal: "default",
+          wtProfile: null,
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "Dev",
+        },
+      ],
+      ...defaultExtras,
+    });
+
+    expect(next.launches).toHaveLength(1);
+    expect(next.launches[0].terminal).toBe("pwsh");
+    expect(next.launches[0].runAsAdmin).toBe(true);
+  });
 });

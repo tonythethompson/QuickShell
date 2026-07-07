@@ -141,7 +141,7 @@ function walk(current: string, depth: number, maxDepth: number, results: string[
 }
 
 function quoteIfNeeded(value: string): string {
-  return `"${value.replace(/"/g, '\\"')}"`;
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function toTitle(value: string): string {
