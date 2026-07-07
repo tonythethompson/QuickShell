@@ -115,7 +115,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
       wtProfile: selectedTerminal?.wtProfile ?? null,
       isPinned,
       runAsAdmin,
-      launches,
+      launches: launches.map((launch) => ({
+        ...launch,
+        terminal: selectedTerminal?.terminal ?? "default",
+        wtProfile: selectedTerminal?.wtProfile ?? null,
+        runAsAdmin,
+      })),
     });
   }
 
