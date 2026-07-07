@@ -148,7 +148,9 @@ export default function DiscoverGitReposCommand() {
                   <WorkspaceForm
                     mode="create"
                     initialWorkspace={buildWorkspaceFromRepo(repo.directory, repo.name, repo.remoteUrl)}
-                    onSaved={revalidate}
+                    onSaved={async () => {
+                      await revalidate();
+                    }}
                   />
                 }
               />

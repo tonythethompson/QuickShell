@@ -1,4 +1,4 @@
-import { LaunchProps } from "@raycast/api";
+import { LaunchProps, Form } from "@raycast/api";
 import { useMemo } from "react";
 import WorkspaceForm, { launchOpenWorkspaceAfterCreate } from "./components/workspace-form";
 import WindowsRequiredView from "./components/windows-required-view";
@@ -8,7 +8,7 @@ import { isWindowsPlatform } from "./lib/platform";
 export default function CreateWorkspaceCommand({
   arguments: args,
   draftValues,
-}: LaunchProps<{ arguments: Arguments.CreateWorkspace }>) {
+}: LaunchProps<{ arguments: Arguments.CreateWorkspace; draftValues?: Form.Values }>) {
   if (!isWindowsPlatform()) {
     return <WindowsRequiredView />;
   }

@@ -43,7 +43,8 @@ export default function SettingsCommand() {
   async function handleImport() {
     try {
       const text = await Clipboard.readText();
-      if (!text.trim()) {
+      const trimmed = text?.trim() ?? "";
+      if (!trimmed) {
         await showToast({
           style: Toast.Style.Failure,
           title: "Clipboard empty",
@@ -51,7 +52,7 @@ export default function SettingsCommand() {
         });
         return;
       }
-      const result = await storage.importJson(text, "merge");
+      const result = await storage.importJson(trimmed, "merge");
       await revalidate();
       await showToast({
         style: Toast.Style.Success,

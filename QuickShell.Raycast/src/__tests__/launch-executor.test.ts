@@ -2,14 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 import type { QuickShellSettings, Workspace } from "../lib/schema";
 import { executeWorkspaceLaunch, type ExecFn } from "../lib/launch-executor";
 
-const runPostLaunchActions = vi.fn(async () => ({
-  companionOpened: false,
-  devServerOpened: false,
-  warnings: [] as string[],
+const { runPostLaunchActionsMock } = vi.hoisted(() => ({
+  runPostLaunchActionsMock: vi.fn(async () => ({
+    companionOpened: false,
+    devServerOpened: false,
+    warnings: [] as string[],
+  })),
 }));
 
 vi.mock("../lib/post-launch-actions", () => ({
-  runPostLaunchActions: (...args: unknown[]) => runPostLaunchActions(...args),
+  runPostLaunchActions: runPostLaunchActionsMock,
 }));
 
 const settings: QuickShellSettings = {
@@ -47,7 +49,7 @@ const workspace: Workspace = {
 
 describe("launch-executor", () => {
   it("skips post-launch actions when companion and dev server are disabled", async () => {
-    runPostLaunchActions.mockClear();
+    runPostLaunchActionsMock.mockClear();
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "win32" });
     const execFn: ExecFn = async () => undefined;
@@ -68,7 +70,7 @@ describe("launch-executor", () => {
 
     Object.defineProperty(process, "platform", { value: originalPlatform });
     expect(result.ok).toBe(true);
-    expect(runPostLaunchActions).toHaveBeenCalledWith(
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(
       workspaceWithHooks,
       expect.objectContaining({ includeCompanion: false, includeDevServer: false }),
     );

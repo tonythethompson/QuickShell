@@ -31,7 +31,7 @@ import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
 import { assessWorkspaceHealthForLaunch } from "./lib/workspace-health";
 import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
-import { resolveOpenWorkspaceSearchSeed } from "./lib/launch-context";
+import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from "./lib/launch-context";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
@@ -56,8 +56,10 @@ type SectionGroup = {
 export default function OpenWorkspaceCommand({
   fallbackText,
   launchContext,
-}: LaunchProps<{ launchContext: LaunchContext.OpenWorkspace }>) {
-  const [searchText, setSearchText] = useState(() => resolveOpenWorkspaceSearchSeed(fallbackText, launchContext));
+}: LaunchProps<{ launchContext?: OpenWorkspaceLaunchContext }>) {
+  const [searchText, setSearchText] = useState(() =>
+    resolveOpenWorkspaceSearchSeed(fallbackText, launchContext),
+  );
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
@@ -274,7 +276,8 @@ export default function OpenWorkspaceCommand({
   async function handleImportFromClipboard() {
     try {
       const text = await Clipboard.readText();
-      if (!text.trim()) {
+      const trimmed = text?.trim() ?? "";
+      if (!trimmed) {
         await showToast({
           style: Toast.Style.Failure,
           title: "Clipboard empty",
@@ -282,7 +285,7 @@ export default function OpenWorkspaceCommand({
         });
         return;
       }
-      const result = await storage.importJson(text, "merge");
+      const result = await storage.importJson(trimmed, "merge");
       await revalidate();
       await showToast({
         style: Toast.Style.Success,
@@ -434,7 +437,15 @@ export default function OpenWorkspaceCommand({
             <Action.Push
               title="Create Workspace"
               icon={Icon.Plus}
-              target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />}
+              target={
+                <WorkspaceForm
+                  mode="create"
+                  initialWorkspace={createBlankWorkspace()}
+                  onSaved={async () => {
+                    await revalidate();
+                  }}
+                />
+              }
             />
             <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
             <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
@@ -473,7 +484,15 @@ export default function OpenWorkspaceCommand({
               <Action.Push
                 title="Create Workspace"
                 icon={Icon.Plus}
-                target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />}
+                target={
+                  <WorkspaceForm
+                    mode="create"
+                    initialWorkspace={createBlankWorkspace()}
+                    onSaved={async () => {
+                      await revalidate();
+                    }}
+                  />
+                }
               />
             </ActionPanel>
           }

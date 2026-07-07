@@ -324,7 +324,6 @@ export default function WorkspaceForm({
   return (
     <Form
       enableDrafts={enableDrafts}
-      draftValues={draftValues}
       actions={
         <ActionPanel>
           <Action.SubmitForm
@@ -358,27 +357,25 @@ export default function WorkspaceForm({
         error={itemProps.directory.error}
       />
       <Form.TextField
-        id="name"
+        {...itemProps.name}
         title="Name"
         placeholder="Project name"
-        {...itemProps.name}
         onChange={(value) => {
           nameCustomizedRef.current = true;
           itemProps.name.onChange?.(value);
         }}
       />
       <Form.TextField
-        id="abbreviation"
+        {...itemProps.abbreviation}
         title="Home keyword"
         info="Type this in Open Workspace for a fast match (for example: home, api, fe)."
         placeholder="home"
-        {...itemProps.abbreviation}
         onChange={(value) => {
           abbreviationCustomizedRef.current = true;
           itemProps.abbreviation.onChange?.(value);
         }}
       />
-      <Form.Dropdown id="terminalChoiceId" title="Terminal" {...itemProps.terminalChoiceId}>
+      <Form.Dropdown {...itemProps.terminalChoiceId} title="Terminal">
         {terminalChoices.map((choice) => (
           <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
         ))}
@@ -414,43 +411,37 @@ export default function WorkspaceForm({
           text="Each command opens as its own launch entry. Use Actions → Remove command to delete a row."
         />
       ) : null}
-      <Form.Checkbox id="isPinned" label="Favorite" {...itemProps.isPinned} />
-      <Form.Checkbox id="runAsAdmin" label="Run as administrator" {...itemProps.runAsAdmin} />
+      <Form.Checkbox {...itemProps.isPinned} label="Favorite" />
+      <Form.Checkbox {...itemProps.runAsAdmin} label="Run as administrator" />
       <Form.Separator />
       <Form.TextField
-        id="devServerUrl"
+        {...itemProps.devServerUrl}
         title="Dev Server URL"
         placeholder="http://localhost:5173"
-        {...itemProps.devServerUrl}
       />
       <Form.Checkbox
-        id="openDevServerOnLaunch"
-        label="Open dev server link on launch"
         {...itemProps.openDevServerOnLaunch}
+        label="Open dev server link on launch"
       />
       <Form.TextField
-        id="repoUrl"
+        {...itemProps.repoUrl}
         title="Repository URL"
         placeholder="https://github.com/org/repo"
-        {...itemProps.repoUrl}
       />
       <Form.TextField
-        id="companionAppPath"
+        {...itemProps.companionAppPath}
         title="Companion App"
         placeholder="C:\\Program Files\\Microsoft VS Code\\Code.exe"
-        {...itemProps.companionAppPath}
       />
       <Form.TextField
-        id="companionAppArguments"
+        {...itemProps.companionAppArguments}
         title="Companion Arguments"
         info="Use {folder} or . for the workspace directory."
         placeholder="{folder}"
-        {...itemProps.companionAppArguments}
       />
       <Form.Checkbox
-        id="openCompanionAppOnLaunch"
-        label="Open companion app on launch"
         {...itemProps.openCompanionAppOnLaunch}
+        label="Open companion app on launch"
       />
       <Form.Description
         title="Defaults"
