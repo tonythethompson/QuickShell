@@ -55,9 +55,9 @@ export function createWorkspaceFromDirectory(directory: string | undefined): Wor
           wtProfile: row.wtProfile ?? null,
           command: row.command.trim() || null,
           runAsAdmin: row.runAsAdmin,
-          isEnabled: index === 0,
+          isEnabled: true,
           order: index,
-          taskType: row.taskType,
+          taskType: "none" as const,
         }))
       : createBlankWorkspace().launches;
 

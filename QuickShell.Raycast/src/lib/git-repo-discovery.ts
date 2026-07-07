@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { withCache } from "@raycast/utils";
@@ -135,9 +135,42 @@ export function buildSearchRoots(extraRoots: string[] = []): string[] {
 }
 
 function readRemoteUrl(directory: string): string | null {
-  const headPath = path.join(directory, ".git", "HEAD");
-  if (!existsSync(headPath)) {
+  const configPath = path.join(directory, ".git", "config");
+  if (!existsSync(configPath)) {
     return null;
   }
-  return null;
+
+  try {
+    const content = readFileSync(configPath, "utf8");
+    const originSection = content.match(/\[remote\s+"origin"\][\s\S]*?(?=\[|$)/);
+    if (!originSection) {
+      return null;
+    }
+
+    const urlMatch = originSection[0].match(/^\s*url\s*=\s*(.+)$/m);
+    if (!urlMatch) {
+      return null;
+    }
+
+    return normalizeRemoteUrl(urlMatch[1].trim());
+  } catch {
+    return null;
+  }
+}
+
+function normalizeRemoteUrl(url: string): string | null {
+  if (!url) {
+    return null;
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url.replace(/\.git$/, "");
+  }
+
+  const sshMatch = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (sshMatch) {
+    return `https://${sshMatch[1]}/${sshMatch[2]}`;
+  }
+
+  return url;
 }

@@ -148,7 +148,7 @@ export function buildLaunchArguments(entry: LaunchPlanEntry): string[] {
     }
     args.push("-d", directory);
     if (command) {
-      args.push(shouldRouteThroughCmd(command) ? buildWindowsTerminalCmdSuffix(directory, command) : command);
+      args.push(command);
     }
     return args;
   }

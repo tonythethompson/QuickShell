@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import type { Workspace } from "./schema";
+import { escapeWindowsArgument } from "./windows-launch";
 
 export type PostLaunchResult = {
   companionOpened: boolean;
@@ -70,7 +71,7 @@ export function buildCompanionArguments(rawArguments: string | null | undefined,
 
 function buildOpenUrlArgs(url: string): string[] {
   if (process.platform === "win32") {
-    return ["/c", "start", "", url];
+    return ["/c", "start", "", escapeWindowsArgument(url)];
   }
   return [url];
 }

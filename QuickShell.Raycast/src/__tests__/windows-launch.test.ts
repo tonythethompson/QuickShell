@@ -63,11 +63,11 @@ describe("windows-launch", () => {
     expect(target.displayName).toContain("Intelligent Terminal");
   });
 
-  it("routes package manager commands through cmd suffix for wt", () => {
+  it("passes package manager commands directly to wt when directory is set separately", () => {
     const plan = buildWorkspaceLaunchPlan(workspace, DEFAULT_SETTINGS);
     const args = buildLaunchArguments(plan.entries[0]);
     expect(args.join(" ")).toContain("npm run dev");
-    expect(args.join(" ")).toContain("cd /d");
+    expect(args.join(" ")).not.toContain("cd /d");
   });
 
   it("groups multiple launches for windows terminal", () => {

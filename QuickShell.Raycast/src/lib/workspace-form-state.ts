@@ -30,12 +30,24 @@ export type WorkspaceFormState = {
   companionAppArguments: string;
 };
 
+function usesSharedLaunchControls(state: WorkspaceFormState): boolean {
+  return state.launches.length === 1;
+}
+
 function terminalForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string {
-  if (state.launches.length === 1) {
+  if (usesSharedLaunchControls(state)) {
     return state.terminal || "default";
   }
 
   return row.terminal || state.terminal || "default";
+}
+
+function wtProfileForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string | null {
+  if (usesSharedLaunchControls(state)) {
+    return state.wtProfile ?? null;
+  }
+
+  return row.wtProfile ?? state.wtProfile ?? null;
 }
 
 export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: WorkspaceFormState): Workspace {
@@ -45,7 +57,7 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
       id: row.id || createStableId(),
       label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
       terminal: terminalForLaunchRow(row, state),
-      wtProfile: state.launches.filter((launch) => launch.command.trim()).length === 1 ? (state.wtProfile ?? null) : (row.wtProfile ?? state.wtProfile ?? null),
+      wtProfile: wtProfileForLaunchRow(row, state),
       command: row.command.trim() || null,
       runAsAdmin: row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
@@ -107,7 +119,7 @@ export function workspaceFormStateFromWorkspace(workspace: Workspace): Workspace
     terminal: primary?.terminal ?? workspace.terminal ?? "default",
     wtProfile: primary?.wtProfile ?? workspace.wtProfile ?? null,
     isPinned: workspace.isPinned,
-    runAsAdmin: workspace.runAsAdmin,
+    runAsAdmin: workspace.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
     devServerUrl: workspace.devServerUrl ?? "",
     openDevServerOnLaunch: Boolean(workspace.openDevServerOnLaunch),
