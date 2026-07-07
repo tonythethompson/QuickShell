@@ -123,18 +123,11 @@ foreach ($Platform in $Platforms) {
     Write-Host "Publishing $Platform application..." -ForegroundColor Yellow
 
     dotnet publish $ProjectFile `
-
         --configuration $Configuration `
-
         --runtime "win-$Platform" `
-
         --self-contained true `
-
         -p:WinGetBuild=true `
-
         --output $publishDir
-
-
 
     if ($LASTEXITCODE -ne 0) {
 

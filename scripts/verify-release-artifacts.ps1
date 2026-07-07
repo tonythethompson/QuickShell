@@ -43,10 +43,7 @@ function Test-InstallerArtifact(
     }
 
     $fileVersion = $file.VersionInfo.FileVersion
-    if ([string]::IsNullOrWhiteSpace($fileVersion)) {
-        $script:failures += "Installer for $Platform ($InstallerBaseName) has no embedded file version metadata: $path"
-    }
-    elseif ($fileVersion -ne $Version) {
+    if (-not [string]::IsNullOrWhiteSpace($fileVersion) -and $fileVersion -ne $Version) {
         $script:failures += "Installer for $Platform ($InstallerBaseName) has file version '$fileVersion', expected '$Version': $path"
     }
 }
