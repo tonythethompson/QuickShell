@@ -1,7 +1,8 @@
-import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Color, Icon, LaunchProps, List } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import WorkspaceForm from "./components/workspace-form";
+import WindowsRequiredView from "./components/windows-required-view";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import { assessWorkspaceHealthForList } from "./lib/workspace-health";
 import {
@@ -13,13 +14,11 @@ import {
   filterWorkspacesForEdit,
 } from "./lib/workspace-form-state";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
+import { isWindowsPlatform } from "./lib/platform";
+import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import type { QuickShellSettings, Workspace } from "./lib/schema";
 
-type EditWorkspaceCommandProps = {
-  arguments?: {
-    workspaceId?: string;
-  };
-};
+type EditWorkspaceCommandProps = LaunchProps<{ arguments: Arguments.EditWorkspace }>;
 
 export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceCommandProps) {
   const [searchText, setSearchText] = useState("");
@@ -33,6 +32,8 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
     ]);
     return { workspaces, settings };
   }, []);
+
+  useLoadErrorToast(error, "Failed to load workspaces");
 
   const healthIndex = useMemo(() => {
     if (!data) {
@@ -54,6 +55,10 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
     }
     return data.workspaces.find((workspace) => workspace.id === requestedWorkspaceId) ?? null;
   }, [data, requestedWorkspaceId]);
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
+  }
 
   if (preselectedWorkspace) {
     return (

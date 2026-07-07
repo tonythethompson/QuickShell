@@ -2,11 +2,14 @@ import { Action, ActionPanel, Icon, List, showToast, Toast } from "@raycast/api"
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import WorkspaceForm, { createBlankWorkspace } from "./components/workspace-form";
+import WindowsRequiredView from "./components/windows-required-view";
 import { buildProjectSetupSuggestions } from "./lib/project-setup-suggestion";
 import { discoverGitReposCached } from "./lib/git-repo-discovery";
 import { deriveAbbreviationFromName, deriveNameFromDirectory } from "./lib/directory-helpers";
 import { getQuickShellStorage } from "./lib/raycast-storage";
 import { showStorageFailure } from "./lib/failure-feedback";
+import { isWindowsPlatform } from "./lib/platform";
+import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { launchRowsFromSuggestions } from "./lib/workspace-form-state";
 import { normalizeWorkspace } from "./lib/validation";
 import { createStableId } from "./lib/ids";
@@ -21,6 +24,8 @@ export default function DiscoverGitReposCommand() {
     const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
     return repos.filter((repo) => !existingDirs.has(repo.directory.toLowerCase()));
   }, []);
+
+  useLoadErrorToast(error, "Failed to scan git repositories");
 
   const filtered = useMemo(() => {
     if (!data) {
@@ -98,6 +103,10 @@ export default function DiscoverGitReposCommand() {
     } catch (addError) {
       await showStorageFailure("Add workspace", addError);
     }
+  }
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
   }
 
   return (

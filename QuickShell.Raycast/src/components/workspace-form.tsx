@@ -326,32 +326,4 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
   );
 }
 
-export function createBlankWorkspace(): Workspace {
-  const id = createStableId();
-  return normalizeWorkspace({
-    id,
-    name: "",
-    abbreviation: null,
-    directory: "",
-    isPinned: false,
-    pinOrder: null,
-    lastUsedUtc: null,
-    terminal: "default",
-    wtProfile: null,
-    command: null,
-    runAsAdmin: false,
-    launches: [
-      {
-        id: createStableId(),
-        label: "Launch",
-        terminal: "default",
-        wtProfile: null,
-        command: null,
-        runAsAdmin: false,
-        isEnabled: true,
-        order: 0,
-        taskType: "none",
-      },
-    ],
-  });
-}
+export { createBlankWorkspace } from "../lib/create-workspace-initial";

@@ -8,6 +8,7 @@
   "platforms": ["Windows"],
   "categories": ["Developer Tools", "Productivity"],
   "license": "MIT",
+  "keywords": ["quickshell", "terminal", "windows terminal", "workspace", "developer", "powershell", "wsl", "git"],
   "engines": {
     "node": ">=22.14.0"
   },
@@ -28,7 +29,15 @@
       "description": "Create a new workspace with directory, terminal, and launch commands",
       "icon": "command-create.png",
       "keywords": ["quickshell", "workspace", "terminal", "new"],
-      "mode": "view"
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "directory",
+          "type": "text",
+          "required": false,
+          "placeholder": "Project folder path"
+        }
+      ]
     },
     {
       "name": "edit-workspace",

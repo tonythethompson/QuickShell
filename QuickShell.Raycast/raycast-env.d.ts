@@ -27,7 +27,10 @@ declare namespace Arguments {
   /** Arguments passed to the `open-workspace` command */
   export type OpenWorkspace = {}
   /** Arguments passed to the `create-workspace` command */
-  export type CreateWorkspace = {}
+  export type CreateWorkspace = {
+  /** Project folder path */
+  "directory": string
+}
   /** Arguments passed to the `edit-workspace` command */
   export type EditWorkspace = {
   /** Workspace ID */

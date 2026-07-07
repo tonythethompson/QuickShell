@@ -1,7 +1,9 @@
 import { Action, ActionPanel, Clipboard, Form, Icon, showToast, Toast } from "@raycast/api";
 import { useEffect, useMemo, useState } from "react";
+import WindowsRequiredView from "./components/windows-required-view";
 import { getQuickShellStorage } from "./lib/raycast-storage";
 import { showStorageFailure } from "./lib/failure-feedback";
+import { isWindowsPlatform } from "./lib/platform";
 import { recentCountFromEnabled } from "./lib/settings";
 import type { QuickShellSettings } from "./lib/schema";
 import { discoverDefaultProfileChoices } from "./lib/terminal-catalog";
@@ -33,6 +35,10 @@ export default function SettingsCommand() {
           setShowRecents(loaded.recentWorkspaceCount > 0);
           setCanUndo(storage.canUndo());
           setCanRedo(storage.canRedo());
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          await showStorageFailure("Load settings", loadError);
         }
       } finally {
         if (!cancelled) {
@@ -120,6 +126,10 @@ export default function SettingsCommand() {
     setCanUndo(storage.canUndo());
     setCanRedo(storage.canRedo());
     await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+  }
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
   }
 
   return (

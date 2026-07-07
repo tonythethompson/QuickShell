@@ -1,5 +1,12 @@
 # QuickShell Changelog
 
+## [Lifecycle, manifest, and platform guards] - {PR_MERGE_DATE}
+
+- Add Windows-only guard views and load-error toasts across commands
+- Type commands with `LaunchProps`; support `fallbackText` and create `directory` argument
+- Add extension-level Store keywords; rename changelog for Version History
+- Document deeplinks and manifest conventions in README
+
 ## [Parity, performance, and Raycast UX] - {PR_MERGE_DATE}
 
 - Add discover git repos, import/export, undo/redo, companion app, dev server links, and run-as-standard

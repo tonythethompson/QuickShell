@@ -1,8 +1,10 @@
-import { Action, ActionPanel, Alert, Clipboard, Color, Icon, List, confirmAlert, open, showToast, Toast, updateCommandMetadata } from "@raycast/api";
+import { Action, ActionPanel, Alert, Clipboard, Color, Icon, LaunchProps, List, confirmAlert, open, showToast, Toast, updateCommandMetadata } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useEffect, useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
-import WorkspaceForm, { createBlankWorkspace } from "./components/workspace-form";
+import WindowsRequiredView from "./components/windows-required-view";
+import WorkspaceForm from "./components/workspace-form";
+import { createBlankWorkspace } from "./lib/create-workspace-initial";
 import {
   showHealthFailure,
   showLaunchFailure,
@@ -22,6 +24,8 @@ import {
   lookupWorkspaceHealth,
 } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
+import { isWindowsPlatform } from "./lib/platform";
+import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 
 type LoadedData = {
@@ -41,8 +45,8 @@ type SectionGroup = {
   rows: WorkspaceRow[];
 };
 
-export default function OpenWorkspaceCommand() {
-  const [searchText, setSearchText] = useState("");
+export default function OpenWorkspaceCommand({ fallbackText }: LaunchProps) {
+  const [searchText, setSearchText] = useState(fallbackText ?? "");
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
@@ -57,6 +61,8 @@ export default function OpenWorkspaceCommand() {
       canRedo: storage.canRedo(),
     };
   }, []);
+
+  useLoadErrorToast(error, "Failed to load workspaces");
 
   const healthIndex = useMemo(() => {
     if (!data) {
@@ -287,6 +293,10 @@ export default function OpenWorkspaceCommand() {
     }
     await revalidate();
     await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+  }
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
   }
 
   function renderWorkspaceItem({ workspace, launch }: WorkspaceRow) {
