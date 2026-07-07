@@ -1,4 +1,14 @@
-import { Action, ActionPanel, Alert, Color, Icon, List, confirmAlert, open } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Alert,
+  Color,
+  Icon,
+  List,
+  confirmAlert,
+  open,
+  Keyboard,
+} from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
@@ -12,10 +22,15 @@ import { executeWorkspaceLaunch } from "./lib/launch-executor";
 import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
-import { searchTaskActions, searchWorkspaces } from "./lib/search";
+import {
+  hasAbbreviationMatch,
+  searchTaskActions,
+  searchWorkspaces,
+} from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
 import { assessWorkspaceHealth } from "./lib/workspace-health";
+import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 
 type LoadedData = {
@@ -37,13 +52,14 @@ export default function OpenWorkspaceCommand() {
   const [searchText, setSearchText] = useState("");
   const storage = getQuickShellStorage();
 
-  const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
-    const [workspaces, settings] = await Promise.all([
-      storage.getWorkspaces(),
-      storage.getSettings(),
-    ]);
-    return { workspaces, settings };
-  }, []);
+  const { data, isLoading, error, revalidate } =
+    usePromise(async (): Promise<LoadedData> => {
+      const [workspaces, settings] = await Promise.all([
+        storage.getWorkspaces(),
+        storage.getSettings(),
+      ]);
+      return { workspaces, settings };
+    }, []);
 
   const sectionGroups = useMemo((): SectionGroup[] => {
     if (!data) {
@@ -52,7 +68,10 @@ export default function OpenWorkspaceCommand() {
 
     const query = searchText.trim();
     if (!query) {
-      const sections = buildBrowseSections(data.workspaces, data.settings.recentWorkspaceCount);
+      const sections = buildBrowseSections(
+        data.workspaces,
+        data.settings.recentWorkspaceCount,
+      );
       const groups: SectionGroup[] = [];
 
       if (sections.favorites.length > 0) {
@@ -62,7 +81,10 @@ export default function OpenWorkspaceCommand() {
         });
       }
 
-      if (isRecentSectionEnabled(data.settings.recentWorkspaceCount) && sections.recents.length > 0) {
+      if (
+        isRecentSectionEnabled(data.settings.recentWorkspaceCount) &&
+        sections.recents.length > 0
+      ) {
         groups.push({
           title: RECENT_SECTION_TITLE,
           rows: sections.recents.map((workspace) => ({ workspace })),
@@ -79,12 +101,21 @@ export default function OpenWorkspaceCommand() {
       return groups;
     }
 
+    if (hasAbbreviationMatch(data.workspaces, query)) {
+      const abbreviationMatches = searchWorkspaces(data.workspaces, query);
+      const ranked = buildSearchResults(abbreviationMatches, query);
+      return [{ rows: ranked.map((workspace) => ({ workspace })) }];
+    }
+
     const taskActions = searchTaskActions(data.workspaces, query);
     if (taskActions.length > 0) {
       return [
         {
           title: "Launch actions",
-          rows: taskActions.map((item) => ({ workspace: item.workspace, launch: item.launch })),
+          rows: taskActions.map((item) => ({
+            workspace: item.workspace,
+            launch: item.launch,
+          })),
         },
       ];
     }
@@ -98,7 +129,10 @@ export default function OpenWorkspaceCommand() {
     return [{ rows: ranked.map((workspace) => ({ workspace })) }];
   }, [data, searchText]);
 
-  const isEmpty = !isLoading && !error && sectionGroups.every((group) => group.rows.length === 0);
+  const isEmpty =
+    !isLoading &&
+    !error &&
+    sectionGroups.every((group) => group.rows.length === 0);
 
   async function handleOpen(workspace: Workspace, launch?: LaunchEntry) {
     if (!data) {
@@ -109,7 +143,9 @@ export default function OpenWorkspaceCommand() {
       ? {
           ...workspace,
           launches: workspace.launches.map((entry) =>
-            entry.id === launch.id ? { ...entry, isEnabled: true } : { ...entry, isEnabled: false },
+            entry.id === launch.id
+              ? { ...entry, isEnabled: true }
+              : { ...entry, isEnabled: false },
           ),
         }
       : workspace;
@@ -121,7 +157,11 @@ export default function OpenWorkspaceCommand() {
     }
 
     const plan = buildWorkspaceLaunchPlan(launchWorkspace, data.settings);
-    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec);
+    const result = await executeWorkspaceLaunch(
+      plan,
+      data.settings,
+      raycastExec,
+    );
     if (!result.ok) {
       await showLaunchFailure(result);
       return;
@@ -194,14 +234,19 @@ export default function OpenWorkspaceCommand() {
       return null;
     }
 
-    const title = launch ? `${workspace.name} — ${launch.label}` : workspace.name;
+    const title = launch
+      ? `${workspace.name} — ${launch.label}`
+      : workspace.name;
     const health = assessWorkspaceHealth(workspace, data.settings);
     const accessories: List.Item.Accessory[] = [];
     if (workspace.abbreviation) {
       accessories.push({ text: workspace.abbreviation });
     }
     if (!health.ok) {
-      accessories.push({ icon: { source: Icon.ExclamationMark, tintColor: Color.Orange }, tooltip: health.issues[0]?.message });
+      accessories.push({
+        icon: { source: Icon.ExclamationMark, tintColor: Color.Orange },
+        tooltip: health.issues[0]?.message,
+      });
     }
     if (workspace.isPinned) {
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
@@ -211,17 +256,25 @@ export default function OpenWorkspaceCommand() {
       <List.Item
         key={launch ? `${workspace.id}:${launch.id}` : workspace.id}
         title={title}
-        subtitle={health.ok ? workspaceSubtitle(workspace, launch) : health.issues[0]?.message}
-        icon={workspace.isPinned ? Icon.Star : Icon.Folder}
+        subtitle={
+          health.ok
+            ? workspaceSubtitle(workspace, launch)
+            : health.issues[0]?.message
+        }
+        icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
         accessories={accessories}
         actions={
           <ActionPanel>
             <ActionPanel.Section title="Open">
-              <Action title="Open" icon={Icon.Terminal} onAction={() => handleOpen(workspace, launch)} />
+              <Action
+                title="Open"
+                icon={Icon.Terminal}
+                onAction={() => handleOpen(workspace, launch)}
+              />
               <Action
                 title="Open Folder"
                 icon={Icon.Folder}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "o" }}
+                shortcut={Keyboard.Shortcut.Common.OpenWith}
                 onAction={() => handleOpenFolder(workspace)}
               />
             </ActionPanel.Section>
@@ -229,7 +282,7 @@ export default function OpenWorkspaceCommand() {
               <Action.Push
                 title="Edit Workspace"
                 icon={Icon.Pencil}
-                shortcut={{ modifiers: ["cmd"], key: "e" }}
+                shortcut={Keyboard.Shortcut.Common.Edit}
                 target={
                   <EditWorkspaceView
                     workspaceId={workspace.id}
@@ -288,7 +341,9 @@ export default function OpenWorkspaceCommand() {
 
       {!error && isEmpty ? (
         <List.EmptyView
-          title={searchText.trim() ? "No matching workspaces" : "No workspaces yet"}
+          title={
+            searchText.trim() ? "No matching workspaces" : "No workspaces yet"
+          }
           description={
             searchText.trim()
               ? "Try searching by name, abbreviation, directory, or launch command."
@@ -298,7 +353,10 @@ export default function OpenWorkspaceCommand() {
       ) : null}
 
       {sectionGroups.map((group, index) => (
-        <List.Section key={group.title ?? `section-${index}`} title={group.title}>
+        <List.Section
+          key={group.title ?? `section-${index}`}
+          title={group.title}
+        >
           {group.rows.map((row) => renderWorkspaceItem(row))}
         </List.Section>
       ))}

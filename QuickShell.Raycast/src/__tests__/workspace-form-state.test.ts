@@ -4,6 +4,7 @@ import {
   additionalLaunchCount,
   buildWorkspaceFromFormState,
   filterWorkspacesForEdit,
+  launchRowsFromSuggestions,
   workspaceFormStateFromWorkspace,
 } from "../lib/workspace-form-state";
 
@@ -52,11 +53,29 @@ describe("workspace-form-state", () => {
       abbreviation: "fs",
       directory: "C:\\Projects\\fullstack",
       terminal: "wt",
-      wtProfile: "",
-      command: "dotnet watch run",
+      wtProfile: null,
       isPinned: false,
       runAsAdmin: false,
-      launchLabel: "API",
+      launches: [
+        {
+          id: "1a",
+          command: "dotnet watch run",
+          terminal: "wt",
+          wtProfile: null,
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "API",
+        },
+        {
+          id: "1b",
+          command: "npm run dev",
+          terminal: "wt",
+          wtProfile: null,
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "Web",
+        },
+      ],
     });
 
     expect(next.launches).toHaveLength(2);
@@ -65,10 +84,61 @@ describe("workspace-form-state", () => {
     expect(next.launches[1].command).toBe("npm run dev");
   });
 
-  it("derives form state from the first enabled launch", () => {
+  it("drops empty command rows when saving", () => {
+    const next = buildWorkspaceFromFormState(multiLaunchWorkspace, {
+      name: "Full stack",
+      abbreviation: "fs",
+      directory: "C:\\Projects\\fullstack",
+      terminal: "wt",
+      wtProfile: null,
+      isPinned: false,
+      runAsAdmin: false,
+      launches: [
+        {
+          id: "1a",
+          command: "dotnet run",
+          terminal: "wt",
+          wtProfile: null,
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "API",
+        },
+        {
+          id: "1b",
+          command: "",
+          terminal: "wt",
+          wtProfile: null,
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "Web",
+        },
+      ],
+    });
+
+    expect(next.launches).toHaveLength(1);
+    expect(next.launches[0].command).toBe("dotnet run");
+  });
+
+  it("derives form state from all launches", () => {
     const state = workspaceFormStateFromWorkspace(multiLaunchWorkspace);
-    expect(state.command).toBe("dotnet run");
-    expect(state.launchLabel).toBe("API");
+    expect(state.launches).toHaveLength(2);
+    expect(state.launches[0].command).toBe("dotnet run");
+    expect(state.launches[1].label).toBe("Web");
+  });
+
+  it("builds launch rows from project suggestions", () => {
+    const rows = launchRowsFromSuggestions(
+      [
+        { label: "Dev", command: "npm run dev" },
+        { label: "Tests", command: "npm run test" },
+      ],
+      "wt",
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0].command).toBe("npm run dev");
+    expect(rows[1].label).toBe("Tests");
+    expect(rows.every((row) => row.terminal === "wt")).toBe(true);
   });
 
   it("filters workspaces for edit by name and launch text", () => {
@@ -93,5 +163,32 @@ describe("workspace-form-state", () => {
 
   it("counts additional enabled launches", () => {
     expect(additionalLaunchCount(multiLaunchWorkspace)).toBe(1);
+  });
+
+  it("uses shared terminal and admin controls for single-launch workspaces", () => {
+    const next = buildWorkspaceFromFormState(multiLaunchWorkspace, {
+      name: "Single",
+      abbreviation: "one",
+      directory: "C:\\Projects\\one",
+      terminal: "pwsh",
+      wtProfile: null,
+      isPinned: false,
+      runAsAdmin: true,
+      launches: [
+        {
+          id: "1a",
+          command: "npm run dev",
+          terminal: "default",
+          wtProfile: null,
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "Dev",
+        },
+      ],
+    });
+
+    expect(next.launches).toHaveLength(1);
+    expect(next.launches[0].terminal).toBe("pwsh");
+    expect(next.launches[0].runAsAdmin).toBe(true);
   });
 });
