@@ -121,6 +121,41 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
         }
     }
 
+    [Fact]
+    public void LaunchAll_SeparateWindowsForMultiLaunch_OpensMultipleProcesses()
+    {
+        var directory = Environment.CurrentDirectory;
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Separate windows",
+            Directory = directory,
+            Launches =
+            [
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "API", Terminal = "wt", Command = "dotnet run", IsEnabled = true, Order = 0 },
+                new WorkspaceEntry { Id = Guid.NewGuid().ToString("N"), Label = "Web", Terminal = "wt", Command = "npm run dev", IsEnabled = true, Order = 1 },
+            ],
+        };
+
+        var captured = new List<ProcessStartInfo>();
+        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
+        try
+        {
+            ShortcutLaunchExecutor.Launch(
+                shortcut,
+                "wt",
+                "default",
+                new ShortcutLaunchOptions(SeparateWindowsForMultiLaunch: true));
+
+            Assert.Equal(2, captured.Count);
+            Assert.All(captured, c => Assert.Equal("wt.exe", c.FileName));
+        }
+        finally
+        {
+            TerminalLauncher.StartProcessOverride = null;
+        }
+    }
+
     private static int CountOccurrences(string haystack, string needle) =>
         needle.Length == 0 ? 0 : (haystack.Length - haystack.Replace(needle, string.Empty).Length) / needle.Length;
 

@@ -8,7 +8,8 @@ internal readonly record struct ShortcutLaunchOptions(
     bool RunAsStandard = false,
     bool IncludeCompanionApp = true,
     bool IncludeDevServerLink = true,
-    bool BlockDirtyBranchSwitch = true);
+    bool BlockDirtyBranchSwitch = true,
+    bool SeparateWindowsForMultiLaunch = false);
 
 internal sealed class ShortcutLaunchResult
 {
@@ -288,7 +289,9 @@ internal static class ShortcutLaunchExecutor
             }
         }
 
-        var groups = GroupPlans(plans, terminalApplicationId);
+        var groups = options.SeparateWindowsForMultiLaunch
+            ? plans.Select(plan => new EntryPlanGroup([plan], tabHostExecutable: null)).ToList()
+            : GroupPlans(plans, terminalApplicationId);
         var openedCommands = 0;
 
         foreach (var group in groups)

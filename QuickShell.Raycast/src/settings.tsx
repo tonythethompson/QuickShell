@@ -18,6 +18,7 @@ export default function SettingsCommand() {
   const [terminalApplication, setTerminalApplication] = useState<QuickShellSettings["terminalApplication"]>("wt");
   const [defaultProfile, setDefaultProfile] = useState("__default__");
   const [showRecents, setShowRecents] = useState(true);
+  const [singleWindowTabs, setSingleWindowTabs] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,6 +30,7 @@ export default function SettingsCommand() {
           setTerminalApplication(loaded.terminalApplication);
           setDefaultProfile(loaded.defaultProfile);
           setShowRecents(loaded.recentWorkspaceCount > 0);
+          setSingleWindowTabs(loaded.multiLaunchPresentation !== "separateWindows");
         }
       } finally {
         if (!cancelled) {
@@ -51,6 +53,7 @@ export default function SettingsCommand() {
       terminalApplication,
       defaultProfile: normalizeDefaultProfile(terminalApplication, defaultProfile),
       recentWorkspaceCount: recentCountFromEnabled(showRecents),
+      multiLaunchPresentation: singleWindowTabs ? "singleWindowTabs" : "separateWindows",
     };
 
     try {
@@ -115,6 +118,20 @@ export default function SettingsCommand() {
       <Form.Description
         title="Recents"
         text="When enabled, Open Workspace shows up to 8 recent workspaces above older items."
+      />
+      <Form.Checkbox
+        id="singleWindowTabs"
+        label="Open multiple commands in one Windows Terminal window"
+        value={singleWindowTabs}
+        onChange={setSingleWindowTabs}
+      />
+      <Form.Description
+        title="Multiple commands"
+        text={
+          terminalApplication === "conhost"
+            ? "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows."
+            : "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
+        }
       />
     </Form>
   );

@@ -57,5 +57,7 @@ export function settingsSummary(settings: QuickShellSettings): string {
     settings.defaultProfile === "__default__"
       ? "default profile"
       : settings.defaultProfile;
-  return `${app} • ${profile}`;
+  const multiLaunch =
+    settings.multiLaunchPresentation === "separateWindows" ? "separate windows" : "tabs";
+  return `${app} • ${profile} • ${multiLaunch}`;
 }

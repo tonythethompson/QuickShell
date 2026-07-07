@@ -120,7 +120,6 @@ export function buildLaunchArguments(entry: LaunchPlanEntry): string[] {
   const { target, directory, command } = entry;
 
   if (target.kind === "wt") {
-    args.push("-w", "0");
     if (target.profileOrDistro) {
       args.push("-p", target.profileOrDistro);
     }
@@ -211,6 +210,54 @@ export function buildWorkspaceLaunchPlan(workspace: Workspace, settings: QuickSh
   return { entries, groupedArguments, errors };
 }
 
+function escapeCmd(value: string): string {
+  return value.replace(/"/g, '""');
+}
+
+export function buildWindowsTerminalTabArguments(entry: LaunchPlanEntry): string[] {
+  const { target, directory, command } = entry;
+
+  if (target.kind === "wt") {
+    return buildLaunchArguments(entry);
+  }
+
+  if (target.kind === "cmd") {
+    const args = ["-d", directory];
+    if (command) {
+      args.push(`cmd.exe /k "${escapeCmd(command)}"`);
+    } else {
+      args.push("cmd.exe");
+    }
+    return args;
+  }
+
+  if (target.kind === "powershell" || target.kind === "pwsh") {
+    const executable = target.kind === "pwsh" ? "pwsh.exe" : "powershell.exe";
+    const args = ["-d", directory];
+    if (command) {
+      const escaped = command.replace(/`/g, "``").replace(/"/g, '`"');
+      args.push(`${executable} -NoExit -Command "${escaped}"`);
+    } else {
+      args.push(executable);
+    }
+    return args;
+  }
+
+  if (target.kind === "wsl") {
+    const wslCommand = command
+      ? `cd ${shellQuoteForBash(directory)} && ${command}`
+      : `cd ${shellQuoteForBash(directory)} && exec $SHELL -l`;
+    const args: string[] = [];
+    if (target.profileOrDistro) {
+      args.push("-p", target.profileOrDistro);
+    }
+    args.push("wsl.exe", "-e", "bash", "-lc", wslCommand);
+    return args;
+  }
+
+  return buildLaunchArguments(entry);
+}
+
 export function buildGroupedWindowsTerminalArguments(entries: LaunchPlanEntry[]): string[] {
   if (entries.length === 0) {
     return [];
@@ -222,7 +269,7 @@ export function buildGroupedWindowsTerminalArguments(entries: LaunchPlanEntry[])
     if (index > 0) {
       args.push(";", "new-tab");
     }
-    args.push(...buildLaunchArguments(entry));
+    args.push(...buildWindowsTerminalTabArguments(entry));
   }
   return args;
 }

@@ -34,4 +34,33 @@ describe("migration", () => {
     expect(normalizeRecentCount(3)).toBe(8);
     expect(normalizeRecentCount(12)).toBe(8);
   });
+
+  it("defaults multiLaunchPresentation to singleWindowTabs", () => {
+    const data = migrateStoredData({
+      version: 1,
+      settings: {
+        terminalApplication: "wt",
+        defaultProfile: "__default__",
+        recentWorkspaceCount: 8,
+      },
+      workspaces: [],
+    });
+
+    expect(data.settings.multiLaunchPresentation).toBe("singleWindowTabs");
+  });
+
+  it("preserves separateWindows multiLaunchPresentation", () => {
+    const data = migrateStoredData({
+      version: 1,
+      settings: {
+        terminalApplication: "wt",
+        defaultProfile: "__default__",
+        recentWorkspaceCount: 8,
+        multiLaunchPresentation: "separateWindows",
+      },
+      workspaces: [],
+    });
+
+    expect(data.settings.multiLaunchPresentation).toBe("separateWindows");
+  });
 });

@@ -31,10 +31,13 @@ export type Workspace = {
   launches: LaunchEntry[];
 };
 
+export type MultiLaunchPresentation = "singleWindowTabs" | "separateWindows";
+
 export type QuickShellSettings = {
   terminalApplication: TerminalApplication;
   defaultProfile: string;
   recentWorkspaceCount: number;
+  multiLaunchPresentation: MultiLaunchPresentation;
 };
 
 export type StoredData = {
@@ -47,6 +50,7 @@ export const DEFAULT_SETTINGS: QuickShellSettings = {
   terminalApplication: "wt",
   defaultProfile: "__default__",
   recentWorkspaceCount: 8,
+  multiLaunchPresentation: "singleWindowTabs",
 };
 
 export const DEFAULT_TERMINAL = "default";

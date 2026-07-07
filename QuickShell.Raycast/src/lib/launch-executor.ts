@@ -1,6 +1,8 @@
 import type { QuickShellSettings } from "./schema";
+import { groupLaunchEntries } from "./launch-grouping";
 import {
   buildLaunchArguments,
+  buildGroupedWindowsTerminalArguments,
   buildWorkspaceLaunchPlan,
   type LaunchPlan,
   type LaunchPlanEntry,
@@ -12,15 +14,9 @@ export type LaunchExecutionResult =
   | { ok: true; summary: string }
   | { ok: false; message: string; cause?: unknown };
 
-type LaunchGroup = {
-  hostExecutable: string;
-  runAsAdmin: boolean;
-  entries: LaunchPlanEntry[];
-};
-
 export async function executeWorkspaceLaunch(
   plan: LaunchPlan,
-  _settings: QuickShellSettings,
+  settings: QuickShellSettings,
   execFn: ExecFn,
 ): Promise<LaunchExecutionResult> {
   if (plan.errors.length > 0) {
@@ -35,10 +31,12 @@ export async function executeWorkspaceLaunch(
     return { ok: false, message: "Terminal launch requires Windows." };
   }
 
+  const separateWindows = settings.multiLaunchPresentation === "separateWindows";
+
   try {
-    const groups = groupLaunchEntries(plan.entries);
+    const groups = groupLaunchEntries(plan.entries, settings, separateWindows);
     for (const group of groups) {
-      await executeGroup(group, execFn);
+      await executeGroup(group.tabHostExecutable, group.runAsAdmin, group.entries, execFn);
     }
 
     return {
@@ -63,53 +61,26 @@ export async function executeWorkspace(
   return executeWorkspaceLaunch(plan, settings, execFn);
 }
 
-function groupLaunchEntries(entries: LaunchPlanEntry[]): LaunchGroup[] {
-  const groups: LaunchGroup[] = [];
-
-  for (const entry of entries) {
-    const runAsAdmin = entry.runAsAdmin;
-    const canTab = entry.target.kind === "wt";
-    const lastGroup = groups[groups.length - 1];
-
-    if (
-      canTab &&
-      lastGroup &&
-      lastGroup.runAsAdmin === runAsAdmin &&
-      lastGroup.hostExecutable === entry.target.hostExecutable &&
-      lastGroup.entries.every((item) => item.target.kind === "wt")
-    ) {
-      lastGroup.entries.push(entry);
-      continue;
-    }
-
-    groups.push({
-      hostExecutable: entry.target.hostExecutable,
-      runAsAdmin,
-      entries: [entry],
-    });
-  }
-
-  return groups;
-}
-
-async function executeGroup(group: LaunchGroup, execFn: ExecFn): Promise<void> {
-  if (group.entries.length === 1) {
-    const entry = group.entries[0];
-    const args = buildLaunchArguments(entry);
-    await runProcess(group.hostExecutable, args, group.runAsAdmin, execFn);
+async function executeGroup(
+  tabHostExecutable: string | null,
+  runAsAdmin: boolean,
+  entries: LaunchPlanEntry[],
+  execFn: ExecFn,
+): Promise<void> {
+  if (entries.length === 1) {
+    const entry = entries[0];
+    const host = tabHostExecutable ?? entry.target.hostExecutable;
+    const args =
+      tabHostExecutable && entry.target.kind !== "wt"
+        ? buildGroupedWindowsTerminalArguments([entry])
+        : buildLaunchArguments(entry);
+    await runProcess(host, args, runAsAdmin, execFn);
     return;
   }
 
-  const args: string[] = [];
-  for (let index = 0; index < group.entries.length; index++) {
-    const entry = group.entries[index];
-    if (index > 0) {
-      args.push(";", "new-tab");
-    }
-    args.push(...buildLaunchArguments(entry));
-  }
-
-  await runProcess(group.hostExecutable, args, group.runAsAdmin, execFn);
+  const host = tabHostExecutable ?? entries[0].target.hostExecutable;
+  const args = buildGroupedWindowsTerminalArguments(entries);
+  await runProcess(host, args, runAsAdmin, execFn);
 }
 
 async function runProcess(
