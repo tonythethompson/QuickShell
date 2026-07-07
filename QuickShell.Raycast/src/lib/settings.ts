@@ -1,7 +1,15 @@
 import { DEFAULT_SETTINGS, type QuickShellSettings } from "./schema";
-import { clampRecentDisplayCount, isRecentSectionEnabled, normalizeRecentCount } from "./migration";
+import {
+  clampRecentDisplayCount,
+  isRecentSectionEnabled,
+  normalizeRecentCount,
+} from "./migration";
 
-export { clampRecentDisplayCount, isRecentSectionEnabled, normalizeRecentCount };
+export {
+  clampRecentDisplayCount,
+  isRecentSectionEnabled,
+  normalizeRecentCount,
+};
 
 export const RECENT_SECTION_TITLE = "Recent";
 

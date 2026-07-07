@@ -65,6 +65,7 @@
   "scripts": {
     "predev": "node scripts/verify-raycast-cli.js",
     "prebuild": "node scripts/verify-raycast-cli.js",
+    "prelint": "node scripts/verify-raycast-cli.js",
     "build": "ray build",
     "dev": "ray develop",
     "lint": "ray lint",

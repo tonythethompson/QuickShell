@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -29,7 +29,10 @@ describe("project-setup-suggestion", () => {
     );
 
     const suggestions = buildProjectSetupSuggestions(directory);
-    expect(suggestions.map((item) => item.command)).toEqual(["npm run dev", "npm run test"]);
+    expect(suggestions.map((item) => item.command)).toEqual([
+      "npm run dev",
+      "npm run test",
+    ]);
   });
 
   it("suggests dotnet commands when a csproj is present", () => {
@@ -37,8 +40,12 @@ describe("project-setup-suggestion", () => {
     writeFileSync(path.join(directory, "App.csproj"), "<Project />", "utf8");
 
     const suggestions = buildProjectSetupSuggestions(directory);
-    expect(suggestions.some((item) => item.command === "dotnet build")).toBe(true);
-    expect(suggestions.some((item) => item.command.includes("dotnet run --project"))).toBe(true);
+    expect(suggestions.some((item) => item.command === "dotnet build")).toBe(
+      true,
+    );
+    expect(
+      suggestions.some((item) => item.command.includes("dotnet run --project")),
+    ).toBe(true);
   });
 
   it("derives labels from common command prefixes", () => {
@@ -50,7 +57,11 @@ describe("project-setup-suggestion", () => {
   it("keeps launch labels unique across dotnet and go suggestions", () => {
     const directory = createTempProjectDir();
     writeFileSync(path.join(directory, "App.csproj"), "<Project />", "utf8");
-    writeFileSync(path.join(directory, "go.mod"), "module example.com/app\n", "utf8");
+    writeFileSync(
+      path.join(directory, "go.mod"),
+      "module example.com/app\n",
+      "utf8",
+    );
 
     const suggestions = buildProjectSetupSuggestions(directory);
     const labels = suggestions.map((item) => item.label.toLowerCase());
@@ -58,7 +69,9 @@ describe("project-setup-suggestion", () => {
     expect(new Set(labels).size).toBe(labels.length);
     expect(suggestions.some((item) => item.label === "Dotnet Run")).toBe(true);
     expect(suggestions.some((item) => item.label === "Go Run")).toBe(true);
-    expect(suggestions.some((item) => item.label === "Dotnet Tests")).toBe(true);
+    expect(suggestions.some((item) => item.label === "Dotnet Tests")).toBe(
+      true,
+    );
     expect(suggestions.some((item) => item.label === "Go Tests")).toBe(true);
   });
 });

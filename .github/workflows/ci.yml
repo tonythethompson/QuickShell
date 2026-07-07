@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   build-test:
+    name: .NET build and test
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -33,3 +34,35 @@ jobs:
       - name: Test
         run: dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Platform=x64 --no-build --verbosity minimal
         shell: pwsh
+
+  raycast-check:
+    name: Raycast lint, test, and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: QuickShell.Raycast
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: QuickShell.Raycast/.nvmrc
+          cache: npm
+          cache-dependency-path: QuickShell.Raycast/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Raycast CLI
+        run: node scripts/verify-raycast-cli.js
+
+      - name: Test
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

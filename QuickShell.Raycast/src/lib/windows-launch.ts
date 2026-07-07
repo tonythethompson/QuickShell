@@ -46,15 +46,24 @@ export function resolveTerminalForLaunch(
 
   if (launch.terminal === "default") {
     return {
-      terminal: settings.terminalApplication === "system" ? "wt" : settings.terminalApplication,
-      wtProfile: settings.defaultProfile === "__default__" ? null : settings.defaultProfile,
+      terminal:
+        settings.terminalApplication === "system"
+          ? "wt"
+          : settings.terminalApplication,
+      wtProfile:
+        settings.defaultProfile === "__default__"
+          ? null
+          : settings.defaultProfile,
     };
   }
 
   return { terminal: launch.terminal, wtProfile: launch.wtProfile };
 }
 
-export function resolveLaunchTarget(terminal: string, wtProfile?: string | null): ResolvedLaunchTarget {
+export function resolveLaunchTarget(
+  terminal: string,
+  wtProfile?: string | null,
+): ResolvedLaunchTarget {
   switch (terminal) {
     case "wt":
     case "it":
@@ -62,7 +71,9 @@ export function resolveLaunchTarget(terminal: string, wtProfile?: string | null)
         kind: "wt",
         hostExecutable: terminal === "it" ? "wt.exe" : "wt.exe",
         profileOrDistro: wtProfile,
-        displayName: wtProfile ? `Windows Terminal (${wtProfile})` : "Windows Terminal",
+        displayName: wtProfile
+          ? `Windows Terminal (${wtProfile})`
+          : "Windows Terminal",
       };
     case "powershell":
       return {
@@ -168,21 +179,28 @@ function usesPackageManager(command: string): boolean {
   return PACKAGE_MANAGER_COMMANDS.has(firstToken);
 }
 
-export function shouldRouteThroughCmd(command: string | null | undefined): boolean {
+export function shouldRouteThroughCmd(
+  command: string | null | undefined,
+): boolean {
   if (!command) {
     return false;
   }
   return usesPackageManager(command);
 }
 
-export function buildWorkspaceLaunchPlan(workspace: Workspace, settings: QuickShellSettings): LaunchPlan {
+export function buildWorkspaceLaunchPlan(
+  workspace: Workspace,
+  settings: QuickShellSettings,
+): LaunchPlan {
   const errors: string[] = [];
   const directory = workspace.directory.trim();
   if (!directory) {
     errors.push("Workspace directory is required.");
   }
 
-  const enabledLaunches = workspace.launches.filter((launch) => launch.isEnabled);
+  const enabledLaunches = workspace.launches.filter(
+    (launch) => launch.isEnabled,
+  );
   if (enabledLaunches.length === 0) {
     errors.push("No enabled launch entries.");
   }
@@ -190,8 +208,14 @@ export function buildWorkspaceLaunchPlan(workspace: Workspace, settings: QuickSh
   const entries: LaunchPlanEntry[] = [];
   let previousTerminal: string | undefined;
 
-  for (const launch of enabledLaunches.sort((left, right) => left.order - right.order)) {
-    const resolved = resolveTerminalForLaunch(launch, settings, previousTerminal);
+  for (const launch of enabledLaunches.sort(
+    (left, right) => left.order - right.order,
+  )) {
+    const resolved = resolveTerminalForLaunch(
+      launch,
+      settings,
+      previousTerminal,
+    );
     previousTerminal = resolved.terminal;
     const target = resolveLaunchTarget(resolved.terminal, resolved.wtProfile);
     const command = launch.command?.trim() || null;
@@ -211,7 +235,9 @@ export function buildWorkspaceLaunchPlan(workspace: Workspace, settings: QuickSh
   return { entries, groupedArguments, errors };
 }
 
-export function buildGroupedWindowsTerminalArguments(entries: LaunchPlanEntry[]): string[] {
+export function buildGroupedWindowsTerminalArguments(
+  entries: LaunchPlanEntry[],
+): string[] {
   if (entries.length === 0) {
     return [];
   }

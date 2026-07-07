@@ -16,7 +16,10 @@ export function validateWorkspace(workspace: Workspace): ValidationResult {
     return { ok: false, message: "Workspace name is required." };
   }
   if (name.length > MAX_NAME_LENGTH) {
-    return { ok: false, message: `Workspace name must be ${MAX_NAME_LENGTH} characters or fewer.` };
+    return {
+      ok: false,
+      message: `Workspace name must be ${MAX_NAME_LENGTH} characters or fewer.`,
+    };
   }
 
   const abbreviation = workspace.abbreviation?.trim() ?? "";
@@ -32,7 +35,10 @@ export function validateWorkspace(workspace: Workspace): ValidationResult {
     return { ok: false, message: "Workspace directory is required." };
   }
   if (directory.length > MAX_DIRECTORY_LENGTH) {
-    return { ok: false, message: `Directory must be ${MAX_DIRECTORY_LENGTH} characters or fewer.` };
+    return {
+      ok: false,
+      message: `Directory must be ${MAX_DIRECTORY_LENGTH} characters or fewer.`,
+    };
   }
   if (!isAbsoluteDirectory(directory)) {
     return { ok: false, message: "Directory must be an absolute path." };
@@ -56,7 +62,10 @@ export function validateLaunches(launches: LaunchEntry[]): ValidationResult {
     return { ok: false, message: "At least one launch entry is required." };
   }
   if (launches.length > MAX_LAUNCHES) {
-    return { ok: false, message: `A workspace can have at most ${MAX_LAUNCHES} launch entries.` };
+    return {
+      ok: false,
+      message: `A workspace can have at most ${MAX_LAUNCHES} launch entries.`,
+    };
   }
 
   const enabled = launches.filter((entry) => entry.isEnabled);
@@ -71,7 +80,10 @@ export function validateLaunches(launches: LaunchEntry[]): ValidationResult {
       return { ok: false, message: "Each launch entry needs a label." };
     }
     if (label.length > MAX_NAME_LENGTH) {
-      return { ok: false, message: `Launch label must be ${MAX_NAME_LENGTH} characters or fewer.` };
+      return {
+        ok: false,
+        message: `Launch label must be ${MAX_NAME_LENGTH} characters or fewer.`,
+      };
     }
 
     const normalizedLabel = label.toLowerCase();
@@ -94,25 +106,38 @@ export function validateLaunches(launches: LaunchEntry[]): ValidationResult {
   return { ok: true };
 }
 
-export function validateCommand(command: string | null | undefined): ValidationResult {
+export function validateCommand(
+  command: string | null | undefined,
+): ValidationResult {
   if (!command) {
     return { ok: true };
   }
   if (command.length > MAX_COMMAND_LENGTH) {
-    return { ok: false, message: `Command must be ${MAX_COMMAND_LENGTH} characters or fewer.` };
+    return {
+      ok: false,
+      message: `Command must be ${MAX_COMMAND_LENGTH} characters or fewer.`,
+    };
   }
   if (/[\r\n\0]/.test(command)) {
-    return { ok: false, message: "Command cannot contain line breaks or null characters." };
+    return {
+      ok: false,
+      message: "Command cannot contain line breaks or null characters.",
+    };
   }
   return { ok: true };
 }
 
-export function validateProfile(profile: string | null | undefined): ValidationResult {
+export function validateProfile(
+  profile: string | null | undefined,
+): ValidationResult {
   if (!profile) {
     return { ok: true };
   }
   if (profile.length > MAX_PROFILE_LENGTH) {
-    return { ok: false, message: `Profile must be ${MAX_PROFILE_LENGTH} characters or fewer.` };
+    return {
+      ok: false,
+      message: `Profile must be ${MAX_PROFILE_LENGTH} characters or fewer.`,
+    };
   }
   if (/[\r\n]/.test(profile)) {
     return { ok: false, message: "Profile cannot contain line breaks." };
@@ -122,7 +147,10 @@ export function validateProfile(profile: string | null | undefined): ValidationR
 
 export function validateWorkspaceCount(count: number): ValidationResult {
   if (count > MAX_WORKSPACES) {
-    return { ok: false, message: `QuickShell supports at most ${MAX_WORKSPACES} workspaces.` };
+    return {
+      ok: false,
+      message: `QuickShell supports at most ${MAX_WORKSPACES} workspaces.`,
+    };
   }
   return { ok: true };
 }
@@ -156,7 +184,10 @@ export function normalizeWorkspace(workspace: Workspace): Workspace {
   };
 }
 
-export function normalizeLaunches(launches: LaunchEntry[], workspace: Workspace): LaunchEntry[] {
+export function normalizeLaunches(
+  launches: LaunchEntry[],
+  workspace: Workspace,
+): LaunchEntry[] {
   if (launches.length === 0) {
     return [
       {

@@ -19,14 +19,9 @@ export const TERMINAL_APPLICATION_CHOICES: TerminalChoice[] = [
   { id: "it", title: "Intelligent Terminal" },
 ];
 
-const CONHOST_PROFILE_CHOICES: TerminalChoice[] = [
-  { id: "__default__", title: "Default profile for this app" },
-  { id: "powershell", title: "PowerShell" },
-  { id: "pwsh", title: "PowerShell 7" },
-  { id: "cmd", title: "Command Prompt" },
-];
-
-export function getDefaultProfileChoices(terminalApplication: TerminalApplication): TerminalChoice[] {
+export function getDefaultProfileChoices(
+  terminalApplication: TerminalApplication,
+): TerminalChoice[] {
   return discoverDefaultProfileChoices(terminalApplication);
 }
 
@@ -51,8 +46,10 @@ export function normalizeDefaultProfile(
 }
 
 export function settingsSummary(settings: QuickShellSettings): string {
-  const app = TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === settings.terminalApplication)?.title
-    ?? settings.terminalApplication;
+  const app =
+    TERMINAL_APPLICATION_CHOICES.find(
+      (choice) => choice.id === settings.terminalApplication,
+    )?.title ?? settings.terminalApplication;
   const profile =
     settings.defaultProfile === "__default__"
       ? "default profile"

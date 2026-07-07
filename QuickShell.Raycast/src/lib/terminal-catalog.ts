@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { WORKSPACE_TERMINAL_CHOICES, type TerminalChoice } from "./terminal-options";
+import {
+  WORKSPACE_TERMINAL_CHOICES,
+  type TerminalChoice,
+} from "./terminal-options";
 
 export type DiscoveredTerminalChoice = TerminalChoice & {
   terminal: string;
@@ -30,11 +33,21 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
   }
 
   const choices: DiscoveredTerminalChoice[] = [
-    { id: "default", title: "Use QuickShell default", terminal: "default", wtProfile: null },
+    {
+      id: "default",
+      title: "Use QuickShell default",
+      terminal: "default",
+      wtProfile: null,
+    },
   ];
 
   if (executableExists("wt.exe")) {
-    choices.push({ id: "wt", title: "Windows Terminal (default profile)", terminal: "wt", wtProfile: null });
+    choices.push({
+      id: "wt",
+      title: "Windows Terminal (default profile)",
+      terminal: "wt",
+      wtProfile: null,
+    });
     for (const profile of readWindowsTerminalProfiles()) {
       choices.push({
         id: `wt:${profile}`,
@@ -46,23 +59,41 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
   }
 
   if (executableExists("pwsh.exe")) {
-    choices.push({ id: "pwsh", title: "PowerShell 7", terminal: "pwsh", wtProfile: null });
+    choices.push({
+      id: "pwsh",
+      title: "PowerShell 7",
+      terminal: "pwsh",
+      wtProfile: null,
+    });
   }
   if (executableExists("powershell.exe")) {
-    choices.push({ id: "powershell", title: "Windows PowerShell", terminal: "powershell", wtProfile: null });
+    choices.push({
+      id: "powershell",
+      title: "Windows PowerShell",
+      terminal: "powershell",
+      wtProfile: null,
+    });
   }
   if (executableExists("cmd.exe")) {
-    choices.push({ id: "cmd", title: "Command Prompt", terminal: "cmd", wtProfile: null });
+    choices.push({
+      id: "cmd",
+      title: "Command Prompt",
+      terminal: "cmd",
+      wtProfile: null,
+    });
   }
   if (executableExists("wsl.exe")) {
     choices.push({ id: "wsl", title: "WSL", terminal: "wsl", wtProfile: null });
   }
 
-  cachedChoices = choices.length > 1 ? choices : WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
-    ...choice,
-    terminal: choice.id,
-    wtProfile: null,
-  }));
+  cachedChoices =
+    choices.length > 1
+      ? choices
+      : WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
+          ...choice,
+          terminal: choice.id,
+          wtProfile: null,
+        }));
   return cachedChoices;
 }
 
@@ -70,8 +101,14 @@ export function resetTerminalCatalogCacheForTests(): void {
   cachedChoices = null;
 }
 
-export function discoverDefaultProfileChoices(terminalApplication: string): TerminalChoice[] {
-  if (terminalApplication === "wt" || terminalApplication === "it" || terminalApplication === "system") {
+export function discoverDefaultProfileChoices(
+  terminalApplication: string,
+): TerminalChoice[] {
+  if (
+    terminalApplication === "wt" ||
+    terminalApplication === "it" ||
+    terminalApplication === "system"
+  ) {
     const profiles = readWindowsTerminalProfiles();
     return [
       { id: "__default__", title: "Default profile for this app" },
@@ -79,7 +116,9 @@ export function discoverDefaultProfileChoices(terminalApplication: string): Term
     ];
   }
 
-  const choices: TerminalChoice[] = [{ id: "__default__", title: "Default profile for this app" }];
+  const choices: TerminalChoice[] = [
+    { id: "__default__", title: "Default profile for this app" },
+  ];
   if (executableExists("powershell.exe")) {
     choices.push({ id: "powershell", title: "PowerShell" });
   }
@@ -106,13 +145,16 @@ export function choiceForTerminalState(
 ): string {
   if (wtProfile) {
     const profileMatch = choices.find(
-      (choice) => choice.terminal === terminal && choice.wtProfile === wtProfile,
+      (choice) =>
+        choice.terminal === terminal && choice.wtProfile === wtProfile,
     );
     if (profileMatch) {
       return profileMatch.id;
     }
   }
-  const match = choices.find((choice) => choice.terminal === terminal && !choice.wtProfile);
+  const match = choices.find(
+    (choice) => choice.terminal === terminal && !choice.wtProfile,
+  );
   return match?.id ?? "default";
 }
 
@@ -125,7 +167,8 @@ function executableExists(command: string): boolean {
     }
   }
 
-  const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
+  const systemRoot =
+    process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
   candidates.push(
     path.join(systemRoot, "System32", command),
     path.join(systemRoot, "Sysnative", command),
@@ -136,7 +179,13 @@ function executableExists(command: string): boolean {
     if (localAppData) {
       candidates.push(
         path.join(localAppData, "Microsoft", "WindowsApps", "wt.exe"),
-        path.join(localAppData, "Microsoft", "WindowsApps", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "wt.exe"),
+        path.join(
+          localAppData,
+          "Microsoft",
+          "WindowsApps",
+          "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
+          "wt.exe",
+        ),
       );
     }
   }
@@ -147,10 +196,21 @@ function executableExists(command: string): boolean {
 function readWindowsTerminalProfiles(): string[] {
   const settingsPaths = [
     process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, "Packages", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "LocalState", "settings.json")
+      ? path.join(
+          process.env.LOCALAPPDATA,
+          "Packages",
+          "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
+          "LocalState",
+          "settings.json",
+        )
       : null,
     process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, "Microsoft", "Windows Terminal", "settings.json")
+      ? path.join(
+          process.env.LOCALAPPDATA,
+          "Microsoft",
+          "Windows Terminal",
+          "settings.json",
+        )
       : null,
   ].filter((value): value is string => Boolean(value));
 

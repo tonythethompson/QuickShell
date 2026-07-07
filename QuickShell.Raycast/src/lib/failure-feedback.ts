@@ -3,7 +3,9 @@ import type { WorkspaceHealthIssue } from "./workspace-health";
 import { formatHealthIssues } from "./workspace-health";
 import type { LaunchExecutionResult } from "./launch-executor";
 
-export async function showWorkspaceValidationFailure(message: string): Promise<void> {
+export async function showWorkspaceValidationFailure(
+  message: string,
+): Promise<void> {
   await showToast({
     style: Toast.Style.Failure,
     title: "Workspace is not ready",
@@ -11,7 +13,9 @@ export async function showWorkspaceValidationFailure(message: string): Promise<v
   });
 }
 
-export async function showHealthFailure(issues: WorkspaceHealthIssue[]): Promise<void> {
+export async function showHealthFailure(
+  issues: WorkspaceHealthIssue[],
+): Promise<void> {
   const message = formatHealthIssues(issues);
   await showToast({
     style: Toast.Style.Failure,
@@ -20,7 +24,9 @@ export async function showHealthFailure(issues: WorkspaceHealthIssue[]): Promise
   });
 }
 
-export async function showLaunchFailure(result: Extract<LaunchExecutionResult, { ok: false }>): Promise<void> {
+export async function showLaunchFailure(
+  result: Extract<LaunchExecutionResult, { ok: false }>,
+): Promise<void> {
   await showToast({
     style: Toast.Style.Failure,
     title: "Launch failed",
@@ -28,7 +34,10 @@ export async function showLaunchFailure(result: Extract<LaunchExecutionResult, {
   });
 }
 
-export async function showLaunchSuccess(title: string, message: string): Promise<void> {
+export async function showLaunchSuccess(
+  title: string,
+  message: string,
+): Promise<void> {
   await showToast({
     style: Toast.Style.Success,
     title,
@@ -36,7 +45,10 @@ export async function showLaunchSuccess(title: string, message: string): Promise
   });
 }
 
-export async function showStorageFailure(action: string, error: unknown): Promise<void> {
+export async function showStorageFailure(
+  action: string,
+  error: unknown,
+): Promise<void> {
   const message = error instanceof Error ? error.message : `${action} failed.`;
   await showToast({
     style: Toast.Style.Failure,

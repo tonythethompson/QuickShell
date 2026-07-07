@@ -123,7 +123,9 @@ async function runProcess(
     return;
   }
 
-  const escapedArgs = args.map((arg) => `'${arg.replace(/'/g, "''")}'`).join(", ");
+  const escapedArgs = args
+    .map((arg) => `'${arg.replace(/'/g, "''")}'`)
+    .join(", ");
   const command = `Start-Process -FilePath '${hostExecutable.replace(/'/g, "''")}' -ArgumentList ${escapedArgs} -Verb RunAs`;
   await execFn("powershell.exe", ["-NoProfile", "-Command", command]);
 }

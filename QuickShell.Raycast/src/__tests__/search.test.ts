@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "../lib/search";
+import {
+  hasAbbreviationMatch,
+  searchTaskActions,
+  searchWorkspaces,
+} from "../lib/search";
 import type { Workspace } from "../lib/schema";
 
 const workspaces: Workspace[] = [

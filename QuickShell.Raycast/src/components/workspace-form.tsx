@@ -1,8 +1,22 @@
-import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Form,
+  Icon,
+  showToast,
+  Toast,
+  useNavigation,
+} from "@raycast/api";
 import { useMemo, useState } from "react";
 import { getQuickShellStorage } from "../lib/raycast-storage";
-import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/directory-helpers";
-import { showStorageFailure, showWorkspaceValidationFailure } from "../lib/failure-feedback";
+import {
+  deriveAbbreviationFromName,
+  deriveNameFromDirectory,
+} from "../lib/directory-helpers";
+import {
+  showStorageFailure,
+  showWorkspaceValidationFailure,
+} from "../lib/failure-feedback";
 import { createStableId } from "../lib/ids";
 import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
 import type { Workspace } from "../lib/schema";
@@ -25,7 +39,11 @@ export type WorkspaceFormProps = {
   onSaved?: () => Promise<void> | void;
 };
 
-export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: WorkspaceFormProps) {
+export default function WorkspaceForm({
+  mode,
+  initialWorkspace,
+  onSaved,
+}: WorkspaceFormProps) {
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
   const initialState = workspaceFormStateFromWorkspace(initialWorkspace);
@@ -35,20 +53,31 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
   const [abbreviation, setAbbreviation] = useState(initialState.abbreviation);
   const [directory, setDirectory] = useState(initialState.directory);
   const [terminalChoiceId, setTerminalChoiceId] = useState(
-    choiceForTerminalState(initialState.terminal, initialState.wtProfile, terminalChoices),
+    choiceForTerminalState(
+      initialState.terminal,
+      initialState.wtProfile,
+      terminalChoices,
+    ),
   );
   const [isPinned, setIsPinned] = useState(initialState.isPinned);
   const [runAsAdmin, setRunAsAdmin] = useState(initialState.runAsAdmin);
-  const [launches, setLaunches] = useState<LaunchFormRow[]>(initialState.launches);
-  const [nameCustomized, setNameCustomized] = useState(mode === "edit" && Boolean(initialState.name));
+  const [launches, setLaunches] = useState<LaunchFormRow[]>(
+    initialState.launches,
+  );
+  const [nameCustomized, setNameCustomized] = useState(
+    mode === "edit" && Boolean(initialState.name),
+  );
   const [abbreviationCustomized, setAbbreviationCustomized] = useState(
     mode === "edit" && Boolean(initialState.abbreviation),
   );
   const [commandsCustomized, setCommandsCustomized] = useState(
-    mode === "edit" && initialState.launches.some((launch) => launch.command.trim()),
+    mode === "edit" &&
+      initialState.launches.some((launch) => launch.command.trim()),
   );
 
-  const selectedTerminal = terminalChoices.find((choice) => choice.id === terminalChoiceId) ?? terminalChoices[0];
+  const selectedTerminal =
+    terminalChoices.find((choice) => choice.id === terminalChoiceId) ??
+    terminalChoices[0];
 
   function syncLaunchRowsFromSharedControls(
     nextTerminal = selectedTerminal,
@@ -70,7 +99,9 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
 
   function handleTerminalChange(nextChoiceId: string) {
     setTerminalChoiceId(nextChoiceId);
-    const nextTerminal = terminalChoices.find((choice) => choice.id === nextChoiceId) ?? terminalChoices[0];
+    const nextTerminal =
+      terminalChoices.find((choice) => choice.id === nextChoiceId) ??
+      terminalChoices[0];
     syncLaunchRowsFromSharedControls(nextTerminal);
   }
 
@@ -91,7 +122,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
     if (!commandsCustomized && nextDirectory.trim()) {
       const suggestions = buildProjectSetupSuggestions(nextDirectory);
       if (suggestions.length > 0) {
-        setLaunches(launchRowsFromSuggestions(suggestions, selectedTerminal?.terminal ?? "default"));
+        setLaunches(
+          launchRowsFromSuggestions(
+            suggestions,
+            selectedTerminal?.terminal ?? "default",
+          ),
+        );
       } else {
         setLaunches([
           {
@@ -117,7 +153,9 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
   function updateLaunch(index: number, patch: Partial<LaunchFormRow>) {
     setCommandsCustomized(true);
     setLaunches((current) =>
-      current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)),
+      current.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, ...patch } : row,
+      ),
     );
   }
 
@@ -210,7 +248,10 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
         setRunAsAdmin(false);
       }
     } catch (error) {
-      await showStorageFailure(mode === "create" ? "Create workspace" : "Save workspace", error);
+      await showStorageFailure(
+        mode === "create" ? "Create workspace" : "Save workspace",
+        error,
+      );
     }
   }
 
@@ -223,7 +264,11 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
             icon={Icon.Check}
             onAction={handleSave}
           />
-          <Action title="Add Command" icon={Icon.Plus} onAction={addLaunchRow} />
+          <Action
+            title="Add Command"
+            icon={Icon.Plus}
+            onAction={addLaunchRow}
+          />
           {launches.length > 1 ? (
             <ActionPanel.Section title="Remove command">
               {launches.map((launch, index) => (
@@ -274,14 +319,20 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
         onChange={handleTerminalChange}
       >
         {terminalChoices.map((choice) => (
-          <Form.Dropdown.Item key={choice.id} value={choice.id} title={choice.title} />
+          <Form.Dropdown.Item
+            key={choice.id}
+            value={choice.id}
+            title={choice.title}
+          />
         ))}
       </Form.Dropdown>
       {launches.map((launch, index) => (
         <Form.TextField
           key={launch.id}
           id={`command-${launch.id}`}
-          title={launches.length === 1 ? "Startup Command" : `Command ${index + 1}`}
+          title={
+            launches.length === 1 ? "Startup Command" : `Command ${index + 1}`
+          }
           value={launch.command}
           onChange={(value) => updateLaunch(index, { command: value })}
           placeholder={index === 0 ? "npm run dev" : "dotnet watch"}
@@ -293,7 +344,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
           text="Each command opens as its own launch entry. Use Actions → Remove command to delete a row."
         />
       ) : null}
-      <Form.Checkbox id="favorite" label="Favorite" value={isPinned} onChange={setIsPinned} />
+      <Form.Checkbox
+        id="favorite"
+        label="Favorite"
+        value={isPinned}
+        onChange={setIsPinned}
+      />
       <Form.Checkbox
         id="admin"
         label="Run as administrator"
