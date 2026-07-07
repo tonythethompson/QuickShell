@@ -20,10 +20,7 @@ internal static partial class DevServerUrlDetection
 
         try
         {
-            // ⚡ Bolt Optimization: Use stream to parse JSON directly instead of reading the entire file into a string first.
-            // This avoids allocating the entire file as a UTF-16 string in memory, improving performance and reducing memory usage.
-            using var stream = File.OpenRead(packageJsonPath);
-            using var document = JsonDocument.Parse(stream);
+            using var document = JsonFileDocument.Parse(packageJsonPath);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {
@@ -64,9 +61,7 @@ internal static partial class DevServerUrlDetection
 
         try
         {
-            // ⚡ Bolt Optimization: Use stream to parse JSON directly to reduce memory allocations.
-            using var stream = File.OpenRead(packageJsonPath);
-            using var document = JsonDocument.Parse(stream);
+            using var document = JsonFileDocument.Parse(packageJsonPath);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {
@@ -120,9 +115,7 @@ internal static partial class DevServerUrlDetection
 
         try
         {
-            // ⚡ Bolt Optimization: Use stream to parse JSON directly to reduce memory allocations.
-            using var stream = File.OpenRead(packageJsonPath);
-            using var document = JsonDocument.Parse(stream);
+            using var document = JsonFileDocument.Parse(packageJsonPath);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {

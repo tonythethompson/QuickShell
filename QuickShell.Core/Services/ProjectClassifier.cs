@@ -411,10 +411,7 @@ internal static partial class ProjectClassifier
         {
             try
             {
-                // ⚡ Bolt Optimization: Use stream to parse JSON directly instead of reading the entire file into a string first.
-                // This avoids allocating the entire file as a UTF-16 string in memory, improving performance and reducing memory usage.
-                using var stream = File.OpenRead(path);
-                return JsonDocument.Parse(stream, JsonOptions);
+                return JsonFileDocument.Parse(path, JsonOptions);
             }
             catch
             {
