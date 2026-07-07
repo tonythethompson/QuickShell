@@ -15,6 +15,7 @@ export function buildProjectSetupSuggestions(directory: string): WorkspaceSetupT
 
   const tasks: WorkspaceSetupTask[] = [];
   const seenCommands = new Set<string>();
+  const seenLabels = new Set<string>();
 
   const add = (label: string, command: string) => {
     const normalized = command.trim();
@@ -22,7 +23,11 @@ export function buildProjectSetupSuggestions(directory: string): WorkspaceSetupT
       return;
     }
     seenCommands.add(normalized.toLowerCase());
-    tasks.push({ label, command: normalized });
+
+    let uniqueLabel = disambiguateSuggestionLabel(label, normalized);
+    uniqueLabel = ensureUniqueSuggestionLabel(uniqueLabel, seenLabels);
+    seenLabels.add(uniqueLabel.toLowerCase());
+    tasks.push({ label: uniqueLabel, command: normalized });
   };
 
   addNodeSuggestions(directory, add);
@@ -147,6 +152,40 @@ function toTitle(value: string): string {
     return "Task";
   }
   return value.toLowerCase() === "test" ? "Tests" : value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function disambiguateSuggestionLabel(label: string, command: string): string {
+  const trimmedLabel = label.trim() || suggestionLabelForCommand(command, "Launch");
+  const lower = command.trim().toLowerCase();
+
+  if (lower.startsWith("go ")) {
+    return `Go ${trimmedLabel}`;
+  }
+  if (lower.startsWith("dotnet ")) {
+    return `Dotnet ${trimmedLabel}`;
+  }
+  if (lower.startsWith("docker ")) {
+    return `Docker ${trimmedLabel}`;
+  }
+  if (lower.startsWith("python ")) {
+    return `Python ${trimmedLabel}`;
+  }
+
+  return trimmedLabel;
+}
+
+function ensureUniqueSuggestionLabel(label: string, seenLabels: Set<string>): string {
+  if (!seenLabels.has(label.toLowerCase())) {
+    return label;
+  }
+
+  let counter = 2;
+  let candidate = `${label} ${counter}`;
+  while (seenLabels.has(candidate.toLowerCase())) {
+    counter += 1;
+    candidate = `${label} ${counter}`;
+  }
+  return candidate;
 }
 
 export function suggestionLabelForCommand(command: string, fallback: string): string {

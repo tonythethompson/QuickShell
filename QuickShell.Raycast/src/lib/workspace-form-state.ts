@@ -76,7 +76,7 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
     wtProfile: primary?.wtProfile ?? state.wtProfile ?? null,
     command: primary?.command ?? null,
     isPinned: state.isPinned,
-    runAsAdmin: state.runAsAdmin,
+    runAsAdmin: state.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
     devServerUrl: state.devServerUrl.trim() || null,
     openDevServerOnLaunch: state.openDevServerOnLaunch,

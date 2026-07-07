@@ -190,7 +190,10 @@ export default function OpenWorkspaceCommand({
       runAsAdmin: options?.runAsAdmin,
       runAsStandard: options?.runAsStandard,
     });
-    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec);
+    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec, {
+      includeCompanion: !launch,
+      includeDevServer: !launch,
+    });
     if (!result.ok) {
       await showLaunchFailure(result);
       return;
