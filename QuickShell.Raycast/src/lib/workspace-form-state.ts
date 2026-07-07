@@ -45,7 +45,7 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
       id: row.id || createStableId(),
       label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
       terminal: terminalForLaunchRow(row, state),
-      wtProfile: state.launches.length === 1 ? (state.wtProfile ?? null) : (row.wtProfile ?? state.wtProfile ?? null),
+      wtProfile: state.launches.filter((launch) => launch.command.trim()).length === 1 ? (state.wtProfile ?? null) : (row.wtProfile ?? state.wtProfile ?? null),
       command: row.command.trim() || null,
       runAsAdmin: row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
