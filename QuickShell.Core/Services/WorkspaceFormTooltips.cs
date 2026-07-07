@@ -34,6 +34,6 @@ internal static class WorkspaceFormTooltips
     public const string RunAsAdmin =
         "Launch elevated. Windows may show a UAC prompt each time.";
 
-    public const string TaskTypePicker =
-        "Pick a command type to auto-fill the first empty command for this project.";
+    public const string SuggestedCommands =
+        "Click to add a launch row. Based on files in this folder.";
 }

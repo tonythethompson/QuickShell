@@ -4,6 +4,8 @@ using QuickShell.Services;
 
 using System.IO;
 
+using System.Windows.Input;
+
 using System.Windows;
 
 using System.Windows.Controls;
@@ -51,6 +53,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
     private readonly Button _companionBrowseButton;
 
     private readonly List<LaunchRow> _launchRows = [];
+
+    private readonly RunLaunchSuggestionPanel _suggestionPanel = new();
+
+    private readonly FormEditHistory<List<RunLaunchRowSnapshot>> _editHistory =
+        new(snapshot => snapshot.Select(entry => entry with { }).ToList());
+
+    private RunDirectorySuggestionLoader? _suggestionLoader;
+
+    private int _activeSuggestionGeneration;
 
     private string _companionPreset = CompanionAppCatalog.PresetNone;
 
@@ -189,6 +200,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
             Margin = new Thickness(0, 0, 0, 8),
 
         });
+
+        _suggestionPanel.PillClicked += HandleSuggestionPillClicked;
+
+        launches.Children.Add(_suggestionPanel.Root);
 
         _launchesPanel = new StackPanel();
 
@@ -398,7 +413,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
+        _suggestionLoader = new RunDirectorySuggestionLoader(Dispatcher);
+
+        _directoryBox.TextChanged += (_, _) => RefreshSuggestionPanel();
+
+        PreviewKeyDown += OnPreviewKeyDown;
+
         Content = root;
+
+        RefreshSuggestionPanel();
 
     }
 
@@ -520,6 +543,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         ReloadBranchChoices(directory, WorktreeBranchTargetStore.GetTargetForDirectory(directory));
 
+        RefreshSuggestionPanel();
+
     }
 
 
@@ -622,6 +647,16 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         }
 
+
+
+        while (_launchRows.Count < LaunchRowListEditor.MinimumEditorRowCount)
+
+        {
+
+            AddLaunchRow();
+
+        }
+
     }
 
 
@@ -650,6 +685,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             launch?.IsEnabled ?? true,
 
+            TaskTypeCatalog.Normalize(launch?.TaskType),
+
             order);
 
         _launchRows.Add(row);
@@ -667,6 +704,268 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
         _launchRows.Remove(row);
 
         _launchesPanel.Children.Remove(row.Root);
+
+    }
+
+
+
+    private void RefreshSuggestionPanel()
+
+    {
+
+        if (_suggestionLoader is null)
+
+        {
+
+            return;
+
+        }
+
+
+
+        var directory = _directoryBox.Text.Trim();
+
+        var usedCommands = _launchRows.Select(row => row.CommandText);
+
+        _suggestionLoader.Schedule(
+
+            directory,
+
+            usedCommands,
+
+            generation =>
+
+            {
+
+                _activeSuggestionGeneration = generation;
+
+                _suggestionPanel.SetLoading(true);
+
+            },
+
+            (pills, generation) =>
+
+            {
+
+                if (generation != _activeSuggestionGeneration)
+
+                {
+
+                    return Task.CompletedTask;
+
+                }
+
+
+
+                _suggestionPanel.SetPills(pills);
+
+                return Task.CompletedTask;
+
+            });
+
+    }
+
+
+
+    private void HandleSuggestionPillClicked(CommandSuggestionPill pill)
+
+    {
+
+        _editHistory.PushBeforeChange(CaptureSnapshot());
+
+        var target = _launchRows.FirstOrDefault(row => string.IsNullOrWhiteSpace(row.CommandText));
+
+        if (target is null)
+
+        {
+
+            AddLaunchRow();
+
+            target = _launchRows[^1];
+
+        }
+
+
+
+        target.ApplyPill(pill);
+
+        RefreshSuggestionPanel();
+
+    }
+
+
+
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+
+    {
+
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+
+        {
+
+            if (TryFormUndo())
+
+            {
+
+                e.Handled = true;
+
+            }
+
+        }
+
+        else if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+
+        {
+
+            if (TryFormRedo())
+
+            {
+
+                e.Handled = true;
+
+            }
+
+        }
+
+    }
+
+
+
+    private bool TryFormUndo()
+
+    {
+
+        if (!_editHistory.TryUndo(CaptureSnapshot(), out var restored))
+
+        {
+
+            return false;
+
+        }
+
+
+
+        RestoreSnapshot(restored);
+
+        RefreshSuggestionPanel();
+
+        return true;
+
+    }
+
+
+
+    private bool TryFormRedo()
+
+    {
+
+        if (!_editHistory.TryRedo(CaptureSnapshot(), out var restored))
+
+        {
+
+            return false;
+
+        }
+
+
+
+        RestoreSnapshot(restored);
+
+        RefreshSuggestionPanel();
+
+        return true;
+
+    }
+
+
+
+    private List<RunLaunchRowSnapshot> CaptureSnapshot() =>
+
+        _launchRows.Select(row => row.CaptureSnapshot()).ToList();
+
+
+
+    internal void PushFormEditSnapshot() => _editHistory.PushBeforeChange(CaptureSnapshot());
+
+
+
+    private void RestoreSnapshot(IReadOnlyList<RunLaunchRowSnapshot> snapshots)
+
+    {
+
+        _launchesPanel.Children.Clear();
+
+        _launchRows.Clear();
+
+        for (var i = 0; i < snapshots.Count; i++)
+
+        {
+
+            var snapshot = snapshots[i];
+
+            AddLaunchRow(
+
+                snapshot.Label,
+
+                snapshot.Command,
+
+                snapshot.LaunchTarget,
+
+                snapshot.RunAsAdmin,
+
+                snapshot.IsEnabled,
+
+                snapshot.TaskType,
+
+                i);
+
+        }
+
+    }
+
+
+
+    private void AddLaunchRow(
+
+        string label,
+
+        string command,
+
+        string launchTarget,
+
+        bool runAsAdmin,
+
+        bool isEnabled,
+
+        string taskType,
+
+        int order)
+
+    {
+
+        var row = new LaunchRow(
+
+            this,
+
+            null,
+
+            label,
+
+            command,
+
+            launchTarget,
+
+            runAsAdmin,
+
+            isEnabled,
+
+            taskType,
+
+            order);
+
+        _launchRows.Add(row);
+
+        _launchesPanel.Children.Add(row.Root);
 
     }
 
@@ -712,7 +1011,23 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-        _working.Launches = _launchRows
+        var rowsToSave = _launchRows
+
+            .Where(row => row.ShouldPersist())
+
+            .ToList();
+
+        if (rowsToSave.Count == 0)
+
+        {
+
+            rowsToSave = [_launchRows[0]];
+
+        }
+
+
+
+        _working.Launches = rowsToSave
 
             .Select((row, index) => row.ToEntry(index))
 
@@ -970,6 +1285,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         private readonly string _entryId;
 
+        private string _taskType;
+
 
 
         public LaunchRow(
@@ -988,6 +1305,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             bool isEnabled,
 
+            string taskType,
+
             int order)
 
         {
@@ -995,6 +1314,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
             _owner = owner;
 
             _entryId = launch?.Id ?? Guid.NewGuid().ToString("N");
+
+            _taskType = TaskTypeCatalog.Normalize(taskType);
 
 
 
@@ -1037,6 +1358,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
                 out var commandBox,
 
                 command));
+
+
+
+            commandBox.TextChanged += (_, _) => _owner.RefreshSuggestionPanel();
 
 
 
@@ -1106,19 +1431,31 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-            var remove = new Button
+            var clear = new Button
 
             {
 
-                Content = "Remove launch",
+                Content = "Clear command",
 
                 HorizontalAlignment = HorizontalAlignment.Left,
 
             };
 
-            remove.Click += (_, _) => _owner.RemoveLaunchRow(this);
+            clear.Click += (_, _) =>
 
-            body.Children.Add(remove);
+            {
+
+                _owner.PushFormEditSnapshot();
+
+                CommandBox.Text = string.Empty;
+
+                _taskType = TaskTypeCatalog.None;
+
+                _owner.RefreshSuggestionPanel();
+
+            };
+
+            body.Children.Add(clear);
 
 
 
@@ -1160,6 +1497,64 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
+        public string CommandText => CommandBox.Text;
+
+
+
+        public void ApplyPill(CommandSuggestionPill pill)
+
+        {
+
+            CommandBox.Text = pill.Command;
+
+            _taskType = pill.TaskType;
+
+        }
+
+
+
+        public bool ShouldPersist() =>
+
+            !string.IsNullOrWhiteSpace(CommandBox.Text)
+
+            || !string.Equals(_taskType, TaskTypeCatalog.None, StringComparison.Ordinal);
+
+
+
+        public RunLaunchRowSnapshot CaptureSnapshot() =>
+
+            new(
+
+                LabelBox.Text,
+
+                CommandBox.Text,
+
+                _taskType,
+
+                TerminalBox.SelectedValue as string ?? "default",
+
+                AdminBox.IsChecked == true,
+
+                EnabledBox.IsChecked == true);
+
+
+
+        public LaunchRowDraft ToLaunchRowDraft() =>
+
+            new()
+
+            {
+
+                Command = CommandBox.Text,
+
+                TaskType = _taskType,
+
+                LaunchTarget = TerminalBox.SelectedValue as string ?? "default",
+
+            };
+
+
+
         public WorkspaceEntry ToEntry(int order)
 
         {
@@ -1180,7 +1575,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
                 Order = order,
 
-                TaskType = TaskTypeCatalog.None,
+                TaskType = _taskType,
 
             };
 

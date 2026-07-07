@@ -2,7 +2,7 @@ namespace QuickShell.Services;
 
 
 
-internal static class ShortcutLaunchFormJson
+internal static partial class ShortcutLaunchFormJson
 
 {
 
@@ -59,189 +59,64 @@ internal static class ShortcutLaunchFormJson
         var blocks = new List<string>();
 
         for (var i = 0; i < rows.Count; i++)
-
         {
-
-            var removeColumn = rows.Count > 1
-
-                ? "," + AdaptiveCardFormJson.ActionColumn(
-
-                    AdaptiveCardFormJson.IconSubmitAction(
-
-                        FormActionGlyphs.Remove,
-
-                        FormActionGlyphs.RemoveCommandTooltip,
-
-                        "removeLaunch",
-
-                        "auto",
-
-                        "destructive",
-
-                        $$"""{ "action": "removeLaunch", "launchIndex": {{i}} }"""),
-
-                    "Center")
-
-                : string.Empty;
-
-
-
             blocks.Add($$"""
-
             {
-
               "type": "ColumnSet",
-
               "spacing": "Small",
-
               "columns": [
-
                 {
-
                   "type": "Column",
-
                   "width": "{{CommandColumnWidth}}",
-
                   "verticalContentAlignment": "Center",
-
                   "items": [
-
-                    {
-
-                      "type": "Input.Text",
-
-                      "id": "LaunchCommand_{{i}}",
-
-                      "value": "${LaunchCommand_{{i}}}"
-
-                    }
-
+                    {{BuildCommandInputWithClear(i)}}
                   ]
-
                 },
-
                 {
-
                   "type": "Column",
-
                   "width": "{{ProfileColumnWidth}}",
-
                   "verticalContentAlignment": "Center",
-
                   "items": [
-
                     {
-
                       "type": "Input.ChoiceSet",
-
                       "id": "LaunchTarget_{{i}}",
-
                       "style": "compact",
-
                       "value": "${LaunchTarget_{{i}}}",
-
                       "tooltip": "{{Escape(FormActionGlyphs.TerminalProfileTooltip)}}",
-
                       "choices": {{terminalChoices}}
-
                     }
-
                   ]
-
                 }
-
-                {{removeColumn}}
-
               ]
-
             }
-
             """);
-
         }
-
-
 
         blocks.Add($$"""
-
         {
-
           "type": "ColumnSet",
-
           "spacing": "Small",
-
           "columns": [
-
             {
-
               "type": "Column",
-
-              "width": "{{CommandColumnWidth}}",
-
-              "items": [
-
-                {
-
-                  "type": "ActionSet",
-
-                  "spacing": "None",
-
-                  "actions": [
-
-                    {{AdaptiveCardFormJson.IconSubmitAction(
-
-                        FormActionGlyphs.Add,
-
-                        FormActionGlyphs.AddCommandTooltip,
-
-                        "addLaunch")}}
-
-                  ]
-
-                }
-
-              ]
-
-            },
-
-            {
-
-              "type": "Column",
-
               "width": "{{ProfileColumnWidth}}",
-
               "items": [
-
                 {
-
                   "type": "ActionSet",
-
                   "spacing": "None",
-
                   "actions": [
-
                     {{AdaptiveCardFormJson.IconSubmitAction(
-
                         FormActionGlyphs.Refresh,
-
                         FormActionGlyphs.RefreshProfileListTooltip,
-
                         "refreshTerminals",
-
                         "none")}}
-
                   ]
-
                 }
-
               ]
-
             }
-
           ]
-
         }
-
         """);
 
 
@@ -264,46 +139,14 @@ internal static class ShortcutLaunchFormJson
         }
         """;
 
-    public static string BuildTaskTypePickerBlock(string pickerInputJson) =>
-        $$"""
-        {
-          "type": "Container",
-          "spacing": "Small",
-          "$when": "${ShowTaskTypePicker}",
-          "items": [
-            {{AdaptiveCardFormJson.FieldLabel(TaskTypeCommandSuggestion.FieldLabel)}},
-            {
-              "type": "ColumnSet",
-              "spacing": "Small",
-              "columns": [
-                {
-                  "type": "Column",
-                  "width": "stretch",
-                  "items": [
-                    {{pickerInputJson}}
-                  ]
-                },
-                {{AdaptiveCardFormJson.ActionColumn(
-                    AdaptiveCardFormJson.IconSubmitAction(
-                        FormActionGlyphs.Add,
-                        FormActionGlyphs.AddTaskTypeCommandTooltip,
-                        "addTaskTypeCommand",
-                        "auto"),
-                    "Center")}}
-              ]
-            }
-          ]
-        }
-        """;
-
-    public static string BuildCommandsSectionJson(string commandRows, string taskTypePickerBlock) =>
+    public static string BuildCommandsSectionJson(string commandRows, string suggestionPillsBlock) =>
         $$"""
         {
           "type": "Container",
           "spacing": "Medium",
           "items": [
             {{BuildCommandsSectionHeaderJson()}},
-            {{taskTypePickerBlock}},
+            {{suggestionPillsBlock}},
             {{commandRows}}
           ]
         }
@@ -361,19 +204,7 @@ internal static class ShortcutLaunchFormJson
 
 
 
-            var commandInput = $$"""
-
-            {
-
-              "type": "Input.Text",
-
-              "id": "LaunchCommand_{{i}}",
-
-              "value": "{{escapedCommand}}"
-
-            }
-
-            """;
+            var commandInput = BuildCommandInputWithClear(i, escapedCommand);
 
 
 
@@ -418,40 +249,6 @@ internal static class ShortcutLaunchFormJson
             }
 
             """;
-
-
-
-            var removeBlock = launches.Count > 1
-
-                ? $$"""
-
-                ,{
-
-                  "type": "ActionSet",
-
-                  "spacing": "Small",
-
-                  "actions": [
-
-                    {
-
-                      "type": "Action.Submit",
-
-                      "title": "Remove terminal",
-
-                      "data": { "action": "removeLaunch", "launchIndex": {{i}} },
-
-                      "associatedInputs": "auto"
-
-                    }
-
-                  ]
-
-                }
-
-                """
-
-                : string.Empty;
 
 
 
@@ -710,8 +507,6 @@ internal static class ShortcutLaunchFormJson
                   ]
 
                 }
-
-                {{removeBlock}}
 
               ]
 

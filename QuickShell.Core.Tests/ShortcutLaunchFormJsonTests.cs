@@ -24,9 +24,9 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("LaunchTarget_1", text);
         Assert.Contains("${LaunchCommand_0}", text);
         Assert.Contains("${LaunchCommand_1}", text);
-        Assert.Contains(FormActionGlyphs.Add, text);
-        Assert.Contains("removeLaunch", text);
-        Assert.Contains("destructive", text);
+        Assert.Contains("clearLaunch", text);
+        Assert.DoesNotContain("removeLaunch", text);
+        Assert.DoesNotContain("addLaunch", text);
         Assert.DoesNotContain("+ Add command", text);
         Assert.DoesNotContain("Command 1", text);
         Assert.DoesNotContain("\"title\": \"Remove command\"", text);

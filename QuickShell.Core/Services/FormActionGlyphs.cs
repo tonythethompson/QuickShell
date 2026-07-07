@@ -35,7 +35,7 @@ internal static class FormActionGlyphs
 
     public const string AddTaskTypeCommandTooltip = "Add suggested command";
 
-    public const string RemoveCommandTooltip = "Remove command";
+    public const string ClearCommandTooltip = "Clear command";
 
     public const string TerminalProfileTooltip = "Terminal profile";
 }

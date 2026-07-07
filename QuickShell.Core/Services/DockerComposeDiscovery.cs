@@ -76,7 +76,7 @@ internal static partial class DockerComposeDiscovery
 
             if (TryParseServiceNames(path, out var services))
             {
-                return services;
+                return services.Take(CommandSuggestionService.MaxDockerServices).ToList();
             }
         }
 

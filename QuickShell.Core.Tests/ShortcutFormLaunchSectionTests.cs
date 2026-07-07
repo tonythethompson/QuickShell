@@ -8,7 +8,7 @@ public sealed class ShortcutFormLaunchSectionTests
     [Fact]
     public void ToLaunchInputs_TrimsTrailingBlankRowWithNoTaskType()
     {
-        var rows = new List<ShortcutFormLaunchSection.CommandRowDraft>
+        var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start" },
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.None },
@@ -21,9 +21,36 @@ public sealed class ShortcutFormLaunchSectionTests
     }
 
     [Fact]
+    public void ToLaunchInputs_TrimsMiddleBlankRowWithNoTaskType()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "npm start" },
+            new() { Command = string.Empty, TaskType = TaskTypeCatalog.None },
+            new() { Command = "npm test" },
+        };
+
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+
+        Assert.Equal(2, inputs.Count);
+        Assert.Equal("npm start", inputs[0].Command);
+        Assert.Equal("npm test", inputs[1].Command);
+    }
+
+    [Fact]
+    public void EnsureMinimumRows_PadsToThree()
+    {
+        var rows = new List<LaunchRowDraft> { new() { Command = "npm start" } };
+
+        LaunchRowListEditor.EnsureMinimumRowsForEditor(rows, "default");
+
+        Assert.Equal(3, rows.Count);
+    }
+
+    [Fact]
     public void ToLaunchInputs_RetainsTrailingBlankRowWithTypedTaskType()
     {
-        var rows = new List<ShortcutFormLaunchSection.CommandRowDraft>
+        var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start" },
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.Services },

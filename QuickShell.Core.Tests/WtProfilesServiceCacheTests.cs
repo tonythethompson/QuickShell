@@ -23,8 +23,6 @@ public sealed class WtProfilesServiceCacheTests : IDisposable
 
     public void Dispose()
     {
-        WtProfilesService.TestLocationsOverride = null;
-        WtProfilesService.TestOnParseForTests = null;
         WtProfilesService.InvalidateCache();
 
         try
@@ -47,32 +45,34 @@ public sealed class WtProfilesServiceCacheTests : IDisposable
         WriteSettings(hostAPath, "Host A Profile");
         WriteSettings(hostBPath, "Host B Profile");
 
-        WtProfilesService.TestLocationsOverride =
-        [
-            CreateLocation(hostAPath, "wt-a", "Host A"),
-            CreateLocation(hostBPath, "wt-b", "Host B"),
-        ];
+        var locations =
+            new[]
+            {
+                CreateLocation(hostAPath, "wt-a", "Host A"),
+                CreateLocation(hostBPath, "wt-b", "Host B"),
+            };
 
         var parseCount = 0;
-        WtProfilesService.TestOnParseForTests = () => parseCount++;
+        using (new WtProfilesService.TestScope(locations, () => parseCount++))
+        {
+            var first = WtProfilesService.GetProfiles();
+            Assert.Equal(2, first.Count);
+            Assert.Equal(2, parseCount);
 
-        var first = WtProfilesService.GetProfiles();
-        Assert.Equal(2, first.Count);
-        Assert.Equal(2, parseCount);
+            var profiles = WtProfilesService.GetProfiles();
+            Assert.Equal(2, profiles.Count);
+            Assert.Equal(2, parseCount);
 
-        var profiles = WtProfilesService.GetProfiles();
-        Assert.Equal(2, profiles.Count);
-        Assert.Equal(2, parseCount);
+            WriteSettings(hostAPath, "Host A Updated");
+            File.SetLastWriteTimeUtc(hostAPath, DateTime.UtcNow.AddSeconds(5));
 
-        WriteSettings(hostAPath, "Host A Updated");
-        File.SetLastWriteTimeUtc(hostAPath, DateTime.UtcNow.AddSeconds(5));
+            profiles = WtProfilesService.GetProfiles();
 
-        profiles = WtProfilesService.GetProfiles();
-
-        Assert.Equal(2, profiles.Count);
-        Assert.Equal(3, parseCount);
-        Assert.Contains(profiles, profile => profile.Name.Equals("Host A Updated", StringComparison.Ordinal));
-        Assert.Contains(profiles, profile => profile.Name.Equals("Host B Profile", StringComparison.Ordinal));
+            Assert.Equal(2, profiles.Count);
+            Assert.Equal(3, parseCount);
+            Assert.Contains(profiles, profile => profile.Name.Equals("Host A Updated", StringComparison.Ordinal));
+            Assert.Contains(profiles, profile => profile.Name.Equals("Host B Profile", StringComparison.Ordinal));
+        }
     }
 
     [Fact]
@@ -80,19 +80,22 @@ public sealed class WtProfilesServiceCacheTests : IDisposable
     {
         var hostPath = Path.Combine(_directory, "host.json");
         WriteSettings(hostPath, "Only Profile");
-        WtProfilesService.TestLocationsOverride = [CreateLocation(hostPath, "wt", "Host")];
+        var location = CreateLocation(hostPath, "wt", "Host");
 
         var parseCount = 0;
-        WtProfilesService.TestOnParseForTests = () => parseCount++;
-        _ = WtProfilesService.GetProfiles();
-        Assert.Equal(1, parseCount);
+        using (new WtProfilesService.TestScope([location], () => parseCount++))
+        {
+            _ = WtProfilesService.GetProfiles();
+            Assert.Equal(1, parseCount);
+        }
 
         WtProfilesService.InvalidateCache();
-        WtProfilesService.TestLocationsOverride = [CreateLocation(hostPath, "wt", "Host")];
-        WtProfilesService.TestOnParseForTests = () => parseCount++;
 
-        _ = WtProfilesService.GetProfiles();
-        Assert.Equal(2, parseCount);
+        using (new WtProfilesService.TestScope([location], () => parseCount++))
+        {
+            _ = WtProfilesService.GetProfiles();
+            Assert.Equal(2, parseCount);
+        }
     }
 
     private static TerminalSettingsLocation CreateLocation(string settingsPath, string idPrefix, string label) =>
