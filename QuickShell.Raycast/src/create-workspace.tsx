@@ -19,7 +19,7 @@ export default function CreateWorkspaceCommand({
     <WorkspaceForm
       mode="create"
       initialWorkspace={initialWorkspace}
-      draftValues={draftValues}
+      draftValues={args?.directory ? undefined : draftValues}
       enableDrafts
       onCreated={launchOpenWorkspaceAfterCreate}
     />

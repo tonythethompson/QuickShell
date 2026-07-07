@@ -34,4 +34,28 @@ describe("migration", () => {
     expect(normalizeRecentCount(3)).toBe(8);
     expect(normalizeRecentCount(12)).toBe(8);
   });
+
+  it("does not treat string false as true for workspace flags", () => {
+    const data = migrateStoredData({
+      version: 1,
+      settings: {
+        terminalApplication: "wt",
+        defaultProfile: "__default__",
+        recentWorkspaceCount: 8,
+      },
+      workspaces: [
+        {
+          id: "a1b2c3d4e5f6478990a1b2c3d4e5f678",
+          name: "Demo",
+          directory: "C:\\Projects\\Demo",
+          openDevServerOnLaunch: "false",
+          openCompanionAppOnLaunch: "false",
+          launches: [],
+        },
+      ],
+    });
+
+    expect(data.workspaces[0].openDevServerOnLaunch).toBe(false);
+    expect(data.workspaces[0].openCompanionAppOnLaunch).toBe(false);
+  });
 });

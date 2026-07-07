@@ -39,10 +39,6 @@ export function buildProjectSetupSuggestions(directory: string): WorkspaceSetupT
   return tasks;
 }
 
-export function tryGetPrimaryCommand(directory: string): string | null {
-  return buildProjectSetupSuggestions(directory)[0]?.command ?? null;
-}
-
 function addNodeSuggestions(directory: string, add: (label: string, command: string) => void) {
   const packageJsonPath = path.join(directory, "package.json");
   if (!existsSync(packageJsonPath)) {
@@ -93,7 +89,8 @@ function addDockerSuggestions(directory: string, add: (label: string, command: s
   if (
     !existsSync(path.join(directory, "docker-compose.yml")) &&
     !existsSync(path.join(directory, "docker-compose.yaml")) &&
-    !existsSync(path.join(directory, "compose.yml"))
+    !existsSync(path.join(directory, "compose.yml")) &&
+    !existsSync(path.join(directory, "compose.yaml"))
   ) {
     return;
   }
@@ -144,7 +141,7 @@ function walk(current: string, depth: number, maxDepth: number, results: string[
 }
 
 function quoteIfNeeded(value: string): string {
-  return /\s/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+  return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 function toTitle(value: string): string {

@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -7,6 +7,9 @@ import { buildProjectSetupSuggestions, suggestionLabelForCommand } from "../lib/
 const tempDirs: string[] = [];
 
 afterEach(() => {
+  for (const dir of tempDirs) {
+    rmSync(dir, { recursive: true, force: true });
+  }
   tempDirs.length = 0;
 });
 
@@ -36,6 +39,14 @@ describe("project-setup-suggestion", () => {
     const suggestions = buildProjectSetupSuggestions(directory);
     expect(suggestions.some((item) => item.command === "dotnet build")).toBe(true);
     expect(suggestions.some((item) => item.command.includes("dotnet run --project"))).toBe(true);
+  });
+
+  it("suggests docker compose when compose.yaml is present", () => {
+    const directory = createTempProjectDir();
+    writeFileSync(path.join(directory, "compose.yaml"), "services: {}\n", "utf8");
+
+    const suggestions = buildProjectSetupSuggestions(directory);
+    expect(suggestions.some((item) => item.command === "docker compose up")).toBe(true);
   });
 
   it("derives labels from common command prefixes", () => {

@@ -11,8 +11,9 @@ export type ExtensionPreferences = {
 
 export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSettings {
   const terminalApplication = prefs.terminalApplication ?? DEFAULT_SETTINGS.terminalApplication;
+  const profileTerminal = terminalApplication === "system" ? "wt" : terminalApplication;
   const defaultProfile = normalizeDefaultProfile(
-    terminalApplication,
+    profileTerminal,
     prefs.defaultProfile?.trim() || DEFAULT_SETTINGS.defaultProfile,
   );
 

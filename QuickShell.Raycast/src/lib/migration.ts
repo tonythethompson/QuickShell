@@ -93,18 +93,18 @@ function migrateWorkspace(raw: unknown): Workspace | null {
     name,
     abbreviation: typeof record.abbreviation === "string" ? record.abbreviation : null,
     directory,
-    isPinned: Boolean(record.isPinned),
+    isPinned: parseStrictBoolean(record.isPinned),
     pinOrder: typeof record.pinOrder === "number" ? record.pinOrder : null,
     lastUsedUtc: typeof record.lastUsedUtc === "string" ? record.lastUsedUtc : null,
     terminal: typeof record.terminal === "string" ? record.terminal : "default",
     wtProfile: typeof record.wtProfile === "string" ? record.wtProfile : null,
     command: typeof record.command === "string" ? record.command : null,
-    runAsAdmin: Boolean(record.runAsAdmin),
+    runAsAdmin: parseStrictBoolean(record.runAsAdmin),
     launches,
     devServerUrl: typeof record.devServerUrl === "string" ? record.devServerUrl : null,
-    openDevServerOnLaunch: Boolean(record.openDevServerOnLaunch),
+    openDevServerOnLaunch: parseStrictBoolean(record.openDevServerOnLaunch),
     repoUrl: typeof record.repoUrl === "string" ? record.repoUrl : null,
-    openCompanionAppOnLaunch: Boolean(record.openCompanionAppOnLaunch),
+    openCompanionAppOnLaunch: parseStrictBoolean(record.openCompanionAppOnLaunch),
     companionAppPath: typeof record.companionAppPath === "string" ? record.companionAppPath : null,
     companionAppArguments: typeof record.companionAppArguments === "string" ? record.companionAppArguments : null,
   };
@@ -132,7 +132,7 @@ function migrateLaunchEntry(raw: unknown): LaunchEntry | null {
     terminal: typeof record.terminal === "string" ? record.terminal : "default",
     wtProfile: typeof record.wtProfile === "string" ? record.wtProfile : null,
     command: typeof record.command === "string" ? record.command : null,
-    runAsAdmin: Boolean(record.runAsAdmin),
+    runAsAdmin: parseStrictBoolean(record.runAsAdmin),
     isEnabled: record.isEnabled !== false,
     order: typeof record.order === "number" ? record.order : 0,
     taskType: typeof record.taskType === "string" ? record.taskType : "none",
@@ -144,6 +144,22 @@ function parseTerminalApplication(value: unknown): QuickShellSettings["terminalA
     return value;
   }
   return DEFAULT_SETTINGS.terminalApplication;
+}
+
+function parseStrictBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") {
+      return true;
+    }
+    if (normalized === "false") {
+      return false;
+    }
+  }
+  return false;
 }
 
 export function normalizeRecentCount(value: number): number {

@@ -51,7 +51,7 @@ export function assessWorkspaceHealth(
     includeDirectoryExists &&
     directory &&
     process.platform === "win32" &&
-    !directory.startsWith("\\\\wsl$\\") &&
+    !directory.toLowerCase().startsWith("\\\\wsl$\\") &&
     !existsSync(directory)
   ) {
     issues.push({ code: "directory_missing", message: `Directory not found: ${directory}`, severity: "error" });

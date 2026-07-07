@@ -30,8 +30,12 @@ export type WorkspaceFormState = {
   companionAppArguments: string;
 };
 
+function savableLaunchRowCount(state: WorkspaceFormState): number {
+  return state.launches.filter((row) => row.command.trim()).length;
+}
+
 function usesSharedLaunchControls(state: WorkspaceFormState): boolean {
-  return state.launches.length === 1;
+  return savableLaunchRowCount(state) <= 1;
 }
 
 function terminalForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string {

@@ -53,6 +53,16 @@ export type WorkspaceFormProps = {
   onCreated?: (workspace: Workspace) => Promise<void> | void;
 };
 
+function directoryFromDraftValue(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === "string") {
+    return value[0];
+  }
+  return undefined;
+}
+
 function valuesFromState(
   state: ReturnType<typeof workspaceFormStateFromWorkspace>,
   terminalChoices: ReturnType<typeof discoverWorkspaceTerminalChoices>,
@@ -81,7 +91,7 @@ function valuesFromState(
     ...base,
     name: typeof draftValues.name === "string" ? draftValues.name : base.name,
     abbreviation: typeof draftValues.abbreviation === "string" ? draftValues.abbreviation : base.abbreviation,
-    directory: typeof draftValues.directory === "string" ? draftValues.directory : base.directory,
+    directory: directoryFromDraftValue(draftValues.directory) ?? base.directory,
     terminalChoiceId:
       typeof draftValues.terminalChoiceId === "string" ? draftValues.terminalChoiceId : base.terminalChoiceId,
     isPinned: typeof draftValues.isPinned === "boolean" ? draftValues.isPinned : base.isPinned,
@@ -171,6 +181,18 @@ export default function WorkspaceForm({
       const suggestions = buildProjectSetupSuggestions(nextDirectory);
       if (suggestions.length > 0) {
         setLaunches(launchRowsFromSuggestions(suggestions, selectedTerminal?.terminal ?? "default"));
+      } else {
+        setLaunches([
+          {
+            id: createStableId(),
+            command: "",
+            terminal: selectedTerminal?.terminal ?? "default",
+            wtProfile: selectedTerminal?.wtProfile ?? null,
+            runAsAdmin: values.runAsAdmin,
+            isEnabled: true,
+            label: "Launch",
+          },
+        ]);
       }
     }
   }
@@ -274,6 +296,12 @@ export default function WorkspaceForm({
       setValue("directory", "");
       setValue("isPinned", false);
       setValue("runAsAdmin", false);
+      setValue("devServerUrl", "");
+      setValue("openDevServerOnLaunch", false);
+      setValue("repoUrl", "");
+      setValue("openCompanionAppOnLaunch", false);
+      setValue("companionAppPath", "");
+      setValue("companionAppArguments", "");
       setLaunches([
         {
           id: createStableId(),
