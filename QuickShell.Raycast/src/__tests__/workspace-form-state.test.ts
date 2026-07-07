@@ -46,6 +46,15 @@ const multiLaunchWorkspace: Workspace = {
   ],
 };
 
+const defaultExtras = {
+  devServerUrl: "",
+  openDevServerOnLaunch: false,
+  repoUrl: "",
+  openCompanionAppOnLaunch: false,
+  companionAppPath: "",
+  companionAppArguments: "",
+};
+
 describe("workspace-form-state", () => {
   it("preserves additional launches when editing the primary launch", () => {
     const next = buildWorkspaceFromFormState(multiLaunchWorkspace, {
@@ -76,6 +85,7 @@ describe("workspace-form-state", () => {
           label: "Web",
         },
       ],
+      ...defaultExtras,
     });
 
     expect(next.launches).toHaveLength(2);
@@ -113,6 +123,7 @@ describe("workspace-form-state", () => {
           label: "Web",
         },
       ],
+      ...defaultExtras,
     });
 
     expect(next.launches).toHaveLength(1);

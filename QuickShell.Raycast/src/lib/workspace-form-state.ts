@@ -22,6 +22,12 @@ export type WorkspaceFormState = {
   isPinned: boolean;
   runAsAdmin: boolean;
   launches: LaunchFormRow[];
+  devServerUrl: string;
+  openDevServerOnLaunch: boolean;
+  repoUrl: string;
+  openCompanionAppOnLaunch: boolean;
+  companionAppPath: string;
+  companionAppArguments: string;
 };
 
 export function buildWorkspaceFromFormState(
@@ -55,6 +61,12 @@ export function buildWorkspaceFromFormState(
     isPinned: state.isPinned,
     runAsAdmin: state.runAsAdmin,
     launches,
+    devServerUrl: state.devServerUrl.trim() || null,
+    openDevServerOnLaunch: state.openDevServerOnLaunch,
+    repoUrl: state.repoUrl.trim() || null,
+    openCompanionAppOnLaunch: state.openCompanionAppOnLaunch,
+    companionAppPath: state.companionAppPath.trim() || null,
+    companionAppArguments: state.companionAppArguments.trim() || null,
   });
 }
 
@@ -92,6 +104,12 @@ export function workspaceFormStateFromWorkspace(workspace: Workspace): Workspace
     isPinned: workspace.isPinned,
     runAsAdmin: workspace.runAsAdmin,
     launches,
+    devServerUrl: workspace.devServerUrl ?? "",
+    openDevServerOnLaunch: Boolean(workspace.openDevServerOnLaunch),
+    repoUrl: workspace.repoUrl ?? "",
+    openCompanionAppOnLaunch: Boolean(workspace.openCompanionAppOnLaunch),
+    companionAppPath: workspace.companionAppPath ?? "",
+    companionAppArguments: workspace.companionAppArguments ?? "",
   };
 }
 

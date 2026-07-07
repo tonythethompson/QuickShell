@@ -40,6 +40,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
   const [isPinned, setIsPinned] = useState(initialState.isPinned);
   const [runAsAdmin, setRunAsAdmin] = useState(initialState.runAsAdmin);
   const [launches, setLaunches] = useState<LaunchFormRow[]>(initialState.launches);
+  const [devServerUrl, setDevServerUrl] = useState(initialState.devServerUrl);
+  const [openDevServerOnLaunch, setOpenDevServerOnLaunch] = useState(initialState.openDevServerOnLaunch);
+  const [repoUrl, setRepoUrl] = useState(initialState.repoUrl);
+  const [openCompanionAppOnLaunch, setOpenCompanionAppOnLaunch] = useState(initialState.openCompanionAppOnLaunch);
+  const [companionAppPath, setCompanionAppPath] = useState(initialState.companionAppPath);
+  const [companionAppArguments, setCompanionAppArguments] = useState(initialState.companionAppArguments);
   const [nameCustomized, setNameCustomized] = useState(mode === "edit" && Boolean(initialState.name));
   const [abbreviationCustomized, setAbbreviationCustomized] = useState(
     mode === "edit" && Boolean(initialState.abbreviation),
@@ -106,6 +112,17 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
     });
   }
 
+  function updateLaunchTerminal(index: number, choiceId: string) {
+    const choice = terminalChoices.find((item) => item.id === choiceId);
+    if (!choice) {
+      return;
+    }
+    updateLaunch(index, {
+      terminal: choice.terminal,
+      wtProfile: choice.wtProfile ?? null,
+    });
+  }
+
   function buildWorkspace(): Workspace {
     return buildWorkspaceFromFormState(initialWorkspace, {
       name,
@@ -116,6 +133,12 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
       isPinned,
       runAsAdmin,
       launches,
+      devServerUrl,
+      openDevServerOnLaunch,
+      repoUrl,
+      openCompanionAppOnLaunch,
+      companionAppPath,
+      companionAppArguments,
     });
   }
 
@@ -236,6 +259,21 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
           placeholder={index === 0 ? "npm run dev" : "dotnet watch"}
         />
       ))}
+      {launches.length > 1
+        ? launches.map((launch, index) => (
+            <Form.Dropdown
+              key={`terminal-${launch.id}`}
+              id={`terminal-${launch.id}`}
+              title={`Terminal ${index + 1}`}
+              value={choiceForTerminalState(launch.terminal, launch.wtProfile, terminalChoices)}
+              onChange={(value) => updateLaunchTerminal(index, value)}
+            >
+              {terminalChoices.map((choice) => (
+                <Form.Dropdown.Item key={`${launch.id}-${choice.id}`} value={choice.id} title={choice.title} />
+              ))}
+            </Form.Dropdown>
+          ))
+        : null}
       {launches.length > 1 ? (
         <Form.Description
           title="Multiple commands"
@@ -244,6 +282,42 @@ export default function WorkspaceForm({ mode, initialWorkspace, onSaved }: Works
       ) : null}
       <Form.Checkbox id="favorite" label="Favorite" value={isPinned} onChange={setIsPinned} />
       <Form.Checkbox id="admin" label="Run as administrator" value={runAsAdmin} onChange={setRunAsAdmin} />
+      <Form.Separator />
+      <Form.TextField
+        id="devServerUrl"
+        title="Dev Server URL"
+        value={devServerUrl}
+        onChange={setDevServerUrl}
+        placeholder="http://localhost:5173"
+      />
+      <Form.Checkbox
+        id="openDevServerOnLaunch"
+        label="Open dev server link on launch"
+        value={openDevServerOnLaunch}
+        onChange={setOpenDevServerOnLaunch}
+      />
+      <Form.TextField id="repoUrl" title="Repository URL" value={repoUrl} onChange={setRepoUrl} placeholder="https://github.com/org/repo" />
+      <Form.TextField
+        id="companionAppPath"
+        title="Companion App"
+        value={companionAppPath}
+        onChange={setCompanionAppPath}
+        placeholder="C:\\Program Files\\Microsoft VS Code\\Code.exe"
+      />
+      <Form.TextField
+        id="companionAppArguments"
+        title="Companion Arguments"
+        info="Use {folder} or . for the workspace directory."
+        value={companionAppArguments}
+        onChange={setCompanionAppArguments}
+        placeholder="{folder}"
+      />
+      <Form.Checkbox
+        id="openCompanionAppOnLaunch"
+        label="Open companion app on launch"
+        value={openCompanionAppOnLaunch}
+        onChange={setOpenCompanionAppOnLaunch}
+      />
       <Form.Description
         title="Defaults"
         text={`Commands and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "your QuickShell settings"}.`}

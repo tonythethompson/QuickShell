@@ -114,8 +114,8 @@ export function buildBrowseSections(
   const recents = getRecentWorkspaces(workspaces, recentWorkspaceCount);
   const recentIds = new Set(recents.map((workspace) => workspace.id));
 
-  const remaining = workspaces.filter(
-    (workspace) => !favoriteIds.has(workspace.id) && !recentIds.has(workspace.id),
+  const remaining = sortWorkspacesForBrowse(
+    workspaces.filter((workspace) => !favoriteIds.has(workspace.id) && !recentIds.has(workspace.id)),
   );
 
   return {

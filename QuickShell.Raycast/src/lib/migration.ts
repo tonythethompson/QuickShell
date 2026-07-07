@@ -105,6 +105,12 @@ function migrateWorkspace(raw: unknown): Workspace | null {
     command: typeof record.command === "string" ? record.command : null,
     runAsAdmin: Boolean(record.runAsAdmin),
     launches,
+    devServerUrl: typeof record.devServerUrl === "string" ? record.devServerUrl : null,
+    openDevServerOnLaunch: Boolean(record.openDevServerOnLaunch),
+    repoUrl: typeof record.repoUrl === "string" ? record.repoUrl : null,
+    openCompanionAppOnLaunch: Boolean(record.openCompanionAppOnLaunch),
+    companionAppPath: typeof record.companionAppPath === "string" ? record.companionAppPath : null,
+    companionAppArguments: typeof record.companionAppArguments === "string" ? record.companionAppArguments : null,
   };
 
   return normalizeWorkspace({

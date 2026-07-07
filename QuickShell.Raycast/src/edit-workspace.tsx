@@ -3,7 +3,11 @@ import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import WorkspaceForm from "./components/workspace-form";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
-import { assessWorkspaceHealth } from "./lib/workspace-health";
+import { assessWorkspaceHealthForList } from "./lib/workspace-health";
+import {
+  buildWorkspaceHealthIndex,
+  lookupWorkspaceHealth,
+} from "./lib/workspace-health-index";
 import {
   additionalLaunchCount,
   filterWorkspacesForEdit,
@@ -29,6 +33,13 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
     ]);
     return { workspaces, settings };
   }, []);
+
+  const healthIndex = useMemo(() => {
+    if (!data) {
+      return null;
+    }
+    return buildWorkspaceHealthIndex(data.workspaces, data.settings);
+  }, [data]);
 
   const workspaces = useMemo(() => {
     if (!data) {
@@ -96,7 +107,7 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
       ) : null}
 
       {workspaces.map((workspace) =>
-        renderWorkspacePickerItem(workspace, data?.settings, async () => {
+        renderWorkspacePickerItem(workspace, data?.settings, healthIndex, async () => {
           await revalidate();
         }),
       )}
@@ -107,9 +118,13 @@ export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceC
 function renderWorkspacePickerItem(
   workspace: Workspace,
   settings: QuickShellSettings | undefined,
+  healthIndex: ReturnType<typeof buildWorkspaceHealthIndex> | null,
   onSaved: () => Promise<void>,
 ) {
-  const health = settings ? assessWorkspaceHealth(workspace, settings) : { ok: true, issues: [] };
+  const health =
+    settings && healthIndex
+      ? lookupWorkspaceHealth(healthIndex, workspace, settings)
+      : assessWorkspaceHealthForList(workspace, settings ?? { terminalApplication: "wt", defaultProfile: "__default__", recentWorkspaceCount: 8 });
   const extraLaunches = additionalLaunchCount(workspace);
   const accessories: List.Item.Accessory[] = [];
   if (workspace.abbreviation) {

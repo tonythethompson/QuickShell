@@ -1,7 +1,8 @@
-import { Action, ActionPanel, Alert, Color, Icon, List, confirmAlert, open } from "@raycast/api";
+import { Action, ActionPanel, Alert, Clipboard, Color, Icon, List, confirmAlert, open, showToast, Toast } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
+import WorkspaceForm, { createBlankWorkspace } from "./components/workspace-form";
 import {
   showHealthFailure,
   showLaunchFailure,
@@ -15,13 +16,19 @@ import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
-import { assessWorkspaceHealth } from "./lib/workspace-health";
+import { assessWorkspaceHealthForLaunch } from "./lib/workspace-health";
+import {
+  buildWorkspaceHealthIndex,
+  lookupWorkspaceHealth,
+} from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 
 type LoadedData = {
   workspaces: Workspace[];
   settings: QuickShellSettings;
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 type WorkspaceRow = {
@@ -43,8 +50,20 @@ export default function OpenWorkspaceCommand() {
       storage.getWorkspaces(),
       storage.getSettings(),
     ]);
-    return { workspaces, settings };
+    return {
+      workspaces,
+      settings,
+      canUndo: storage.canUndo(),
+      canRedo: storage.canRedo(),
+    };
   }, []);
+
+  const healthIndex = useMemo(() => {
+    if (!data) {
+      return null;
+    }
+    return buildWorkspaceHealthIndex(data.workspaces, data.settings);
+  }, [data]);
 
   const sectionGroups = useMemo((): SectionGroup[] => {
     if (!data) {
@@ -107,7 +126,11 @@ export default function OpenWorkspaceCommand() {
 
   const isEmpty = !isLoading && !error && sectionGroups.every((group) => group.rows.length === 0);
 
-  async function handleOpen(workspace: Workspace, launch?: LaunchEntry) {
+  async function handleOpen(
+    workspace: Workspace,
+    launch?: LaunchEntry,
+    options?: { runAsAdmin?: boolean; runAsStandard?: boolean },
+  ) {
     if (!data) {
       return;
     }
@@ -121,13 +144,16 @@ export default function OpenWorkspaceCommand() {
         }
       : workspace;
 
-    const health = assessWorkspaceHealth(launchWorkspace, data.settings);
+    const health = assessWorkspaceHealthForLaunch(launchWorkspace, data.settings);
     if (!health.ok) {
       await showHealthFailure(health.issues);
       return;
     }
 
-    const plan = buildWorkspaceLaunchPlan(launchWorkspace, data.settings);
+    const plan = buildWorkspaceLaunchPlan(launchWorkspace, data.settings, {
+      runAsAdmin: options?.runAsAdmin,
+      runAsStandard: options?.runAsStandard,
+    });
     const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec);
     if (!result.ok) {
       await showLaunchFailure(result);
@@ -136,10 +162,15 @@ export default function OpenWorkspaceCommand() {
 
     try {
       await storage.markWorkspaceUsed(workspace.id);
+      await storage.flushRecentWrites();
       await revalidate();
+      const warningSuffix =
+        result.ok && result.postLaunchWarnings?.length
+          ? ` ${result.postLaunchWarnings.join(" ")}`
+          : "";
       await showLaunchSuccess(
         launch ? `Launching ${launch.label}` : `Opening ${workspace.name}`,
-        result.summary,
+        `${result.summary}${warningSuffix}`,
       );
     } catch (markError) {
       await showStorageFailure("Update recent workspaces", markError);
@@ -196,13 +227,60 @@ export default function OpenWorkspaceCommand() {
     }
   }
 
+  async function handleExport() {
+    try {
+      const json = await storage.exportJson();
+      await Clipboard.copy(json);
+      await showToast({ style: Toast.Style.Success, title: "Workspaces copied", message: "JSON copied to clipboard." });
+    } catch (exportError) {
+      await showStorageFailure("Export workspaces", exportError);
+    }
+  }
+
+  async function handleImportFromClipboard() {
+    try {
+      const text = await Clipboard.readText();
+      if (!text.trim()) {
+        await showToast({ style: Toast.Style.Failure, title: "Clipboard empty", message: "Copy QuickShell JSON first." });
+        return;
+      }
+      const result = await storage.importJson(text, "merge");
+      await revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Import complete",
+        message: `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed.`,
+      });
+    } catch (importError) {
+      await showStorageFailure("Import workspaces", importError);
+    }
+  }
+
+  async function handleUndo() {
+    const changed = await storage.undo();
+    if (!changed) {
+      return;
+    }
+    await revalidate();
+    await showToast({ style: Toast.Style.Success, title: "Undo", message: "Reverted the last change." });
+  }
+
+  async function handleRedo() {
+    const changed = await storage.redo();
+    if (!changed) {
+      return;
+    }
+    await revalidate();
+    await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+  }
+
   function renderWorkspaceItem({ workspace, launch }: WorkspaceRow) {
-    if (!data) {
+    if (!data || !healthIndex) {
       return null;
     }
 
     const title = launch ? `${workspace.name} — ${launch.label}` : workspace.name;
-    const health = assessWorkspaceHealth(workspace, data.settings);
+    const health = lookupWorkspaceHealth(healthIndex, workspace, data.settings);
     const accessories: List.Item.Accessory[] = [];
     if (workspace.abbreviation) {
       accessories.push({ text: workspace.abbreviation });
@@ -213,6 +291,8 @@ export default function OpenWorkspaceCommand() {
     if (workspace.isPinned) {
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
     }
+
+    const wantsAdmin = workspace.runAsAdmin || launch?.runAsAdmin;
 
     return (
       <List.Item
@@ -225,12 +305,31 @@ export default function OpenWorkspaceCommand() {
           <ActionPanel>
             <ActionPanel.Section title="Open">
               <Action title="Open" icon={Icon.Terminal} onAction={() => handleOpen(workspace, launch)} />
+              {wantsAdmin ? (
+                <Action
+                  title="Run Normally"
+                  icon={Icon.Terminal}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  onAction={() => handleOpen(workspace, launch, { runAsStandard: true })}
+                />
+              ) : null}
+              {wantsAdmin ? null : (
+                <Action
+                  title="Run as Administrator"
+                  icon={Icon.Shield}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  onAction={() => handleOpen(workspace, launch, { runAsAdmin: true })}
+                />
+              )}
               <Action
                 title="Open Folder"
                 icon={Icon.Folder}
                 shortcut={{ modifiers: ["cmd", "shift"], key: "o" }}
                 onAction={() => handleOpenFolder(workspace)}
               />
+              {workspace.repoUrl ? (
+                <Action.OpenInBrowser title="Open Repository" url={workspace.repoUrl} icon={Icon.Globe} />
+              ) : null}
             </ActionPanel.Section>
             <ActionPanel.Section title="Manage">
               <Action.Push
@@ -282,8 +381,21 @@ export default function OpenWorkspaceCommand() {
       isLoading={isLoading}
       searchText={searchText}
       onSearchTextChange={setSearchText}
-      searchBarPlaceholder="Search workspaces by name, abbreviation, directory, or launch..."
+      searchBarPlaceholder="Search workspaces (qs, home keyword, name, launch...)"
       throttle
+      actions={
+        <ActionPanel>
+          <ActionPanel.Section title="Workspaces">
+            <Action.Push title="Create Workspace" icon={Icon.Plus} target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />} />
+            <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
+            <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
+          </ActionPanel.Section>
+          <ActionPanel.Section title="History">
+            <Action title="Undo" icon={Icon.ArrowCounterClockwise} shortcut={{ modifiers: ["cmd"], key: "z" }} onAction={handleUndo} />
+            <Action title="Redo" icon={Icon.ArrowClockwise} shortcut={{ modifiers: ["cmd", "shift"], key: "z" }} onAction={handleRedo} />
+          </ActionPanel.Section>
+        </ActionPanel>
+      }
     >
       {error ? (
         <List.EmptyView
@@ -298,8 +410,13 @@ export default function OpenWorkspaceCommand() {
           title={searchText.trim() ? "No matching workspaces" : "No workspaces yet"}
           description={
             searchText.trim()
-              ? "Try searching by name, abbreviation, directory, or launch command."
+              ? "Try searching by home keyword, name, directory, or launch command."
               : "Create a workspace to get started."
+          }
+          actions={
+            <ActionPanel>
+              <Action.Push title="Create Workspace" icon={Icon.Plus} target={<WorkspaceForm mode="create" initialWorkspace={createBlankWorkspace()} onSaved={revalidate} />} />
+            </ActionPanel>
           }
         />
       ) : null}

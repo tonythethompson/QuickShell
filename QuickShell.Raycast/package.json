@@ -15,8 +15,9 @@
     {
       "name": "open-workspace",
       "title": "Open Workspace",
-      "description": "Search and open saved workspaces",
+      "description": "Search and open saved workspaces (qs)",
       "icon": "command-open.png",
+      "keywords": ["qs", "quickshell", "workspace", "terminal", "dev"],
       "mode": "view"
     },
     {
@@ -40,6 +41,13 @@
           "placeholder": "Workspace ID"
         }
       ]
+    },
+    {
+      "name": "discover-git-repos",
+      "title": "Discover Git Repos",
+      "description": "Scan local folders and add git repositories as workspaces",
+      "icon": "command-create.png",
+      "mode": "view"
     },
     {
       "name": "settings",

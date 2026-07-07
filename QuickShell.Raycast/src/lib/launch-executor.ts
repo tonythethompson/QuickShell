@@ -1,7 +1,9 @@
 import type { QuickShellSettings } from "./schema";
+import { runPostLaunchActions } from "./post-launch-actions";
 import {
   buildLaunchArguments,
   buildWorkspaceLaunchPlan,
+  type LaunchOptions,
   type LaunchPlan,
   type LaunchPlanEntry,
 } from "./windows-launch";
@@ -9,7 +11,7 @@ import {
 export type ExecFn = (command: string, args: string[]) => Promise<void>;
 
 export type LaunchExecutionResult =
-  | { ok: true; summary: string }
+  | { ok: true; summary: string; postLaunchWarnings?: string[] }
   | { ok: false; message: string; cause?: unknown };
 
 type LaunchGroup = {
@@ -20,8 +22,9 @@ type LaunchGroup = {
 
 export async function executeWorkspaceLaunch(
   plan: LaunchPlan,
-  _settings: QuickShellSettings,
+  settings: QuickShellSettings,
   execFn: ExecFn,
+  options?: LaunchOptions & { includeCompanion?: boolean; includeDevServer?: boolean },
 ): Promise<LaunchExecutionResult> {
   if (plan.errors.length > 0) {
     return { ok: false, message: plan.errors.join(" ") };
@@ -41,12 +44,19 @@ export async function executeWorkspaceLaunch(
       await executeGroup(group, execFn);
     }
 
+    const workspace = plan.entries[0].workspace;
+    const postLaunch = await runPostLaunchActions(workspace, {
+      includeCompanion: options?.includeCompanion ?? true,
+      includeDevServer: options?.includeDevServer ?? true,
+    });
+
     return {
       ok: true,
       summary:
         plan.entries.length === 1
           ? `${plan.entries[0].target.displayName} → ${plan.entries[0].directory}`
           : `${plan.entries.length} launches started`,
+      postLaunchWarnings: postLaunch.warnings.length > 0 ? postLaunch.warnings : undefined,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Launch failed.";
@@ -58,9 +68,10 @@ export async function executeWorkspace(
   workspace: Parameters<typeof buildWorkspaceLaunchPlan>[0],
   settings: QuickShellSettings,
   execFn: ExecFn,
+  options?: LaunchOptions,
 ): Promise<LaunchExecutionResult> {
-  const plan = buildWorkspaceLaunchPlan(workspace, settings);
-  return executeWorkspaceLaunch(plan, settings, execFn);
+  const plan = buildWorkspaceLaunchPlan(workspace, settings, options);
+  return executeWorkspaceLaunch(plan, settings, execFn, options);
 }
 
 function groupLaunchEntries(entries: LaunchPlanEntry[]): LaunchGroup[] {

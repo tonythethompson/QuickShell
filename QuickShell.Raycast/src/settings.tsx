@@ -1,12 +1,12 @@
-import { Action, ActionPanel, Form, Icon, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Clipboard, Form, Icon, showToast, Toast } from "@raycast/api";
 import { useEffect, useMemo, useState } from "react";
 import { getQuickShellStorage } from "./lib/raycast-storage";
 import { showStorageFailure } from "./lib/failure-feedback";
 import { recentCountFromEnabled } from "./lib/settings";
 import type { QuickShellSettings } from "./lib/schema";
+import { discoverDefaultProfileChoices } from "./lib/terminal-catalog";
 import {
   TERMINAL_APPLICATION_CHOICES,
-  getDefaultProfileChoices,
   normalizeDefaultProfile,
   settingsSummary,
 } from "./lib/terminal-options";
@@ -18,6 +18,8 @@ export default function SettingsCommand() {
   const [terminalApplication, setTerminalApplication] = useState<QuickShellSettings["terminalApplication"]>("wt");
   const [defaultProfile, setDefaultProfile] = useState("__default__");
   const [showRecents, setShowRecents] = useState(true);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,6 +31,8 @@ export default function SettingsCommand() {
           setTerminalApplication(loaded.terminalApplication);
           setDefaultProfile(loaded.defaultProfile);
           setShowRecents(loaded.recentWorkspaceCount > 0);
+          setCanUndo(storage.canUndo());
+          setCanRedo(storage.canRedo());
         }
       } finally {
         if (!cancelled) {
@@ -42,7 +46,7 @@ export default function SettingsCommand() {
   }, [storage]);
 
   const profileChoices = useMemo(
-    () => getDefaultProfileChoices(terminalApplication),
+    () => discoverDefaultProfileChoices(terminalApplication),
     [terminalApplication],
   );
 
@@ -56,6 +60,8 @@ export default function SettingsCommand() {
     try {
       await storage.updateSettings(next);
       setSettings(next);
+      setCanUndo(storage.canUndo());
+      setCanRedo(storage.canRedo());
       await showToast({
         style: Toast.Style.Success,
         title: "Settings saved",
@@ -66,12 +72,66 @@ export default function SettingsCommand() {
     }
   }
 
+  async function handleExport() {
+    try {
+      const json = await storage.exportJson();
+      await Clipboard.copy(json);
+      await showToast({ style: Toast.Style.Success, title: "Exported", message: "Workspaces JSON copied to clipboard." });
+    } catch (error) {
+      await showStorageFailure("Export workspaces", error);
+    }
+  }
+
+  async function handleImport() {
+    try {
+      const text = await Clipboard.readText();
+      if (!text.trim()) {
+        await showToast({ style: Toast.Style.Failure, title: "Clipboard empty", message: "Copy QuickShell JSON first." });
+        return;
+      }
+      const result = await storage.importJson(text, "merge");
+      setCanUndo(storage.canUndo());
+      setCanRedo(storage.canRedo());
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Import complete",
+        message: `${result.imported} imported, ${result.skipped} skipped.`,
+      });
+    } catch (error) {
+      await showStorageFailure("Import workspaces", error);
+    }
+  }
+
+  async function handleUndo() {
+    const changed = await storage.undo();
+    if (!changed) {
+      return;
+    }
+    setCanUndo(storage.canUndo());
+    setCanRedo(storage.canRedo());
+    await showToast({ style: Toast.Style.Success, title: "Undo", message: "Reverted the last workspace change." });
+  }
+
+  async function handleRedo() {
+    const changed = await storage.redo();
+    if (!changed) {
+      return;
+    }
+    setCanUndo(storage.canUndo());
+    setCanRedo(storage.canRedo());
+    await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+  }
+
   return (
     <Form
       isLoading={isLoading}
       actions={
         <ActionPanel>
           <Action title="Save Settings" icon={Icon.Check} onAction={handleSave} />
+          <Action title="Export Workspaces" icon={Icon.Upload} onAction={handleExport} />
+          <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImport} />
+          <Action title="Undo" icon={Icon.ArrowCounterClockwise} onAction={handleUndo} />
+          <Action title="Redo" icon={Icon.ArrowClockwise} onAction={handleRedo} />
         </ActionPanel>
       }
     >
@@ -86,7 +146,7 @@ export default function SettingsCommand() {
         onChange={(value) => {
           const nextApp = value as QuickShellSettings["terminalApplication"];
           setTerminalApplication(nextApp);
-          const choices = getDefaultProfileChoices(nextApp);
+          const choices = discoverDefaultProfileChoices(nextApp);
           if (!choices.some((choice) => choice.id === defaultProfile)) {
             setDefaultProfile("__default__");
           }
@@ -115,6 +175,14 @@ export default function SettingsCommand() {
       <Form.Description
         title="Recents"
         text="When enabled, Open Workspace shows up to 8 recent workspaces above older items."
+      />
+      <Form.Description
+        title="History"
+        text={`Undo: ${canUndo ? "available" : "none"} • Redo: ${canRedo ? "available" : "none"}`}
+      />
+      <Form.Description
+        title="Root search"
+        text='Type "qs" or a home keyword in Raycast root search to jump straight to Open Workspace matches.'
       />
     </Form>
   );
