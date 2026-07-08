@@ -9,6 +9,8 @@ describe("pill key codec", () => {
 
   it("supports commands containing commas", () => {
     const key = encodePillKey({ taskType: "api", command: 'git commit -m "a, b"' });
-    expect(decodePillKey(key)?.command).toBe('git commit -m "a, b"');
+    expect(typeof decodePillKey).toBe("function");
+    const decode = decodePillKey as (key: string) => { command?: string } | undefined;
+    expect(decode(key)?.command).toBe('git commit -m "a, b"');
   });
 });
