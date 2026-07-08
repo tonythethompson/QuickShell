@@ -68,12 +68,26 @@ Select **Quick Shell settings** on the home list to:
 
 - Set your **default terminal** and terminal **profile**
 - Choose how many **recent workspaces** appear on the home page
+- Choose whether **multiple commands** open in one Windows Terminal window as tabs (when supported) or as separate windows
 - **Export workspaces** (backup to a file)
 - **Import workspaces** (restore from a backup or another PC)
   - Choose **Merge** to add new ones to your existing list
   - Choose **Replace all** to overwrite everything
 - **Reset all workspaces** (a `.bak` backup from your last save is kept)
 - **Refresh terminal list** after installing a new terminal app
+
+## Multiple commands: tabs vs separate windows
+
+When a workspace has more than one enabled command, Quick Shell can open them in **one Windows Terminal window as tabs** (default) or in **separate windows**.
+
+| Situation | What happens |
+|-----------|----------------|
+| **Windows Terminal** is the default terminal app and commands share the same elevation | One `wt.exe` process with `; new-tab` between commands |
+| **Windows Console Host** is selected | Each command opens its own console window (tabs are not available) |
+| One command is **Run as administrator** and another is not | Two windows — Windows Terminal elevates the whole window |
+| **Separate windows** setting is enabled | One process per command, even when tabs would work |
+
+Change this under **Quick Shell settings** → **Open multiple commands in one Windows Terminal window**. Raycast uses the same setting in its extension preferences.
 
 ## Home keywords
 

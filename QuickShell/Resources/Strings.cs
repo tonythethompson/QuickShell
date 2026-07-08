@@ -126,6 +126,7 @@ internal static class Strings
     public static string TerminalDefaults_AppField_Label => Get(nameof(TerminalDefaults_AppField_Label));
     public static string TerminalDefaults_ProfileField_Label => Get(nameof(TerminalDefaults_ProfileField_Label));
     public static string HomeDisplay_SectionHeader => Get(nameof(HomeDisplay_SectionHeader));
+    public static string MultiLaunch_SectionHeader => Get(nameof(MultiLaunch_SectionHeader));
     public static string ResetWorkspaces_Confirm_Title => Get(nameof(ResetWorkspaces_Confirm_Title));
     public static string ResetWorkspaces_NoneSavedFormat(object arg0) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(ResetWorkspaces_NoneSavedFormat)), arg0);
     public static string ResetWorkspaces_DeleteCountFormat(object arg0, object arg1) => string.Format(CultureInfo.CurrentUICulture, Get(nameof(ResetWorkspaces_DeleteCountFormat)), arg0, arg1);

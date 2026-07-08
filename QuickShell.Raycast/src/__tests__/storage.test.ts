@@ -83,12 +83,14 @@ describe("storage", () => {
       terminalApplication: "conhost",
       defaultProfile: "pwsh",
       recentWorkspaceCount: 0,
+      multiLaunchPresentation: "separateWindows",
     });
 
     const settings = await storage.getSettings();
     expect(settings.terminalApplication).toBe("conhost");
     expect(settings.defaultProfile).toBe("pwsh");
     expect(settings.recentWorkspaceCount).toBe(0);
+    expect(settings.multiLaunchPresentation).toBe("separateWindows");
   });
 
   it("does not record undo history when save validation fails", async () => {
@@ -130,6 +132,7 @@ describe("storage", () => {
           terminalApplication: "wt",
           defaultProfile: "__default__",
           recentWorkspaceCount: 8,
+          multiLaunchPresentation: "singleWindowTabs",
         },
         workspaces: [
           normalizeWorkspace({

@@ -67,7 +67,15 @@ function migrateSettings(raw: unknown): QuickShellSettings {
     terminalApplication,
     defaultProfile,
     recentWorkspaceCount,
+    multiLaunchPresentation: parseMultiLaunchPresentation(record.multiLaunchPresentation),
   };
+}
+
+function parseMultiLaunchPresentation(raw: unknown): QuickShellSettings["multiLaunchPresentation"] {
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "separatewindows") {
+    return "separateWindows";
+  }
+  return DEFAULT_SETTINGS.multiLaunchPresentation;
 }
 
 function migrateWorkspace(raw: unknown): Workspace | null {
