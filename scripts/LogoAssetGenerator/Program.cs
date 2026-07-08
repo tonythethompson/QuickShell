@@ -225,7 +225,7 @@ static void RenderPosterLogoFromBitmap(string outDir, string fileName, SKBitmap 
 
     DrawPosterPaletteMockup(canvas, renderWidth, renderHeight, contentBottom);
 
-    WritePng(surface, Path.Combine(outDir, fileName), width, height);
+    WritePng(surface, Path.Join(outDir, fileName), width, height);
 }
 
 static void RenderPosterLogoFromPicture(string outDir, string fileName, SKPicture picture, SKRect bounds, int width, int height)
