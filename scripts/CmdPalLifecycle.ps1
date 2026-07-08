@@ -29,7 +29,7 @@ function Get-CmdPalDevExecutable {
 
 function Stop-CmdPalProcesses {
     $stopped = $false
-    foreach ($name in @('Microsoft.CmdPal.UI', 'PowerToys')) {
+    foreach ($name in @('Microsoft.CmdPal.UI', 'PowerToys', 'PowerLauncher', 'PowerToys.PowerLauncher')) {
         Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
             Write-Host "Stopping $($_.ProcessName) (PID $($_.Id))..."
             Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
