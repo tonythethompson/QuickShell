@@ -88,11 +88,21 @@ function Write-Step {
 
 Push-Location $ProjectRoot
 try {
-    Write-Step 'Stopping PowerToys, Command Palette, Run, and Raycast'
-    Stop-CmdPalProcesses
-    Stop-RaycastProcesses
+    $deployCmdPal = -not $SkipCmdPal
+    $deployRun = -not $SkipRun
+    $deployRaycast = -not $SkipRaycast
 
-    if (-not $SkipCmdPal) {
+    if ($deployCmdPal -or $deployRun) {
+        Write-Step 'Stopping PowerToys, Command Palette, and Run'
+        Stop-CmdPalProcesses
+    }
+
+    if ($deployRaycast) {
+        Write-Step 'Stopping Raycast'
+        Stop-RaycastProcesses
+    }
+
+    if ($deployCmdPal) {
         Write-Step 'Command Palette: build + install MSIX'
         $deployArgs = @{
             Configuration   = $Configuration
@@ -114,7 +124,7 @@ try {
         Write-Host 'Skipping Command Palette deploy (-SkipCmdPal).' -ForegroundColor DarkGray
     }
 
-    if (-not $SkipRun) {
+    if ($deployRun) {
         Write-Step 'PowerToys Run: build + deploy plugin'
         & $RunDeployScript -Configuration $Configuration -Deploy
         if ($LASTEXITCODE -ne 0) {
@@ -125,7 +135,7 @@ try {
         Write-Host 'Skipping PowerToys Run deploy (-SkipRun).' -ForegroundColor DarkGray
     }
 
-    if (-not $SkipRaycast) {
+    if ($deployRaycast) {
         Write-Step 'Raycast: build extension'
         Deploy-RaycastExtension `
             -ProjectRoot $ProjectRoot `
@@ -138,12 +148,12 @@ try {
     }
 
     if (-not $NoRestart) {
-        if (-not $SkipCmdPal -or -not $SkipRun) {
+        if ($deployCmdPal -or $deployRun) {
             Write-Step 'Restarting PowerToys / Command Palette'
             Start-CommandPalette -ProjectRoot $ProjectRoot -Configuration $Configuration -UseDevCmdPal:$UseDevCmdPal
         }
 
-        if (-not $SkipRaycast) {
+        if ($deployRaycast) {
             Write-Step 'Restarting Raycast'
             Start-RaycastApp | Out-Null
         }
@@ -153,13 +163,13 @@ try {
     Write-Host 'All requested variants deployed.' -ForegroundColor Green
     Write-Host ''
     Write-Host 'Next steps:'
-    if (-not $SkipCmdPal) {
+    if ($deployCmdPal) {
         Write-Host '  CmdPal: open Command Palette, run Reload Command Palette Extension, search Quick Shell'
     }
-    if (-not $SkipRun) {
+    if ($deployRun) {
         Write-Host '  Run: Alt+Space, type qs'
     }
-    if (-not $SkipRaycast -and -not $RaycastBuildOnly) {
+    if ($deployRaycast -and -not $RaycastBuildOnly) {
         Write-Host '  Raycast: use the new develop terminal (npm run dev) or search QuickShell in Raycast'
     }
     Write-Host ''
