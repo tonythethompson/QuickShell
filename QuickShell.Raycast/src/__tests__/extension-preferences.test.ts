@@ -12,6 +12,7 @@ describe("extension-preferences", () => {
     expect(settings.terminalApplication).toBe("conhost");
     expect(settings.defaultProfile).toBe("__default__");
     expect(settings.recentWorkspaceCount).toBe(0);
+    expect(settings.multiLaunchPresentation).toBe("singleWindowTabs");
   });
 
   it("falls back to defaults for missing preference values", () => {
@@ -19,5 +20,14 @@ describe("extension-preferences", () => {
     expect(settings.terminalApplication).toBe("wt");
     expect(settings.defaultProfile).toBe("__default__");
     expect(settings.recentWorkspaceCount).toBe(8);
+    expect(settings.multiLaunchPresentation).toBe("singleWindowTabs");
+  });
+
+  it("maps singleWindowTabs preference to multiLaunchPresentation", () => {
+    const tabs = preferencesToSettings({ singleWindowTabs: true });
+    expect(tabs.multiLaunchPresentation).toBe("singleWindowTabs");
+
+    const windows = preferencesToSettings({ singleWindowTabs: false });
+    expect(windows.multiLaunchPresentation).toBe("separateWindows");
   });
 });

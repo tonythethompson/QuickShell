@@ -46,3 +46,9 @@ Validate cross-platform changes to shared logic by building `QuickShell.Core` on
 - **Claude hooks** (`.claude/settings.json`): guards use POSIX shell + Python, not PowerShell, so file edits work on Linux cloud VMs.
 - **Branch naming** for cloud agents: `cursor/<descriptive-name>-2981`
 - Prefer focused diffs; Raycast work stays under `QuickShell.Raycast/` unless integrating with core services.
+
+### Multi-command launch (tabs vs windows)
+
+- Setting key: `multiLaunchPresentation` — `singleWindowTabs` (default) or `separateWindows` in `%LOCALAPPDATA%\\QuickShell\\settings.json` and Raycast stored settings.
+- Desktop: `ShortcutLaunchExecutor.LaunchAll` groups compatible entries via `GroupPlans` / `TerminalLauncher.OpenGroup` (`; new-tab`). Raycast mirrors this in `launch-grouping.ts` + `windows-launch.ts` (do not pass `-w` on tab segments).
+- Tabs require Windows Terminal (or Intelligent Terminal) as the global terminal app; Console Host and mixed elevation always fall back to separate windows. See `docs/getting-started.md`.

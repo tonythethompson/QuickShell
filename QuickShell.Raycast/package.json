@@ -41,6 +41,15 @@
       "required": false,
       "default": true,
       "label": "Show recent workspaces"
+    },
+    {
+      "name": "singleWindowTabs",
+      "title": "Multi-command Launch",
+      "description": "When supported, open multiple launch commands as tabs in one Windows Terminal window instead of separate windows.",
+      "type": "checkbox",
+      "required": false,
+      "default": true,
+      "label": "Open multiple commands in one Windows Terminal window"
     }
   ],
   "engines": {

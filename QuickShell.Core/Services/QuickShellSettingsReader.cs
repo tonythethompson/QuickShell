@@ -7,6 +7,7 @@ internal sealed class QuickShellSettingsReader
     private const string TerminalApplicationSettingId = "terminalApplication";
     private const string DefaultProfileSettingId = "defaultProfile";
     private const string BlockDirtyBranchSwitchSettingId = "blockDirtyBranchSwitch";
+    private const string MultiLaunchPresentationSettingId = QuickShellMultiLaunchSettings.SettingKey;
 
     public QuickShellSettingsReader()
     {
@@ -41,8 +42,17 @@ internal sealed class QuickShellSettingsReader
         return !string.Equals(raw?.Trim(), "false", StringComparison.OrdinalIgnoreCase);
     }
 
+    public bool ReadSeparateWindowsForMultiLaunch() =>
+        QuickShellMultiLaunchSettings.IsSeparateWindows(ReadSetting(MultiLaunchPresentationSettingId));
+
     public void SaveBlockDirtyBranchSwitch(bool enabled) =>
         WriteSettings(settings => settings[BlockDirtyBranchSwitchSettingId] = enabled ? "true" : "false");
+
+    public void SaveMultiLaunchPresentation(bool singleWindowTabs) =>
+        WriteSettings(settings =>
+            settings[MultiLaunchPresentationSettingId] = singleWindowTabs
+                ? QuickShellMultiLaunchSettings.SingleWindowTabs
+                : QuickShellMultiLaunchSettings.SeparateWindows);
 
     public void SaveRecentWorkspaceCount(int count) =>
         WriteSettings(settings =>

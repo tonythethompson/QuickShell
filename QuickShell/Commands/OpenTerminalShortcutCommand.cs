@@ -66,7 +66,8 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,
-                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch));
+                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch,
+                SeparateWindowsForMultiLaunch: _settings.SeparateWindowsForMultiLaunch));
 
         return ToCommandResult(result);
     }

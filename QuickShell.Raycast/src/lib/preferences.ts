@@ -7,6 +7,7 @@ export type ExtensionPreferences = {
   terminalApplication?: TerminalApplication;
   defaultProfile?: string;
   showRecents?: boolean;
+  singleWindowTabs?: boolean;
 };
 
 export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSettings {
@@ -21,5 +22,6 @@ export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSe
     terminalApplication,
     defaultProfile,
     recentWorkspaceCount: recentCountFromEnabled(prefs.showRecents ?? true),
+    multiLaunchPresentation: (prefs.singleWindowTabs ?? true) ? "singleWindowTabs" : "separateWindows",
   };
 }
