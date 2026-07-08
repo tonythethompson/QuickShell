@@ -47,6 +47,16 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         Assert.Same(repository, _services.GetRequiredService<IShortcutRepository>());
     }
 
+    [Fact]
+    public void AddQuickShellCore_resolves_same_singleton_atomic_file_writer()
+    {
+        var first = _services.GetRequiredService<IAtomicFileWriter>();
+        var second = _services.GetRequiredService<IAtomicFileWriter>();
+
+        Assert.Same(first, second);
+        Assert.IsType<AtomicFileWriter>(first);
+    }
+
     public void Dispose()
     {
         _services.Dispose();

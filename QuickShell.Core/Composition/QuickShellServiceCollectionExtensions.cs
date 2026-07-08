@@ -11,7 +11,6 @@ internal static class QuickShellServiceCollectionExtensions
 {
     /// <summary>
     /// Registers core QuickShell services that the CmdPal host (and tests) resolve via DI.
-    /// Slice 1: <see cref="IShortcutRepository"/> + <see cref="IDraftStore"/> only.
     /// </summary>
     /// <param name="services">The service collection to extend.</param>
     /// <param name="configDirectory">
@@ -24,9 +23,13 @@ internal static class QuickShellServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IShortcutRepository>(_ => new ShortcutRepository(configDirectory));
+        services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
+        services.AddSingleton<IShortcutRepository>(sp =>
+            new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<IDraftStore>(sp =>
-            new ShortcutDraftStore(sp.GetRequiredService<IShortcutRepository>()));
+            new ShortcutDraftStore(
+                sp.GetRequiredService<IShortcutRepository>(),
+                sp.GetRequiredService<IAtomicFileWriter>()));
 
         return services;
     }

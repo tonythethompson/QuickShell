@@ -5,10 +5,23 @@ using System.Threading.Tasks;
 
 namespace QuickShell.Services;
 
-internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) : IDraftStore, IDisposable
+internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
 {
-    private readonly IShortcutRepository _shortcuts = shortcuts;
+    private readonly IShortcutRepository _shortcuts;
+    private readonly IAtomicFileWriter _fileWriter;
     private readonly SemaphoreSlim _sync = new(1, 1);
+
+    public ShortcutDraftStore(IShortcutRepository shortcuts)
+        : this(shortcuts, writer: null)
+    {
+    }
+
+    public ShortcutDraftStore(IShortcutRepository shortcuts, IAtomicFileWriter? writer)
+    {
+        ArgumentNullException.ThrowIfNull(shortcuts);
+        _shortcuts = shortcuts;
+        _fileWriter = writer ?? new AtomicFileWriter();
+    }
 
     private bool _disposed;
 
@@ -302,17 +315,17 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
             .Unwrap();
     }
 
-    private async Task PersistDraftAsync(string json, int generation)
+    private Task PersistDraftAsync(string json, int generation)
     {
         if (generation != _writeGeneration)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         try
         {
-            Directory.CreateDirectory(_shortcuts.ConfigDirectory);
-            await File.WriteAllTextAsync(DraftPath, json).ConfigureAwait(false);
+            // Sync atomic write on the existing async queue (no async writer API in slice 1).
+            _fileWriter.WriteAllTextAtomic(DraftPath, json);
 
             if (generation != _writeGeneration)
             {
@@ -323,6 +336,8 @@ internal sealed partial class ShortcutDraftStore(IShortcutRepository shortcuts) 
         {
             // Best effort autosave; ignore IO failures.
         }
+
+        return Task.CompletedTask;
     }
 
     private void DeleteDraftFileSync()
