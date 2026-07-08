@@ -1,0 +1,47 @@
+QuickShell.Core/Services/ShortcutLayoutJson.cs
+  s_cd70e11c4cb2f1::t_ab8799b2f699f6 49-72,79,91,93,96,99,103,105,137
+  s_cd70e11c4cb2f1::t_6784aa1f001eb8 73-78
+  s_cd70e11c4cb2f1::t_e0323d13fa3a83 80-82
+  s_cd70e11c4cb2f1::t_eb15171fadb24a 88-90
+  s_cd70e11c4cb2f1::t_ceb88465acca4c 92
+  s_cd70e11c4cb2f1::t_cd544a26ac25bb 94-95
+  s_cd70e11c4cb2f1::t_5870d534fadb26 97-98
+  s_cd70e11c4cb2f1::t_87b5b6b27f19a0 100-102
+  s_cd70e11c4cb2f1::t_9fe24ff41fe24a 104
+  s_cd70e11c4cb2f1::t_3ba7ca9955301d 106-107
+  s_cd70e11c4cb2f1::t_65c1c877547c93 136
+  s_cd70e11c4cb2f1::t_148280217bff96 138
+  s_cd70e11c4cb2f1::t_a5e49d2ab77308 87,132,134,140-142,144,147-149,151-153,156,159
+QuickShell.Core/Services/PersistenceVersion.cs
+  s_cd70e11c4cb2f1::t_2362607e7148d2 1-6
+QuickShell.Core.Tests/ShortcutLayoutEnvelopeTests.cs
+  s_cd70e11c4cb2f1::t_501ec4ac4ab4df 1-92,94-136,138-179
+  s_cd70e11c4cb2f1::t_d28f3465082b8b 137
+  s_cd70e11c4cb2f1::t_c192442244f915 93
+QuickShell.Core.Tests/ShortcutRepositoryWorkspacesChangedTests.cs
+  s_cd70e11c4cb2f1::t_5faf288e419742 1-129
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_cd70e11c4cb2f1::t_9f44850f23999b 49-50,1250,1352,1992-1993
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_cd70e11c4cb2f1::t_a5f7340b504e2d 8-9
+QuickShell.Core.Tests/ResetTransferTests.cs
+  s_cd70e11c4cb2f1::t_a01c35c949a01b 37-40
+QuickShell.Core/Services/IShortcutRepository.cs
+  s_cd70e11c4cb2f1::t_f94260f4799e38 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "245d54d15047e564bbfd935444e7fbd0433f9302",
+  "prompts": {},
+  "sessions": {
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
