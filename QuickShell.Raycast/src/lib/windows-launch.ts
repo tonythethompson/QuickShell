@@ -24,16 +24,12 @@ export type LaunchPlan = {
   errors: string[];
 };
 
-const PACKAGE_MANAGER_COMMANDS = new Set([
-  "npm",
-  "pnpm",
-  "yarn",
-  "bun",
-  "npx",
-  "dotnet",
-  "cargo",
-  "go",
-]);
+export type LaunchOptions = {
+  runAsAdmin?: boolean;
+  runAsStandard?: boolean;
+};
+
+const PACKAGE_MANAGER_COMMANDS = new Set(["npm", "pnpm", "yarn", "bun", "npx", "dotnet", "cargo", "go"]);
 
 export function resolveTerminalForLaunch(
   launch: LaunchEntry,
@@ -45,35 +41,46 @@ export function resolveTerminalForLaunch(
   }
 
   if (launch.terminal === "default") {
-    return {
-      terminal:
-        settings.terminalApplication === "system"
-          ? "wt"
-          : settings.terminalApplication,
-      wtProfile:
-        settings.defaultProfile === "__default__"
-          ? null
-          : settings.defaultProfile,
-    };
+    const terminalApp = settings.terminalApplication === "system" ? "wt" : settings.terminalApplication;
+    const profile = settings.defaultProfile === "__default__" ? null : settings.defaultProfile;
+    if (terminalApp === "conhost") {
+      return { terminal: resolveConhostTerminal(profile), wtProfile: null };
+    }
+    if (terminalApp === "it") {
+      return { terminal: "it", wtProfile: profile };
+    }
+    return { terminal: terminalApp, wtProfile: profile };
   }
 
   return { terminal: launch.terminal, wtProfile: launch.wtProfile };
 }
 
-export function resolveLaunchTarget(
-  terminal: string,
-  wtProfile?: string | null,
-): ResolvedLaunchTarget {
+function resolveConhostTerminal(profile: string | null | undefined): string {
+  switch ((profile ?? "powershell").toLowerCase()) {
+    case "cmd":
+      return "cmd";
+    case "pwsh":
+      return "pwsh";
+    default:
+      return "powershell";
+  }
+}
+
+export function resolveLaunchTarget(terminal: string, wtProfile?: string | null): ResolvedLaunchTarget {
   switch (terminal) {
     case "wt":
+      return {
+        kind: "wt",
+        hostExecutable: "wt.exe",
+        profileOrDistro: wtProfile,
+        displayName: wtProfile ? `Windows Terminal (${wtProfile})` : "Windows Terminal",
+      };
     case "it":
       return {
         kind: "wt",
-        hostExecutable: terminal === "it" ? "wt.exe" : "wt.exe",
+        hostExecutable: "wtai.exe",
         profileOrDistro: wtProfile,
-        displayName: wtProfile
-          ? `Windows Terminal (${wtProfile})`
-          : "Windows Terminal",
+        displayName: wtProfile ? `Intelligent Terminal (${wtProfile})` : "Intelligent Terminal",
       };
     case "powershell":
       return {
@@ -124,6 +131,10 @@ export function buildSetLocationCommand(directory: string): string {
 
 export function buildCmdChangeDirectory(directory: string): string {
   return `cd /d ${escapeWindowsArgument(directory)}`;
+}
+
+export function buildWindowsTerminalCmdSuffix(directory: string, command: string): string {
+  return `${buildCmdChangeDirectory(directory)} && ${command}`;
 }
 
 export function buildLaunchArguments(entry: LaunchPlanEntry): string[] {
@@ -179,46 +190,47 @@ function usesPackageManager(command: string): boolean {
   return PACKAGE_MANAGER_COMMANDS.has(firstToken);
 }
 
-export function shouldRouteThroughCmd(
-  command: string | null | undefined,
-): boolean {
+export function shouldRouteThroughCmd(command: string | null | undefined): boolean {
   if (!command) {
     return false;
   }
   return usesPackageManager(command);
 }
 
-export function buildWorkspaceLaunchPlan(
-  workspace: Workspace,
-  settings: QuickShellSettings,
-): LaunchPlan {
+export function validateLaunchPlanErrors(workspace: Workspace): string[] {
   const errors: string[] = [];
   const directory = workspace.directory.trim();
   if (!directory) {
     errors.push("Workspace directory is required.");
   }
 
-  const enabledLaunches = workspace.launches.filter(
-    (launch) => launch.isEnabled,
-  );
+  const enabledLaunches = workspace.launches.filter((launch) => launch.isEnabled);
   if (enabledLaunches.length === 0) {
     errors.push("No enabled launch entries.");
   }
 
+  return errors;
+}
+
+export function buildWorkspaceLaunchPlan(
+  workspace: Workspace,
+  settings: QuickShellSettings,
+  options: LaunchOptions = {},
+): LaunchPlan {
+  const errors = validateLaunchPlanErrors(workspace);
+  const directory = workspace.directory.trim();
+
+  const enabledLaunches = workspace.launches.filter((launch) => launch.isEnabled);
   const entries: LaunchPlanEntry[] = [];
   let previousTerminal: string | undefined;
 
-  for (const launch of enabledLaunches.sort(
-    (left, right) => left.order - right.order,
-  )) {
-    const resolved = resolveTerminalForLaunch(
-      launch,
-      settings,
-      previousTerminal,
-    );
+  for (const launch of enabledLaunches.sort((left, right) => left.order - right.order)) {
+    const resolved = resolveTerminalForLaunch(launch, settings, previousTerminal);
     previousTerminal = resolved.terminal;
     const target = resolveLaunchTarget(resolved.terminal, resolved.wtProfile);
     const command = launch.command?.trim() || null;
+    const wantsAdmin = launch.runAsAdmin || workspace.runAsAdmin;
+    const runAsAdmin = options.runAsStandard ? false : (options.runAsAdmin ?? wantsAdmin);
 
     entries.push({
       workspace,
@@ -226,7 +238,7 @@ export function buildWorkspaceLaunchPlan(
       target,
       directory,
       command,
-      runAsAdmin: launch.runAsAdmin || workspace.runAsAdmin,
+      runAsAdmin,
     });
   }
 
@@ -235,9 +247,7 @@ export function buildWorkspaceLaunchPlan(
   return { entries, groupedArguments, errors };
 }
 
-export function buildGroupedWindowsTerminalArguments(
-  entries: LaunchPlanEntry[],
-): string[] {
+export function buildGroupedWindowsTerminalArguments(entries: LaunchPlanEntry[]): string[] {
   if (entries.length === 0) {
     return [];
   }

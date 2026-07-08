@@ -1,56 +1,104 @@
-import type {
-  LaunchEntry,
-  QuickShellSettings,
-  StoredData,
-  Workspace,
-} from "./schema";
+import type { LaunchEntry, QuickShellSettings, StoredData, Workspace } from "./schema";
 import { STORAGE_KEY, createEmptyStoredData } from "./schema";
 import { createStableId, ensureStableId } from "./ids";
+import { importParsedPayload, type ImportResult } from "./import-export";
 import { migrateStoredData } from "./migration";
-import {
-  normalizeWorkspace,
-  validateWorkspace,
-  validateWorkspaceCount,
-} from "./validation";
+import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
 
 export type StorageAdapter = {
   getItem: (key: string) => Promise<string | undefined>;
   setItem: (key: string, value: string) => Promise<void>;
 };
 
+const MAX_HISTORY_ENTRIES = 25;
+const RECENT_WRITE_DEBOUNCE_MS = 500;
+
 export class QuickShellStorage {
   private cache: StoredData | null = null;
+  private undoHistory: StoredData[] = [];
+  private redoHistory: StoredData[] = [];
+  private recentWriteTimer: ReturnType<typeof setTimeout> | null = null;
+  private recentWriteDirty = false;
 
-  constructor(private readonly adapter: StorageAdapter) {}
+  constructor(
+    private readonly adapter: StorageAdapter,
+    private readonly settingsProvider?: () => QuickShellSettings,
+  ) {}
 
   async load(): Promise<StoredData> {
-    if (this.cache) {
-      return this.cloneData(this.cache);
-    }
-
-    const raw = await this.adapter.getItem(STORAGE_KEY);
-    if (!raw) {
-      this.cache = createEmptyStoredData();
-      return this.cloneData(this.cache);
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      this.cache = migrateStoredData(parsed);
-      return this.cloneData(this.cache);
-    } catch {
-      this.cache = createEmptyStoredData();
-      return this.cloneData(this.cache);
-    }
+    await this.ensureLoaded();
+    return this.cloneData(this.cache!);
   }
 
-  async save(data: StoredData): Promise<void> {
+  canUndo(): boolean {
+    return this.undoHistory.length > 0;
+  }
+
+  canRedo(): boolean {
+    return this.redoHistory.length > 0;
+  }
+
+  async undo(): Promise<boolean> {
+    await this.flushRecentWrites();
+    if (this.undoHistory.length === 0) {
+      return false;
+    }
+
+    if (this.cache) {
+      this.redoHistory.push(this.cloneData(this.cache));
+    }
+
+    const previous = this.undoHistory.pop();
+    if (!previous) {
+      return false;
+    }
+
+    this.cache = this.cloneData(previous);
+    await this.persistCache({ recordHistory: false });
+    return true;
+  }
+
+  async redo(): Promise<boolean> {
+    await this.flushRecentWrites();
+    if (this.redoHistory.length === 0) {
+      return false;
+    }
+
+    if (this.cache) {
+      this.undoHistory.push(this.cloneData(this.cache));
+    }
+
+    const next = this.redoHistory.pop();
+    if (!next) {
+      return false;
+    }
+
+    this.cache = this.cloneData(next);
+    await this.persistCache({ recordHistory: false });
+    return true;
+  }
+
+  async exportJson(): Promise<string> {
+    const data = await this.load();
+    const settings = await this.getSettings();
+    return JSON.stringify({ ...data, settings }, null, 2);
+  }
+
+  async importJson(raw: string, mode: "merge" | "replace" = "merge"): Promise<ImportResult> {
+    await this.flushRecentWrites();
+    const existing = mode === "merge" ? await this.load() : createEmptyStoredData();
+    const result = importParsedPayload(JSON.parse(raw) as unknown, existing);
+    await this.save(result.data);
+    return result;
+  }
+
+  async save(data: StoredData, options?: { recordHistory?: boolean }): Promise<void> {
+    const recordHistory = options?.recordHistory ?? true;
+
     const normalized: StoredData = {
       version: data.version,
       settings: { ...data.settings },
-      workspaces: data.workspaces.map((workspace) =>
-        normalizeWorkspace({ ...workspace }),
-      ),
+      workspaces: data.workspaces.map((workspace) => normalizeWorkspace({ ...workspace })),
     };
 
     const countResult = validateWorkspaceCount(normalized.workspaces.length);
@@ -61,30 +109,34 @@ export class QuickShellStorage {
     for (const workspace of normalized.workspaces) {
       const validation = validateWorkspace(workspace);
       if (!validation.ok) {
-        throw new Error(
-          `${workspace.name || workspace.id}: ${validation.message}`,
-        );
+        throw new Error(`${workspace.name || workspace.id}: ${validation.message}`);
       }
     }
 
+    if (recordHistory && this.cache) {
+      this.pushUndoSnapshot(this.cache);
+    }
+
     this.cache = normalized;
-    await this.adapter.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    await this.persistCache({ recordHistory: false });
   }
 
   async getWorkspaces(): Promise<Workspace[]> {
-    const data = await this.load();
-    return data.workspaces.map((workspace) => ({
-      ...workspace,
-      launches: [...workspace.launches],
-    }));
+    await this.ensureLoaded();
+    return this.cache!.workspaces.map((workspace) => ({ ...workspace, launches: [...workspace.launches] }));
   }
 
   async getSettings(): Promise<QuickShellSettings> {
-    const data = await this.load();
-    return { ...data.settings };
+    if (this.settingsProvider) {
+      return { ...this.settingsProvider() };
+    }
+
+    await this.ensureLoaded();
+    return { ...this.cache!.settings };
   }
 
   async upsertWorkspace(workspace: Workspace): Promise<Workspace> {
+    await this.flushRecentWrites();
     const data = await this.load();
     const normalized = normalizeWorkspace({
       ...workspace,
@@ -100,9 +152,7 @@ export class QuickShellStorage {
       throw new Error(validation.message);
     }
 
-    const index = data.workspaces.findIndex(
-      (item) => item.id === normalized.id,
-    );
+    const index = data.workspaces.findIndex((item) => item.id === normalized.id);
     if (index >= 0) {
       data.workspaces[index] = normalized;
     } else {
@@ -118,18 +168,16 @@ export class QuickShellStorage {
   }
 
   async deleteWorkspace(workspaceId: string): Promise<void> {
+    await this.flushRecentWrites();
     const data = await this.load();
-    data.workspaces = data.workspaces.filter(
-      (workspace) => workspace.id !== workspaceId,
-    );
+    data.workspaces = data.workspaces.filter((workspace) => workspace.id !== workspaceId);
     await this.save(data);
   }
 
   async duplicateWorkspace(workspaceId: string): Promise<Workspace> {
+    await this.flushRecentWrites();
     const data = await this.load();
-    const source = data.workspaces.find(
-      (workspace) => workspace.id === workspaceId,
-    );
+    const source = data.workspaces.find((workspace) => workspace.id === workspaceId);
     if (!source) {
       throw new Error("Workspace not found.");
     }
@@ -151,10 +199,8 @@ export class QuickShellStorage {
     return this.upsertWorkspace(duplicate);
   }
 
-  async setFavorite(
-    workspaceId: string,
-    isPinned: boolean,
-  ): Promise<Workspace> {
+  async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
+    await this.flushRecentWrites();
     const data = await this.load();
     const workspace = data.workspaces.find((item) => item.id === workspaceId);
     if (!workspace) {
@@ -175,23 +221,86 @@ export class QuickShellStorage {
     return { ...workspace };
   }
 
-  async markWorkspaceUsed(
-    workspaceId: string,
-    usedAt = new Date(),
-  ): Promise<void> {
-    const data = await this.load();
-    const workspace = data.workspaces.find((item) => item.id === workspaceId);
+  async markWorkspaceUsed(workspaceId: string, usedAt = new Date()): Promise<void> {
+    await this.ensureLoaded();
+    const workspace = this.cache!.workspaces.find((item) => item.id === workspaceId);
     if (!workspace) {
       throw new Error("Workspace not found.");
     }
     workspace.lastUsedUtc = usedAt.toISOString();
-    await this.save(data);
+    this.recentWriteDirty = true;
+    this.scheduleRecentWriteFlush();
+  }
+
+  async flushRecentWrites(): Promise<void> {
+    if (this.recentWriteTimer) {
+      clearTimeout(this.recentWriteTimer);
+      this.recentWriteTimer = null;
+    }
+    if (!this.recentWriteDirty || !this.cache) {
+      return;
+    }
+    this.recentWriteDirty = false;
+    await this.persistCache({ recordHistory: false });
   }
 
   async updateSettings(settings: QuickShellSettings): Promise<void> {
+    if (this.settingsProvider) {
+      throw new Error("Settings are managed in Raycast extension preferences.");
+    }
+
+    await this.flushRecentWrites();
     const data = await this.load();
     data.settings = { ...settings };
     await this.save(data);
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.cache) {
+      return;
+    }
+
+    const raw = await this.adapter.getItem(STORAGE_KEY);
+    if (!raw) {
+      this.cache = createEmptyStoredData();
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      this.cache = migrateStoredData(parsed);
+    } catch {
+      this.cache = createEmptyStoredData();
+    }
+  }
+
+  private async persistCache(options?: { recordHistory?: boolean }): Promise<void> {
+    if (!this.cache) {
+      return;
+    }
+    await this.adapter.setItem(STORAGE_KEY, JSON.stringify(this.cache));
+    if (options?.recordHistory) {
+      // no-op: history is recorded in save()
+    }
+  }
+
+  private pushUndoSnapshot(data: StoredData): void {
+    this.undoHistory.push(this.cloneData(data));
+    if (this.undoHistory.length > MAX_HISTORY_ENTRIES) {
+      this.undoHistory.shift();
+    }
+    this.redoHistory = [];
+  }
+
+  private scheduleRecentWriteFlush(): void {
+    if (this.recentWriteTimer) {
+      clearTimeout(this.recentWriteTimer);
+    }
+    this.recentWriteTimer = setTimeout(() => {
+      void this.flushRecentWrites().catch(() => {
+        this.recentWriteDirty = true;
+      });
+    }, RECENT_WRITE_DEBOUNCE_MS);
   }
 
   private cloneData(data: StoredData): StoredData {
@@ -206,9 +315,7 @@ export class QuickShellStorage {
   }
 }
 
-export function createMemoryStorageAdapter(
-  initial?: StoredData,
-): StorageAdapter {
+export function createMemoryStorageAdapter(initial?: StoredData): StorageAdapter {
   const memory = new Map<string, string>();
   if (initial) {
     memory.set(STORAGE_KEY, JSON.stringify(initial));
@@ -223,10 +330,7 @@ export function createMemoryStorageAdapter(
   };
 }
 
-export function workspaceSubtitle(
-  workspace: Workspace,
-  launch?: LaunchEntry,
-): string {
+export function workspaceSubtitle(workspace: Workspace, launch?: LaunchEntry): string {
   if (launch) {
     const command = launch.command?.trim();
     return command
@@ -237,9 +341,7 @@ export function workspaceSubtitle(
   const enabledLaunches = workspace.launches.filter((entry) => entry.isEnabled);
   if (enabledLaunches.length === 1) {
     const command = enabledLaunches[0].command?.trim();
-    return command
-      ? `${workspace.directory} • ${command}`
-      : workspace.directory;
+    return command ? `${workspace.directory} • ${command}` : workspace.directory;
   }
 
   if (enabledLaunches.length > 1) {

@@ -3,3 +3,6 @@ node_modules/
 dist/
 bin/
 *.log
+setup-release.iss
+setup-x64.iss
+setup-arm64.iss

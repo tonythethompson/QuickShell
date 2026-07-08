@@ -37,9 +37,7 @@ const workspace: Workspace = {
 
 describe("windows-launch", () => {
   it("escapes arguments with spaces", () => {
-    expect(escapeWindowsArgument("C:\\Projects\\My App")).toBe(
-      '"C:\\Projects\\My App"',
-    );
+    expect(escapeWindowsArgument("C:\\Projects\\My App")).toBe('"C:\\Projects\\My App"');
   });
 
   it("resolves windows terminal targets", () => {
@@ -56,7 +54,20 @@ describe("windows-launch", () => {
     expect(args).toContain("PowerShell");
     expect(args).toContain("-d");
     expect(args).toContain("C:\\Projects\\web");
-    expect(args).toContain("npm run dev");
+    expect(args.join(" ")).toContain("npm run dev");
+  });
+
+  it("resolves intelligent terminal targets", () => {
+    const target = resolveLaunchTarget("it", "PowerShell");
+    expect(target.hostExecutable).toBe("wtai.exe");
+    expect(target.displayName).toContain("Intelligent Terminal");
+  });
+
+  it("passes package manager commands directly to wt when directory is set separately", () => {
+    const plan = buildWorkspaceLaunchPlan(workspace, DEFAULT_SETTINGS);
+    const args = buildLaunchArguments(plan.entries[0]);
+    expect(args.join(" ")).toContain("npm run dev");
+    expect(args.join(" ")).not.toContain("cd /d");
   });
 
   it("groups multiple launches for windows terminal", () => {

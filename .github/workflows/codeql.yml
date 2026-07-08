@@ -60,6 +60,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.dotnet == 'true' ||
+      github.event_name == 'pull_request' ||
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
@@ -109,6 +110,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.raycast == 'true' ||
+      github.event_name == 'pull_request' ||
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

@@ -29,6 +29,12 @@ export type Workspace = {
   command?: string | null;
   runAsAdmin: boolean;
   launches: LaunchEntry[];
+  devServerUrl?: string | null;
+  openDevServerOnLaunch?: boolean;
+  repoUrl?: string | null;
+  openCompanionAppOnLaunch?: boolean;
+  companionAppPath?: string | null;
+  companionAppArguments?: string | null;
 };
 
 export type QuickShellSettings = {
@@ -51,15 +57,7 @@ export const DEFAULT_SETTINGS: QuickShellSettings = {
 
 export const DEFAULT_TERMINAL = "default";
 
-export const TASK_TYPES = [
-  "none",
-  "api",
-  "frontend",
-  "services",
-  "logs",
-  "test",
-  "build",
-] as const;
+export const TASK_TYPES = ["none", "api", "frontend", "services", "logs", "test", "build"] as const;
 
 export type TaskType = (typeof TASK_TYPES)[number];
 

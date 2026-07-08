@@ -1,9 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import {
-  WORKSPACE_TERMINAL_CHOICES,
-  type TerminalChoice,
-} from "./terminal-options";
+import { WORKSPACE_TERMINAL_CHOICES, type TerminalChoice } from "./terminal-options";
 
 export type DiscoveredTerminalChoice = TerminalChoice & {
   terminal: string;
@@ -101,14 +98,8 @@ export function resetTerminalCatalogCacheForTests(): void {
   cachedChoices = null;
 }
 
-export function discoverDefaultProfileChoices(
-  terminalApplication: string,
-): TerminalChoice[] {
-  if (
-    terminalApplication === "wt" ||
-    terminalApplication === "it" ||
-    terminalApplication === "system"
-  ) {
+export function discoverDefaultProfileChoices(terminalApplication: string): TerminalChoice[] {
+  if (terminalApplication === "wt" || terminalApplication === "it" || terminalApplication === "system") {
     const profiles = readWindowsTerminalProfiles();
     return [
       { id: "__default__", title: "Default profile for this app" },
@@ -116,9 +107,7 @@ export function discoverDefaultProfileChoices(
     ];
   }
 
-  const choices: TerminalChoice[] = [
-    { id: "__default__", title: "Default profile for this app" },
-  ];
+  const choices: TerminalChoice[] = [{ id: "__default__", title: "Default profile for this app" }];
   if (executableExists("powershell.exe")) {
     choices.push({ id: "powershell", title: "PowerShell" });
   }
@@ -144,17 +133,12 @@ export function choiceForTerminalState(
   choices: DiscoveredTerminalChoice[] = discoverWorkspaceTerminalChoices(),
 ): string {
   if (wtProfile) {
-    const profileMatch = choices.find(
-      (choice) =>
-        choice.terminal === terminal && choice.wtProfile === wtProfile,
-    );
+    const profileMatch = choices.find((choice) => choice.terminal === terminal && choice.wtProfile === wtProfile);
     if (profileMatch) {
       return profileMatch.id;
     }
   }
-  const match = choices.find(
-    (choice) => choice.terminal === terminal && !choice.wtProfile,
-  );
+  const match = choices.find((choice) => choice.terminal === terminal && !choice.wtProfile);
   return match?.id ?? "default";
 }
 
@@ -167,25 +151,15 @@ function executableExists(command: string): boolean {
     }
   }
 
-  const systemRoot =
-    process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
-  candidates.push(
-    path.join(systemRoot, "System32", command),
-    path.join(systemRoot, "Sysnative", command),
-  );
+  const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
+  candidates.push(path.join(systemRoot, "System32", command), path.join(systemRoot, "Sysnative", command));
 
   if (command === "wt.exe") {
     const localAppData = process.env.LOCALAPPDATA;
     if (localAppData) {
       candidates.push(
         path.join(localAppData, "Microsoft", "WindowsApps", "wt.exe"),
-        path.join(
-          localAppData,
-          "Microsoft",
-          "WindowsApps",
-          "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
-          "wt.exe",
-        ),
+        path.join(localAppData, "Microsoft", "WindowsApps", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "wt.exe"),
       );
     }
   }
@@ -205,12 +179,7 @@ function readWindowsTerminalProfiles(): string[] {
         )
       : null,
     process.env.LOCALAPPDATA
-      ? path.join(
-          process.env.LOCALAPPDATA,
-          "Microsoft",
-          "Windows Terminal",
-          "settings.json",
-        )
+      ? path.join(process.env.LOCALAPPDATA, "Microsoft", "Windows Terminal", "settings.json")
       : null,
   ].filter((value): value is string => Boolean(value));
 
@@ -230,11 +199,74 @@ function parseWtProfiles(settingsPath: string): string[] {
   }
 
   try {
-    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as WtSettings;
+    const parsed = parseJsonc(readFileSync(settingsPath, "utf8")) as WtSettings;
     return (parsed.profiles?.list ?? [])
       .filter((profile) => profile.name && profile.hidden !== true)
       .map((profile) => profile.name as string);
   } catch {
     return [];
   }
+}
+
+function parseJsonc(raw: string): unknown {
+  const withoutComments = stripJsoncComments(raw);
+  const withoutTrailingCommas = withoutComments.replace(/,\s*([}\]])/g, "$1");
+  return JSON.parse(withoutTrailingCommas);
+}
+
+function stripJsoncComments(raw: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index];
+    const next = raw[index + 1];
+
+    if (inString) {
+      result += char;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      result += char;
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      while (index < raw.length && raw[index] !== "\n") {
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      index += 2;
+      while (index < raw.length - 1 && !(raw[index] === "*" && raw[index + 1] === "/")) {
+        index += 1;
+      }
+      index += 1;
+      continue;
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
+export function parseJsoncForTests(raw: string): unknown {
+  return parseJsonc(raw);
 }

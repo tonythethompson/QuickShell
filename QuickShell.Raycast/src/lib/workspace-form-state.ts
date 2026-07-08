@@ -22,16 +22,23 @@ export type WorkspaceFormState = {
   isPinned: boolean;
   runAsAdmin: boolean;
   launches: LaunchFormRow[];
+  devServerUrl: string;
+  openDevServerOnLaunch: boolean;
+  repoUrl: string;
+  openCompanionAppOnLaunch: boolean;
+  companionAppPath: string;
+  companionAppArguments: string;
 };
 
-function usesSharedLaunchControls(state: WorkspaceFormState): boolean {
-  return state.launches.length === 1;
+function savableLaunchRowCount(state: WorkspaceFormState): number {
+  return state.launches.filter((row) => row.command.trim()).length;
 }
 
-function terminalForLaunchRow(
-  row: LaunchFormRow,
-  state: WorkspaceFormState,
-): string {
+function usesSharedLaunchControls(state: WorkspaceFormState): boolean {
+  return savableLaunchRowCount(state) <= 1;
+}
+
+function terminalForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string {
   if (usesSharedLaunchControls(state)) {
     return state.terminal || "default";
   }
@@ -39,10 +46,7 @@ function terminalForLaunchRow(
   return row.terminal || state.terminal || "default";
 }
 
-function wtProfileForLaunchRow(
-  row: LaunchFormRow,
-  state: WorkspaceFormState,
-): string | null {
+function wtProfileForLaunchRow(row: LaunchFormRow, state: WorkspaceFormState): string | null {
   if (usesSharedLaunchControls(state)) {
     return state.wtProfile ?? null;
   }
@@ -50,23 +54,16 @@ function wtProfileForLaunchRow(
   return row.wtProfile ?? state.wtProfile ?? null;
 }
 
-export function buildWorkspaceFromFormState(
-  initialWorkspace: Workspace,
-  state: WorkspaceFormState,
-): Workspace {
+export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: WorkspaceFormState): Workspace {
   const launches: LaunchEntry[] = state.launches
     .filter((row) => row.command.trim())
     .map((row, index) => ({
       id: row.id || createStableId(),
-      label:
-        row.label.trim() ||
-        suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
+      label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
       terminal: terminalForLaunchRow(row, state),
       wtProfile: wtProfileForLaunchRow(row, state),
       command: row.command.trim() || null,
-      runAsAdmin: usesSharedLaunchControls(state)
-        ? state.runAsAdmin
-        : row.runAsAdmin || state.runAsAdmin,
+      runAsAdmin: usesSharedLaunchControls(state) ? state.runAsAdmin : row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
       order: index,
       taskType: "none",
@@ -83,14 +80,18 @@ export function buildWorkspaceFromFormState(
     wtProfile: primary?.wtProfile ?? state.wtProfile ?? null,
     command: primary?.command ?? null,
     isPinned: state.isPinned,
-    runAsAdmin: state.runAsAdmin,
+    runAsAdmin: state.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
+    devServerUrl: state.devServerUrl?.trim() || null,
+    openDevServerOnLaunch: state.openDevServerOnLaunch ?? false,
+    repoUrl: state.repoUrl?.trim() || null,
+    openCompanionAppOnLaunch: state.openCompanionAppOnLaunch ?? false,
+    companionAppPath: state.companionAppPath?.trim() || null,
+    companionAppArguments: state.companionAppArguments?.trim() || null,
   });
 }
 
-export function workspaceFormStateFromWorkspace(
-  workspace: Workspace,
-): WorkspaceFormState {
+export function workspaceFormStateFromWorkspace(workspace: Workspace): WorkspaceFormState {
   const launches = workspace.launches.length
     ? workspace.launches.map((launch) => ({
         id: launch.id,
@@ -122,8 +123,14 @@ export function workspaceFormStateFromWorkspace(
     terminal: primary?.terminal ?? workspace.terminal ?? "default",
     wtProfile: primary?.wtProfile ?? workspace.wtProfile ?? null,
     isPinned: workspace.isPinned,
-    runAsAdmin: workspace.runAsAdmin,
+    runAsAdmin: workspace.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
+    devServerUrl: workspace.devServerUrl ?? "",
+    openDevServerOnLaunch: Boolean(workspace.openDevServerOnLaunch),
+    repoUrl: workspace.repoUrl ?? "",
+    openCompanionAppOnLaunch: Boolean(workspace.openCompanionAppOnLaunch),
+    companionAppPath: workspace.companionAppPath ?? "",
+    companionAppArguments: workspace.companionAppArguments ?? "",
   };
 }
 
@@ -142,10 +149,7 @@ export function launchRowsFromSuggestions(
   }));
 }
 
-export function filterWorkspacesForEdit(
-  workspaces: Workspace[],
-  query: string,
-): Workspace[] {
+export function filterWorkspacesForEdit(workspaces: Workspace[], query: string): Workspace[] {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) {
     return [...workspaces].sort((left, right) =>
@@ -159,20 +163,13 @@ export function filterWorkspacesForEdit(
         workspace.name,
         workspace.abbreviation ?? "",
         workspace.directory,
-        ...workspace.launches.map(
-          (launch) => `${launch.label} ${launch.command ?? ""}`,
-        ),
+        ...workspace.launches.map((launch) => `${launch.label} ${launch.command ?? ""}`),
       ];
       return haystacks.some((value) => value.toLowerCase().includes(trimmed));
     })
-    .sort((left, right) =>
-      left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
-    );
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }));
 }
 
 export function additionalLaunchCount(workspace: Workspace): number {
-  return Math.max(
-    0,
-    workspace.launches.filter((entry) => entry.isEnabled).length - 1,
-  );
+  return Math.max(0, workspace.launches.filter((entry) => entry.isEnabled).length - 1);
 }

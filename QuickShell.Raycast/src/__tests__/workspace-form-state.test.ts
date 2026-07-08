@@ -46,6 +46,15 @@ const multiLaunchWorkspace: Workspace = {
   ],
 };
 
+const defaultExtras = {
+  devServerUrl: "",
+  openDevServerOnLaunch: false,
+  repoUrl: "",
+  openCompanionAppOnLaunch: false,
+  companionAppPath: "",
+  companionAppArguments: "",
+};
+
 describe("workspace-form-state", () => {
   it("preserves additional launches when editing the primary launch", () => {
     const next = buildWorkspaceFromFormState(multiLaunchWorkspace, {
@@ -76,6 +85,7 @@ describe("workspace-form-state", () => {
           label: "Web",
         },
       ],
+      ...defaultExtras,
     });
 
     expect(next.launches).toHaveLength(2);
@@ -113,10 +123,88 @@ describe("workspace-form-state", () => {
           label: "Web",
         },
       ],
+      ...defaultExtras,
     });
 
     expect(next.launches).toHaveLength(1);
     expect(next.launches[0].command).toBe("dotnet run");
+  });
+
+  it("uses shared terminal profile when only one savable launch remains", () => {
+    const next = buildWorkspaceFromFormState(multiLaunchWorkspace, {
+      name: "Full stack",
+      abbreviation: "fs",
+      directory: "C:\\Projects\\fullstack",
+      terminal: "cmd",
+      wtProfile: null,
+      isPinned: false,
+      runAsAdmin: false,
+      launches: [
+        {
+          id: "1a",
+          command: "dotnet run",
+          terminal: "wt",
+          wtProfile: "PowerShell",
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "API",
+        },
+        {
+          id: "1b",
+          command: "",
+          terminal: "wt",
+          wtProfile: "Ubuntu",
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "Web",
+        },
+      ],
+      ...defaultExtras,
+    });
+
+    expect(next.launches).toHaveLength(1);
+    expect(next.launches[0].terminal).toBe("cmd");
+    expect(next.launches[0].wtProfile).toBeNull();
+    expect(next.wtProfile).toBeNull();
+  });
+
+  it("applies shared terminal profile when a single visible command row changes terminal", () => {
+    const singleLaunchWorkspace: Workspace = {
+      ...multiLaunchWorkspace,
+      launches: [
+        {
+          ...multiLaunchWorkspace.launches[0],
+          wtProfile: "PowerShell",
+        },
+      ],
+    };
+
+    const next = buildWorkspaceFromFormState(singleLaunchWorkspace, {
+      name: "API",
+      abbreviation: "api",
+      directory: "C:\\Projects\\fullstack",
+      terminal: "cmd",
+      wtProfile: null,
+      isPinned: false,
+      runAsAdmin: false,
+      launches: [
+        {
+          id: "1a",
+          command: "dotnet run",
+          terminal: "wt",
+          wtProfile: "PowerShell",
+          runAsAdmin: false,
+          isEnabled: true,
+          label: "API",
+        },
+      ],
+      ...defaultExtras,
+    });
+
+    expect(next.launches[0].terminal).toBe("cmd");
+    expect(next.launches[0].wtProfile).toBeNull();
+    expect(next.terminal).toBe("cmd");
+    expect(next.wtProfile).toBeNull();
   });
 
   it("derives form state from all launches", () => {
@@ -185,6 +273,7 @@ describe("workspace-form-state", () => {
           label: "Dev",
         },
       ],
+      ...defaultExtras,
     });
 
     expect(next.launches).toHaveLength(1);
