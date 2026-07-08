@@ -19,18 +19,20 @@ The original audit flagged **lifecycle and resource ownership** as a Medium-to-H
 > "State & lifecycle management in a long-lived extension host (statics, draft stores, git index, file-backed settings).  
 > Formalize extension lifecycle & resource ownership (dispose chains, file watchers if any, git index lifetime, background task cancellation)."
 
-QuickShell runs inside the PowerToys Command Palette host, which is a long-lived process. The extension can be enabled/disabled, the host can restart, and users can keep the palette open for hours. Currently:
+QuickShell runs inside the PowerToys Command Palette host, which is a long-lived process. The extension can be enabled/disabled, the host can restart, and users can keep the palette open for hours. **Fact-checked current state:**
 
-- Many services perform background work (`GitRepoIndex` pre-warm, health checks, debounced search) without clear cancellation or ownership.
-- `QuickShellCommandsProvider` and pages hold references to services but there is no explicit disposal chain.
-- `QuickShellExtension` uses a `ManualResetEvent` for shutdown signaling, but this is not propagated cleanly to all background tasks.
-- As we add more services via DI (#0001) and registries (#0004), the risk of leaked resources, dangling file handles, or tasks that continue after the extension is disabled increases.
-- Test coverage exists but is mostly unit-level. Integration tests that exercise real lifetimes and disposal are missing.
+- `QuickShellExtension` uses `ManualResetEvent` dispose signaling; it does **not** yet own a root `CancellationTokenSource`.
+- `QuickShellCommandsProvider` already implements `IDisposable` and calls `QuickShellRuntimeServices.Dispose()` (disposes drafts + repository).
+- `ShortcutRepository` and `SearchDebouncer` implement disposal (timer/mutex/etc.).
+- Background work (`GitRepoIndex` pre-warm via `Task.Run`, best-effort catches) often **does not** observe a shared cancellation token.
+- There are **no** `FileSystemWatcher`s in the repository today.
+- As we add more services via DI (#0001) and registries (#0004), risk of leaked resources or tasks continuing after disable increases.
+- Test coverage exists but is mostly unit-level; integration tests for lifetime/disposal are thin.
 
 Without disciplined ownership, we risk:
-- Resource leaks (file handles, git processes, WebView2 if used later)
+- Resource leaks (file handles, git processes)
 - Crashes or hangs on host shutdown
-- Flaky or hard-to-reproduce bugs in production
+- Flaky or hard-to-reproduce bugs
 - Difficulty reasoning about "what happens when the user disables QuickShell?"
 
 This PR makes resource ownership **explicit, testable, and enforced by construction**.
@@ -52,8 +54,9 @@ This PR makes resource ownership **explicit, testable, and enforced by construct
 **Non-Goals (for this PR)**
 - Introducing a full actor model or complex orchestration framework.
 - Changing the persistence format or command routing (those are separate PRs).
-- Adding file watchers if they don't already exist (this PR formalizes whatever exists today).
+- Adding file watchers if they don't already exist (none today; this PR formalizes whatever exists).
 - Perfect test coverage of every edge case — focus on high-value paths first.
+- Claiming WebView2 is an active dependency — it is only a central PackageVersion pin today; unrelated to disposal.
 
 ---
 
@@ -236,4 +239,8 @@ I am happy to generate the concrete code files for this PR (interfaces, `QuickSh
 **Would you like me to generate the actual code files for #0005 now?**  
 Or would you prefer the code files for any of the earlier PRs (0001–0004) first? Or a combined "Foundational Phase 1–5 Roadmap" summary document?
 
-Just say the word and I’ll drop the next set of artifacts into `/home/workdir/artifacts/QuickShell/`.
+Just say the word and I’ll generate the next artifacts under `docs/architecture/` or an implementation branch.
+
+---
+
+*Fact-checked July 2026: provider/runtime dispose exists; no root CTS yet; no FileSystemWatchers; WebView2 unused pin.*

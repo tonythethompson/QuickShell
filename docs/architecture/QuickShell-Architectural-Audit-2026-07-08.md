@@ -1,7 +1,7 @@
 # QuickShell Architectural Audit
 **Principal Software Architect Review** — July 2026
 
-QuickShell is a feature-rich PowerToys Command Palette extension (with PowerToys Run and experimental Raycast adapters) that enables terminal-centric users to manage “workspaces” (project folders + multi-launch configurations), launch them in any discovered terminal profile (Windows Terminal, WSL, classic shells, Intelligent Terminal), handle git worktrees/branches, perform health checks, and edit everything in-palette. It is built on .NET 10 with the Microsoft.CommandPalette.Extensions SDK (v0.11.x), MSIX packaging, AOT/trimming, and a cleanly separated `QuickShell.Core` library.
+QuickShell is a feature-rich PowerToys Command Palette extension (with a PowerToys Run plugin and a TypeScript Raycast-for-Windows extension that mirrors workspace concepts) that enables terminal-centric users to manage “workspaces” (project folders + multi-launch configurations), launch them in any discovered terminal profile (Windows Terminal, WSL, classic shells, Intelligent Terminal), handle git worktrees/branches, perform health checks, and edit everything in-palette. It is built on .NET 10 with the Microsoft.CommandPalette.Extensions SDK (v0.11.x), MSIX packaging, AOT/trimming, and a cleanly separated `QuickShell.Core` library. Raycast does **not** consume the .NET Core assembly — it reimplements shared concepts in TypeScript for parity.
 
 ---
 
@@ -10,33 +10,33 @@ QuickShell is a feature-rich PowerToys Command Palette extension (with PowerToys
 ### Overall Architectural Health: **B+ / Solid but Complex**
 
 The foundation is strong:
-- Clear project separation (`QuickShell.Core` is dependency-free and reusable by Run/Raycast)
+- Clear project separation (`QuickShell.Core` has **no CmdPal SDK** dependency and is reused by PowerToys Run; Raycast shares concepts only)
 - Modern .NET practices (source-generated JSON, AOT, single-file publish, CsWinRT interop)
 - Faithful CmdPal SDK patterns (`IExtension` → `CommandProvider` → dynamic `GetCommandItem` + pages)
 - Rich domain model that directly supports the product vision
-- Pragmatic persistence (JSON in `%LOCALAPPDATA%\QuickShell`)
+- Pragmatic persistence (JSON in `%LOCALAPPDATA%\QuickShell`; `shortcuts.json` already uses temp + `File.Replace`)
 - Sophisticated terminal discovery/launching
 - Visible attention to startup performance (tracing, pre-warm, lazy loading)
 
 ### Biggest Risks
 
-1. **Complexity debt** from ~50 service classes in `QuickShell.Core/Services` (many narrow *Discovery*, *Action*, *Form*, and *Git* classes). This creates hidden coupling and makes the “big picture” hard to hold in one head.
-2. **Brittle command routing** via string ID parsing (`ShortcutCommandIds.TryParse*`) and heavy reliance on a central `QuickShellRuntimeServices` (likely static-heavy).
-3. **State & lifecycle management** in a long-lived extension host (statics, draft stores, git index, file-backed settings).
-4. **In-palette editing surface** (forms, drafts, undo/redo, Adaptive Card or custom form JSON) is powerful but adds significant surface area and maintenance cost.
-5. JSON persistence lacks explicit schema versioning, atomic writes, or robust concurrency guards.
+1. **Complexity debt** from **~90** files in `QuickShell.Core/Services` (many narrow *Discovery*, *Action*, *Form*, and *Git* helpers — a large share are `static` classes). This creates hidden coupling and makes the “big picture” hard to hold in one head.
+2. **Brittle command routing** via string ID parsing (`ShortcutCommandIds.TryParse*`) and heavy reliance on a central static hub (`QuickShellRuntimeServices` in the extension project).
+3. **State & lifecycle management** in a long-lived extension host (statics, draft stores, git index, file-backed settings). Dispose exists on the provider/runtime today, but cancellation is not propagated to background work.
+4. **In-palette editing surface** (forms, drafts, undo/redo, Adaptive Card JSON) is powerful but adds significant surface area (~1.2k-line form page) and maintenance cost.
+5. JSON persistence has **no explicit schema version**; secondary stores (`worktree-branch-targets.json`, draft file, settings via CmdPal `JsonSettingsManager`) are not uniformly atomic.
 
 ### Opportunities
 
-The `QuickShell.Core` library is an excellent asset. With modest refactoring it can become a reusable “workspace launch engine” for future CmdPal extensions or even a standalone companion app. The health-check + git + project-classification logic is genuinely differentiated.
+The `QuickShell.Core` library is an excellent asset. With modest refactoring it can become a reusable “workspace launch engine” for future CmdPal extensions or even a standalone companion app. The health-check + git + project-classification logic is genuinely differentiated. PowerToys Run already consumes Core via project reference; Raycast remains a separate TypeScript surface.
 
 ### Top 5 Priority Improvements (ranked by impact × effort)
 
-1. **Introduce a proper composition root + dependency injection** in Core (and wire it into the CmdPal provider) — highest leverage for testability and decoupling.
+1. **Introduce a proper composition root + dependency injection** in Core (and wire it into the CmdPal provider) — highest leverage for testability and decoupling. Today only `IShortcutRepository` and `IDraftStore` exist; most “services” are static helpers.
 2. **Replace/harden string-based command ID routing** with a typed command registry or stronger factory + visitor pattern.
-3. **Consolidate or registry-ize the explosion of *Discovery/*Classifier/*Action services** (project type detection, task suggestions, companion apps, dev-server detection).
-4. **Strengthen the persistence layer** (atomic writes, schema version, backup on migration, clearer `IShortcutRepository` contract with events).
-5. **Formalize extension lifecycle & resource ownership** (dispose chains, file watchers if any, git index lifetime, background task cancellation).
+3. **Consolidate or registry-ize the explosion of *Discovery/*Classifier/*Action helpers** (project type detection, task suggestions, companion apps, dev-server detection).
+4. **Strengthen the persistence layer** (extract shared atomic writer, apply it to secondary stores, add schema version envelope for `shortcuts.json`, change events on `IShortcutRepository`).
+5. **Formalize extension lifecycle & resource ownership** (propagate cancellation from extension dispose, make static caches/`GitRepoIndex`/debouncers explicitly owned).
 
 ---
 
@@ -45,38 +45,39 @@ The `QuickShell.Core` library is an excellent asset. With modest refactoring it 
 ### 1. Overall Architecture & Plugin Design
 
 **Strengths**
-- `QuickShellExtension : IExtension, IDisposable` is minimal and correct. It only exposes `ProviderType.Commands` via `QuickShellCommandsProvider` and uses the standard `ManualResetEvent` dispose signaling pattern expected by the host.
-- `QuickShellCommandsProvider : CommandProvider` follows SDK idioms well: static top-level `CommandItem` → `QuickShellPage`, context commands for Create/Settings/Undo-Redo, lazy fallback page, and `GetCommandItem(string id)` for deep linking into specific workspaces/launches.
-- Excellent project separation: `QuickShell.Core` has **zero** dependency on CmdPal SDK or UI. `QuickShell.Run` is a thin keyword adapter. `QuickShell.Raycast` proves reusability.
+- `QuickShellExtension : IExtension, IDisposable` is minimal and correct. It only exposes `ProviderType.Commands` via `QuickShellCommandsProvider` and uses the standard `ManualResetEvent` dispose signaling pattern expected by the host. Class is `partial` with a stable `[Guid("528cc766-…")]`.
+- `QuickShellCommandsProvider : CommandProvider, IDisposable` follows SDK idioms well: static top-level `CommandItem` → `QuickShellPage`, context commands for Create/Settings/Undo-Redo, lazy fallback page, and `GetCommandItem(string id)` for deep linking into specific workspaces/launches. Dispose unsubscribes and calls `QuickShellRuntimeServices.Dispose()`.
+- Good project separation: `QuickShell.Core` has **no** CmdPal SDK dependency. It does enable `UseWindowsForms` (folder picker / clipboard STA). `QuickShell.Run` is a real PowerToys Run plugin (`IPlugin`) that project-references Core. `QuickShell.Raycast` is a separate TypeScript extension sharing concepts, not the Core assembly.
 - MSIX + Package.appxmanifest + modern publish settings (AOT, trimming, single-file) are appropriate for a CmdPal extension.
 
 **Issues**
 
 | Severity | Evidence | Impact | Recommended Fix | Trade-offs |
 |----------|----------|--------|------------------|------------|
-| **High** | `QuickShellCommandsProvider` constructor and `GetCommandItem` do heavy string ID parsing and delegate to many `QuickShell.*` factories/services. No visible DI container. | Hard to unit-test providers/pages in isolation; adding new command types or pages increases coupling. | Introduce `IServiceProvider` / simple composition root in Core. Register services, repositories, and factories. Wire from `Program.cs` or extension startup. Expose a `QuickShellServices` facade for the provider. | Small upfront cost; big win for testability and future multi-provider scenarios. Prefer constructor injection over static `QuickShellRuntimeServices`. |
+| **High** | `QuickShellCommandsProvider` ctor and `GetCommandItem` do heavy string ID parsing and delegate to many factories. No DI container (`Microsoft.Extensions.DependencyInjection` is not referenced). Wiring is `new` + `QuickShellRuntimeServices` statics. | Hard to unit-test providers/pages in isolation; adding new command types or pages increases coupling. | Introduce `IServiceProvider` / simple composition root in Core. Register services, repositories, and factories. Wire from extension startup. Expose a `QuickShellServices` facade for the provider. | Small upfront cost; big win for testability and future multi-provider scenarios. Prefer constructor injection over static `QuickShellRuntimeServices`. |
 | **Medium** | Only `Commands` provider is implemented; `GetProvider` returns `null` for Settings/Navigation/etc. | Misses CmdPal extension points that could provide richer settings UI or navigation. | Implement additional providers (`ISettingsProvider`, `INavigationProvider`) if/when the SDK surface grows, or keep focused if current page-based approach suffices. | Avoid over-engineering; current design is pragmatic. |
-| **Low** | Partial class on `QuickShellExtension` + GUID attribute. | Minor — suggests possible generated code or future COM registration needs. | Document the partial class intent. Ensure GUID is stable across versions. | Negligible. |
+| **Low** | `partial` class on `QuickShellExtension` + GUID attribute; only one hand-written fragment in-repo. | Minor — may be for COM/source-gen compatibility. | Document the partial class intent. Ensure GUID remains stable across versions. | Negligible. |
 
 ### 2. Core Functionality & Data Flow
 
 **Strengths**
-- Rich, well-named domain: `Workspace` / `WorkspaceEntry` / `TerminalShortcut` / `WorkspaceTaskAction`, separate `WorkspaceDiskRecord`.
-- Dedicated `ShortcutRepository` + `IShortcutRepository` + `WorktreeBranchTargetStore` + `WorkspaceMapper` + legacy migration.
+- Rich, well-named domain: `Workspace` / `WorkspaceEntry` / `TerminalShortcut` / `WorkspaceTaskAction`, separate disk/layout records.
+- Dedicated `ShortcutRepository` + `IShortcutRepository` + `WorktreeBranchTargetStore` + `WorkspaceMapper` + legacy migration (`WorkspaceLegacyMigration`).
 - Sophisticated launch path: `TerminalLauncher` + `ShortcutLaunchExecutor` + `TerminalProfileResolver` + `TerminalCatalog` + git checkout gate (`WorkspaceGitLaunchGate`, `WorkspaceGitOperations`).
 - Health checks (`WorkspaceHealthCheck`, `ShortcutHealth`, port/process signals, git dirty state) and diagnostics report are user-visible value.
-- Project classification + quick command suggestion (`ProjectClassifier`, `TaskTypeCommandSuggestion`, `DockerComposeDiscovery`, `Package.json` / `.csproj` / Taskfile detection) is clever and productivity-enhancing.
+- Project classification + quick command suggestion (`ProjectClassifier`, `TaskTypeCommandSuggestion`, `DockerComposeDiscovery`, package.json / `.csproj` / Taskfile detection embedded in classifiers — not separate `PackageJson*` types) is clever and productivity-enhancing.
 - Pre-warm of `GitRepoIndex` + `SearchDebouncer` + startup tracing show performance awareness.
+- `shortcuts.json` writes already use temp file + `File.Replace` with `.bak` and a named mutex (`WriteLayoutAtomic`).
 
 **Issues**
 
 | Severity | Evidence | Impact | Recommended Fix | Trade-offs |
 |----------|----------|--------|------------------|------------|
-| **High** | ~50 narrowly scoped service files (`*Discovery`, `*Actions`, `*Form*`, `CompanionApp*`, `DevServerUrlDetection`, etc.). Many appear to be static or tightly interdependent. | High cognitive load; risk of duplicated logic (e.g., multiple places discovering package.json or docker-compose); difficult to evolve consistently. | Create a small registry or plugin-style `IProjectClassifier` / `ITaskSuggestionProvider` interface. Register implementations centrally. Consolidate related discovery into cohesive services (e.g., one `ProjectLayoutAnalyzer`). | Loses some “obviousness” of file names; gains coherence. Do incrementally — start with the heaviest used classifiers. |
+| **High** | ~90 narrowly scoped files under `Services/` (`*Discovery`, `*Actions`, `*Form*`, `CompanionApp*`, `DevServerUrlDetection`, etc.). Many are `static`. | High cognitive load; risk of duplicated logic; difficult to evolve consistently. | Create a small registry or plugin-style `IProjectClassifier` / `ITaskSuggestionProvider` interface. Register implementations centrally. Consolidate related discovery into cohesive services (e.g., one `ProjectLayoutAnalyzer`). | Loses some “obviousness” of file names; gains coherence. Do incrementally — start with the heaviest used classifiers. |
 | **High** | Command routing via `ShortcutCommandIds.TryParseOpen` / `TryParseOpenLaunch` etc. + factories (`ShortcutListItems.CreateOpen`, `ShortcutTaskActionListItems`). | Fragile to refactoring; IDs become part of public contract; hard to add versioning or new command kinds. | Introduce a typed command descriptor or use SDK `Command` / `ICommandItem` more directly with stable IDs + payload objects. Or adopt a small command router with pattern matching. | More types initially; far more robust long-term. |
-| **Medium** | JSON persistence (`shortcuts.json`, `worktree-branch-targets.json`, `settings.json`) via source-generated `QuickShellJsonContext`. Separate files for branch targets. Legacy migration exists. | No visible atomic write / temp-file + rename pattern; no explicit schema version header; potential for partial writes or concurrent modification (though rare for single-user desktop). | Wrap writes in `ShortcutRepository` with atomic helper (temp file + `File.Replace` or `File.Move` with retry). Add a top-level `version` field + migration pipeline. Expose `Changed` events. | Small perf cost on writes; big reliability win. |
-| **Medium** | `QuickShellRuntimeServices` (inferred central hub) + draft stores (`ShortcutDraftStore`, `ShortcutFormDraftStore`) + recents + git index. | State lifetime tied to extension lifetime; risk of stale data or leaks if dispose is incomplete. | Make state explicit and owned. Use `IDisposable` hierarchies. Consider weak events or `IObservable` for settings/workspace changes instead of direct event wiring. | Slightly more code; much clearer ownership. |
-| **Low** | Health checks and launch diagnostics exist and are exposed in UI. | Good, but execution appears synchronous in some paths. | Keep health checks fast or make non-blocking where possible; surface “last checked” timestamps. | Already mostly addressed. |
+| **Medium** | Persistence: `shortcuts.json` is a **root JSON array** (no schema `version`). Atomic for shortcuts already. `worktree-branch-targets.json` uses `File.WriteAllText`; draft store uses `WriteAllTextAsync`; settings go through CmdPal `JsonSettingsManager`. No change events on `IShortcutRepository`. | Secondary stores can still corrupt on crash; format evolution for shortcuts is harder without a version envelope; UI must poll or take direct references. | Extract `IAtomicFileWriter` from the existing shortcuts pattern; apply to secondary stores. Introduce a versioned document envelope (breaking layout change — migrate array → `{ "version": 1, "entries": [...] }`). Add `WorkspacesChanged` (or similar) on `IShortcutRepository`. | Envelope migration needs careful tests; atomic helper is mostly extraction of working code. |
+| **Medium** | `QuickShellRuntimeServices` (extension project: static `Shortcuts`, `Drafts`, `Settings`) + draft stores + recents + static `GitRepoIndex`. | State lifetime tied to extension lifetime; risk of stale data if dispose/cancel is incomplete for background work. | Make state explicit and owned via DI. Use `IDisposable` hierarchies + root cancellation. Consider events for settings/workspace changes instead of only direct wiring. | Slightly more code; much clearer ownership. |
+| **Low** | Health checks and launch diagnostics exist and are exposed in UI. | Good, but some paths remain synchronous. | Keep health checks fast or make non-blocking where possible; surface “last checked” timestamps. | Already mostly addressed. |
 
 ### 3. Maintainability & Technical Debt
 
@@ -89,7 +90,7 @@ The `QuickShell.Core` library is an excellent asset. With modest refactoring it 
 
 | Severity | Evidence | Impact | Recommended Fix | Trade-offs |
 |----------|----------|--------|------------------|------------|
-| **High** | Large number of small service classes with likely cross-dependencies (health ↔ git ↔ launch ↔ form). | “Shotgun surgery” risk when changing Workspace or Launch model. New contributors will struggle to see the forest. | Create a lightweight layered architecture diagram (or ADR) and a `QuickShell.Core.Abstractions` or `Domain` namespace for core contracts. Add high-level sequence diagrams for “Launch Workspace” and “Edit in Palette”. | Documentation effort; prevents future debt. |
+| **High** | Large number of small service classes with cross-dependencies (health ↔ git ↔ launch ↔ form). Largest concentrations: `ShortcutRepository` (~1.7k lines), `ShortcutFormPage` (~1.2k). | “Shotgun surgery” risk when changing Workspace or Launch model. New contributors will struggle to see the forest. | Create a lightweight layered architecture diagram (or ADR) and an `Abstractions/` (or `Domain`) namespace for core contracts. Add high-level sequence diagrams for “Launch Workspace” and “Edit in Palette”. | Documentation effort; prevents future debt. |
 | **Medium** | Heavy use of forms/drafts for in-palette CRUD (`ShortcutForm*`, `AdaptiveCardFormJson`, `FormPayloadMerge`, etc.). | This layer is complex and CmdPal-form primitives may evolve. | Treat the form layer as a distinct bounded context. Consider extracting a small “WorkspaceEditor” service that the provider consumes. Long-term: evaluate whether a lightweight companion settings window (WinUI) would be simpler for heavy editing. | In-palette is a differentiator; don’t remove it lightly. |
 | **Low** | StyleCop + analyzers present; nullable enabled. | Good hygiene. | Enforce analyzers as errors in CI. Add architecture tests (e.g., “Core must not reference UI namespaces”) if using ArchUnitNET or similar. | Minor. |
 
@@ -134,8 +135,8 @@ The `QuickShell.Core` library is an excellent asset. With modest refactoring it 
 
 | Severity | Evidence | Impact | Recommended Fix | Trade-offs |
 |----------|----------|--------|------------------|------------|
-| **Medium** | `UseWindowsForms = true` in both Core and main project. | Suggests legacy folder picker or dialog usage. In a modern CmdPal extension this can pull in WinForms dependencies unnecessarily. | Replace with `Microsoft.WindowsAPICodePack` or pure WinRT folder picker / `StorageFile` APIs if possible. Or isolate WinForms usage. | Minor binary size win; cleaner dependency graph. |
-| **Low** | WebView2 is referenced centrally. | Not obviously used in core CmdPal flow (perhaps future companion UI or settings webview?). | Audit actual usage. If unused, remove to reduce attack surface and size. | — |
+| **Medium** | `UseWindowsForms = true` in both Core and main project (`FolderPickerService`, `StaClipboard` in Core). | Pulls WinForms into Core’s dependency surface for a CmdPal extension. | Replace with WinRT / Storage APIs if possible, or isolate WinForms behind a narrow abstraction owned by the extension host. | Minor binary size win; cleaner Core graph. |
+| **Low** | `Microsoft.Web.WebView2` appears only as a central `PackageVersion` pin in `Directory.Packages.props`; **no project references it**. | Dead central pin can confuse dependency audits. | Remove the unused PackageVersion pin unless a planned consumer lands soon. | — |
 
 ---
 
@@ -144,19 +145,20 @@ The `QuickShell.Core` library is an excellent asset. With modest refactoring it 
 **Goal**  
 Transform QuickShell’s architectural foundation over five coordinated, incremental PRs. This phase directly attacks the highest-severity risks identified in the audit:
 
-- Hidden coupling via ~50 narrow service classes and static hubs  
+- Hidden coupling via ~90 narrow `Services/` files and the static `QuickShellRuntimeServices` hub  
 - Brittle string-based command routing  
-- Fragile JSON persistence (no atomicity, no schema versioning)  
+- Incomplete persistence hardening (schema version absent; secondary stores not atomic; no repository change events)  
 - Service explosion and implicit dependencies in project intelligence  
-- Unclear resource ownership and lifecycle in a long-lived Command Palette host  
+- Incomplete cancellation / ownership propagation in a long-lived Command Palette host  
 
 **Guiding Principles**
 - **DI-first**: #0001 is the critical enabler; everything after becomes dramatically simpler, testable, and maintainable.
 - **Incremental & safe**: Use compatibility shims and dual-paths during migration so the extension remains fully functional.
 - **Testability as outcome**: Every PR must improve (or at least not harm) the ability to write fast, isolated tests.
 - **Preserve UX & performance**: No user-visible behavior changes or startup regressions during this phase.
+- **Build on existing strength**: e.g. extract/reuse `WriteLayoutAtomic` rather than rewriting shortcuts persistence from scratch.
 
-See individual PR proposals in `docs/prs/` for full motivation, design, trade-offs, and commit messages:
+See individual PR proposals in this folder (`docs/architecture/`) for full motivation, design, trade-offs, and commit messages:
 - `0001-introduce-dependency-injection-composition-root.md`
 - `0002-persistence-hardening-atomic-writes-schema-version.md`
 - `0003-replace-string-command-routing-with-typed-descriptors.md`
@@ -168,9 +170,9 @@ See individual PR proposals in `docs/prs/` for full motivation, design, trade-of
 | Order | PR | Title | Depends On | Primary Risk Mitigated | Key Deliverable |
 |-------|----|-------|------------|------------------------|-----------------|
 | 1 | **#0001** | Dependency Injection + Composition Root | None | Hidden coupling, poor testability, static hub | `IServiceProvider` / `QuickShellServices` facade wired into `QuickShellCommandsProvider` + top services |
-| 2 | **#0002** | Persistence Hardening (Atomic Writes + Schema Version) | #0001 | Data loss on crash, unversioned format, ad-hoc migration | `IAtomicFileWriter`, versioned JSON header, `WorkspacesChanged` events on `IShortcutRepository` |
+| 2 | **#0002** | Persistence Hardening (Shared Atomic Writer + Schema Version) | #0001 | Unversioned shortcuts array, non-atomic secondary stores, no change events | Extract `IAtomicFileWriter` from existing `WriteLayoutAtomic`, versioned envelope for shortcuts, harden worktree/drafts, `WorkspacesChanged` on `IShortcutRepository` |
 | 3 | **#0003** | Typed Command Routing (`CommandDescriptor` + Registry) | #0001 | Fragile `TryParse*` string parsing, magic IDs | `CommandDescriptor`, `ICommandRouter`, clean `GetCommandItem` delegation |
-| 4 | **#0004** | Service Consolidation via Registry Pattern | #0001 (strong) | ~50 narrow `*Discovery` / `*Classifier` classes, shotgun surgery | `IProjectClassifier`, `ITaskSuggestionProvider`, `IProjectAnalysisService` + `IEnumerable<T>` DI pattern |
+| 4 | **#0004** | Service Consolidation via Registry Pattern | #0001 (strong) | ~90 `Services/` files / narrow `*Discovery` helpers, shotgun surgery | `IProjectClassifier`, `ITaskSuggestionProvider`, `IProjectAnalysisService` + `IEnumerable<T>` DI pattern |
 | 5 | **#0005** | Formal `IDisposable` / Cancellation Ownership + Expanded Tests | #0001 (strong) | Resource leaks, unclear shutdown, weak test coverage | `QuickShellLifetime`, proper `IDisposable` hierarchy, `QuickShellTestHost` fixture, significantly expanded test suite |
 
 ### Detailed PR Breakdown with Suggested Code Snippets
@@ -181,10 +183,11 @@ See individual PR proposals in `docs/prs/` for full motivation, design, trade-of
 Without DI, every subsequent improvement (atomic persistence, typed routing, registries, lifetime management) requires painful manual wiring or statics. This is the single highest-leverage change.
 
 **Key Changes**
-- New `QuickShell.Core/Abstractions/` and `Composition/` folders
+- New `QuickShell.Core/Abstractions/` and `Composition/` folders (do not exist yet)
 - `QuickShellServiceCollectionExtensions.AddQuickShellCore()`
 - `QuickShellCommandsProvider` receives `IServiceProvider` (or a thin `QuickShellServices` facade)
-- Top services (`IShortcutRepository`, `ITerminalLauncher`, `IWorkspaceHealthChecker`, etc.) get interfaces + constructor injection
+- Promote critical **static** helpers (`TerminalLauncher`, `WorkspaceHealthCheck`, `WorkspaceMapper`, `GitRepoIndex`, …) to instance types with interfaces. `IShortcutRepository` / `IDraftStore` already exist under `Services/` — move or re-export as you prefer.
+- Replace / shrink `QuickShellRuntimeServices` static hub in the extension project
 
 **Suggested Code Snippet — Registration**
 
@@ -236,43 +239,48 @@ public sealed class QuickShellCommandsProvider : CommandProvider
 **Migration Note**  
 Keep existing static access paths temporarily behind a compatibility shim so the app continues to run while you convert call sites.
 
-#### #0002 — Persistence Hardening (Atomic Writes + Schema Version)
+#### #0002 — Persistence Hardening (Shared Atomic Writer + Schema Version)
 
 **Why it matters**  
-Current JSON writes are not atomic. A crash during save can corrupt `shortcuts.json`. There is also no explicit schema version, making future format changes risky.
+`ShortcutRepository.WriteLayoutAtomic` already does temp + `File.Replace` + `.bak` + mutex. Gaps remain: `shortcuts.json` is a bare JSON **array** (no schema version), secondary stores (`WorktreeBranchTargetStore`, draft file) still use non-atomic writes, and `IShortcutRepository` has no change events.
 
 **Key Changes**
-- `IAtomicFileWriter` + `AtomicFileWriter` (uses `File.Replace` for true atomicity on Windows)
-- Top-level `version` field in JSON files + lightweight migration pipeline on load
-- `IShortcutRepository` gains `WorkspacesChanged` / `SettingsChanged` events (now easy to inject and consume)
+- Extract reusable `IAtomicFileWriter` / `AtomicFileWriter` from the existing shortcuts pattern; apply to worktree targets and drafts
+- Migrate shortcuts layout from root array → versioned envelope `{ "version": 1, "entries": [...] }` with load-time migration
+- `IShortcutRepository` gains `WorkspacesChanged` (and similar) events once DI makes subscription clean
 
-**Suggested Code Snippet — Atomic Write Helper**
+**Suggested Code Snippet — Atomic Write Helper (extract from existing logic)**
 
 ```csharp
 // QuickShell.Core/Persistence/AtomicFileWriter.cs
 public sealed class AtomicFileWriter : IAtomicFileWriter
 {
-    public void WriteAllTextAtomic(string path, string content)
+    public void WriteAllBytesAtomic(string path, byte[] content)
     {
-        var tempPath = Path.Combine(Path.GetDirectoryName(path)!, 
-                                    Path.GetRandomFileName() + ".tmp");
-        File.WriteAllText(tempPath, content, Encoding.UTF8);
-        File.Replace(tempPath, path, null);   // atomic on Windows
+        var tempPath = path + ".tmp";
+        var backupPath = path + ".bak";
+        File.WriteAllBytes(tempPath, content);
+        if (File.Exists(path))
+            File.Replace(tempPath, path, backupPath, ignoreMetadataErrors: true);
+        else
+            File.Move(tempPath, path);
     }
 }
 ```
 
-**Suggested Code Snippet — Versioned Load (inside ShortcutRepository)**
+**Suggested Code Snippet — Versioned Envelope (breaking layout change)**
 
 ```csharp
-private (int Version, JsonDocument Doc) LoadWithVersion(string fileName)
+// On load: root Array => treat as version 0; root Object with "version"/"entries" => current
+// On save: always write versioned envelope
+private static bool TryLoadLayout(JsonElement root, out int version, out List<ShortcutLayoutEntry> layout)
 {
-    var path = GetFullPath(fileName);
-    if (!File.Exists(path)) return (1, null);
-
-    using var doc = JsonDocument.Parse(File.ReadAllText(path));
-    var version = doc.RootElement.TryGetProperty("version", out var v) ? v.GetInt32() : 0;
-    return (version, doc);
+    if (root.ValueKind == JsonValueKind.Array)
+    {
+        version = 0;
+        return ShortcutLayoutJson.TryParseRoot(root, out layout);
+    }
+    // versioned object path…
 }
 ```
 
@@ -308,7 +316,7 @@ public override CommandItem? GetCommandItem(string id)
 #### #0004 — Service Consolidation via Registry Pattern
 
 **Why it matters**  
-~50 narrow service classes (`DockerComposeDiscovery`, `PackageJsonClassifier`, `TaskTypeCommandSuggestion`, `CompanionAppDetector`, …) create implicit coupling and make evolution painful.
+~90 files under `Services/` (`DockerComposeDiscovery`, package.json logic inside `ProjectClassifier`, `TaskTypeCommandSuggestion`, `CompanionAppDetection`, …) create implicit coupling and make evolution painful.
 
 **Key Changes**
 - `IProjectClassifier` + `ITaskSuggestionProvider` interfaces
@@ -321,7 +329,7 @@ public override CommandItem? GetCommandItem(string id)
 ```csharp
 // Registration (in AddQuickShellCore)
 services.AddSingleton<IProjectClassifier, DotNetProjectClassifier>();
-services.AddSingleton<IProjectClassifier, NodePackageJsonClassifier>();
+services.AddSingleton<IProjectClassifier, NodeProjectClassifier>(); // extract package.json signals from ProjectClassifier
 services.AddSingleton<IProjectClassifier, DockerComposeClassifier>();
 services.AddSingleton<IProjectClassifier, TaskfileClassifier>();
 // ... more as they are migrated
@@ -352,7 +360,7 @@ public sealed class ProjectAnalysisService : IProjectAnalysisService
 #### #0005 — Formal `IDisposable` / Cancellation Ownership + Expanded Tests
 
 **Why it matters**  
-Long-lived extension host + background work (`GitRepoIndex` pre-warm, debouncers, health checks) currently has implicit ownership. Risk of leaks or stale state on shutdown/reload.
+Long-lived extension host + background work (`GitRepoIndex` pre-warm, debouncers, health checks) has partial dispose today (`QuickShellCommandsProvider` → `QuickShellRuntimeServices.Dispose`) but no root cancellation token. No `FileSystemWatcher`s in-repo. Risk of background tasks continuing after disable/reload.
 
 **Key Changes**
 - `QuickShellLifetime` lightweight holder (owns root `CancellationTokenSource`)
@@ -419,6 +427,7 @@ public sealed class QuickShellTestHost : IDisposable
 | Lifetime mistakes (capturing transient in singleton) | Medium | High | Clear lifetime rules documented in `QuickShellServiceCollectionExtensions`; simple analyzer or code review checklist |
 | Migration data loss during persistence hardening | Low | Critical | Atomic writes + backup-on-first-migration + extensive migration tests in #0002 |
 | Over-engineering the registry pattern (#0004) | Medium | Low | Start with only the top 6 classifiers in #0004; leave the long tail for later PRs |
+| Treating shortcuts persistence as non-atomic in #0002 | Medium | Medium | Reframe #0002 as extract + version envelope + secondary stores (already corrected in this audit) |
 
 ### Post-Foundational Opportunities (After #0005)
 
@@ -440,4 +449,5 @@ Addressing the coupling, routing, and persistence concerns incrementally will ma
 ---
 
 *This audit was performed as a Principal Software Architect review focused on structural and architectural issues.*  
+*Fact-checked against the July 2026 codebase (service counts, persistence atomics, DI/interfaces, Raycast/Core relationship, WebView2 pin).*  
 *Ready for phased implementation starting with the Dependency Injection composition root PR.*

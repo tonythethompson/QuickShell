@@ -18,14 +18,14 @@ The audit identified **High-severity** issues in **Core Functionality & Data Flo
 
 > Command routing via `ShortcutCommandIds.TryParseOpen` / `TryParseOpenLaunch` etc. + factories (`ShortcutListItems.CreateOpen`, `ShortcutTaskActionListItems`). Fragile to refactoring; IDs become part of public contract; hard to add versioning or new command kinds.
 
-**Current problems:**
+**Current problems (confirmed in code):**
 
-- A growing number of static `TryParse*` methods scattered across `ShortcutCommandIds`, `ShortcutListItems`, `ShortcutTaskActionListItems`, and various `*Form*` classes.
-- Command IDs are magic strings that must be kept in sync between list item creation and `GetCommandItem(string id)` handling.
-- Adding a new command type (e.g., a new git worktree action, a new task suggestion, or a settings deep-link) requires touching multiple files and understanding implicit conventions.
-- No clear ownership or single place to reason about all supported command kinds.
-- Risk of ID collisions or silent fallback behavior as the feature surface grows (workspaces + launches + tasks + git operations + health actions + import/export + recents).
-- Makes unit testing of command creation and deep linking painful.
+- `ShortcutCommandIds` in Core owns prefixes (`com.quickshell.shortcut.open.{id}`, `.launch.{launchId}`, …) and `TryParse*` helpers; tests in `ShortcutCommandIdsTests`.
+- `QuickShellCommandsProvider.GetCommandItem(string id)` chains TryParse / factory calls.
+- Command IDs are magic strings that must stay in sync between list item creation and deep-link handling.
+- Adding a new command type requires touching multiple files and understanding implicit conventions.
+- No single place to reason about all supported command kinds.
+- Risk of ID collisions or silent fallback as the surface grows (workspaces + launches + tasks + git + health + import/export + recents).
 
 This pattern worked when QuickShell was smaller. It is now a structural liability.
 
@@ -228,7 +228,7 @@ refactor(core): introduce CommandDescriptor + ICommandRouter to replace scattere
 1. **#0001** — DI + Composition Root (already proposed)
 2. **#0002** — Persistence Hardening (atomic writes + schema version)
 3. **This PR (#0003)** — Typed command routing / `CommandDescriptor` + Registry
-4. **Next** — Registry pattern for `IProjectClassifier`, task suggesters, companion app detectors, and dev server discovery (the ~50 narrow service classes problem)
+4. **Next** — Registry pattern for `IProjectClassifier`, task suggesters, companion app detectors, and dev server discovery (the ~90-file `Services/` cohesion problem)
 5. **Later** — Formalize `IDisposable` / background task / cancellation ownership across the extension lifetime
 6. **Future** — Evaluate whether a lightweight companion WinUI settings window would reduce in-palette form complexity for heavy editing scenarios
 
@@ -249,4 +249,8 @@ The command routing layer is currently one of the most "change-sensitive" parts 
 3. Create a combined "Foundational Phase (0001+0002+0003)" planning document?
 4. Adjust the scope or design of this 0003 proposal before generating code?
 
-Just say the word and I’ll drop the next artifacts into `/home/workdir/artifacts/QuickShell/`.
+Just say the word and I’ll generate the next artifacts under `docs/architecture/` (or a follow-up implementation branch).
+
+---
+
+*Fact-checked July 2026: `ShortcutCommandIds` + provider GetCommandItem pattern confirmed; routing proposal remains valid.*

@@ -12,9 +12,15 @@
 
 ## Summary
 
-This PR introduces a proper **composition root** and **constructor dependency injection** into `QuickShell.Core`. It replaces the current reliance on a central `QuickShellRuntimeServices` hub (and scattered direct instantiation) with clean, interface-driven service registration.
+This PR introduces a proper **composition root** and **constructor dependency injection** into `QuickShell.Core`. It replaces the current reliance on a central `QuickShellRuntimeServices` hub (and scattered direct instantiation / static helpers) with clean, interface-driven service registration.
 
 This is the single highest-leverage change identified in the July 2026 Architectural Audit. It dramatically improves testability, decoupling, and the ability to safely evolve the rest of the codebase (typed command routing, classifier registry, persistence hardening, etc.).
+
+**Current state (fact-checked):**
+- `Microsoft.Extensions.DependencyInjection` is **not** referenced anywhere in the solution.
+- `QuickShellRuntimeServices` is a small **static** class in the **extension** project (`QuickShell/Services/`), holding `Settings`, `Shortcuts` (`ShortcutRepository`), and `Drafts`.
+- Only `IShortcutRepository` and `IDraftStore` exist today (under `Services/`). Types like `TerminalLauncher`, `WorkspaceHealthCheck`, `WorkspaceMapper`, and `GitRepoIndex` are largely **static** helpers — interfaces for them are new work.
+- `Abstractions/` and `Composition/` folders do not exist yet.
 
 ---
 
@@ -22,10 +28,10 @@ This is the single highest-leverage change identified in the July 2026 Architect
 
 From the Architectural Audit:
 
-> The current design relies heavily on a central `QuickShellRuntimeServices` (static or semi-static hub) and direct instantiation / factory calls scattered across `QuickShellCommandsProvider`, pages, and many narrow `*Discovery`, `*Action`, and `*Form` services. This creates hidden coupling between ~50 service classes, poor testability, and difficulty evolving command routing or adding new workspace behaviors.
+> The current design relies heavily on a central `QuickShellRuntimeServices` static hub and direct instantiation / factory / static helper calls scattered across `QuickShellCommandsProvider`, pages, and many of the ~90 files under `QuickShell.Core/Services`. This creates hidden coupling, poor testability, and difficulty evolving command routing or adding new workspace behaviors.
 
 **Problems addressed:**
-- Hidden coupling across dozens of narrow service classes
+- Hidden coupling across dozens of narrow helpers (many static)
 - Inability to easily unit test `QuickShellCommandsProvider` and pages in isolation
 - Risk of lifetime/ownership issues in a long-lived Command Palette extension host
 - Difficulty adding new features without increasing entanglement
@@ -79,13 +85,14 @@ QuickShell.Core/
 
 | Interface                        | Implementation                  | Lifetime   | Notes |
 |----------------------------------|---------------------------------|------------|-------|
-| `IShortcutRepository`            | `ShortcutRepository`            | Singleton  | Core data + change events |
-| `ITerminalLauncher`              | `TerminalLauncher`              | Singleton  | Launch execution |
-| `ITerminalProfileResolver`       | `TerminalProfileResolver`       | Singleton  | WT / WSL / classic discovery |
-| `IWorkspaceHealthChecker`        | `WorkspaceHealthCheck`          | Transient  | Or cached with TTL later |
-| `IWorkspaceGitOperations`        | `WorkspaceGitOperations`        | Transient  | Checkout / worktree logic |
-| `IWorkspaceMapper`               | `WorkspaceMapper`               | Singleton  | Disk ↔ domain mapping |
-| `IGitRepoIndex`                  | `GitRepoIndex`                  | Singleton  | Pre-warmed git index |
+| `IShortcutRepository`            | `ShortcutRepository`            | Singleton  | **Already exists**; add events in #0002 |
+| `IDraftStore`                    | `ShortcutDraftStore`            | Singleton  | **Already exists** |
+| `ITerminalLauncher`              | `TerminalLauncher` (instance)   | Singleton  | Today: `static` class — convert |
+| `ITerminalProfileResolver`       | `TerminalProfileResolver`       | Singleton  | Convert if currently static/helpers |
+| `IWorkspaceHealthChecker`        | `WorkspaceHealthCheck`          | Transient  | Today: static — convert |
+| `IWorkspaceGitOperations`        | `WorkspaceGitOperations`        | Transient  | Convert |
+| `IWorkspaceMapper`               | `WorkspaceMapper`               | Singleton  | Today: static — convert |
+| `IGitRepoIndex`                  | `GitRepoIndex`                  | Singleton  | Today: static — convert |
 
 Additional interfaces (`IProjectClassifier`, task suggestion providers, etc.) will be added in follow-up PRs using the same pattern.
 
@@ -119,25 +126,18 @@ public static class QuickShellServiceCollectionExtensions
 }
 ```
 
-Then in `QuickShellExtension.cs` (or `Program.cs` equivalent):
+Then at extension / provider startup (today composition happens inside `QuickShellCommandsProvider` ctor via `new QuickShellSettingsManager` + `QuickShellRuntimeServices.Initialize`):
 
 ```csharp
 var services = new ServiceCollection();
 services.AddQuickShellCore();
-// ... other registrations
+// register extension-only types (settings manager, pages factories) as needed
 var serviceProvider = services.BuildServiceProvider();
 
-// Pass to provider
 var provider = new QuickShellCommandsProvider(serviceProvider);
 ```
 
-`QuickShellCommandsProvider` constructor changes from:
-
-```csharp
-public QuickShellCommandsProvider() { ... }   // old static-heavy
-```
-
-to:
+`QuickShellCommandsProvider` constructor changes from parameterless / self-wiring to:
 
 ```csharp
 public QuickShellCommandsProvider(IServiceProvider services)
@@ -148,7 +148,11 @@ public QuickShellCommandsProvider(IServiceProvider services)
 }
 ```
 
-A lightweight `QuickShellServices` facade can be introduced later if constructor bloat appears in pages.
+Keep `QuickShellRuntimeServices` temporarily as a thin shim that reads from the same root instances if pages still call statics; delete once call sites are migrated.
+
+A lightweight `QuickShellServices` facade can be introduced if constructor bloat appears in pages.
+
+**Package requirement:** add `Microsoft.Extensions.DependencyInjection` (and abstractions) via central package management — not present today.
 
 ---
 
@@ -243,4 +247,5 @@ Once this lands, the rest of the audit findings become much easier and safer to 
 ---
 
 *Generated as part of the QuickShell Architectural Audit (July 2026)*  
+*Fact-checked: no DI today; RuntimeServices is extension-static; only IShortcutRepository/IDraftStore exist.*  
 *Principal Software Architect Review*

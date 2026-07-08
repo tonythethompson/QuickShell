@@ -1,7 +1,7 @@
-# PR Proposal: 0004 — Consolidate Discovery / Classifier / Task Suggestion Services via Registry + Plugin Pattern
+# PR Proposal: 0004 — Consolidate Discovery / Classifier / Task Suggestion Helpers via Registry + Plugin Pattern
 
 **Title**  
-Consolidate ~50 Narrow Discovery / Classifier / Task Suggestion Services into a Registry + Plugin Architecture
+Consolidate Discovery / Classifier / Task Suggestion Helpers (~90 `Services/` files; start with the intelligence cluster) into a Registry + Plugin Architecture
 
 **PR Type**  
 Architectural Refactor / Service Consolidation  
@@ -26,11 +26,13 @@ Large (but can be landed incrementally in 2–3 focused PRs if needed)
 
 The audit identified a **High-severity** structural problem:
 
-> **~50 narrowly scoped service files** (`*Discovery`, `*Actions`, `*Form*`, `CompanionApp*`, `DevServerUrlDetection`, `DockerComposeDiscovery`, `PackageJson*`, `.csproj` detection, `Taskfile*`, `ProjectClassifier`, `TaskTypeCommandSuggestion`, etc.). Many appear to be static or tightly interdependent. This creates high cognitive load, risk of duplicated logic, and makes the “big picture” of how QuickShell understands a project folder very hard to hold in one head.
+> **~90 files under `QuickShell.Core/Services`** (`*Discovery`, `*Actions`, `*Form*`, `CompanionApp*`, `DevServerUrlDetection`, `DockerComposeDiscovery`, package.json / `.csproj` / Taskfile detection inside `ProjectClassifier` and related helpers, `TaskTypeCommandSuggestion`, etc.). Many are `static`. This creates high cognitive load, risk of duplicated logic, and makes the “big picture” of how QuickShell understands a project folder hard to hold in one head.
 
-This is classic **service explosion** anti-pattern. While each individual class follows Single Responsibility on the surface, the **collective** design has poor cohesion at the architectural level. Adding a new project type, task suggestion, or companion app currently requires touching multiple places and understanding implicit contracts between classes.
+This is classic **service explosion**. While each file often follows Single Responsibility on the surface, the **collective** design has poor cohesion at the architectural level. Adding a new project type, task suggestion, or companion app currently requires touching multiple places and understanding implicit contracts.
 
-This PR introduces a **registry + plugin pattern** (inspired by clean architecture and extensible plugin systems) so that new intelligence capabilities become simple registrations rather than invasive changes.
+**Naming note:** Prefer real type names from the tree (`CompanionAppDetection`, `CompanionAppCatalog`, `ProjectClassifier`) — there is no standalone `PackageJsonClassifier` / `CompanionAppDetector` class.
+
+This PR introduces a **registry + plugin pattern** (compile-time DI registration) so new intelligence capabilities become simple registrations rather than invasive changes.
 
 ---
 
@@ -166,8 +168,8 @@ QuickShell.Core/
 
 **High-impact areas that will change:**
 
-- `ProjectClassifier.cs`, `TaskTypeCommandSuggestion.cs`, `DockerComposeDiscovery.cs`, `PackageJson*`, `.csproj` detection logic, `CompanionApp*`, `DevServerUrlDetection`, etc. — will be refactored into implementations of the new interfaces.
-- Any code that currently calls these services directly will go through `IProjectAnalysisService` instead.
+- `ProjectClassifier.cs`, `TaskTypeCommandSuggestion.cs`, `DockerComposeDiscovery.cs`, companion/dev-server helpers (`CompanionAppDetection`, `DevServerUrlDetection`, …) — refactored into implementations of the new interfaces. Package.json / csproj signals live inside `ProjectClassifier` today; extract classifiers without inventing fictional type names.
+- Any code that currently calls these helpers directly will go through `IProjectAnalysisService` instead.
 - `QuickShellCommandsProvider` and page factories that build task suggestions will consume the new unified service.
 
 **Low-risk areas:**
@@ -180,7 +182,7 @@ QuickShell.Core/
 
 ## Migration / Rollout Strategy (Critical — Must Be Incremental)
 
-Because there are ~50 affected classes, we **must not** attempt a big-bang refactor.
+Because there are ~90 files under `Services/` (not all of which are classifiers — forms/persistence/launch make up a large share), we **must not** attempt a big-bang refactor. Scope this PR to the intelligence/classification cluster only.
 
 **Recommended Phased Approach:**
 
@@ -269,6 +271,10 @@ By introducing a clean `IProjectClassifier` / `ITaskSuggestionProvider` + DI-pow
 ---
 
 **Ready for implementation.**  
-I can generate the actual code files for this PR (interfaces + `ProjectAnalysisService` + first-wave migrated classifiers + DI registration) whenever you want. Just say the word.
+I can generate the actual code files for this PR (interfaces + `ProjectAnalysisService` + first-wave migrated classifiers + DI registration) whenever you want.
 
-This pairs beautifully with #0001 (DI) and positions QuickShell for long-term sustainable growth in its core differentiation area: deep, fast, local project/workspace intelligence.
+This pairs with #0001 (DI) and positions QuickShell for sustainable growth in project/workspace intelligence.
+
+---
+
+*Fact-checked July 2026: ~90 Services files; no PackageJsonClassifier type; CompanionAppDetection naming.*

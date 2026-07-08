@@ -1,25 +1,33 @@
 **Proposed Refactor PR**
 
 **Title:**  
-Persistence Hardening: Atomic Writes + Explicit Schema Versioning for `ShortcutRepository` and Related Stores
+Persistence Hardening: Shared Atomic Writer + Explicit Schema Versioning for Secondary Stores and Shortcuts Envelope
 
 **PR Type:** Reliability / Data Integrity  
-**Priority:** P1 (High — directly addresses audit risk #4)  
-**Estimated Size:** Small (focused, mostly contained in repository + one helper)  
+**Priority:** P1 (High — addresses audit risk #4, reframed after code review)  
+**Estimated Size:** Small–Medium (extract helper + envelope migration + secondary stores)  
 **Depends On:** #0001 (Introduce Dependency Injection + Composition Root)  
-**Enables:** Safer schema evolution, easier testing of persistence layer, future import/export robustness, reduced corruption risk on crash/power loss
+**Enables:** Safer schema evolution, easier testing of persistence layer, future import/export robustness, consistent atomicity across all JSON stores
 
 ---
 
-### Motivation (from Architectural Audit)
+### Motivation (from Architectural Audit — fact-checked)
 
-The current persistence layer in `QuickShell.Core` writes JSON files (`shortcuts.json`, `settings.json`, `worktree-branch-targets.json`) directly via `File.WriteAllText` (or equivalent) without:
+**What is already solid today**
 
-- Atomic write semantics (temp file + atomic replace)
-- Explicit schema version header
-- Structured migration pipeline beyond the existing legacy migration
+- `ShortcutRepository.WriteLayoutAtomic` already writes `shortcuts.json` via temp file + `File.Replace` (with `.bak`) and a named mutex. Claiming “no atomic writes for shortcuts” would be incorrect.
+- Legacy migration (`WorkspaceLegacyMigration`, alternate-source import) already exists.
+- Source-generated `QuickShellJsonContext` is in place for DTOs.
 
-While single-user desktop usage makes concurrent modification rare, crashes, power loss, or partial writes during long operations can still corrupt the workspace list or settings. The existing legacy migration path is ad-hoc. As the feature set grows (more workspace metadata, health snapshots, git state), the cost of a bad write increases.
+**Real gaps**
+
+1. **No schema version** — `shortcuts.json` is a **root JSON array** (`ShortcutLayoutJson`). Future format changes have no header to key migrations.
+2. **Secondary stores are not atomic** — `WorktreeBranchTargetStore` uses `File.WriteAllText`; `ShortcutDraftStore` uses `WriteAllTextAsync` without temp+replace.
+3. **Settings** live in `settings.json` via CmdPal `JsonSettingsManager` / `QuickShellJsonSettingsStore` (extension project), not Core’s `ShortcutRepository` — harden separately if needed; do not assume Core owns this write path.
+4. **`IShortcutRepository` has no change events** — consumers take static/direct references; no `WorkspacesChanged` / similar for reactive UI.
+5. **No shared `IAtomicFileWriter`** — atomic logic is private to `ShortcutRepository`; other writers duplicate weaker patterns.
+
+While single-user desktop usage makes concurrent modification rare, crashes during secondary-store saves can still corrupt branch targets or drafts. As schema evolves (health snapshots, richer metadata), an unversioned root array becomes a liability.
 
 This PR hardens the foundation **after** DI is in place so the repository can cleanly receive an atomic writer and migrator.
 
@@ -27,18 +35,20 @@ This PR hardens the foundation **after** DI is in place so the repository can cl
 
 ### Goals
 
-1. All JSON persistence writes become atomic (write to `.tmp` → `File.Replace` / retry).
-2. Every persisted root object carries an explicit integer schema version.
-3. Implement a lightweight, extensible migration pipeline (`IPersistenceMigrator` or integrated in repository).
-4. Preserve 100% backward compatibility with existing user data (v0 / no-version files).
+1. Extract a reusable atomic write helper matching today’s shortcuts behavior (temp → `File.Replace` / `File.Move` + optional backup).
+2. Apply that helper to `WorktreeBranchTargetStore` and draft persistence.
+3. Introduce an explicit integer schema version via a **document envelope** for shortcuts (and optional version on worktree targets).
+4. Preserve 100% backward compatibility with existing user data (root array = version 0).
 5. Expose change events from `IShortcutRepository` so UI and other consumers can react without polling.
-6. Make the persistence path and file names configurable via options (injected).
+6. Make persistence paths configurable via options (injected) where practical.
 
 **Non-Goals (for this PR)**
-- Full event sourcing or WAL (write-ahead log)
+- Rewriting `WriteLayoutAtomic` as if it did not exist — **extract and reuse**
+- Full event sourcing or WAL
 - Compression or encryption of the store
-- Moving to a proper embedded DB (SQLite / LiteDB) — keep JSON for simplicity and human inspectability
-- Changing the public `Workspace` / `TerminalShortcut` domain model shape
+- Moving to SQLite / LiteDB
+- Changing the public `Workspace` / `TerminalShortcut` *domain* shape (layout on-disk envelope may change)
+- Assuming `settings.json` is written by Core (it is owned by CmdPal settings manager in the extension)
 
 ---
 
@@ -48,21 +58,18 @@ This PR hardens the foundation **after** DI is in place so the repository can cl
 
 ```
 QuickShell.Core/
-├── Abstractions/
-│   ├── IAtomicFileWriter.cs          # New (simple interface)
-│   └── IPersistenceMigrator.cs       # New (optional, for extensibility)
+├── Abstractions/   (or Services/ if keeping flat — follow #0001)
+│   └── IAtomicFileWriter.cs
 ├── Persistence/
-│   ├── AtomicFileWriter.cs           # New implementation
-│   ├── JsonPersistenceOptions.cs     # New (record with BasePath, FileNames, CurrentVersion)
+│   ├── AtomicFileWriter.cs           # Extracted from WriteLayoutAtomic semantics
+│   ├── JsonPersistenceOptions.cs
 │   └── Schema/
-│       ├── PersistenceVersion.cs     # New constants + migration registry
-│       └── migrations/               # Future: v1-to-v2.cs etc. (keep empty for now)
+│       └── PersistenceVersion.cs
 ├── Services/
-│   └── ShortcutRepository.cs         # Major update: atomic writes, version header, events, DI ctor
-└── DTOs/                             # Existing (or new folder)
-    ├── ShortcutStoreDto.cs           # Add Version + migration logic
-    ├── SettingsDto.cs
-    └── WorktreeBranchTargetStoreDto.cs
+│   ├── ShortcutRepository.cs         # Use writer + versioned envelope + events
+│   ├── ShortcutLayoutJson.cs         # Accept Array (v0) or Object envelope (v1+)
+│   ├── WorktreeBranchTargetStore.cs  # Atomic writes + optional Version
+│   └── ShortcutDraftStore.cs         # Atomic writes
 ```
 
 #### 2. Core Interfaces (additive)
@@ -71,117 +78,106 @@ QuickShell.Core/
 ```csharp
 public interface IAtomicFileWriter
 {
+    void WriteAllBytesAtomic(string path, byte[] contents);
     void WriteAllTextAtomic(string path, string contents);
-    string ReadAllText(string path);
-    bool Exists(string path);
+    // Prefer mirroring existing mutex/backup behavior for hot paths
 }
 ```
 
-**`IPersistenceMigrator.cs`** (simple for v1)
-```csharp
-public interface IPersistenceMigrator
-{
-    int CurrentVersion { get; }
-    object MigrateIfNeeded(string fileName, string json, int detectedVersion);
-}
-```
-
-For v1 we can keep migration logic inside `ShortcutRepository` (or a small `PersistenceMigrator` class) to avoid over-abstraction.
+For v1, keep migration logic in `ShortcutLayoutJson` / `ShortcutRepository` rather than a heavy plugin migrator.
 
 #### 3. Schema Version Strategy
 
-- Add a top-level property to each root DTO:
-  ```json
-  {
-    "version": 1,
-    "shortcuts": [ ... ],
-    "favorites": [ ... ]
-  }
-  ```
-- `PersistenceVersion.Current = 1`
-- On load: read JSON → detect version (missing = 0 / legacy) → run migration if needed → rewrite atomically with new version.
-- Document the version in a new `docs/persistence-schema.md` (or inline in code).
+**Current on-disk shape (v0):**
+```json
+[ { "name": "...", "directory": "...", ... }, ... ]
+```
 
-#### 4. Atomic Write Implementation (Windows-safe)
+**Proposed v1:**
+```json
+{
+  "version": 1,
+  "entries": [ { "name": "...", "directory": "...", ... }, ... ]
+}
+```
+
+- `PersistenceVersion.Current = 1`
+- On load: `JsonValueKind.Array` → version 0; object with `version`/`entries` → current
+- On first save after upgrade: rewrite as v1 envelope atomically (existing `.bak` remains valuable)
+- Document in `docs/persistence-schema.md` (or inline)
+
+`WorktreeBranchTargetsDocument` can gain an optional `Version` property without changing the map shape.
+
+#### 4. Atomic Write Implementation (match existing shortcuts)
 
 ```csharp
 public sealed class AtomicFileWriter : IAtomicFileWriter
 {
-    public void WriteAllTextAtomic(string path, string contents)
+    public void WriteAllBytesAtomic(string path, byte[] contents)
     {
-        var directory = Path.GetDirectoryName(path)!;
-        Directory.CreateDirectory(directory);
-
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var tempPath = path + ".tmp";
-        File.WriteAllText(tempPath, contents, Encoding.UTF8);
-
-        // Atomic replace (handles existing target)
-        File.Replace(tempPath, path, destinationBackupFileName: null);
+        var backupPath = path + ".bak";
+        File.WriteAllBytes(tempPath, contents);
+        if (File.Exists(path))
+            File.Replace(tempPath, path, backupPath, ignoreMetadataErrors: true);
+        else
+            File.Move(tempPath, path);
+        // cleanup leftover .tmp best-effort
     }
-    // ... ReadAllText, Exists unchanged
 }
 ```
 
-`File.Replace` is atomic on Windows (same volume). Add retry + cleanup on IOException for robustness.
+Prefer byte[] for shortcuts (matches today’s `Serialize` → `WriteAllBytes`). Text overload for worktree/drafts.
 
 #### 5. Changes to `ShortcutRepository`
 
-- New constructor (via DI):
+- Inject `IAtomicFileWriter` (and options) via DI from #0001
+- Replace private `WriteLayoutAtomic` body with calls to the shared writer (keep mutex if desired for process-wide lock)
+- Raise:
   ```csharp
-  public ShortcutRepository(
-      IAtomicFileWriter writer,
-      JsonPersistenceOptions options,
-      IPersistenceMigrator? migrator = null,
-      ILogger<ShortcutRepository>? logger = null)
+  public event EventHandler? WorkspacesChanged;
   ```
-- `Load()` and `Save()` now go through atomic writer + version check.
-- Raise events:
-  ```csharp
-  public event EventHandler<WorkspacesChangedEventArgs>? WorkspacesChanged;
-  public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
-  ```
-- Keep existing `LegacyMigration` path but route it through the new migrator/version logic.
-
-Similar treatment for `WorktreeBranchTargetStore` (smaller file).
+- Keep `WorkspaceLegacyMigration` paths; ensure they feed the same load/save pipeline
 
 ---
 
 ### Impact on Existing Code
 
 **Files that will change significantly:**
-- `ShortcutRepository.cs` (primary)
-- `WorkspaceMapper.cs` (minor — may help with DTO versioning)
-- DTO files (`ShortcutStoreDto`, `SettingsDto`, etc.) — add `Version` property + `[JsonPropertyName("version")]`
-- `QuickShellJsonContext.cs` (source-generated) — will pick up new properties automatically
-- `QuickShellServiceCollectionExtensions.cs` (from #0001) — add registration for `IAtomicFileWriter`, `JsonPersistenceOptions`, and updated `IShortcutRepository`
+- `ShortcutRepository.cs`, `ShortcutLayoutJson.cs`
+- `WorktreeBranchTargetStore.cs`, `WorktreeBranchTargetsDocument.cs`
+- `ShortcutDraftStore.cs` (write path)
+- `QuickShellServiceCollectionExtensions.cs` (from #0001) — register writer + options
+- Import/export paths that assume a root array — must accept both shapes
 
-**Files that stay untouched:**
-- Domain models (`Workspace`, `TerminalShortcut`, `WorkspaceEntry`)
-- Most services that consume the repository (they go through the interface)
-- Form / draft layer
-- Terminal launching path
+**Files that stay largely untouched:**
+- Domain models (`TerminalShortcut`, etc.)
+- Terminal launching / health / forms (except listening to new events if wired)
 
 ---
 
 ### Migration / Rollout Strategy
 
-1. **Phase 1 (this PR)**: Introduce atomic writer + version header. On first load of an old file, detect version 0 → treat as legacy → migrate in-memory → write new v1 atomically. Existing users see no data loss.
-2. **Phase 2**: Add structured `IPersistenceMigrator` + small migration classes when v2 is needed (future PR).
-3. Keep the old direct `File.WriteAllText` paths temporarily behind a feature flag or `#if DEBUG` during development, then remove.
+1. **Phase 1**: Extract `IAtomicFileWriter`; shortcuts continue writing **v0 array** but through the helper (behavior-preserving).
+2. **Phase 2**: Teach load to accept envelope; start writing v1; leave v0 readable forever.
+3. Apply helper to worktree + drafts in the same PR if the diff stays reviewable.
+4. Add events on repository last (depends on #0001 for clean consumers).
 
-Because writes are now atomic, even a crash mid-migration leaves either the old file or the new v1 file — never a half-written JSON.
+Crash mid-write still leaves either old or new file thanks to `File.Replace` (already true for shortcuts; newly true for secondary stores).
 
 ---
 
 ### Testing Strategy
 
-- Unit test `AtomicFileWriter` in isolation (temp directory, verify `.tmp` cleanup, `File.Replace` behavior).
-- Add repository tests that:
-  - Load v0 (no version) file → verify migration + v1 rewrite
-  - Simulate partial write / crash (by leaving a `.tmp` file) → ensure recovery
-  - Verify `WorkspacesChanged` event fires on `Add`/`Remove`/`Update`
-- Integration test in `QuickShell.Core.Tests`: construct `ServiceProvider` (from #0001), resolve `IShortcutRepository`, perform CRUD, assert file on disk is valid JSON with `"version": 1`.
-- Manual: Delete `shortcuts.json`, restart extension, verify clean v1 file is created.
+- Unit test `AtomicFileWriter` (temp cleanup, replace, first-create `Move`)
+- Repository tests:
+  - Load v0 array → save → disk has `"version": 1` envelope
+  - Load v1 envelope round-trip
+  - Leftover `.tmp` does not prevent recovery
+  - `WorkspacesChanged` fires on Upsert/Delete/Import/Reset
+- Worktree/draft crash-style tests for atomic path
+- Golden fixtures from real `%LOCALAPPDATA%\QuickShell\shortcuts.json` samples
 
 ---
 
@@ -189,53 +185,44 @@ Because writes are now atomic, even a crash mid-migration leaves either the old 
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|----------|
-| `File.Replace` fails on different volumes or permission issues | Low | Medium | Fallback to copy+delete with retry; log and surface to diagnostics |
-| Migration logic has a bug on first upgrade | Low | High | Extensive tests on real legacy files + backup the original file before first migration rewrite |
-| Slight increase in write latency (temp file + replace) | Very Low | Negligible | Measured < 2ms on typical SSD for our file sizes |
-| Source-generated JSON context needs manual update | Low | Low | Adding `Version` property is automatic; context is partial and source-generated |
-| Over-engineering for single-user desktop app | Medium | Low | Keep the migrator simple (no plugin system yet); JSON remains human-readable and git-friendly |
+| Envelope migration breaks import/export or Raycast-adjacent tooling that assumes a root array | Medium | High | Dual-read forever; document format; update export helpers in same PR |
+| `File.Replace` permission / volume edge cases | Low | Medium | Keep existing fallbacks from `WriteLayoutAtomic` |
+| Treating settings.json as a Core store | — | — | Out of scope; document ownership in extension |
+| Redoing work already present in shortcuts | High if unreviewed | Wasted effort | This proposal explicitly **extracts** existing atomics |
 
 **Trade-off Summary**  
-We accept ~1-2 ms extra latency per write and a small amount of new code in exchange for **dramatically lower risk of data corruption** and a clean path for future schema changes. For a productivity tool that users trust with their project workspaces, this is the correct reliability trade-off.
+Modest schema migration risk in exchange for evolvable format + consistent atomicity. Do **not** spend this PR reinventing shortcuts atomics.
 
 ---
 
 ### Suggested Commit Structure
 
 ```
-refactor(persistence): harden ShortcutRepository with atomic writes and schema versioning
+refactor(persistence): extract atomic writer, version shortcuts envelope, harden secondary stores
 
-- Add IAtomicFileWriter + AtomicFileWriter implementation
-- Introduce JsonPersistenceOptions and PersistenceVersion constants
-- Update ShortcutRepository to use atomic writes + version header
-- Implement v0 → v1 migration on load
-- Expose WorkspacesChanged / SettingsChanged events on IShortcutRepository
-- Register new services in QuickShellServiceCollectionExtensions
-- Add unit + integration tests for atomic + migration paths
+- Extract IAtomicFileWriter from ShortcutRepository.WriteLayoutAtomic semantics
+- Migrate shortcuts.json root array (v0) → versioned envelope (v1) with dual-read
+- Apply atomic writes to WorktreeBranchTargetStore and ShortcutDraftStore
+- Expose WorkspacesChanged on IShortcutRepository
+- Register writer in AddQuickShellCore; add migration + atomic tests
 ```
 
 ---
 
-### Next Steps After This PR (Recommended Order)
+### Next Steps After This PR
 
-1. **This PR (#0002)** — Atomic writes + schema version (reliability foundation)
-2. **Follow-up PR** — Typed command routing / `CommandDescriptor` system (audit item #2)
-3. **Later PR** — Registry pattern for `IProjectClassifier` + task suggestion providers (audit item #3)
-4. **When needed** — v2 schema migration (e.g., adding health snapshot caching, richer git metadata)
-5. **Longer term** — Evaluate whether to expose a `Backup()` / `Export()` API that users can trigger from settings
+1. **This PR (#0002)** — Shared atomics + schema version + events  
+2. **#0003** — Typed command routing  
+3. **#0004** — Classifier registry  
+4. **When needed** — v2 envelope fields (e.g. cached health)  
+5. **Optional** — Align extension `settings.json` save path with the same writer if CmdPal store API allows
 
 ---
 
 **Final Recommendation**  
-This is a high-ROI, low-risk refactor that directly eliminates one of the top reliability concerns identified in the audit. Combined with #0001 (DI), it makes the persistence layer properly testable and evolvable. After these two PRs land, the codebase will be in excellent shape for the more structural command-routing and service-consolidation work.
+High ROI once scoped correctly: build on existing `WriteLayoutAtomic`, version the layout format, and fix the stores that are still non-atomic. Combined with #0001, persistence becomes testable and evolvable without a false “greenfield atomic writes” narrative.
 
 ---
 
-**Would you like me to:**
-
-1. Generate the actual code files for this PR (`IAtomicFileWriter.cs`, `AtomicFileWriter.cs`, updated `ShortcutRepository.cs` sketch, `JsonPersistenceOptions.cs`, and the small migration helper)?
-2. Also update the `0001` PR description to mark this as a dependency?
-3. Create a short `docs/persistence-schema.md` stub that documents the v1 format?
-4. Produce a combined "Phase 1 + Phase 2" mega-PRs view?
-
-Just say the word and I’ll drop the concrete artifacts into `/artifacts/QuickShell/` right now. This pairs beautifully with the DI work.
+*Updated July 2026 after fact-check against `ShortcutRepository`, `ShortcutLayoutJson`, and secondary stores.*  
+*Generated as part of the QuickShell Architectural Audit (July 2026)*
