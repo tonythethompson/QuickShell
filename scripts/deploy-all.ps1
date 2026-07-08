@@ -155,7 +155,9 @@ try {
 
         if ($deployRaycast) {
             Write-Step 'Restarting Raycast'
-            Start-RaycastApp | Out-Null
+            if (-not (Start-RaycastApp)) {
+                throw 'Raycast deploy was requested but Raycast is not installed or could not be started.'
+            }
         }
     }
 
