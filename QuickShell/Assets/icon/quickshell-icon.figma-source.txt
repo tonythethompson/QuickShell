@@ -1,0 +1,8 @@
+Figma source: https://www.figma.com/design/EozizheKdOcUVMQ70g07nY/Quick-Shell-Icon
+Frame node: 1:2 (Quick Shell Icon)
+
+Local exports (recreated from Figma layer styling when MCP download hit rate limit):
+- quickshell-icon.svg
+- quickshell-icon.png (1024px)
+
+To re-export from Figma: select "Quick Shell Icon" frame → Export → SVG + PNG @2x.

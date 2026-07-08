@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Shell — MSIX export test</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; padding: 2rem; line-height: 1.5; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+    .sub { color: #888; font-size: 0.875rem; margin-bottom: 2rem; }
+    h2 { font-size: 1rem; margin: 2rem 0 1rem; color: #ccc; }
+    .grid { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-end; }
+    .cell { text-align: center; }
+    .cell span { display: block; font-size: 0.7rem; color: #666; margin-top: 0.35rem; max-width: 120px; }
+    img { image-rendering: pixelated; display: block; border: 1px solid #333; border-radius: 8px; }
+    img.large { image-rendering: auto; }
+    .note { max-width: 720px; margin-top: 2rem; padding: 1rem; background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; font-size: 0.85rem; color: #aaa; }
+    code { color: #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Quick Shell — MSIX export set</h1>
+  <p class="sub">Micro 16 | Sharp 24-64 | Flat MSIX 128+ | Marketing: soft 128, full glow 256+ | Regenerate: <code>../export-msix-icons.ps1</code></p>
+
+  <h2>Square ladder</h2>
+  <div class="grid">
+    <div class="cell"><img src="quickshell-icon-16.png" width="16" height="16" alt=""><span>16</span></div>
+    <div class="cell"><img src="quickshell-icon-24.png" width="24" height="24" alt=""><span>24</span></div>
+    <div class="cell"><img src="quickshell-icon-32.png" width="32" height="32" alt=""><span>32 CmdPal</span></div>
+    <div class="cell"><img src="quickshell-icon-44.png" width="44" height="44" alt=""><span>44 MSIX</span></div>
+    <div class="cell"><img src="quickshell-icon-48.png" width="48" height="48" alt=""><span>48</span></div>
+    <div class="cell"><img src="quickshell-icon-50.png" width="50" height="50" alt=""><span>50 StoreLogo</span></div>
+    <div class="cell"><img src="quickshell-icon-64.png" width="64" height="64" alt=""><span>64</span></div>
+    <div class="cell"><img src="quickshell-icon-128.png" width="128" height="128" alt=""><span>128</span></div>
+    <div class="cell"><img src="quickshell-icon-150.png" width="150" height="150" alt=""><span>150 tile</span></div>
+    <div class="cell"><img src="quickshell-icon-256.png" width="128" height="128" class="large" alt=""><span>256</span></div>
+    <div class="cell"><img src="quickshell-icon-512.png" width="128" height="128" class="large" alt=""><span>512</span></div>
+    <div class="cell"><img src="quickshell-icon-620.png" width="128" height="128" class="large" alt=""><span>620 splash</span></div>
+    <div class="cell"><img src="quickshell-icon-1024.png" width="128" height="128" class="large" alt=""><span>1024 master</span></div>
+  </div>
+
+  <h2>Wide tile</h2>
+  <div class="grid">
+    <div class="cell"><img src="quickshell-icon-310x150.png" width="310" height="150" class="large" alt=""><span>310x150 wide</span></div>
+  </div>
+
+  <h2>MSIX manifest filenames (copy-ready)</h2>
+  <div class="grid">
+    <div class="cell"><img src="StoreLogo.png" width="50" height="50" alt=""><span>StoreLogo.png</span></div>
+    <div class="cell"><img src="Square44x44Logo.png" width="44" height="44" alt=""><span>Square44x44Logo.png</span></div>
+    <div class="cell"><img src="Square150x150Logo.png" width="150" height="150" alt=""><span>Square150x150Logo.png</span></div>
+    <div class="cell"><img src="Wide310x150Logo.png" width="310" height="150" class="large" alt=""><span>Wide310x150Logo.png</span></div>
+    <div class="cell"><img src="SplashScreen.png" width="128" height="128" class="large" alt=""><span>SplashScreen.png</span></div>
+  </div>
+
+  <div class="note">
+    <strong>Micro (16):</strong> <code>../svg/quickshell-icon-micro-smooth.svg</code> tight fill gradients, 32px AA downscaled.<br>
+    <strong>Sharp (24-64):</strong> <code>../svg/quickshell-icon-sharp.svg</code> solid fills, crispEdges.<br>
+    <strong>Flat MSIX (128+):</strong> <code>../svg/quickshell-icon-flat.svg</code> gradients, no filters.<br>
+    <strong>Marketing:</strong> soft @ 128px, full filtered @ 256+.
+  </div>
+
+  <h2>Marketing (filtered, 128px+)</h2>
+  <div class="grid">
+    <div class="cell"><img src="marketing/quickshell-icon-128.png" width="128" height="128" class="large" alt=""><span>128 marketing</span></div>
+    <div class="cell"><img src="marketing/quickshell-icon-256.png" width="128" height="128" class="large" alt=""><span>256</span></div>
+    <div class="cell"><img src="marketing/quickshell-icon-512.png" width="128" height="128" class="large" alt=""><span>512</span></div>
+    <div class="cell"><img src="marketing/quickshell-icon-1024.png" width="128" height="128" class="large" alt=""><span>1024</span></div>
+  </div>
+
+  <div class="note" style="margin-top:1rem">
+    Drop MSIX-named PNGs into <code>QuickShell/Assets/</code> per <code>Package.appxmanifest</code>.
+  </div>
+</body>
+</html>
