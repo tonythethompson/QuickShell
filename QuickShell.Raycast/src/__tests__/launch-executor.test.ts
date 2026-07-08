@@ -18,6 +18,7 @@ const settings: QuickShellSettings = {
   terminalApplication: "wt",
   defaultProfile: "__default__",
   recentWorkspaceCount: 8,
+  multiLaunchPresentation: "singleWindowTabs",
 };
 
 const workspace: Workspace = {
@@ -132,5 +133,105 @@ describe("launch-executor", () => {
     Object.defineProperty(process, "platform", { value: originalPlatform });
     expect(calls[0].command).toBe("powershell.exe");
     expect(calls[0].args.join(" ")).toContain("RunAs");
+  });
+
+  it("opens multiple wt commands as one process with tabs", async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const calls: Array<{ command: string; args: string[] }> = [];
+    const execFn: ExecFn = async (command, args) => {
+      calls.push({ command, args });
+    };
+
+    const multiWorkspace: Workspace = {
+      ...workspace,
+      launches: [
+        workspace.launches[0],
+        {
+          ...workspace.launches[0],
+          id: "1b",
+          label: "API",
+          command: "dotnet run",
+          order: 1,
+        },
+      ],
+    };
+    const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+    const plan = buildWorkspaceLaunchPlan(multiWorkspace, settings);
+    const result = await executeWorkspaceLaunch(plan, settings, execFn);
+
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    expect(result.ok).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].command).toBe("wt.exe");
+    const joined = calls[0].args.join(" ");
+    expect(joined).toContain("new-tab");
+    expect(joined).not.toContain("-w");
+  });
+
+  it("routes cmd and wt shells through one wt process when tabs are enabled", async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const calls: Array<{ command: string; args: string[] }> = [];
+    const execFn: ExecFn = async (command, args) => {
+      calls.push({ command, args });
+    };
+
+    const mixedWorkspace: Workspace = {
+      ...workspace,
+      launches: [
+        workspace.launches[0],
+        {
+          ...workspace.launches[0],
+          id: "1b",
+          label: "Legacy",
+          terminal: "cmd",
+          command: "dir",
+          order: 1,
+        },
+      ],
+    };
+    const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+    const plan = buildWorkspaceLaunchPlan(mixedWorkspace, settings);
+    await executeWorkspaceLaunch(plan, settings, execFn);
+
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].command).toBe("wt.exe");
+    expect(calls[0].args.join(" ")).toContain("cmd.exe");
+  });
+
+  it("opens separate windows when multiLaunchPresentation is separateWindows", async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const calls: Array<{ command: string; args: string[] }> = [];
+    const execFn: ExecFn = async (command, args) => {
+      calls.push({ command, args });
+    };
+
+    const multiWorkspace: Workspace = {
+      ...workspace,
+      launches: [
+        workspace.launches[0],
+        {
+          ...workspace.launches[0],
+          id: "1b",
+          label: "API",
+          command: "dotnet run",
+          order: 1,
+        },
+      ],
+    };
+    const separateSettings: QuickShellSettings = {
+      ...settings,
+      multiLaunchPresentation: "separateWindows",
+    };
+    const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+    const plan = buildWorkspaceLaunchPlan(multiWorkspace, separateSettings);
+    await executeWorkspaceLaunch(plan, separateSettings, execFn);
+
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    expect(calls).toHaveLength(2);
+    expect(calls.every((call) => call.command === "wt.exe")).toBe(true);
   });
 });

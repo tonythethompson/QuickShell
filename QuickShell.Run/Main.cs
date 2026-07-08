@@ -446,7 +446,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             new ShortcutLaunchOptions(
                 runAsAdmin,
                 runAsStandard,
-                BlockDirtyBranchSwitch: Settings.ReadBlockDirtyBranchSwitch()));
+                BlockDirtyBranchSwitch: Settings.ReadBlockDirtyBranchSwitch(),
+                SeparateWindowsForMultiLaunch: Settings.ReadSeparateWindowsForMultiLaunch()));
 
         if (result.MarkUsed)
         {

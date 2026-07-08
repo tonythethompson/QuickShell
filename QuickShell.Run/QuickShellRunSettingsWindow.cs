@@ -26,6 +26,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     private readonly CheckBox _showRecentsBox;
 
+    private readonly CheckBox _singleWindowTabsBox;
+
     private readonly TextBlock _statusText;
 
     private SettingsSnapshot _baseline;
@@ -125,6 +127,26 @@ internal sealed class QuickShellRunSettingsWindow : Window
         };
 
         root.Children.Add(_showRecentsBox);
+
+
+
+        root.Children.Add(Heading("Multiple commands"));
+
+        _singleWindowTabsBox = new CheckBox
+
+        {
+
+            Content = "Open multiple commands in one Windows Terminal window",
+
+            Margin = new Thickness(0, 0, 0, 8),
+
+        };
+
+        root.Children.Add(_singleWindowTabsBox);
+
+        root.Children.Add(Help(
+
+            "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."));
 
 
 
@@ -252,6 +274,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         _showRecentsBox.IsChecked = QuickShellRecentSettings.IsEnabled(_settings.ReadRecentWorkspaceCount());
 
+        _singleWindowTabsBox.IsChecked = !_settings.ReadSeparateWindowsForMultiLaunch();
+
     }
 
 
@@ -265,6 +289,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _settings.SaveBlockDirtyBranchSwitch(_baseline.BlockDirtyBranch);
 
         _settings.SaveRecentWorkspaceCount(_baseline.RecentCount);
+
+        _settings.SaveMultiLaunchPresentation(_baseline.SingleWindowTabs);
 
     }
 
@@ -280,7 +306,9 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
             _blockDirtyBranchBox.IsChecked == true,
 
-            QuickShellRecentSettings.FromEnabled(_showRecentsBox.IsChecked == true));
+            QuickShellRecentSettings.FromEnabled(_showRecentsBox.IsChecked == true),
+
+            _singleWindowTabsBox.IsChecked == true);
 
 
 
@@ -322,7 +350,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
         return !current.TerminalApp.Equals(_baseline.TerminalApp, StringComparison.OrdinalIgnoreCase)
             || !current.DefaultProfile.Equals(_baseline.DefaultProfile, StringComparison.OrdinalIgnoreCase)
             || current.BlockDirtyBranch != _baseline.BlockDirtyBranch
-            || current.RecentCount != _baseline.RecentCount;
+            || current.RecentCount != _baseline.RecentCount
+            || current.SingleWindowTabs != _baseline.SingleWindowTabs;
     }
 
     private bool Save()
@@ -340,6 +369,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _settings.SaveRecentWorkspaceCount(
 
             QuickShellRecentSettings.FromEnabled(_showRecentsBox.IsChecked == true));
+
+        _settings.SaveMultiLaunchPresentation(_singleWindowTabsBox.IsChecked == true);
 
         _baseline = CaptureSnapshot();
 
@@ -499,7 +530,9 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         bool BlockDirtyBranch,
 
-        int RecentCount);
+        int RecentCount,
+
+        bool SingleWindowTabs);
 
 }
 
