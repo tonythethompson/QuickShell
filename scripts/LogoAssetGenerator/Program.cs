@@ -7,7 +7,22 @@ if (args.Length >= 3 && args[0] == "--posters")
     {
         return GenerateStorePosters(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]));
     }
-    catch (Exception ex)
+    catch (ArgumentException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (NotSupportedException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (IOException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (UnauthorizedAccessException ex)
     {
         Console.Error.WriteLine(ex.Message);
         return 1;
@@ -26,7 +41,32 @@ if (args.Length >= 5 && args[0] == "--render")
         RenderSvgToPng(svgPath, outPath, width, height);
         return 0;
     }
-    catch (Exception ex)
+    catch (FormatException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (OverflowException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (ArgumentException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (NotSupportedException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (IOException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (UnauthorizedAccessException ex)
     {
         Console.Error.WriteLine(ex.Message);
         return 1;
