@@ -72,11 +72,10 @@ function tokenizeCompanionArguments(raw: string): string[] {
   const tokens: string[] = [];
   let current = "";
   let inQuotes = false;
-  let quoteChar = "";
 
   for (const char of raw) {
     if (inQuotes) {
-      if (char === quoteChar) {
+      if (char === '"') {
         inQuotes = false;
       } else {
         current += char;
@@ -84,9 +83,8 @@ function tokenizeCompanionArguments(raw: string): string[] {
       continue;
     }
 
-    if (char === '"' || char === "'") {
+    if (char === '"') {
       inQuotes = true;
-      quoteChar = char;
       continue;
     }
 
