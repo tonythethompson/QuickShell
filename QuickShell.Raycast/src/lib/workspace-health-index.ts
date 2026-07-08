@@ -11,12 +11,30 @@ function settingsFingerprint(settings: QuickShellSettings): string {
   return `${settings.terminalApplication}|${settings.defaultProfile}|${settings.recentWorkspaceCount}`;
 }
 
+function workspaceHealthFingerprint(workspace: Workspace, settings: QuickShellSettings): string {
+  const launchFingerprint = workspace.launches
+    .map(
+      (launch) =>
+        `${launch.id}:${launch.isEnabled}:${launch.command ?? ""}:${launch.terminal}:${launch.wtProfile ?? ""}:${launch.runAsAdmin}`,
+    )
+    .join("|");
+
+  return [
+    workspace.id,
+    workspace.name,
+    workspace.directory,
+    workspace.companionAppPath ?? "",
+    workspace.openCompanionAppOnLaunch ? "1" : "0",
+    launchFingerprint,
+    settingsFingerprint(settings),
+  ].join(":");
+}
+
 export function buildWorkspaceHealthIndex(workspaces: Workspace[], settings: QuickShellSettings): WorkspaceHealthIndex {
   const index: WorkspaceHealthIndex = new Map();
-  const settingsKey = settingsFingerprint(settings);
 
   for (const workspace of workspaces) {
-    const key = `${workspace.id}:${workspace.directory}:${settingsKey}`;
+    const key = workspaceHealthFingerprint(workspace, settings);
     index.set(key, assessWorkspaceHealthForList(workspace, settings));
   }
 
@@ -28,8 +46,7 @@ export function lookupWorkspaceHealth(
   workspace: Workspace,
   settings: QuickShellSettings,
 ): WorkspaceHealthReport {
-  const settingsKey = settingsFingerprint(settings);
-  const key = `${workspace.id}:${workspace.directory}:${settingsKey}`;
+  const key = workspaceHealthFingerprint(workspace, settings);
   return index.get(key) ?? assessWorkspaceHealthForList(workspace, settings);
 }
 

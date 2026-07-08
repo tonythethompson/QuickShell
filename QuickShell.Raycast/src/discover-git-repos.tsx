@@ -15,6 +15,69 @@ import { normalizeWorkspace } from "./lib/validation";
 import { createStableId } from "./lib/ids";
 import type { Workspace } from "./lib/schema";
 
+type ReviewWorkspaceFormProps = {
+  directory: string;
+  name: string;
+  remoteUrl?: string | null;
+  onSaved: () => Promise<void>;
+};
+
+function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Workspace {
+  const suggestions = buildProjectSetupSuggestions(directory);
+  const rows = launchRowsFromSuggestions(suggestions);
+  const launchEntries =
+    rows.length > 0
+      ? rows.map((row, index) => ({
+          id: row.id,
+          label: row.label,
+          terminal: row.terminal,
+          wtProfile: row.wtProfile ?? null,
+          command: row.command || null,
+          runAsAdmin: row.runAsAdmin,
+          isEnabled: row.isEnabled,
+          order: index,
+          taskType: "none" as const,
+        }))
+      : [
+          {
+            id: createStableId(),
+            label: "Launch",
+            terminal: "default" as const,
+            wtProfile: null,
+            command: null,
+            runAsAdmin: false,
+            isEnabled: true,
+            order: 0,
+            taskType: "none" as const,
+          },
+        ];
+  const derivedName = name || deriveNameFromDirectory(directory);
+  return normalizeWorkspace({
+    id: createStableId(),
+    name: derivedName,
+    abbreviation: deriveAbbreviationFromName(derivedName),
+    directory,
+    isPinned: false,
+    pinOrder: null,
+    lastUsedUtc: null,
+    terminal: "default",
+    wtProfile: null,
+    command: null,
+    runAsAdmin: false,
+    repoUrl: remoteUrl ?? null,
+    launches: launchEntries,
+  });
+}
+
+function ReviewWorkspaceForm({ directory, name, remoteUrl, onSaved }: ReviewWorkspaceFormProps) {
+  const initialWorkspace = useMemo(
+    () => buildWorkspaceFromRepo(directory, name, remoteUrl),
+    [directory, name, remoteUrl],
+  );
+
+  return <WorkspaceForm mode="create" initialWorkspace={initialWorkspace} onSaved={onSaved} />;
+}
+
 export default function DiscoverGitReposCommand() {
   const [searchText, setSearchText] = useState("");
   const storage = getQuickShellStorage();
@@ -42,53 +105,6 @@ export default function DiscoverGitReposCommand() {
         (repo.remoteUrl ?? "").toLowerCase().includes(query),
     );
   }, [data, searchText]);
-
-  function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Workspace {
-    const suggestions = buildProjectSetupSuggestions(directory);
-    const rows = launchRowsFromSuggestions(suggestions);
-    const launchEntries =
-      rows.length > 0
-        ? rows.map((row, index) => ({
-            id: row.id,
-            label: row.label,
-            terminal: row.terminal,
-            wtProfile: row.wtProfile ?? null,
-            command: row.command || null,
-            runAsAdmin: row.runAsAdmin,
-            isEnabled: row.isEnabled,
-            order: index,
-            taskType: "none" as const,
-          }))
-        : [
-            {
-              id: createStableId(),
-              label: "Launch",
-              terminal: "default" as const,
-              wtProfile: null,
-              command: null,
-              runAsAdmin: false,
-              isEnabled: true,
-              order: 0,
-              taskType: "none" as const,
-            },
-          ];
-    const derivedName = name || deriveNameFromDirectory(directory);
-    return normalizeWorkspace({
-      id: createStableId(),
-      name: derivedName,
-      abbreviation: deriveAbbreviationFromName(derivedName),
-      directory,
-      isPinned: false,
-      pinOrder: null,
-      lastUsedUtc: null,
-      terminal: "default",
-      wtProfile: null,
-      command: null,
-      runAsAdmin: false,
-      repoUrl: remoteUrl ?? null,
-      launches: launchEntries,
-    });
-  }
 
   async function handleQuickAdd(directory: string, name: string, remoteUrl?: string | null) {
     try {
@@ -145,9 +161,10 @@ export default function DiscoverGitReposCommand() {
                 title="Review Before Adding"
                 icon={Icon.Pencil}
                 target={
-                  <WorkspaceForm
-                    mode="create"
-                    initialWorkspace={buildWorkspaceFromRepo(repo.directory, repo.name, repo.remoteUrl)}
+                  <ReviewWorkspaceForm
+                    directory={repo.directory}
+                    name={repo.name}
+                    remoteUrl={repo.remoteUrl}
                     onSaved={async () => {
                       await revalidate();
                     }}

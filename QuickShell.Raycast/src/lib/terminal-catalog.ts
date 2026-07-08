@@ -199,11 +199,18 @@ function parseWtProfiles(settingsPath: string): string[] {
   }
 
   try {
-    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as WtSettings;
+    const parsed = parseJsonc(readFileSync(settingsPath, "utf8")) as WtSettings;
     return (parsed.profiles?.list ?? [])
       .filter((profile) => profile.name && profile.hidden !== true)
       .map((profile) => profile.name as string);
   } catch {
     return [];
   }
+}
+
+function parseJsonc(raw: string): unknown {
+  const withoutBlockComments = raw.replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutLineComments = withoutBlockComments.replace(/^\s*\/\/.*$/gm, "");
+  const withoutTrailingCommas = withoutLineComments.replace(/,\s*([}\]])/g, "$1");
+  return JSON.parse(withoutTrailingCommas);
 }

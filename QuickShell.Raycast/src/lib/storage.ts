@@ -94,9 +94,6 @@ export class QuickShellStorage {
 
   async save(data: StoredData, options?: { recordHistory?: boolean }): Promise<void> {
     const recordHistory = options?.recordHistory ?? true;
-    if (recordHistory && this.cache) {
-      this.pushUndoSnapshot(this.cache);
-    }
 
     const normalized: StoredData = {
       version: data.version,
@@ -114,6 +111,10 @@ export class QuickShellStorage {
       if (!validation.ok) {
         throw new Error(`${workspace.name || workspace.id}: ${validation.message}`);
       }
+    }
+
+    if (recordHistory && this.cache) {
+      this.pushUndoSnapshot(this.cache);
     }
 
     this.cache = normalized;
@@ -296,7 +297,9 @@ export class QuickShellStorage {
       clearTimeout(this.recentWriteTimer);
     }
     this.recentWriteTimer = setTimeout(() => {
-      void this.flushRecentWrites();
+      void this.flushRecentWrites().catch(() => {
+        this.recentWriteDirty = true;
+      });
     }, RECENT_WRITE_DEBOUNCE_MS);
   }
 

@@ -39,4 +39,16 @@ describe("workspace-health-index", () => {
     expect(first).toBe(second);
     expect(first.ok).toBe(assessWorkspaceHealthForList(workspace, DEFAULT_SETTINGS).ok);
   });
+
+  it("recomputes health when launch inputs change", () => {
+    const index = buildWorkspaceHealthIndex([workspace], DEFAULT_SETTINGS);
+    const updated = {
+      ...workspace,
+      launches: workspace.launches.map((launch) => ({ ...launch, command: "" })),
+    };
+    const cached = lookupWorkspaceHealth(index, updated, DEFAULT_SETTINGS);
+    const fresh = assessWorkspaceHealthForList(updated, DEFAULT_SETTINGS);
+    expect(cached).toEqual(fresh);
+    expect(cached).not.toBe(lookupWorkspaceHealth(index, workspace, DEFAULT_SETTINGS));
+  });
 });

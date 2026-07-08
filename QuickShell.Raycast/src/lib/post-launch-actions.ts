@@ -63,10 +63,49 @@ export function buildCompanionArguments(rawArguments: string | null | undefined,
     return [directory];
   }
 
-  return rawArguments
-    .split(/\s+/)
+  return tokenizeCompanionArguments(rawArguments)
     .map((token) => token.replace(/\{folder\}/gi, directory).replace(/^\.$/i, directory))
     .filter(Boolean);
+}
+
+function tokenizeCompanionArguments(raw: string): string[] {
+  const tokens: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  let quoteChar = "";
+
+  for (const char of raw) {
+    if (inQuotes) {
+      if (char === quoteChar) {
+        inQuotes = false;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      inQuotes = true;
+      quoteChar = char;
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current) {
+    tokens.push(current);
+  }
+
+  return tokens;
 }
 
 function buildOpenUrlArgs(url: string): string[] {
