@@ -30,6 +30,7 @@ internal static class QuickShellServiceCollectionExtensions
             new ShortcutDraftStore(
                 sp.GetRequiredService<IShortcutRepository>(),
                 sp.GetRequiredService<IAtomicFileWriter>()));
+        services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
 
         return services;
     }

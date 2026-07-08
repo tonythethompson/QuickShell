@@ -7,7 +7,7 @@ namespace QuickShell.Pages;
 
 internal partial class DiscoverGitReposPage : DynamicListPage
 {
-    public const string PageId = "com.quickshell.discover-git-repos";
+    public const string PageId = QuickShellDeepLinkIds.DiscoverGitRepos;
 
     private readonly Action _onReload;
     private readonly object _refreshSync = new();

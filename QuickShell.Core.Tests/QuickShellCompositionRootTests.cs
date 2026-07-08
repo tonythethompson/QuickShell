@@ -57,6 +57,14 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         Assert.IsType<AtomicFileWriter>(first);
     }
 
+    [Fact]
+    public void AddQuickShellCore_resolves_command_id_parser()
+    {
+        var parser = _services.GetRequiredService<ICommandIdParser>();
+        Assert.IsType<CommandIdParser>(parser);
+        Assert.Same(parser, _services.GetRequiredService<ICommandIdParser>());
+    }
+
     public void Dispose()
     {
         _services.Dispose();

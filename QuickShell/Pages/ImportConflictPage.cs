@@ -10,7 +10,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class ImportConflictPage : ContentPage
 {
-    public const string PageId = "com.quickshell.import-conflict";
+    public const string PageId = QuickShellDeepLinkIds.ImportConflict;
 
     public ImportConflictPage(Action onReload)
     {
