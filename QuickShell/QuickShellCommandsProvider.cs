@@ -37,10 +37,6 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             var collection = new ServiceCollection();
             collection.AddQuickShellCore();
             _services = collection.BuildServiceProvider();
-
-            var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
-            var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
-            QuickShellRuntimeServices.Attach(shortcuts, drafts, ownedByServiceProvider: true);
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
@@ -48,9 +44,11 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             _settingsManager = new QuickShellSettingsManager(ReloadPages);
         }
 
-        using (StartupPerformanceTrace.Measure("CmdPal shortcut preload kickoff"))
+        using (StartupPerformanceTrace.Measure("CmdPal host services"))
         {
-            QuickShellRuntimeServices.Initialize(_settingsManager);
+            var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
+            var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
+            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager));
             KickoffGitRepoIndexPrewarm();
         }
 
@@ -65,6 +63,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
             _commandRouter = new CommandRouter(
                 _services.GetRequiredService<ICommandIdParser>(),
+                _services.GetRequiredService<IShortcutRepository>(),
                 _settingsManager,
                 _createShortcutCommand,
                 ReloadPages);
@@ -141,7 +140,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         {
             try
             {
-                var shortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
+                var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
                 GitRepoIndex.Prewarm(GitRepoSearchRoots.FromShortcuts(shortcuts));
             }
             catch
@@ -170,7 +169,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             _fallbackPage.Value.Dispose();
         }
 
-        QuickShellRuntimeServices.Dispose();
+        QuickShellServices.Unbind();
         _services.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);

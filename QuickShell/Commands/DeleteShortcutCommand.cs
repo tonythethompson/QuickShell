@@ -18,7 +18,7 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var deleted = QuickShellRuntimeServices.Shortcuts.Delete(_name);
+        var deleted = QuickShellServices.Current.Shortcuts.Delete(_name);
         if (deleted)
         {
             _onDeleted();

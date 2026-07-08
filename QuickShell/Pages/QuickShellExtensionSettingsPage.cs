@@ -56,7 +56,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         var refreshSettings = (Action)RefreshContent;
         var content = new List<IContent>();
 
-        if (QuickShellRuntimeServices.Drafts.HasPending)
+        if (QuickShellServices.Current.Drafts.HasPending)
         {
             content.Add(new PendingShortcutEditForm(_onReload, refreshSettings));
         }

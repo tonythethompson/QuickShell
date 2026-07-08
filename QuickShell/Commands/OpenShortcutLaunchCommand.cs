@@ -40,7 +40,7 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -68,7 +68,7 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 
         if (result.MarkUsed)
         {
-            QuickShellRuntimeServices.Shortcuts.MarkUsed(_shortcutId);
+            QuickShellServices.Current.Shortcuts.MarkUsed(_shortcutId);
         }
 
         return result.Dismiss

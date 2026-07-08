@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Services;
 
 namespace QuickShell.Composition;
@@ -31,6 +32,13 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<IShortcutRepository>(),
                 sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
+
+        services.AddSingleton<ITerminalLauncher, TerminalLauncherService>();
+        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolverService>();
+        services.AddSingleton<IWorkspaceMapper, WorkspaceMapperService>();
+        services.AddSingleton<IGitRepoIndex, GitRepoIndexService>();
+        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperationsService>();
+        services.AddTransient<IWorkspaceHealthChecker, WorkspaceHealthCheckerService>();
 
         return services;
     }

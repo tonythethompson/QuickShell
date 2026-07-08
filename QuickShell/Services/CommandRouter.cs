@@ -13,22 +13,26 @@ namespace QuickShell.Services;
 internal sealed class CommandRouter : ICommandRouter
 {
     private readonly ICommandIdParser _parser;
+    private readonly IShortcutRepository _shortcuts;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly CreateShortcutCommand _createShortcutCommand;
     private readonly Action _reloadPages;
 
     public CommandRouter(
         ICommandIdParser parser,
+        IShortcutRepository shortcuts,
         QuickShellSettingsManager settingsManager,
         CreateShortcutCommand createShortcutCommand,
         Action reloadPages)
     {
         ArgumentNullException.ThrowIfNull(parser);
+        ArgumentNullException.ThrowIfNull(shortcuts);
         ArgumentNullException.ThrowIfNull(settingsManager);
         ArgumentNullException.ThrowIfNull(createShortcutCommand);
         ArgumentNullException.ThrowIfNull(reloadPages);
 
         _parser = parser;
+        _shortcuts = shortcuts;
         _settingsManager = settingsManager;
         _createShortcutCommand = createShortcutCommand;
         _reloadPages = reloadPages;
@@ -106,7 +110,7 @@ internal sealed class CommandRouter : ICommandRouter
 
     private ListItem? CreateOpenLaunchItem(string shortcutId, string launchId)
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetByIdReadOnly(shortcutId);
+        var shortcut = _shortcuts.GetByIdReadOnly(shortcutId);
         if (shortcut is null || ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return null;
@@ -115,7 +119,7 @@ internal sealed class CommandRouter : ICommandRouter
         TerminalShortcut workspace = shortcut;
         if (shortcut.Launches.Count == 0)
         {
-            workspace = QuickShellRuntimeServices.Shortcuts.GetById(shortcutId)!;
+            workspace = _shortcuts.GetById(shortcutId)!;
             ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(workspace);
         }
 
@@ -137,7 +141,7 @@ internal sealed class CommandRouter : ICommandRouter
 
     private ListItem? CreateOpenWorkspaceItem(string openKey)
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.ResolveForOpenCommand(openKey);
+        var shortcut = _shortcuts.ResolveForOpenCommand(openKey);
         if (shortcut is null)
         {
             return null;

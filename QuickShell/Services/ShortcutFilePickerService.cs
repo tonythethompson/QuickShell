@@ -11,7 +11,7 @@ internal static class ShortcutFilePickerService
     public static string? PickExportFile()
     {
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
+        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -36,7 +36,7 @@ internal static class ShortcutFilePickerService
 
     public static string? PickImportFile()
     {
-        var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
+        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -60,7 +60,7 @@ internal static class ShortcutFilePickerService
 
     public static string? PickImportWorkspacesFile()
     {
-        var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
+        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -110,7 +110,7 @@ internal static class ShortcutFilePickerService
     public static string? PickExportWorkspacesFile()
     {
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = QuickShellRuntimeServices.Shortcuts.ConfigDirectory;
+        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {

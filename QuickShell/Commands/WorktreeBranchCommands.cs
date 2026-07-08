@@ -29,7 +29,7 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen("That workspace was not found.");
@@ -67,7 +67,7 @@ internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen("That workspace was not found.");

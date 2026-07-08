@@ -18,7 +18,7 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -61,7 +61,7 @@ internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCom
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -124,7 +124,7 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -153,7 +153,7 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);

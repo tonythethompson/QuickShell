@@ -41,7 +41,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 
     private IListItem[] BuildItems()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return

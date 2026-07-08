@@ -81,7 +81,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var taskActions = QuickShellRuntimeServices.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
+        var taskActions = QuickShellServices.Current.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
 
         if (taskActions.Length > 0)
 
@@ -111,7 +111,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var shortcuts = QuickShellRuntimeServices.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
+        var shortcuts = QuickShellServices.Current.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
 
         if (shortcuts.Length > 0)
 
@@ -143,7 +143,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var allShortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
+        var allShortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
 
         var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts);
 

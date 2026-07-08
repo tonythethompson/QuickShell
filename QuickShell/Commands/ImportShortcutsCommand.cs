@@ -33,14 +33,14 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         }
 
         using var readCancellation = new CancellationTokenSource(IoTimeout);
-        var readResult = QuickShellRuntimeServices.Shortcuts.TryReadImportFileAsync(path, readCancellation.Token).GetAwaiter().GetResult();
+        var readResult = QuickShellServices.Current.Shortcuts.TryReadImportFileAsync(path, readCancellation.Token).GetAwaiter().GetResult();
         if (!readResult.Success)
         {
             return Finish(readResult.Error, isError: true);
         }
 
         var imported = readResult.Shortcuts;
-        var conflicts = QuickShellRuntimeServices.Shortcuts.CountImportNameConflicts(imported);
+        var conflicts = QuickShellServices.Current.Shortcuts.CountImportNameConflicts(imported);
         if (conflicts > 0)
         {
             ImportConflictState.Set(ImportTransferKind.Projects, path, conflicts, imported.Length, _onReload);
@@ -51,7 +51,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         }
 
         using var mergeCancellation = new CancellationTokenSource(IoTimeout);
-        var result = QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(path, mergeCancellation.Token).GetAwaiter().GetResult();
+        var result = QuickShellServices.Current.Shortcuts.ImportMergeAsync(path, mergeCancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
             return Finish(result.Message, isError: true);

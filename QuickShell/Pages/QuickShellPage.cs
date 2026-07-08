@@ -188,7 +188,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             return;
         }
 
-        var pinnedInOrder = QuickShellRuntimeServices.Shortcuts.GetShortcuts()
+        var pinnedInOrder = QuickShellServices.Current.Shortcuts.GetShortcuts()
             .Where(s => s.IsPinned)
             .OrderBy(s => s.PinOrder ?? int.MaxValue)
             .ToList();
@@ -197,18 +197,18 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         if (string.IsNullOrWhiteSpace(query))
         {
-            var layout = QuickShellRuntimeServices.Shortcuts.GetLayout();
+            var layout = QuickShellServices.Current.Shortcuts.GetLayout();
             items.AddRange(BuildHomeLayoutItems(layout, pinnedInOrder));
         }
         else
         {
-            var taskActions = QuickShellRuntimeServices.Shortcuts.SearchTaskActions(query).ToArray();
+            var taskActions = QuickShellServices.Current.Shortcuts.SearchTaskActions(query).ToArray();
             foreach (var action in taskActions)
             {
                 items.Add(ShortcutTaskActionListItems.Create(action, _settings, Reload, _createShortcutCommand));
             }
 
-            var shortcuts = QuickShellRuntimeServices.Shortcuts.Search(query).ToArray();
+            var shortcuts = QuickShellServices.Current.Shortcuts.Search(query).ToArray();
             foreach (var shortcut in shortcuts)
             {
                 items.Add(BuildShortcutItem(shortcut, pinnedInOrder));
@@ -261,7 +261,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         IReadOnlyList<ShortcutLayoutEntry> layout,
         List<TerminalShortcut> pinnedInOrder)
     {
-        var allShortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
+        var allShortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
         var recents = ShortcutRecents.GetRecentWorkspaces(allShortcuts, _settings.RecentWorkspaceCount);
         var recentIds = recents
             .Select(shortcut => shortcut.Id)

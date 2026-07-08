@@ -28,7 +28,7 @@ internal sealed partial class WorkspaceFormUndoCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(Strings.Undo_NothingToUndo);
         }
 
-        if (!QuickShellRuntimeServices.Shortcuts.Undo())
+        if (!QuickShellServices.Current.Shortcuts.Undo())
         {
             return QuickShellNavigation.StayOpen(Strings.Undo_NothingToUndo);
         }
@@ -63,7 +63,7 @@ internal sealed partial class WorkspaceFormRedoCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }
 
-        if (!QuickShellRuntimeServices.Shortcuts.Redo())
+        if (!QuickShellServices.Current.Shortcuts.Redo())
         {
             return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }

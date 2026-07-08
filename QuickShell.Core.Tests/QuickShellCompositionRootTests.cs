@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Composition;
 using QuickShell.Services;
 
@@ -63,6 +64,17 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         var parser = _services.GetRequiredService<ICommandIdParser>();
         Assert.IsType<CommandIdParser>(parser);
         Assert.Same(parser, _services.GetRequiredService<ICommandIdParser>());
+    }
+
+    [Fact]
+    public void AddQuickShellCore_resolves_core_service_abstractions()
+    {
+        Assert.IsType<TerminalLauncherService>(_services.GetRequiredService<ITerminalLauncher>());
+        Assert.IsType<TerminalProfileResolverService>(_services.GetRequiredService<ITerminalProfileResolver>());
+        Assert.IsType<WorkspaceMapperService>(_services.GetRequiredService<IWorkspaceMapper>());
+        Assert.IsType<GitRepoIndexService>(_services.GetRequiredService<IGitRepoIndex>());
+        Assert.IsType<WorkspaceGitOperationsService>(_services.GetRequiredService<IWorkspaceGitOperations>());
+        Assert.IsType<WorkspaceHealthCheckerService>(_services.GetRequiredService<IWorkspaceHealthChecker>());
     }
 
     public void Dispose()

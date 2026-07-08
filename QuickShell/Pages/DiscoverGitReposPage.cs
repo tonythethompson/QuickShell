@@ -79,11 +79,11 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     {
         try
         {
-            var shortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
+            var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
             var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
-            var settings = QuickShellRuntimeServices.Settings;
+            var settings = QuickShellServices.Current.Settings;
 
             if (!string.IsNullOrWhiteSpace(query))
             {
