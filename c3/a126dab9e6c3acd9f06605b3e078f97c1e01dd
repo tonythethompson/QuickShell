@@ -1,0 +1,113 @@
+QuickShell.Core/Abstractions/IWorkspaceMapper.cs
+  s_cd70e11c4cb2f1::t_ee1e53661413ea 1-12
+QuickShell.Core/Abstractions/IGitRepoIndex.cs
+  s_cd70e11c4cb2f1::t_887e0ac2d3b741 3-4
+  s_cd70e11c4cb2f1::t_d929eecef7300c 13-15
+  s_cd70e11c4cb2f1::t_800920f760beca 1-2,5-12,16-18
+QuickShell.Core/Abstractions/ITerminalProfileResolver.cs
+  s_cd70e11c4cb2f1::t_fa1cd2edcddcee 1,3-9
+  s_cd70e11c4cb2f1::t_14c1718fd25f02 2
+QuickShell.Core/Services/WorkspaceMapperService.cs
+  s_cd70e11c4cb2f1::t_655e9ca57dddd5 1-13
+QuickShell.Core/Abstractions/IWorkspaceHealthChecker.cs
+  s_cd70e11c4cb2f1::t_0a11f1347c6474 1,3-11,14-19,21
+  s_cd70e11c4cb2f1::t_7b73fb3baeccb0 12-13,20
+  s_cd70e11c4cb2f1::t_d582820daa8ad7 2
+QuickShell.Core/Services/TerminalLauncherService.cs
+  s_cd70e11c4cb2f1::t_7db34e2c273542 1-24
+QuickShell.Core/Abstractions/ITerminalLauncher.cs
+  s_cd70e11c4cb2f1::t_6b2a50ffe719a2 1,3-21
+  s_cd70e11c4cb2f1::t_2808e31067c301 2
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_cd70e11c4cb2f1::t_56ce5363cfaf4f 2
+  s_cd70e11c4cb2f1::t_8da619b11b69d7 36-42
+QuickShell.Core/Services/GitRepoIndexService.cs
+  s_cd70e11c4cb2f1::t_1885e3031491c3 13-17
+  s_cd70e11c4cb2f1::t_da608cc2d601da 1-12,18-20
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_cd70e11c4cb2f1::t_92a7184ab20169 2
+  s_cd70e11c4cb2f1::t_80da1f6990b3a1 69-79
+QuickShell.Core/Services/WorkspaceGitOperationsService.cs
+  s_cd70e11c4cb2f1::t_dd0b19faccfea6 1-15
+QuickShell.Core/Services/WorkspaceHealthCheckerService.cs
+  s_cd70e11c4cb2f1::t_745df9726d722b 1-11,15-20,23
+  s_cd70e11c4cb2f1::t_bbeb4bc3592b04 12-14,21-22
+QuickShell.Core/Abstractions/IWorkspaceGitOperations.cs
+  s_cd70e11c4cb2f1::t_b6f55a05b2cbeb 1-2,5-12
+  s_cd70e11c4cb2f1::t_66bc05ae76240b 3-4
+QuickShell.Core/Services/TerminalProfileResolverService.cs
+  s_cd70e11c4cb2f1::t_5ea69eb83d8ca8 1-10
+QuickShell/Services/QuickShellServices.cs
+  s_cd70e11c4cb2f1::t_91ab9cd1aa5b5f 6-7,9,11,13-15,17-18,20,22
+  s_cd70e11c4cb2f1::t_effa2c0b4c94c6 24,26,28-35,39,41
+QuickShell/Commands/DeleteShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_6555130498b8ad 21
+QuickShell/Commands/DuplicateShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_dae63d7b68e8cc 15
+QuickShell/Commands/ExportShortcutsCommand.cs
+  s_cd70e11c4cb2f1::t_8686a1fa1d14ec 29
+QuickShell/Commands/ImportShortcutsCommand.cs
+  s_cd70e11c4cb2f1::t_a2189cd51f22f5 36,43,54
+QuickShell/Commands/MoveFavoriteShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_8f4534ca7a1310 49-52
+QuickShell/Commands/OpenShortcutLaunchCommand.cs
+  s_cd70e11c4cb2f1::t_2634ad98f48b26 43,71
+QuickShell/Commands/OpenTerminalShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_dd59532ff14d71 56,81
+QuickShell/Commands/RedoShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_c65cfa48d587d2 19
+QuickShell/Commands/ResetTransferCommands.cs
+  s_cd70e11c4cb2f1::t_8a27053dd37bd6 26-27
+QuickShell/Commands/ToggleFavoriteShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_389de261d89785 22
+QuickShell/Commands/UndoShortcutCommand.cs
+  s_cd70e11c4cb2f1::t_ad268b3918b520 19
+QuickShell/Commands/WorkspaceFormUndoCommands.cs
+  s_cd70e11c4cb2f1::t_efe5366e0ed511 31,66
+QuickShell/Commands/WorkspaceUtilityCommands.cs
+  s_cd70e11c4cb2f1::t_ba42133d8d71cc 21,64,127,156
+QuickShell/Commands/WorktreeBranchCommands.cs
+  s_cd70e11c4cb2f1::t_d791f8fff536cb 32,70
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_cd70e11c4cb2f1::t_4eaac1cd97cf7e 82,86
+QuickShell/Pages/ImportConflictPage.cs
+  s_cd70e11c4cb2f1::t_3762aebb8a31d8 196-197
+QuickShell/Pages/PendingShortcutEditPage.cs
+  s_cd70e11c4cb2f1::t_7deab090825f07 98,109,117,130
+QuickShell/Pages/QuickShellExtensionSettingsPage.cs
+  s_cd70e11c4cb2f1::t_16b586c42376d3 59
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_cd70e11c4cb2f1::t_e0331c3db84332 141-142
+QuickShell/Pages/QuickShellPage.cs
+  s_cd70e11c4cb2f1::t_73b5a4270d9a0b 191,200,205,211,264
+QuickShell/Pages/ShortcutFormPage.cs
+  s_cd70e11c4cb2f1::t_d897e994a2899e 165,169,187,233,264,547,804,819,899,914,972,1410
+QuickShell/Pages/ShortcutTransferSettingsForm.cs
+  s_cd70e11c4cb2f1::t_e857dfb2331ce3 65,69,97-98
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_cd70e11c4cb2f1::t_cbd88a295dd49a 44
+QuickShell/QuickShellCommandsProvider.cs
+  s_cd70e11c4cb2f1::t_adc70d102e81c3 47,49-51,66,143,172
+QuickShell/QuickShellFallback.cs
+  s_cd70e11c4cb2f1::t_7c5d40866673ab 84,114,146
+QuickShell/Services/CommandRouter.cs
+  s_cd70e11c4cb2f1::t_a4d10571eea3af 16,23,29,35,113,122,144
+QuickShell/Services/ShortcutFilePickerService.cs
+  s_cd70e11c4cb2f1::t_24db723438797c 14,39,63,113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c3a126dab9e6c3acd9f06605b3e078f97c1e01dd",
+  "prompts": {},
+  "sessions": {
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
