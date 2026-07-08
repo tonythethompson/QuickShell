@@ -8,11 +8,49 @@ function Get-RaycastRoot {
 }
 
 function Get-RaycastExecutable {
-    @(
+    $candidates = @(
         Join-Path $env:LOCALAPPDATA 'Programs\Raycast\Raycast.exe'
         Join-Path ${env:ProgramFiles} 'Raycast\Raycast.exe'
         Join-Path ${env:ProgramFiles(x86)} 'Raycast\Raycast.exe'
-    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+        Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\Raycast.exe'
+    )
+
+    $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($found) {
+        return $found
+    }
+
+    $package = Get-AppxPackage -Name 'Raycast.Raycast' -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($package) {
+        $packageExe = Join-Path $package.InstallLocation 'Raycast\Raycast.exe'
+        if (Test-Path -LiteralPath $packageExe) {
+            return $packageExe
+        }
+    }
+
+    return $null
+}
+
+function Get-RaycastAppUserModelId {
+    $package = Get-AppxPackage -Name 'Raycast.Raycast' -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($package -and $package.PackageFamilyName) {
+        return "$($package.PackageFamilyName)!Raycast"
+    }
+
+    $startApp = Get-StartApps -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Name -eq 'Raycast' -or
+            $_.AppID -like 'Raycast.Raycast_*'
+        } |
+        Select-Object -First 1
+
+    if ($startApp) {
+        return $startApp.AppID
+    }
+
+    return $null
 }
 
 function Stop-RaycastProcesses {
@@ -31,21 +69,46 @@ function Stop-RaycastProcesses {
 }
 
 function Start-RaycastApp {
-    $raycastExe = Get-RaycastExecutable
-    if (-not $raycastExe) {
-        Write-Warning 'Raycast was not found. Install Raycast for Windows or pass -SkipRaycast.'
-        return $false
-    }
-
     if (Get-Process -Name 'Raycast' -ErrorAction SilentlyContinue) {
-        Write-Host "Raycast is already running: $raycastExe"
+        Write-Host 'Raycast is already running.'
         return $true
     }
 
-    Write-Host "Starting Raycast: $raycastExe"
-    Start-Process -FilePath $raycastExe
-    Start-Sleep -Seconds 2
-    return $true
+    # Prefer classic / alias exe paths (desktop installs and app execution aliases).
+    $raycastExe = @(
+        Join-Path $env:LOCALAPPDATA 'Programs\Raycast\Raycast.exe'
+        Join-Path ${env:ProgramFiles} 'Raycast\Raycast.exe'
+        Join-Path ${env:ProgramFiles(x86)} 'Raycast\Raycast.exe'
+        Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\Raycast.exe'
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if ($raycastExe) {
+        Write-Host "Starting Raycast: $raycastExe"
+        Start-Process -FilePath $raycastExe
+        Start-Sleep -Seconds 2
+        return $true
+    }
+
+    # Store / WinGet AppX packages usually need AUMID activation, not a raw Start-Process on the package exe.
+    $aumid = Get-RaycastAppUserModelId
+    if ($aumid) {
+        Write-Host "Starting Raycast (Store/AppX): $aumid"
+        Start-Process -FilePath 'explorer.exe' -ArgumentList "shell:AppsFolder\$aumid"
+        Start-Sleep -Seconds 2
+        return $true
+    }
+
+    # Last resort: AppX install-location Raycast.exe if resolvable.
+    $packageExe = Get-RaycastExecutable
+    if ($packageExe) {
+        Write-Host "Starting Raycast: $packageExe"
+        Start-Process -FilePath $packageExe
+        Start-Sleep -Seconds 2
+        return $true
+    }
+
+    Write-Warning 'Raycast was not found. Install Raycast for Windows or pass -SkipRaycast.'
+    return $false
 }
 
 function Deploy-RaycastExtension {
