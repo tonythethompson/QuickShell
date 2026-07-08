@@ -19,7 +19,9 @@ describe("pill key codec", () => {
       throw new Error("Pill key codec functions are not exported from workspace-form-state");
     }
     const key = encodePillKey({ taskType: "frontend", command: "npm run dev" });
-    expect(decodePillKey(key)).toEqual({ taskType: "frontend", command: "npm run dev" });
+    const decode = decodePillKey;
+    expect(decode).toBeTypeOf("function");
+    expect(decode(key)).toEqual({ taskType: "frontend", command: "npm run dev" });
   });
 
   it("supports commands containing commas", () => {
