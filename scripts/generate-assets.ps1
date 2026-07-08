@@ -1,71 +1,60 @@
 #Requires -Version 5.1
 
-# Generates MSIX, store listing, CmdPal icon, and small tiles from logo-micro.svg.
-# Validates logo.svg is present as the full-size artwork (not used as generation input).
+# Regenerates Quick Shell icon PNGs from SVG sources under QuickShell/Assets.
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $assetsDir = Join-Path $repoRoot 'QuickShell\Assets'
+$iconScript = Join-Path $assetsDir 'icon\export-msix-icons.ps1'
+$runScript = Join-Path $assetsDir 'run\export-run-icons.ps1'
+$raycastScript = Join-Path $assetsDir 'raycast\export-raycast-icons.ps1'
+$masterSvg = Join-Path $assetsDir 'icon\quickshell-icon.svg'
 $logoSvg = Join-Path $repoRoot 'logo.svg'
-$logoMicroSvg = Join-Path $assetsDir 'logo-micro.svg'
-$runImagesDir = Join-Path $repoRoot 'QuickShell.Run\Images'
-$generatorProject = Join-Path $PSScriptRoot 'LogoAssetGenerator\LogoAssetGenerator.csproj'
-
-if (-not (Test-Path $logoSvg)) {
-    throw "Missing full-size logo artwork: $logoSvg"
-}
-
-if (-not (Test-Path $logoMicroSvg)) {
-    throw "Missing micro logo source: $logoMicroSvg"
-}
-
-New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
-New-Item -ItemType Directory -Force -Path $runImagesDir | Out-Null
-
-dotnet build $generatorProject --no-incremental | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "LogoAssetGenerator build failed with exit code $LASTEXITCODE"
-}
-
-dotnet run --project $generatorProject --no-build -- $logoMicroSvg $assetsDir
-if ($LASTEXITCODE -ne 0) {
-    throw "LogoAssetGenerator failed with exit code $LASTEXITCODE"
-}
-
-# PowerToys Run plugin icons: monochrome outlines (not the full-color MSIX logo).
-$runDarkSvg = Join-Path $assetsDir 'logo-run.dark.svg'
-$runLightSvg = Join-Path $assetsDir 'logo-run.light.svg'
-
-if (-not (Test-Path $runDarkSvg)) {
-    throw "Missing Run dark icon source: $runDarkSvg"
-}
-
-if (-not (Test-Path $runLightSvg)) {
-    throw "Missing Run light icon source: $runLightSvg"
-}
-
-dotnet run --project $generatorProject --no-build -- --render $runDarkSvg (Join-Path $runImagesDir 'quickshell.dark.png') 50 50
-if ($LASTEXITCODE -ne 0) {
-    throw "LogoAssetGenerator Run dark icon failed with exit code $LASTEXITCODE"
-}
-
-dotnet run --project $generatorProject --no-build -- --render $runLightSvg (Join-Path $runImagesDir 'quickshell.light.png') 50 50
-if ($LASTEXITCODE -ne 0) {
-    throw "LogoAssetGenerator Run light icon failed with exit code $LASTEXITCODE"
-}
-
 $cmdPalIcon = Join-Path $repoRoot 'cmdpal-gallery\extensions\tonythethompson\quickshell\icon.png'
-$appTile300 = Join-Path $assetsDir 'StoreListing\AppTile_300x300.png'
-if (-not (Test-Path $appTile300)) {
-    throw "Missing store listing icon source: $appTile300"
+
+if (-not (Test-Path $masterSvg)) {
+    throw "Missing master icon SVG: $masterSvg"
 }
 
-New-Item -ItemType Directory -Force -Path (Split-Path $cmdPalIcon -Parent) | Out-Null
-Copy-Item -Force $appTile300 $cmdPalIcon
+if (-not (Test-Path $iconScript)) {
+    throw "Missing icon export script: $iconScript"
+}
 
-Write-Host "Quick Shell assets generated:"
-Write-Host "  Source:     $logoMicroSvg (MSIX, store listing, CmdPal icon)"
-Write-Host "  Artwork:    $logoSvg (full-size logo, validated only)"
-Write-Host "  MSIX:       $assetsDir"
-Write-Host "  Run:        $runImagesDir"
+if (-not (Test-Path $runScript)) {
+    throw "Missing run export script: $runScript"
+}
+
+if (-not (Test-Path $raycastScript)) {
+    throw "Missing Raycast export script: $raycastScript"
+}
+
+& $iconScript
+if ($LASTEXITCODE -ne 0) {
+    throw "export-msix-icons.ps1 failed with exit code $LASTEXITCODE"
+}
+
+& $runScript
+if ($LASTEXITCODE -ne 0) {
+    throw "export-run-icons.ps1 failed with exit code $LASTEXITCODE"
+}
+
+& $raycastScript
+if ($LASTEXITCODE -ne 0) {
+    throw "export-raycast-icons.ps1 failed with exit code $LASTEXITCODE"
+}
+
+# Keep repo-root logo.svg aligned with the canonical master artwork.
+Copy-Item -Force $masterSvg $logoSvg
+
+$appTile300 = Join-Path $assetsDir 'StoreListing\AppTile_300x300.png'
+if (Test-Path $appTile300) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $cmdPalIcon -Parent) | Out-Null
+    Copy-Item -Force $appTile300 $cmdPalIcon
+}
+
+Write-Host 'Quick Shell assets generated:'
+Write-Host "  Master SVG:  $masterSvg"
+Write-Host "  MSIX PNGs:   $assetsDir"
+Write-Host "  Run plugin:  $(Join-Path $repoRoot 'QuickShell.Run\Images')"
+Write-Host "  Raycast:     $(Join-Path $repoRoot 'QuickShell.Raycast\assets')"
