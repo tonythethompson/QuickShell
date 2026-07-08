@@ -2,7 +2,7 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Commands;
-using QuickShell.Composition;
+using QuickShell.Services.CommandRouting;
 using QuickShell.Pages;
 using QuickShell.Pages.Dev;
 using QuickShell.Services;
@@ -32,23 +32,22 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
-        using (StartupPerformanceTrace.Measure("CmdPal composition root"))
-        {
-            var collection = new ServiceCollection();
-            collection.AddQuickShellCore();
-            _services = collection.BuildServiceProvider();
-        }
-
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
             _settingsManager = new QuickShellSettingsManager(ReloadPages);
+            _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
         }
 
-        using (StartupPerformanceTrace.Measure("CmdPal host services"))
+        using (StartupPerformanceTrace.Measure("CmdPal composition root"))
         {
+            var collection = new ServiceCollection();
+            collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages);
+            _services = collection.BuildServiceProvider();
+
             var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
             var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
             QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager));
+            _commandRouter = _services.GetRequiredService<ICommandRouter>();
             KickoffGitRepoIndexPrewarm();
         }
 
@@ -59,14 +58,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
         {
-            _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
             _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
-            _commandRouter = new CommandRouter(
-                _services.GetRequiredService<ICommandIdParser>(),
-                _services.GetRequiredService<IShortcutRepository>(),
-                _settingsManager,
-                _createShortcutCommand,
-                ReloadPages);
             _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;

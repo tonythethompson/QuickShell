@@ -22,7 +22,7 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
         _branch = branch;
         _settings = settings;
         _onChanged = onChanged;
-        Id = $"com.quickshell.worktree-branch.select.{shortcutId}.{branch}";
+        Id = ShortcutCommandIds.WorktreeBranchSelect(shortcutId, branch);
         Name = branch;
         Icon = new IconInfo("\uE8AB");
     }
@@ -60,7 +60,7 @@ internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
     {
         _shortcutId = shortcutId;
         _onChanged = onChanged;
-        Id = $"com.quickshell.worktree-branch.clear.{shortcutId}";
+        Id = ShortcutCommandIds.WorktreeBranchClear(shortcutId);
         Name = "Use current branch";
         Icon = new IconInfo("\uE894");
     }

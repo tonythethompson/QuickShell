@@ -20,7 +20,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     {
         _shortcut = shortcut;
         _settings = settings;
-        Id = $"com.quickshell.workspace-status.{shortcut.Id}";
+        Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");

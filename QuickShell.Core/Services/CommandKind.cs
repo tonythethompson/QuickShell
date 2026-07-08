@@ -6,9 +6,15 @@ namespace QuickShell.Services;
 internal enum CommandKind
 {
     OpenSettings,
+    ImportConflict,
+    PendingShortcutEdit,
     CreateWorkspace,
     DiscoverCreateWorkspace,
     DiscoverGitRepos,
     OpenLaunch,
     OpenWorkspace,
+    WorkspaceStatus,
+    WorktreeBranchPicker,
+    WorktreeBranchSelect,
+    WorktreeBranchClear,
 }
