@@ -25,12 +25,10 @@ def collect_paths(tool_name: str, tool_input: dict) -> list[str]:
         return paths
 
     if tool_name == "MultiEdit":
-        for edit in tool_input.get("edits") or []:
-            if not isinstance(edit, dict):
-                continue
-            file_path = edit.get("file_path")
-            if isinstance(file_path, str):
-                paths.append(file_path)
+        file_path = tool_input.get("file_path")
+        if isinstance(file_path, str):
+            paths.append(file_path)
+        return paths
     return paths
 
 

@@ -27,22 +27,20 @@ const CONHOST_PROFILE_CHOICES: TerminalChoice[] = [
 ];
 
 export function getDefaultProfileChoices(terminalApplication: TerminalApplication): TerminalChoice[] {
+  if (terminalApplication === "conhost") {
+    return CONHOST_PROFILE_CHOICES;
+  }
   return discoverDefaultProfileChoices(terminalApplication);
 }
 
 export function getWorkspaceProfileChoices(terminal: string): TerminalChoice[] {
   if (terminal === "wt" || terminal === "wsl") {
-    return discoverDefaultProfileChoices("wt").filter(
-      (choice) => choice.id !== "__default__" || terminal === "wt",
-    );
+    return discoverDefaultProfileChoices("wt").filter((choice) => choice.id !== "__default__" || terminal === "wt");
   }
   return [];
 }
 
-export function normalizeDefaultProfile(
-  terminalApplication: TerminalApplication,
-  profile: string,
-): string {
+export function normalizeDefaultProfile(terminalApplication: TerminalApplication, profile: string): string {
   const choices = getDefaultProfileChoices(terminalApplication);
   if (choices.some((choice) => choice.id === profile)) {
     return profile;
@@ -51,12 +49,10 @@ export function normalizeDefaultProfile(
 }
 
 export function settingsSummary(settings: QuickShellSettings): string {
-  const app = TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === settings.terminalApplication)?.title
-    ?? settings.terminalApplication;
-  const profile =
-    settings.defaultProfile === "__default__"
-      ? "default profile"
-      : settings.defaultProfile;
+  const app =
+    TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === settings.terminalApplication)?.title ??
+    settings.terminalApplication;
+  const profile = settings.defaultProfile === "__default__" ? "default profile" : settings.defaultProfile;
   const multiLaunch =
     settings.multiLaunchPresentation === "separateWindows" ? "separate windows" : "tabs";
   return `${app} • ${profile} • ${multiLaunch}`;

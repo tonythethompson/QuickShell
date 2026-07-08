@@ -1,4 +1,5 @@
 import { LocalStorage } from "@raycast/api";
+import { getQuickShellSettingsFromPreferences } from "./extension-preferences";
 import { QuickShellStorage, type StorageAdapter } from "./storage";
 
 const raycastAdapter: StorageAdapter = {
@@ -15,7 +16,7 @@ let singleton: QuickShellStorage | null = null;
 
 export function getQuickShellStorage(): QuickShellStorage {
   if (!singleton) {
-    singleton = new QuickShellStorage(raycastAdapter);
+    singleton = new QuickShellStorage(raycastAdapter, getQuickShellSettingsFromPreferences);
   }
   return singleton;
 }

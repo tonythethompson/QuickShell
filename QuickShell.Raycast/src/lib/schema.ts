@@ -29,6 +29,12 @@ export type Workspace = {
   command?: string | null;
   runAsAdmin: boolean;
   launches: LaunchEntry[];
+  devServerUrl?: string | null;
+  openDevServerOnLaunch?: boolean;
+  repoUrl?: string | null;
+  openCompanionAppOnLaunch?: boolean;
+  companionAppPath?: string | null;
+  companionAppArguments?: string | null;
 };
 
 export type MultiLaunchPresentation = "singleWindowTabs" | "separateWindows";

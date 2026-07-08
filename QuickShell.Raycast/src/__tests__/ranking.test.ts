@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildBrowseSections,
-  computeBrowseScore,
-  getRecentWorkspaces,
-  sortWorkspacesForSearch,
-} from "../lib/ranking";
+import { buildBrowseSections, computeBrowseScore, getRecentWorkspaces, sortWorkspacesForSearch } from "../lib/ranking";
 import type { Workspace } from "../lib/schema";
 
 function workspace(partial: Partial<Workspace> & Pick<Workspace, "id" | "name">): Workspace {
@@ -38,7 +33,12 @@ function workspace(partial: Partial<Workspace> & Pick<Workspace, "id" | "name">)
 
 describe("ranking", () => {
   it("ranks pinned workspaces above recents in browse mode", () => {
-    const favorite = workspace({ id: "1", name: "Favorite", isPinned: true, pinOrder: 1 });
+    const favorite = workspace({
+      id: "1",
+      name: "Favorite",
+      isPinned: true,
+      pinOrder: 1,
+    });
     const recent = workspace({
       id: "2",
       name: "Recent",
@@ -49,7 +49,12 @@ describe("ranking", () => {
   });
 
   it("returns favorites, recents, and remaining workspaces", () => {
-    const favorite = workspace({ id: "1", name: "Favorite", isPinned: true, pinOrder: 1 });
+    const favorite = workspace({
+      id: "1",
+      name: "Favorite",
+      isPinned: true,
+      pinOrder: 1,
+    });
     const recent = workspace({
       id: "2",
       name: "Recent",
@@ -77,7 +82,12 @@ describe("ranking", () => {
 
   it("ranks exact abbreviation matches higher in search mode", () => {
     const exact = workspace({ id: "1", name: "Alpha", abbreviation: "api" });
-    const other = workspace({ id: "2", name: "Beta", abbreviation: "app", isPinned: true });
+    const other = workspace({
+      id: "2",
+      name: "Beta",
+      abbreviation: "app",
+      isPinned: true,
+    });
 
     const ranked = sortWorkspacesForSearch([exact, other], "api");
     expect(ranked[0].id).toBe("1");

@@ -9,12 +9,14 @@ on:
       - "**/*.cs"
       - "**/*.csproj"
       - "**/*.sln"
+      - "QuickShell.Raycast/**"
       - ".github/workflows/codeql.yml"
   pull_request:
     paths:
       - "**/*.cs"
       - "**/*.csproj"
       - "**/*.sln"
+      - "QuickShell.Raycast/**"
       - ".github/workflows/codeql.yml"
   schedule:
     - cron: "17 3 * * 0"
@@ -30,8 +32,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  analyze:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      dotnet: ${{ steps.filter.outputs.dotnet }}
+      raycast: ${{ steps.filter.outputs.raycast }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changed areas
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            dotnet:
+              - '**/*.cs'
+              - '**/*.csproj'
+              - '**/*.sln'
+              - '.github/workflows/codeql.yml'
+            raycast:
+              - 'QuickShell.Raycast/**'
+              - '.github/workflows/codeql.yml'
+
+  analyze-csharp:
     name: Analyze C# with CodeQL
+    needs: changes
+    if: |
+      needs.changes.outputs.dotnet == 'true' ||
+      github.event_name == 'pull_request' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 90
 
@@ -73,3 +104,47 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:csharp"
+
+  analyze-javascript:
+    name: Analyze Raycast TypeScript with CodeQL
+    needs: changes
+    if: |
+      needs.changes.outputs.raycast == 'true' ||
+      github.event_name == 'pull_request' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: QuickShell.Raycast
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: QuickShell.Raycast/.nvmrc
+          cache: npm
+          cache-dependency-path: QuickShell.Raycast/package-lock.json
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

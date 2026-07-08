@@ -1,6 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { QuickShellSettings, Workspace } from "../lib/schema";
 import { executeWorkspaceLaunch, type ExecFn } from "../lib/launch-executor";
+
+const { runPostLaunchActionsMock } = vi.hoisted(() => ({
+  runPostLaunchActionsMock: vi.fn(async () => ({
+    companionOpened: false,
+    devServerOpened: false,
+    warnings: [] as string[],
+  })),
+}));
+
+vi.mock("../lib/post-launch-actions", () => ({
+  runPostLaunchActions: runPostLaunchActionsMock,
+}));
 
 const settings: QuickShellSettings = {
   terminalApplication: "wt",
@@ -37,6 +49,34 @@ const workspace: Workspace = {
 };
 
 describe("launch-executor", () => {
+  it("skips post-launch actions when companion and dev server are disabled", async () => {
+    runPostLaunchActionsMock.mockClear();
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const execFn: ExecFn = async () => undefined;
+
+    const workspaceWithHooks: Workspace = {
+      ...workspace,
+      openDevServerOnLaunch: true,
+      devServerUrl: "http://localhost:5173",
+      openCompanionAppOnLaunch: true,
+      companionAppPath: "C:\\Program Files\\Code.exe",
+    };
+    const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+    const plan = buildWorkspaceLaunchPlan(workspaceWithHooks, settings);
+    const result = await executeWorkspaceLaunch(plan, settings, execFn, {
+      includeCompanion: false,
+      includeDevServer: false,
+    });
+
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    expect(result.ok).toBe(true);
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(
+      workspaceWithHooks,
+      expect.objectContaining({ includeCompanion: false, includeDevServer: false }),
+    );
+  });
+
   it("refuses launch on non-windows platforms", async () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "darwin" });

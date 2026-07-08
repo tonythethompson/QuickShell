@@ -1,51 +1,74 @@
 # QuickShell Raycast
 
-Raycast-native workspace launcher for QuickShell.
+Raycast-native workspace launcher for QuickShell on **Windows**.
 
 ## Commands
 
-- **Open Workspace** — search, launch, favorite, duplicate, edit, and open saved workspaces
-- **Create Workspace** — create a workspace with name, directory, terminal, and launch command
-- **Edit Workspace** — searchable picker with inline form; optional `workspaceId` argument for direct edit
-- **Settings** — default terminal app, default profile, and recent workspaces toggle
+- **Open Workspace** — search, launch, favorite, duplicate, edit, import/export, undo/redo
+- **Create Workspace** — directory-first form with auto-fill; drafts enabled; opens Open Workspace after save
+- **Edit Workspace** — searchable picker with inline form; optional `workspaceId` argument
+- **Discover Git Repos** — scan common project folders and add repositories as workspaces
+- **Manage Workspaces** — import/export, undo/redo, open Raycast extension preferences
+
+**Extension preferences** (Raycast → Extensions → QuickShell): default terminal app, default profile, show recents.
+
+Root search: type `qs`, `quickshell`, or a workspace home keyword. Register **Open Workspace** as a fallback command to honor root-search text via `fallbackText`.
+
+## Requirements
+
+- **Raycast for Windows**
+- **Node.js 22.14+** (development only)
+- Windows terminals such as Windows Terminal, PowerShell, or WSL
+
+## File structure
+
+```
+QuickShell.Raycast/
+├── assets/              # extension and command icons (512px PNG)
+├── CHANGELOG.md         # Store Version History (no version field in package.json)
+├── eslint.config.js     # Raycast ESLint flat config
+├── package.json         # Raycast manifest + npm metadata + preferences
+├── src/
+│   ├── *.tsx            # one entry file per command name in the manifest
+│   ├── components/      # shared UI (forms, platform guard)
+│   └── lib/             # storage, launch, validation, search, preferences
+└── src/__tests__/       # Vitest unit tests (lib only; no @raycast/api in tests)
+```
+
+## Deeplinks
+
+```
+raycast://extensions/tonythethompson/quickshell/open-workspace
+raycast://extensions/tonythethompson/quickshell/create-workspace?arguments=%7B%22directory%22%3A%22C%3A%5CProjects%5Cfoo%22%7D
+raycast://extensions/tonythethompson/quickshell/edit-workspace?arguments=%7B%22workspaceId%22%3A%22<id>%22%7D
+```
+
+Open Workspace with launch context (after create):
+
+```
+raycast://extensions/tonythethompson/quickshell/open-workspace?context=%7B%22focusWorkspaceName%22%3A%22QuickShell%22%7D
+```
 
 ## Development
-
-Requires **Node.js 22.14+** and **Raycast for Windows**.
 
 ```bash
 cd QuickShell.Raycast
 npm install
 npm test
+npm run lint
+npm run build
 npm run dev
 ```
 
-### `Cannot find module .../develop/index.js`
+Run `npm run build` before submitting Store changes. Do not add a `version` field to `package.json`; Store versioning uses `CHANGELOG.md`.
 
-That means `@raycast/api` did not install completely (common after an interrupted install or antivirus blocking large files).
+## Store checklist
 
-PowerShell repair:
+- [x] Extension preferences for defaults, `CHANGELOG.md`, ESLint/Prettier scaffold
+- [x] `useForm` validation, drafts, `launchCommand`, fallback text support
+- [ ] Store screenshots (Raycast Window Capture)
+- [ ] Dedicated icon for Discover Git Repos command
 
-```powershell
-cd QuickShell.Raycast
-Remove-Item -Recurse -Force node_modules
-Remove-Item -Force package-lock.json
-npm install
-npm run dev
-```
+## Scope
 
-Verify Node first:
-
-```powershell
-node -v   # must be v22.14.0 or newer
-```
-
-If `npm run dev` still fails, confirm this file exists:
-
-`node_modules\@raycast\api\dist\commands\develop\index.js`
-
-It should be about 3–4 MB. If it is missing or tiny, rerun `npm install` with antivirus exclusions for the repo folder.
-
-## MVP scope
-
-This extension tracks [Project 3](https://github.com/users/tonythethompson/projects/3). Broader parity work lives in [Project 4](https://github.com/users/tonythethompson/projects/4) and stays out of the MVP unless the core path is complete.
+Broader CmdPal parity (shared `shortcuts.json`, git branch targets, full health checks) is tracked separately from this Raycast extension.

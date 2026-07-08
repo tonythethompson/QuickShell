@@ -59,7 +59,9 @@ export function getFavoriteWorkspaces(workspaces: Workspace[]): Workspace[] {
       if (leftOrder !== rightOrder) {
         return leftOrder - rightOrder;
       }
-      return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+      return left.name.localeCompare(right.name, undefined, {
+        sensitivity: "base",
+      });
     });
 }
 
@@ -85,7 +87,9 @@ export function sortWorkspacesForBrowse(workspaces: Workspace[], utcNow = new Da
     if (scoreDelta !== 0) {
       return scoreDelta;
     }
-    return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+    return left.name.localeCompare(right.name, undefined, {
+      sensitivity: "base",
+    });
   });
 }
 
@@ -95,7 +99,9 @@ export function sortWorkspacesForSearch(workspaces: Workspace[], query: string, 
     if (scoreDelta !== 0) {
       return scoreDelta;
     }
-    return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+    return left.name.localeCompare(right.name, undefined, {
+      sensitivity: "base",
+    });
   });
 }
 
@@ -105,17 +111,14 @@ export type RankedWorkspaceSections = {
   workspaces: Workspace[];
 };
 
-export function buildBrowseSections(
-  workspaces: Workspace[],
-  recentWorkspaceCount: number,
-): RankedWorkspaceSections {
+export function buildBrowseSections(workspaces: Workspace[], recentWorkspaceCount: number): RankedWorkspaceSections {
   const favorites = getFavoriteWorkspaces(workspaces);
   const favoriteIds = new Set(favorites.map((workspace) => workspace.id));
   const recents = getRecentWorkspaces(workspaces, recentWorkspaceCount);
   const recentIds = new Set(recents.map((workspace) => workspace.id));
 
-  const remaining = workspaces.filter(
-    (workspace) => !favoriteIds.has(workspace.id) && !recentIds.has(workspace.id),
+  const remaining = sortWorkspacesForBrowse(
+    workspaces.filter((workspace) => !favoriteIds.has(workspace.id) && !recentIds.has(workspace.id)),
   );
 
   return {

@@ -1,9 +1,11 @@
 import type { QuickShellSettings } from "./schema";
 import { groupLaunchEntries } from "./launch-grouping";
+import { runPostLaunchActions } from "./post-launch-actions";
 import {
   buildLaunchArguments,
   buildGroupedWindowsTerminalArguments,
   buildWorkspaceLaunchPlan,
+  type LaunchOptions,
   type LaunchPlan,
   type LaunchPlanEntry,
 } from "./windows-launch";
@@ -11,13 +13,14 @@ import {
 export type ExecFn = (command: string, args: string[]) => Promise<void>;
 
 export type LaunchExecutionResult =
-  | { ok: true; summary: string }
+  | { ok: true; summary: string; postLaunchWarnings?: string[] }
   | { ok: false; message: string; cause?: unknown };
 
 export async function executeWorkspaceLaunch(
   plan: LaunchPlan,
   settings: QuickShellSettings,
   execFn: ExecFn,
+  options?: LaunchOptions & { includeCompanion?: boolean; includeDevServer?: boolean },
 ): Promise<LaunchExecutionResult> {
   if (plan.errors.length > 0) {
     return { ok: false, message: plan.errors.join(" ") };
@@ -39,12 +42,19 @@ export async function executeWorkspaceLaunch(
       await executeGroup(group.tabHostExecutable, group.runAsAdmin, group.entries, execFn);
     }
 
+    const workspace = plan.entries[0].workspace;
+    const postLaunch = await runPostLaunchActions(workspace, {
+      includeCompanion: options?.includeCompanion ?? true,
+      includeDevServer: options?.includeDevServer ?? true,
+    });
+
     return {
       ok: true,
       summary:
         plan.entries.length === 1
           ? `${plan.entries[0].target.displayName} → ${plan.entries[0].directory}`
           : `${plan.entries.length} launches started`,
+      postLaunchWarnings: postLaunch.warnings.length > 0 ? postLaunch.warnings : undefined,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Launch failed.";
@@ -56,9 +66,10 @@ export async function executeWorkspace(
   workspace: Parameters<typeof buildWorkspaceLaunchPlan>[0],
   settings: QuickShellSettings,
   execFn: ExecFn,
+  options?: LaunchOptions,
 ): Promise<LaunchExecutionResult> {
-  const plan = buildWorkspaceLaunchPlan(workspace, settings);
-  return executeWorkspaceLaunch(plan, settings, execFn);
+  const plan = buildWorkspaceLaunchPlan(workspace, settings, options);
+  return executeWorkspaceLaunch(plan, settings, execFn, options);
 }
 
 async function executeGroup(
@@ -83,12 +94,7 @@ async function executeGroup(
   await runProcess(host, args, runAsAdmin, execFn);
 }
 
-async function runProcess(
-  hostExecutable: string,
-  args: string[],
-  runAsAdmin: boolean,
-  execFn: ExecFn,
-): Promise<void> {
+async function runProcess(hostExecutable: string, args: string[], runAsAdmin: boolean, execFn: ExecFn): Promise<void> {
   if (!runAsAdmin) {
     await execFn(hostExecutable, args);
     return;
