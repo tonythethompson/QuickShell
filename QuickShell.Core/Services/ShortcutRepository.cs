@@ -46,6 +46,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private System.Threading.Timer? _persistTimer;
     private bool _disposed;
 
+    public event EventHandler? WorkspacesChanged;
+
     public ShortcutRepository()
         : this(configDirectory: null)
     {
@@ -1245,6 +1247,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             WriteLayoutAtomic(_layout);
             _lastGoodLayout = CloneLayout(_layout);
             _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
+            RaiseWorkspacesChanged();
             return true;
         }
 
@@ -1346,6 +1349,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         SyncShortcutsFromLayout(_layout);
         _lastGoodLayout = CloneLayout(_layout);
         _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
+        RaiseWorkspacesChanged();
     }
 
     private void SchedulePersistLocked()
@@ -1984,6 +1988,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         CompanionAppPath = shortcut.CompanionAppPath,
         CompanionAppArguments = shortcut.CompanionAppArguments,
     };
+
+    private void RaiseWorkspacesChanged() => WorkspacesChanged?.Invoke(this, EventArgs.Empty);
 
     private void WithLock(Action action)
     {

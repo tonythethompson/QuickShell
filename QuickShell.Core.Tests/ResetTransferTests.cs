@@ -34,7 +34,10 @@ public sealed class ResetTransferTests
         Assert.True(result.Success);
         Assert.Empty(repository.GetShortcuts());
         Assert.True(File.Exists(Path.Combine(directory.Path, "shortcuts.json")));
-        Assert.Equal("[]", File.ReadAllText(Path.Combine(directory.Path, "shortcuts.json")).Trim());
+        var saved = File.ReadAllText(Path.Combine(directory.Path, "shortcuts.json"));
+        Assert.Contains("\"version\": 1", saved);
+        Assert.Contains("\"entries\"", saved);
+        Assert.DoesNotContain("\"Name\"", saved);
 
         Assert.True(repository.CanUndo);
         Assert.True(repository.Undo());

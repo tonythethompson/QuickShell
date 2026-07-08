@@ -5,6 +5,8 @@ namespace QuickShell.Core.Tests;
 
 internal sealed class FakeShortcutRepository : IShortcutRepository
 {
+    public event EventHandler? WorkspacesChanged;
+
     private readonly Dictionary<string, TerminalShortcut> _byId;
     private readonly Dictionary<string, TerminalShortcut> _byName;
 
