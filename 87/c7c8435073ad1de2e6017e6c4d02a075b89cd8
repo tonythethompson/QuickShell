@@ -1,0 +1,80 @@
+QuickShell.Core/Services/ShortcutCommandIds.cs
+  s_cd70e11c4cb2f1::t_1e88a8afac9edd 5-7,13,16
+  s_cd70e11c4cb2f1::t_216244454cb40b 19,22,24-25,27-28,30-31,33-34,45
+QuickShell.Core/Services/CommandIdEncoding.cs
+  s_cd70e11c4cb2f1::t_6ba74e9d971e76 1-42
+QuickShell.Core/Services/QuickShellDeepLinkIds.cs
+  s_cd70e11c4cb2f1::t_43413b40af50bf 4,15
+  s_cd70e11c4cb2f1::t_0fe13510f1d8ed 16-28
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_cd70e11c4cb2f1::t_1ad4fe40695aae 3,25,27,50-55,57-59
+  s_cd70e11c4cb2f1::t_fe4039f193227f 1-2,4-24,26,28-49,56,60-61
+QuickShell.Core.Tests/CommandIdParserTests.cs
+  s_cd70e11c4cb2f1::t_fec34d2ac1132f 76,78-81,85,88-89,94,97,99,104,107-108,115,121,128,131
+  s_cd70e11c4cb2f1::t_2a0ec3d4ec809d 10,14,16-18,20-21,23-25,27,40,71-75,77,82,84,91,93,101,103,114,127,133,135
+  s_cd70e11c4cb2f1::t_be74b823ded576 83,86-87,90,92,95-96,98,100,102,105-106,109-113,116-120,122-126,129-130,132,134,136-139
+QuickShell.Core/Services/CommandIdParser.cs
+  s_cd70e11c4cb2f1::t_41517f569df31a 4,17,23-34,41,57-93,95,105,116-181,184-185,188-190,194,197-198,201-203,207,210-211,214-216,220,223-224,228-230,235-237,242
+  s_cd70e11c4cb2f1::t_f170a737d239ed 182-183,186-187,191-193,195-196,199-200,204-206,208-209,212-213,217-219,221-222,225-227,231-234,238-241
+QuickShell/Services/CommandRouting/ICommandItemHandler.cs
+  s_cd70e11c4cb2f1::t_fa4a0e65e765f0 1-13
+QuickShell/QuickShellCommandsProvider.cs
+  s_cd70e11c4cb2f1::t_f1181e94bb7997 5
+  s_cd70e11c4cb2f1::t_eefd2155e4ff38 38,41,43-46,50
+QuickShell/Services/CommandRouting/CommandItemFactoryContext.cs
+  s_cd70e11c4cb2f1::t_f30ee1cb5714c9 1-18
+QuickShell.Core.Tests/ShortcutCommandIdsTests.cs
+  s_cd70e11c4cb2f1::t_8f31a40349d4ad 8
+  s_cd70e11c4cb2f1::t_94e73dcf535aa5 14-15,23,26-34
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_cd70e11c4cb2f1::t_1062feea019233 41-42
+  s_cd70e11c4cb2f1::t_f353f248efbda6 38-40
+  s_cd70e11c4cb2f1::t_f20994bda669bc 43-45
+  s_cd70e11c4cb2f1::t_a57744eea4f0ef 1-37,46-242
+QuickShell/Services/CommandRouter.cs
+  s_cd70e11c4cb2f1::t_084fd7a77b3ac2 2,12
+  s_cd70e11c4cb2f1::t_593982e87564bf 7,13
+  s_cd70e11c4cb2f1::t_05f4b67086428f 17-18,21-22,25-26,38,40,43-44
+QuickShell.Core/Services/CommandDescriptor.cs
+  s_cd70e11c4cb2f1::t_b25be53f714ba2 8,11,17-18
+QuickShell.Core/Services/CommandKind.cs
+  s_cd70e11c4cb2f1::t_53b4446218a721 9-10,16-19
+QuickShell/Commands/WorktreeBranchCommands.cs
+  s_c57ef69f4c2f50::t_6fbc423b8b6c1c 25,63
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_939add5b1d5a89::t_ee10ce845dc9fc 23
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_cd70e11c4cb2f1::t_760aa27c325e52 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "87c7c8435073ad1de2e6017e6c4d02a075b89cd8",
+  "prompts": {},
+  "sessions": {
+    "s_939add5b1d5a89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "15dce266-6f37-40a0-8f56-a9cb0ab6889c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_c57ef69f4c2f50": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7b891e1a-094e-4793-bb30-acaac4323db7",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
