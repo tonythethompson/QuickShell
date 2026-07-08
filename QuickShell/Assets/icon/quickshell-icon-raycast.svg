@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Exported equivalent from Figma file EozizheKdOcUVMQ70g07nY (Quick Shell Icon, node 1:2) -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Quick Shell icon">
-  <title>Quick Shell</title>
+<!-- Raycast variant: red >_ prompt, white bolt (same lockup as quickshell-icon.svg) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Quick Shell icon (Raycast)">
+  <title>Quick Shell (Raycast)</title>
 
   <defs>
     <radialGradient id="bgGrad" cx="38%" cy="22%" r="85%">
@@ -10,18 +10,16 @@
       <stop offset="100%" stop-color="#0A0E11"/>
     </radialGradient>
 
-    <!-- Bright prompt green, subtle glow (less than original) -->
     <linearGradient id="promptGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#6EFFAA"/>
-      <stop offset="45%" stop-color="#32D74B"/>
-      <stop offset="100%" stop-color="#00963F"/>
+      <stop offset="0%" stop-color="#FF9A9A"/>
+      <stop offset="45%" stop-color="#FF5C5C"/>
+      <stop offset="100%" stop-color="#C62828"/>
     </linearGradient>
 
     <filter id="promptGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#32FF78" flood-opacity="0.16"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#FF6B6B" flood-opacity="0.16"/>
     </filter>
 
-    <!-- Bolt: gradient + depth shadow only (no white halo) -->
     <linearGradient id="boltGrad" x1="15%" y1="5%" x2="85%" y2="95%">
       <stop offset="0%" stop-color="#FFFFFF"/>
       <stop offset="55%" stop-color="#F5F8FA"/>

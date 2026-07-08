@@ -1,6 +1,34 @@
 using SkiaSharp;
 using Svg.Skia;
 
+if (args.Length >= 3 && args[0] == "--posters")
+{
+    try
+    {
+        return GenerateStorePosters(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]));
+    }
+    catch (ArgumentException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (NotSupportedException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (IOException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+}
+
 if (args.Length >= 5 && args[0] == "--render")
 {
     try
@@ -13,7 +41,32 @@ if (args.Length >= 5 && args[0] == "--render")
         RenderSvgToPng(svgPath, outPath, width, height);
         return 0;
     }
-    catch (Exception ex)
+    catch (FormatException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (OverflowException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (ArgumentException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (NotSupportedException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (IOException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    catch (UnauthorizedAccessException ex)
     {
         Console.Error.WriteLine(ex.Message);
         return 1;
@@ -24,6 +77,7 @@ if (args.Length < 2)
 {
     Console.Error.WriteLine("Usage: LogoAssetGenerator <microLogo.svg> <outputDir>");
     Console.Error.WriteLine("       LogoAssetGenerator --render <any.svg> <out.png> <width> <height>");
+    Console.Error.WriteLine("       LogoAssetGenerator --posters <icon.svg|icon.png> <storeListingDir>");
     return 1;
 }
 
@@ -86,7 +140,7 @@ foreach (var (path, width, height, poster) in storeListingAssets)
 {
     if (poster)
     {
-        RenderPosterLogo(storeListingDir, path, picture, bounds, width, height);
+        RenderPosterLogoFromPicture(storeListingDir, path, picture, bounds, width, height);
     }
     else
     {
@@ -95,6 +149,40 @@ foreach (var (path, width, height, poster) in storeListingAssets)
 }
 
 return 0;
+
+static int GenerateStorePosters(string iconSourcePath, string storeListingDir)
+{
+    Directory.CreateDirectory(storeListingDir);
+
+    if (!File.Exists(iconSourcePath))
+    {
+        Console.Error.WriteLine($"Missing icon source: {iconSourcePath}");
+        return 1;
+    }
+
+    if (iconSourcePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+    {
+        using var bitmap = SKBitmap.Decode(iconSourcePath)
+            ?? throw new InvalidOperationException($"Failed to decode PNG: {iconSourcePath}");
+        var bounds = new SKRect(0, 0, bitmap.Width, bitmap.Height);
+        RenderPosterLogoFromBitmap(storeListingDir, "PosterArt_720x1080.png", bitmap, bounds, 720, 1080);
+        RenderPosterLogoFromBitmap(storeListingDir, "PosterArt_1440x2160.png", bitmap, bounds, 1440, 2160);
+        return 0;
+    }
+
+    using var svg = new SKSvg();
+    if (svg.Load(iconSourcePath) is null || svg.Picture is null)
+    {
+        throw new InvalidOperationException($"Failed to load SVG: {iconSourcePath}");
+    }
+
+    var picture = svg.Picture;
+    var pictureBounds = picture.CullRect;
+
+    RenderPosterLogoFromPicture(storeListingDir, "PosterArt_720x1080.png", picture, pictureBounds, 720, 1080);
+    RenderPosterLogoFromPicture(storeListingDir, "PosterArt_1440x2160.png", picture, pictureBounds, 1440, 2160);
+    return 0;
+}
 
 static void RenderSquareLogo(string outDir, string fileName, SKPicture picture, SKRect bounds, int width, int height)
 {
@@ -124,7 +212,63 @@ static void RenderSquareLogo(string outDir, string fileName, SKPicture picture, 
     WritePng(surface, Path.Combine(outDir, fileName), width, height);
 }
 
-static void RenderPosterLogo(string outDir, string fileName, SKPicture picture, SKRect bounds, int width, int height)
+static void RenderPosterLogoFromBitmap(string outDir, string fileName, SKBitmap bitmap, SKRect bounds, int width, int height)
+{
+    const int supersample = 2;
+    var renderWidth = width * supersample;
+    var renderHeight = height * supersample;
+    var ss = (float)supersample;
+
+    var info = new SKImageInfo(renderWidth, renderHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
+    using var surface = SKSurface.Create(info);
+    var canvas = surface.Canvas;
+
+    DrawPosterBackground(canvas, renderWidth, renderHeight);
+
+    var contentBottom = height * (2f / 3f) * ss;
+
+    var kickerSize = width * 0.026f * ss;
+    var titleSize = width * 0.072f * ss;
+    var taglineSize = width * 0.034f * ss;
+
+    var kickerY = height * 0.07f * ss;
+    var titleY = height * 0.115f * ss;
+    var taglineY = height * 0.155f * ss;
+    var textBlockBottom = height * 0.19f * ss;
+
+    DrawPosterKicker(canvas, renderWidth, kickerY, kickerSize);
+    DrawPosterBranding(canvas, renderWidth, titleY, taglineY, titleSize, taglineSize);
+
+    var iconBandTop = textBlockBottom + height * 0.02f * ss;
+    var iconBandBottom = contentBottom - height * 0.11f * ss;
+    var iconBandHeight = iconBandBottom - iconBandTop;
+    var iconWidthTarget = width * 0.68f * ss;
+    var scaleByWidth = iconWidthTarget / bounds.Width;
+    var scaleByHeight = iconBandHeight / bounds.Height;
+    var scale = Math.Min(scaleByWidth, scaleByHeight);
+    var scaledWidth = bounds.Width * scale;
+    var scaledHeight = bounds.Height * scale;
+    var iconLeft = (renderWidth - scaledWidth) / 2f;
+    var iconTop = iconBandTop + ((iconBandHeight - scaledHeight) / 2f);
+
+    using var paint = new SKPaint
+    {
+        IsAntialias = true,
+        FilterQuality = SKFilterQuality.High,
+    };
+    canvas.DrawBitmap(bitmap, new SKRect(iconLeft, iconTop, iconLeft + scaledWidth, iconTop + scaledHeight), paint);
+
+    var badgeSize = width * 0.021f * ss;
+    var badgeBlockHeight = height * 0.088f * ss;
+    var badgeRowY = iconTop + scaledHeight + height * 0.02f * ss + (badgeBlockHeight / 2f);
+    DrawPosterFeatureBadges(canvas, renderWidth, badgeRowY, badgeSize);
+
+    DrawPosterPaletteMockup(canvas, renderWidth, renderHeight, contentBottom);
+
+    WritePng(surface, Path.Join(outDir, fileName), width, height);
+}
+
+static void RenderPosterLogoFromPicture(string outDir, string fileName, SKPicture picture, SKRect bounds, int width, int height)
 {
     const int supersample = 2;
     var renderWidth = width * supersample;
