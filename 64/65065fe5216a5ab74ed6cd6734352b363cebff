@@ -1,0 +1,41 @@
+QuickShell.Core/Services/AtomicFileWriter.cs
+  s_cd70e11c4cb2f1::t_3a847ed6fa78ed 1-62
+QuickShell.Core/Services/IAtomicFileWriter.cs
+  s_cd70e11c4cb2f1::t_4ab4a7affb92ac 1-11
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_939add5b1d5a89::t_26cc886a973d8a 31,55-59,62,1397
+QuickShell.Core/Services/WorktreeBranchTargetStore.cs
+  s_939add5b1d5a89::t_a46b2025e12902 20-24,185-187
+QuickShell.Core.Tests/AtomicFileWriterTests.cs
+  s_cd70e11c4cb2f1::t_a00783917b2b00 1-83
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_cd70e11c4cb2f1::t_d5facd6b7efff0 50-59
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_cd70e11c4cb2f1::t_d86f915f6f5d02 26-28,30-32
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_cd70e11c4cb2f1::t_921566b3ca2aba 8,10-11,14-25,318,322,327-328,339-340
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6465065fe5216a5ab74ed6cd6734352b363cebff",
+  "prompts": {},
+  "sessions": {
+    "s_939add5b1d5a89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "15dce266-6f37-40a0-8f56-a9cb0ab6889c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
