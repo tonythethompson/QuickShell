@@ -1,0 +1,56 @@
+QuickShell/Services/CommandRouter.cs
+  s_cd70e11c4cb2f1::t_3a0523e702aef2 1-89,91-106,108-137,139-148
+  s_cd70e11c4cb2f1::t_b7a23e8fadbbc0 90,107,138
+QuickShell.Core/Services/CommandDescriptor.cs
+  s_cd70e11c4cb2f1::t_61b301ef66c5bd 1-16
+QuickShell.Core.Tests/CommandIdParserTests.cs
+  s_cd70e11c4cb2f1::t_2887e40b271337 1-72
+QuickShell.Core/Services/ICommandIdParser.cs
+  s_cd70e11c4cb2f1::t_26f638295dd641 1-13
+QuickShell.Core/Services/CommandIdParser.cs
+  s_cd70e11c4cb2f1::t_967dbc29e88403 1-69
+QuickShell.Core/Services/QuickShellDeepLinkIds.cs
+  s_cd70e11c4cb2f1::t_97891e251110dd 1-16
+QuickShell.Core/Services/CommandKind.cs
+  s_cd70e11c4cb2f1::t_b6229147b7cba0 1-14
+QuickShell/Services/ICommandRouter.cs
+  s_cd70e11c4cb2f1::t_7771a48f90db85 1-16
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_d4c17da388dcc7::t_22afa0492d0431 60-67
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_d4c17da388dcc7::t_e88d0aaef0366f 33
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_d4c17da388dcc7::t_c7c5f09c6dfb98 10
+QuickShell/Pages/ImportConflictPage.cs
+  s_d4c17da388dcc7::t_c5714f24f964a8 13
+QuickShell/Pages/PendingShortcutEditPage.cs
+  s_d4c17da388dcc7::t_28de371e901301 11
+QuickShell/Pages/QuickShellExtensionSettingsPage.cs
+  s_d4c17da388dcc7::t_8a3dff75029961 9
+QuickShell/QuickShellCommandsProvider.cs
+  s_d4c17da388dcc7::t_b2318262fd4d95 24,66-70,156,158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f18708d11ba1eb24ac1d649328dc2d25befb845c",
+  "prompts": {},
+  "sessions": {
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_d4c17da388dcc7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f26d3eb2-45e5-4322-85e3-e8950ac1b02d",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
