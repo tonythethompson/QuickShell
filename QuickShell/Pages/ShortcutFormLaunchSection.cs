@@ -5,67 +5,45 @@ namespace QuickShell.Pages;
 
 internal static class ShortcutFormLaunchSection
 {
-    internal sealed class CommandRowDraft
+    public static List<LaunchRowDraft> CommandsFromShortcut(TerminalShortcut? shortcut, string fallbackLaunchTarget)
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString("N");
-
-        public string Command { get; set; } = string.Empty;
-
-        public string TaskType { get; set; } = TaskTypeCatalog.None;
-
-        public string LaunchTarget { get; set; } = "default";
-    }
-
-    public static List<CommandRowDraft> CommandsFromShortcut(TerminalShortcut? shortcut)
-    {
+        List<LaunchRowDraft> commands;
         if (shortcut is null)
         {
-            return [new CommandRowDraft()];
+            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget }];
         }
-
-        ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
-        var launches = shortcut.Launches.OrderBy(entry => entry.Order).ToList();
-        if (launches.Count == 0)
+        else
         {
-            return
-            [
-                new CommandRowDraft
-                {
-                    Command = shortcut.Command ?? string.Empty,
-                    LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
-                },
-            ];
+            ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
+            var launches = shortcut.Launches.OrderBy(entry => entry.Order).ToList();
+            if (launches.Count == 0)
+            {
+                commands =
+                [
+                    new LaunchRowDraft
+                    {
+                        Command = shortcut.Command ?? string.Empty,
+                        LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
+                    },
+                ];
+            }
+            else
+            {
+                commands = LaunchRowListEditor.FromWorkspaceEntries(launches);
+            }
         }
 
-        return launches
-            .Select(entry => new CommandRowDraft
-            {
-                Id = entry.Id,
-                Command = entry.Command ?? string.Empty,
-                TaskType = TaskTypeCatalog.Normalize(entry.TaskType),
-                LaunchTarget = ShortcutFormSave.EncodeLaunchTargetForEntry(entry),
-            })
-            .ToList();
+        LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, fallbackLaunchTarget);
+        return commands;
     }
 
     public static List<ShortcutFormLaunchInput> ToLaunchInputs(
-        IReadOnlyList<CommandRowDraft> commands,
+        IReadOnlyList<LaunchRowDraft> commands,
         string workspaceName,
         string fallbackLaunchTarget,
         bool runAsAdmin)
     {
-        var rows = commands.ToList();
-        while (rows.Count > 1
-            && string.IsNullOrWhiteSpace(rows[^1].Command)
-            && string.Equals(TaskTypeCatalog.Normalize(rows[^1].TaskType), TaskTypeCatalog.None, StringComparison.Ordinal))
-        {
-            rows.RemoveAt(rows.Count - 1);
-        }
-
-        if (rows.Count == 0)
-        {
-            rows.Add(new CommandRowDraft());
-        }
+        var rows = LaunchRowListEditor.TrimForSave(commands);
 
         var labelBase = string.IsNullOrWhiteSpace(workspaceName) ? "Main" : workspaceName.Trim();
         return rows.Select((row, index) => new ShortcutFormLaunchInput
@@ -85,13 +63,13 @@ internal static class ShortcutFormLaunchSection
     }
 
     public static string BuildCommandRowsJson(
-        IReadOnlyList<CommandRowDraft> commands,
+        IReadOnlyList<LaunchRowDraft> commands,
         string terminalChoices) =>
         ShortcutLaunchFormJson.BuildCommandRowsJson(
             commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget)).ToList(),
             terminalChoices);
 
-    public static CommandRowDraft? TryCreateCommandFromTaskType(
+    public static LaunchRowDraft? TryCreateCommandFromTaskType(
         string? directory,
         string? taskType,
         IEnumerable<string?>? existingCommands = null)
@@ -106,9 +84,15 @@ internal static class ShortcutFormLaunchSection
             ? TaskTypePickContext.Empty
             : TaskTypePickContext.FromCommands(existingCommands);
 
-        return new CommandRowDraft
+        var suggestion = TaskTypeCommandSuggestion.TrySuggest(directory, normalized, pickContext);
+        if (string.IsNullOrWhiteSpace(suggestion))
         {
-            Command = TaskTypeCommandSuggestion.TrySuggest(directory, normalized, pickContext) ?? string.Empty,
+            return null;
+        }
+
+        return new LaunchRowDraft
+        {
+            Command = suggestion,
             TaskType = normalized,
         };
     }

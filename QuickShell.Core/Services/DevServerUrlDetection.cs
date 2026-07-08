@@ -20,7 +20,7 @@ internal static partial class DevServerUrlDetection
 
         try
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+            using var document = JsonFileDocument.Parse(packageJsonPath);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {
@@ -61,7 +61,7 @@ internal static partial class DevServerUrlDetection
 
         try
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+            using var document = JsonFileDocument.Parse(packageJsonPath);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {
@@ -115,7 +115,7 @@ internal static partial class DevServerUrlDetection
 
         try
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+            using var document = JsonFileDocument.Parse(packageJsonPath);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {

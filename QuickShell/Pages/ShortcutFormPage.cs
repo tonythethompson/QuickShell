@@ -1,5 +1,6 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Text.Json.Nodes;
@@ -28,7 +29,18 @@ internal partial class ShortcutFormPage : ContentPage
 
         if (onSaved is not null)
         {
-            Commands = ShortcutContextCommands.BuildUndoRedoCommands(onSaved);
+            Commands = ShortcutContextCommands.BuildFormUndoRedoCommands(
+                () =>
+                {
+                    EnsureFormBuilt();
+                    return _form!.TryUndoEdit();
+                },
+                () =>
+                {
+                    EnsureFormBuilt();
+                    return _form!.TryRedoEdit();
+                },
+                onSaved);
         }
     }
 
@@ -94,8 +106,9 @@ internal sealed partial class ShortcutForm : FormContent
     private bool _showRestoredDraftNote;
     private bool _subscribedToDraftCleared;
     private Action<string>? _draftClearedHandler;
+    private readonly FormEditHistory<FormEditSnapshot> _editHistory =
+        new(snapshot => snapshot.Clone());
     private int _templateCommandCount = -1;
-    private string? _templateDirectory;
 
     public ShortcutForm(TerminalShortcut? existing, TerminalShortcut? createSeed, Action? onSaved, Action? releaseForm = null)
     {
@@ -105,7 +118,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         var initial = existing ?? createSeed;
         var launchTarget = TerminalCatalog.EncodeLaunchTargetId(initial ?? new TerminalShortcut());
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(initial);
+        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(initial, launchTarget);
 
         var companion = CompanionAppCatalog.ReconcileStoredShortcut(
             initial?.OpenCompanionAppOnLaunch ?? false,
@@ -183,7 +196,7 @@ internal sealed partial class ShortcutForm : FormContent
         _autoFilledName = null;
 
         var launchTarget = TerminalCatalog.EncodeLaunchTargetId(saved);
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(saved);
+        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(saved, launchTarget);
         var companion = CompanionAppCatalog.ReconcileStoredShortcut(
             saved.OpenCompanionAppOnLaunch,
             saved.CompanionAppPath,
@@ -256,7 +269,7 @@ internal sealed partial class ShortcutForm : FormContent
         var restored = ShortcutFormDraftData.FromPersisted(persisted);
         _showRestoredDraftNote = true;
         var commands = restored.Launches.Count > 0
-            ? restored.Launches.Select(launch => new ShortcutFormLaunchSection.CommandRowDraft
+            ? restored.Launches.Select(launch => new LaunchRowDraft
             {
                 Id = string.IsNullOrWhiteSpace(launch.Id) ? Guid.NewGuid().ToString("N") : launch.Id,
                 Command = launch.Command,
@@ -265,7 +278,9 @@ internal sealed partial class ShortcutForm : FormContent
                     ? restored.LaunchTarget
                     : launch.LaunchTarget,
             }).ToList()
-            : ShortcutFormLaunchSection.CommandsFromShortcut(null);
+            : ShortcutFormLaunchSection.CommandsFromShortcut(null, restored.LaunchTarget);
+
+        LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, restored.LaunchTarget);
 
         if (commands.Count > 0 && restored.Launches.Count == 0 && !string.IsNullOrWhiteSpace(restored.Command))
         {
@@ -333,19 +348,24 @@ internal sealed partial class ShortcutForm : FormContent
             return HandleRefreshTerminals(payload);
         }
 
-        if (IsAddLaunchAction(payload, data))
+        if (IsAddSuggestedCommandAction(payload, data, out var pillCommand, out var pillTaskType, out var pillIndex))
         {
-            return HandleAddLaunch(payload);
+            return HandleAddSuggestedCommand(payload, pillCommand, pillTaskType, pillIndex);
         }
 
-        if (IsRemoveLaunchAction(payload, data, out var removeIndex))
+        if (IsClearLaunchAction(payload, data, out var clearIndex))
         {
-            return HandleRemoveLaunch(payload, removeIndex);
+            return HandleClearLaunch(payload, clearIndex);
         }
 
-        if (IsApplyTaskTypeAction(payload, data))
+        if (IsExpandSuggestionPillsAction(payload, data))
         {
-            return HandleAddTaskTypeCommand(payload);
+            return HandleExpandSuggestionPills(payload);
+        }
+
+        if (IsCollapseSuggestionPillsAction(payload, data))
+        {
+            return HandleCollapseSuggestionPills(payload);
         }
 
         if (IsCancelAction(payload, data))
@@ -390,19 +410,24 @@ internal sealed partial class ShortcutForm : FormContent
             return HandleRefreshTerminals(payload);
         }
 
-        if (IsAddLaunchAction(payload, null))
+        if (IsAddSuggestedCommandAction(payload, null, out var pillCommandFromPayload, out var pillTaskTypeFromPayload, out var pillIndexFromPayload))
         {
-            return HandleAddLaunch(payload);
+            return HandleAddSuggestedCommand(payload, pillCommandFromPayload, pillTaskTypeFromPayload, pillIndexFromPayload);
         }
 
-        if (IsRemoveLaunchAction(payload, null, out var removeIndexFromPayload))
+        if (IsClearLaunchAction(payload, null, out var clearIndexFromPayload))
         {
-            return HandleRemoveLaunch(payload, removeIndexFromPayload);
+            return HandleClearLaunch(payload, clearIndexFromPayload);
         }
 
-        if (IsApplyTaskTypeAction(payload, null))
+        if (IsExpandSuggestionPillsAction(payload, null))
         {
-            return HandleAddTaskTypeCommand(payload);
+            return HandleExpandSuggestionPills(payload);
+        }
+
+        if (IsCollapseSuggestionPillsAction(payload, null))
+        {
+            return HandleCollapseSuggestionPills(payload);
         }
 
         if (IsCancelAction(payload, null))
@@ -413,97 +438,125 @@ internal sealed partial class ShortcutForm : FormContent
         return HandleSave(payload);
     }
 
-    private CommandResult HandleAddLaunch(string inputs)
+    public bool TryUndoEdit()
     {
-        MergeDraftFromInputs(inputs, out _);
-        _draft.Commands.Add(new ShortcutFormLaunchSection.CommandRowDraft
+        if (!_editHistory.TryUndo(CaptureEditSnapshot(), out var restored))
         {
-            LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId,
-        });
-        ApplyDraft(_draft);
-        return QuickShellNavigation.StayOpen(Strings.AddLaunch_Toast);
-    }
-
-    private CommandResult HandleRemoveLaunch(string inputs, int index)
-    {
-        MergeDraftFromInputs(inputs, out _);
-        if (index >= 0 && index < _draft.Commands.Count && _draft.Commands.Count > 1)
-        {
-            _draft.Commands.RemoveAt(index);
+            return false;
         }
 
+        return ApplyEditSnapshot(restored);
+    }
+
+    public bool TryRedoEdit()
+    {
+        if (!_editHistory.TryRedo(CaptureEditSnapshot(), out var restored))
+        {
+            return false;
+        }
+
+        return ApplyEditSnapshot(restored);
+    }
+
+    private FormEditSnapshot CaptureEditSnapshot() =>
+        new()
+        {
+            Commands = LaunchRowListEditor.CloneRows(_draft.Commands),
+            ExpandSuggestionPills = _draft.ExpandSuggestionPills,
+        };
+
+    private void PushEditSnapshot() => _editHistory.PushBeforeChange(CaptureEditSnapshot());
+
+    private bool ApplyEditSnapshot(FormEditSnapshot restored)
+    {
+        var previousCount = _draft.Commands.Count;
+        _draft.Commands = restored.Commands;
+        _draft.ExpandSuggestionPills = restored.ExpandSuggestionPills;
+        ApplyDraft(_draft, forceTemplateRebuild: previousCount != restored.Commands.Count);
+        return true;
+    }
+
+    private CommandResult HandleAddSuggestedCommand(
+        string payload,
+        string? pillCommand,
+        string? pillTaskType,
+        int pillIndex)
+    {
+        MergeDraftFromInputs(payload, out _);
+
+        var pills = CommandSuggestionService.GetPills(
+            _draft.Directory,
+            _draft.Commands.Select(command => command.Command));
+
+        var pill = CommandSuggestionService.TryFindPill(pills, pillCommand, pillTaskType);
+        if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
+        {
+            pill = pills[pillIndex];
+        }
+
+        if (pill is null)
+        {
+            return QuickShellNavigation.StayOpen("That suggestion is no longer available.");
+        }
+
+        PushEditSnapshot();
+        var rowAdded = CommandSuggestionService.ApplyPill(
+            _draft.Commands,
+            pill,
+            GetDefaultRowLaunchTarget());
+
+        ApplyDraft(_draft, forceTemplateRebuild: rowAdded);
+        return QuickShellNavigation.StayOpen($"Added {pill.TypeTitle} command.");
+    }
+
+    private CommandResult HandleClearLaunch(string payload, int index)
+    {
+        MergeDraftFromInputs(payload, out _);
+        if (index < 0 || index >= _draft.Commands.Count)
+        {
+            return QuickShellNavigation.StayOpen();
+        }
+
+        PushEditSnapshot();
+        LaunchRowListEditor.ClearRow(_draft.Commands, index);
         ApplyDraft(_draft);
         return QuickShellNavigation.StayOpen();
     }
 
-    private CommandResult HandleAddTaskTypeCommand(string payload)
+    private CommandResult HandleExpandSuggestionPills(string payload)
     {
         MergeDraftFromInputs(payload, out _);
-
-        var pickerValue = JsonNode.Parse(payload)?.AsObject()?["TaskTypePicker"]?.ToString()
-            ?? _draft.TaskTypePicker;
-        var taskType = TaskTypeCatalog.Normalize(pickerValue);
-        if (taskType == TaskTypeCatalog.None
-            || !TaskTypeCommandSuggestion.IsAvailable(_draft.Directory, taskType))
-        {
-            return QuickShellNavigation.StayOpen("Choose a command type first.");
-        }
-
-        var pickContext = TaskTypePickContext.FromCommands(_draft.Commands.Select(command => command.Command));
-        var suggestion = TaskTypeCommandSuggestion.TrySuggest(_draft.Directory, taskType, pickContext);
-        if (string.IsNullOrWhiteSpace(suggestion))
-        {
-            return QuickShellNavigation.StayOpen("That command is already in the list or unavailable for this project.");
-        }
-
-        var targetIndex = FindFirstEmptyCommandIndex();
-        if (targetIndex < 0)
-        {
-            _draft.Commands.Add(new ShortcutFormLaunchSection.CommandRowDraft
-            {
-                LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId,
-            });
-            targetIndex = _draft.Commands.Count - 1;
-        }
-
-        _draft.Commands[targetIndex].Command = suggestion;
-        _draft.Commands[targetIndex].TaskType = taskType;
-        _draft.TaskTypePicker = TaskTypeCatalog.None;
-
+        PushEditSnapshot();
+        _draft.ExpandSuggestionPills = true;
         ApplyDraft(_draft);
-        return QuickShellNavigation.StayOpen($"Added {TaskTypeCatalog.GetTitle(taskType)} command.");
+        return QuickShellNavigation.StayOpen();
     }
 
-    private int FindFirstEmptyCommandIndex()
+    private CommandResult HandleCollapseSuggestionPills(string payload)
     {
-        for (var i = 0; i < _draft.Commands.Count; i++)
-        {
-            if (string.IsNullOrWhiteSpace(_draft.Commands[i].Command))
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        MergeDraftFromInputs(payload, out _);
+        PushEditSnapshot();
+        _draft.ExpandSuggestionPills = false;
+        ApplyDraft(_draft);
+        return QuickShellNavigation.StayOpen();
     }
 
-    private void RebuildTemplate(List<ShortcutFormLaunchSection.CommandRowDraft> commands)
+    private void RebuildTemplate(List<LaunchRowDraft> commands)
     {
         var terminalApplicationId =
             QuickShellRuntimeServices.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
         var commandCount = Math.Max(1, commands.Count);
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
-        var taskTypePickerChoicesJson = TaskTypeCatalog.BuildPickerChoicesJson(_draft.Directory);
+        const string templateSchemaKey = "suggestion-pills-v1";
         TemplateJson = ShortcutFormTemplateCache.GetOrBuild(
             commandCount,
             terminalApplicationId,
             companionChoicesJson,
-            taskTypePickerChoicesJson,
+            templateSchemaKey,
             () => ShortcutFormTemplateJson.BuildTemplate(
                 FormTerminalChoicesJson(),
                 companionChoicesJson,
                 commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget)).ToList(),
-                taskTypePickerChoicesJson,
                 QuickShellBrand.DisplayName));
     }
 
@@ -644,7 +697,7 @@ internal sealed partial class ShortcutForm : FormContent
     {
         if (_draft.Commands.Count == 0)
         {
-            _draft.Commands.Add(new ShortcutFormLaunchSection.CommandRowDraft
+            _draft.Commands.Add(new LaunchRowDraft
         {
             LaunchTarget = GetDefaultRowLaunchTarget(),
         });
@@ -874,13 +927,10 @@ internal sealed partial class ShortcutForm : FormContent
     {
         _draft = draft;
         var commandCount = Math.Max(1, draft.Commands.Count);
-        if (forceTemplateRebuild
-            || _templateCommandCount != commandCount
-            || !string.Equals(_templateDirectory, draft.Directory, StringComparison.OrdinalIgnoreCase))
+        if (forceTemplateRebuild || _templateCommandCount != commandCount)
         {
             RebuildTemplate(draft.Commands);
             _templateCommandCount = commandCount;
-            _templateDirectory = draft.Directory;
         }
 
         PublishDataJson(draft);
@@ -908,8 +958,7 @@ internal sealed partial class ShortcutForm : FormContent
                 OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
                 RunAsAdmin = draft.RunAsAdmin,
                 ShowRestoredDraftNote = _showRestoredDraftNote,
-                ShowTaskTypePicker = TaskTypeCommandSuggestion.HasAvailableTypes(draft.Directory),
-                TaskTypePicker = draft.TaskTypePicker,
+                ExpandSuggestionPills = draft.ExpandSuggestionPills,
             },
             draft.Commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget)).ToList());
 
@@ -1004,7 +1053,6 @@ internal sealed partial class ShortcutForm : FormContent
             CompanionAppPath = _draft.CompanionAppPath,
             CompanionAppArguments = data["CompanionAppArguments"]?.ToString() ?? _draft.CompanionAppArguments,
             RunAsAdmin = ParseToggleBool(data["RunAsAdmin"]?.ToString(), _draft.RunAsAdmin),
-            TaskTypePicker = data["TaskTypePicker"]?.ToString() ?? _draft.TaskTypePicker,
         };
 
         refreshForm = ApplyCompanionPresetChange(previousPreset, mergedPreset);
@@ -1038,9 +1086,9 @@ internal sealed partial class ShortcutForm : FormContent
     private void ApplyCompanionFormState(CompanionAppCatalog.CompanionAppFormState state) =>
         ApplyCompanionFormState(_draft, state);
 
-    private List<ShortcutFormLaunchSection.CommandRowDraft> MergeCommandsFromInputs(
+    private List<LaunchRowDraft> MergeCommandsFromInputs(
         JsonObject data,
-        List<ShortcutFormLaunchSection.CommandRowDraft> existing)
+        List<LaunchRowDraft> existing)
     {
         var count = existing.Count;
         for (var probe = 0; probe < 64; probe++)
@@ -1058,11 +1106,11 @@ internal sealed partial class ShortcutForm : FormContent
         }
 
         var fallbackLaunchTarget = GetDefaultRowLaunchTarget();
-        var merged = new List<ShortcutFormLaunchSection.CommandRowDraft>();
+        var merged = new List<LaunchRowDraft>();
         for (var i = 0; i < count; i++)
         {
-            var prior = i < existing.Count ? existing[i] : new ShortcutFormLaunchSection.CommandRowDraft();
-            merged.Add(new ShortcutFormLaunchSection.CommandRowDraft
+            var prior = i < existing.Count ? existing[i] : new LaunchRowDraft();
+            merged.Add(new LaunchRowDraft
             {
                 Id = prior.Id,
                 Command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command,
@@ -1168,31 +1216,61 @@ internal sealed partial class ShortcutForm : FormContent
     private static bool IsRefreshTerminalsAction(string inputs, string? data) =>
         TryGetAction(data) == "refreshTerminals" || TryGetActionFromInputs(inputs) == "refreshTerminals";
 
-    private static bool IsAddLaunchAction(string inputs, string? data) =>
-        TryGetAction(data) == "addLaunch" || TryGetActionFromInputs(inputs) == "addLaunch";
-
-    private static bool IsApplyTaskTypeAction(string inputs, string? data) =>
-        string.Equals(TryGetAction(data), "addTaskTypeCommand", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(TryGetActionFromInputs(inputs), "addTaskTypeCommand", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsRemoveLaunchAction(string inputs, string? data, out int index)
+    private static bool IsAddSuggestedCommandAction(
+        string inputs,
+        string? data,
+        out string? pillCommand,
+        out string? pillTaskType,
+        out int pillIndex)
     {
-        index = -1;
+        pillCommand = null;
+        pillTaskType = null;
+        pillIndex = -1;
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
-        if (!string.Equals(action, "removeLaunch", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(action, "addSuggestedCommand", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
         var source = data ?? inputs;
         var node = JsonNode.Parse(source)?.AsObject();
-        if (node?["launchIndex"] is null)
+        if (node is null)
         {
             return false;
         }
 
-        return int.TryParse(node["launchIndex"]?.ToString(), out index);
+        pillCommand = node["pillCommand"]?.ToString();
+        pillTaskType = node["pillTaskType"]?.ToString();
+        if (node["pillIndex"] is not null)
+        {
+            _ = int.TryParse(node["pillIndex"]?.ToString(), out pillIndex);
+        }
+
+        return !string.IsNullOrWhiteSpace(pillCommand) || pillIndex >= 0;
     }
+
+    private static bool IsClearLaunchAction(string inputs, string? data, out int index)
+    {
+        index = -1;
+        var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
+        if (!string.Equals(action, "clearLaunch", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var source = data ?? inputs;
+        var node = JsonNode.Parse(source)?.AsObject();
+        return node?["launchIndex"] is not null
+            && int.TryParse(node["launchIndex"]?.ToString(), out index);
+    }
+
+    private static bool IsExpandSuggestionPillsAction(string inputs, string? data) =>
+        string.Equals(TryGetAction(data), "expandSuggestionPills", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(TryGetActionFromInputs(inputs), "expandSuggestionPills", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCollapseSuggestionPillsAction(string inputs, string? data) =>
+        string.Equals(TryGetAction(data), "collapseSuggestionPills", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(TryGetActionFromInputs(inputs), "collapseSuggestionPills", StringComparison.OrdinalIgnoreCase);
 
     private static string? TryGetActionFromInputs(string inputs) =>
         JsonNode.Parse(inputs)?.AsObject()?["action"]?.ToString();
@@ -1224,7 +1302,7 @@ internal sealed partial class ShortcutForm : FormContent
             Name = draft.Name,
             Abbreviation = draft.Abbreviation,
             Directory = draft.Directory,
-            Commands = draft.Commands.Select(command => new ShortcutFormLaunchSection.CommandRowDraft
+            Commands = draft.Commands.Select(command => new LaunchRowDraft
             {
                 Id = command.Id,
                 Command = command.Command,
@@ -1240,7 +1318,7 @@ internal sealed partial class ShortcutForm : FormContent
             CompanionAppPath = draft.CompanionAppPath,
             CompanionAppArguments = draft.CompanionAppArguments,
             RunAsAdmin = draft.RunAsAdmin,
-            TaskTypePicker = draft.TaskTypePicker,
+            ExpandSuggestionPills = draft.ExpandSuggestionPills,
         };
 
     private static bool DraftEquals(FormDraft left, FormDraft right)
@@ -1303,13 +1381,27 @@ internal sealed partial class ShortcutForm : FormContent
 
         public string CompanionAppArguments { get; set; } = string.Empty;
 
-        public List<ShortcutFormLaunchSection.CommandRowDraft> Commands { get; set; } = [new ShortcutFormLaunchSection.CommandRowDraft()];
+        public List<LaunchRowDraft> Commands { get; set; } = [new LaunchRowDraft()];
 
         public string LaunchTarget { get; set; } = "default";
 
         public bool RunAsAdmin { get; set; }
 
-        public string TaskTypePicker { get; set; } = TaskTypeCatalog.None;
+        public bool ExpandSuggestionPills { get; set; }
+    }
+
+    private sealed class FormEditSnapshot
+    {
+        public List<LaunchRowDraft> Commands { get; set; } = [];
+
+        public bool ExpandSuggestionPills { get; set; }
+
+        public FormEditSnapshot Clone() =>
+            new()
+            {
+                Commands = LaunchRowListEditor.CloneRows(Commands),
+                ExpandSuggestionPills = ExpandSuggestionPills,
+            };
     }
 
     private static string FormTerminalChoicesJson() =>

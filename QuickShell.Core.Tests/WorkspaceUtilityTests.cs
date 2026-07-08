@@ -304,6 +304,28 @@ public sealed class DevServerUrlDetectionTests : IDisposable
     }
 
     [Fact]
+    public void TryDetectDevServerUrl_ReadsUtf16BomPackageJson()
+    {
+        var json = """
+        {
+          "scripts": {
+            "dev": "vite --port 4321"
+          }
+        }
+        """;
+        var path = Path.Combine(_root, "package.json");
+        using (var stream = File.Create(path))
+        {
+            var preamble = new byte[] { 0xFF, 0xFE };
+            stream.Write(preamble);
+            var content = System.Text.Encoding.Unicode.GetBytes(json);
+            stream.Write(content);
+        }
+
+        Assert.Equal("http://localhost:4321", DevServerUrlDetection.TryDetectDevServerUrl(_root));
+    }
+
+    [Fact]
     public void TryDetectDevServerUrl_ReturnsNullWhenNoPackageJson()
     {
         Assert.Null(DevServerUrlDetection.TryDetectDevServerUrl(_root));

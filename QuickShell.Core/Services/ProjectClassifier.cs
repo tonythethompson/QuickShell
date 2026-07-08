@@ -411,7 +411,7 @@ internal static partial class ProjectClassifier
         {
             try
             {
-                return JsonDocument.Parse(File.ReadAllText(path), JsonOptions);
+                return JsonFileDocument.Parse(path, JsonOptions);
             }
             catch
             {

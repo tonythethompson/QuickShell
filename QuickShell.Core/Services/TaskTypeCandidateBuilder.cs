@@ -21,7 +21,8 @@ internal static class TaskTypeCandidateBuilder
             AddCandidate(candidates, seenCommands, suggestion.Label, suggestion.Command, "workspace", ScoreSuggestion(normalized, suggestion, context));
         }
 
-        foreach (var suggestion in DockerComposeDiscovery.BuildServiceSuggestions(context.Directory))
+        foreach (var suggestion in DockerComposeDiscovery.BuildServiceSuggestions(context.Directory)
+                     .Take(CommandSuggestionService.MaxDockerServices * 2))
         {
             AddCandidate(
                 candidates,
@@ -34,7 +35,8 @@ internal static class TaskTypeCandidateBuilder
 
         if (context.Classification.Has(ProjectStack.Node))
         {
-            foreach (var (scriptName, scriptValue) in context.Classification.NodeScripts)
+            foreach (var (scriptName, scriptValue) in context.Classification.NodeScripts
+                         .Take(CommandSuggestionService.MaxNodeScripts))
             {
                 var command = DevServerUrlDetection.FormatPackageScriptCommand(context.Directory, scriptName);
                 AddCandidate(
@@ -49,7 +51,8 @@ internal static class TaskTypeCandidateBuilder
 
         if (context.Classification.Has(ProjectStack.Deno))
         {
-            foreach (var (taskName, taskValue) in context.Classification.DenoTasks)
+            foreach (var (taskName, taskValue) in context.Classification.DenoTasks
+                         .Take(CommandSuggestionService.MaxNodeScripts))
             {
                 var command = $"deno task {taskName}";
                 AddCandidate(

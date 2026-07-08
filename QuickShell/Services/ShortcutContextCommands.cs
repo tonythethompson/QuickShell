@@ -228,6 +228,25 @@ internal static class ShortcutContextCommands
             hoverOrder: HoverOrderRedo),
     ];
 
+    public static CommandContextItem[] BuildFormUndoRedoCommands(
+        Func<bool> tryFormUndo,
+        Func<bool> tryFormRedo,
+        Action onRepositoryChanged) =>
+    [
+        WithShortcut(
+            new WorkspaceFormUndoCommand(tryFormUndo, onRepositoryChanged),
+            QuickShellKeyboardShortcuts.Undo,
+            title: Strings.Menu_Undo,
+            showInHoverActions: true,
+            hoverOrder: HoverOrderUndo),
+        WithShortcut(
+            new WorkspaceFormRedoCommand(tryFormRedo, onRepositoryChanged),
+            QuickShellKeyboardShortcuts.Redo,
+            title: Strings.Menu_Redo,
+            showInHoverActions: true,
+            hoverOrder: HoverOrderRedo),
+    ];
+
     private static void AddPinnedMoveCommands(
         List<CommandContextItem> items,
         TerminalShortcut shortcut,

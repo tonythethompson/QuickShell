@@ -32,16 +32,13 @@ internal static class ShortcutFormTemplateJson
 
         public bool RunAsAdmin { get; init; }
 
-        public bool ShowTaskTypePicker { get; init; }
-
-        public string TaskTypePicker { get; init; } = TaskTypeCatalog.None;
+        public bool ExpandSuggestionPills { get; init; }
     }
 
     public static string BuildTemplate(
         string terminalChoices,
         string companionChoices,
         IReadOnlyList<(string Command, string TaskType, string LaunchTarget)> commands,
-        string taskTypePickerChoices,
         string displayName = DisplayNameDefault)
     {
         var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices);
@@ -52,22 +49,12 @@ internal static class ShortcutFormTemplateJson
         var tipDevServerOnLaunch = Escape(WorkspaceFormTooltips.DevServerOnLaunch);
         var tipRepoUrl = Escape(WorkspaceFormTooltips.RepoUrl);
         var tipCompanionPreset = Escape(WorkspaceFormTooltips.CompanionAppPreset);
-        var tipTaskTypePicker = Escape(WorkspaceFormTooltips.TaskTypePicker);
         var tipRunAsAdmin = Escape(WorkspaceFormTooltips.RunAsAdmin);
         var browseCompanionTitle = Escape(CompanionAppCatalog.BrowseActionTitle);
-        var taskTypePickerBlock = ShortcutLaunchFormJson.BuildTaskTypePickerBlock($$"""
-                {
-                  "type": "Input.ChoiceSet",
-                  "id": "TaskTypePicker",
-                  "style": "compact",
-                  "value": "${TaskTypePicker}",
-                  "tooltip": "{{tipTaskTypePicker}}",
-                  "choices": {{taskTypePickerChoices}}
-                }
-                """);
+        var suggestionPillsBlock = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
         var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
             commandRows,
-            taskTypePickerBlock);
+            suggestionPillsBlock);
 
         return $$"""
         {
@@ -280,6 +267,8 @@ internal static class ShortcutFormTemplateJson
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
+        var pillFields = BuildPillDataFields(draft, commands);
+        var pillSection = pillFields.Length > 0 ? ",\n" + pillFields : string.Empty;
 
         return $$"""
         {
@@ -305,12 +294,54 @@ internal static class ShortcutFormTemplateJson
           "ShowCompanionArgumentWarning": {{(CompanionAppArgumentValidation.BuildArgumentWarning(draft.CompanionAppPreset, draft.CompanionAppPath, draft.CompanionAppArguments, draft.Directory) is not null ? "true" : "false")}},
           "CompanionArgumentWarning": "{{Escape(CompanionAppArgumentValidation.BuildArgumentWarning(draft.CompanionAppPreset, draft.CompanionAppPath, draft.CompanionAppArguments, draft.Directory) ?? string.Empty)}}",
           "RunAsAdmin": "{{(draft.RunAsAdmin ? "true" : "false")}}",
-          "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}},
-          "ShowTaskTypePicker": {{(draft.ShowTaskTypePicker ? "true" : "false")}},
-          "TaskTypePicker": "{{Escape(TaskTypeCatalog.Normalize(draft.TaskTypePicker))}}"{{commandSection}}
+          "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}}{{commandSection}}{{pillSection}}
         }
         """;
     }
+
+    private static string BuildPillDataFields(
+        DataPayload draft,
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)> commands)
+    {
+        var launchRows = commands
+            .Select(row => new LaunchRowDraft
+            {
+                Command = row.Command,
+                TaskType = row.TaskType,
+                LaunchTarget = row.LaunchTarget,
+            })
+            .ToList();
+
+        var fields = new List<string>();
+        foreach (var entry in SuggestionPillPresentation.BuildDataFields(
+                     draft.Directory,
+                     launchRows.Select(row => row.Command),
+                     draft.ExpandSuggestionPills))
+        {
+            fields.Add(FormatPillDataField(entry.Key, entry.Value));
+        }
+
+        foreach (var entry in SuggestionPillPresentation.BuildClearLaunchFields(launchRows))
+        {
+            fields.Add(FormatPillDataField(entry.Key, entry.Value));
+        }
+
+        return string.Join(",\n", fields);
+    }
+
+    private static string FormatPillDataField(string key, string value) =>
+        IsBooleanPillField(key)
+            ? $"\"{key}\": {(string.Equals(value, "true", StringComparison.Ordinal) ? "true" : "false")}"
+            : $"\"{key}\": \"{Escape(value)}\"";
+
+    private static bool IsBooleanPillField(string key) =>
+        key is "ShowSuggestionPills"
+            or "SuggestionScanning"
+            or "ExpandSuggestionPills"
+            or "ShowMoreSuggestions"
+            or "ShowFewerSuggestions"
+        || key.StartsWith("ShowPill_", StringComparison.Ordinal)
+        || key.StartsWith("ShowClearLaunch_", StringComparison.Ordinal);
 
     public static string BuildDiscardPromptTemplate() =>
         """

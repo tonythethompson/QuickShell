@@ -13,7 +13,7 @@ Save directories you use every day, open them in whichever terminal you actually
 - **Multiple launches per workspace:** run several terminals or commands from one folder (API + frontend, shell + dev server, and so on)
 - **Tabbed multi-launch:** when several launches share the same Windows Terminal host, they open as **tabs in one window** instead of separate windows
 - **Run commands on open:** start dev servers, scripts, or anything else automatically
-- **Quick add commands:** pick a task type (API, Frontend, Services, and so on) and Quick Shell suggests a command based on what's in the folder (`package.json`, `*.csproj`, `docker-compose.yml`, and more)
+- **Suggested commands:** click a pill to add a project-aware launch command based on what's in the folder (`package.json`, `*.csproj`, `docker-compose.yml`, and more)
 - **Repo-aware workspace setup:** creating or discovering a workspace can pre-fill multiple launch rows from the project layout
 - **Task search:** search by launch label or command (e.g. `dev`, `frontend`, `dotnet watch`) from the Command Palette home screen or inside Quick Shell
 - **Git branch targets:** pin a branch per worktree folder; Quick Shell switches before launch and remembers targets across linked worktrees
@@ -62,18 +62,21 @@ Need two branches open at once? Use `git worktree add` for a second folder, then
 
 ## Quick add commands
 
-When editing a workspace, the **Quick add commands** picker appears for folders Quick Shell recognizes. Choose a task type and a new launch row is inserted with a **project-aware suggestion**:
+When editing a workspace, **Suggested commands** appear as clickable pills for folders Quick Shell recognizes (Command Palette and PowerToys Run) or as a picker in the Raycast extension. Each pill shows a concrete command such as `API · dotnet watch` — click once to fill the first empty launch row (or append a new row). Suggestions are based on files in the folder only; nothing is sent over the network.
 
-| Task type | Typical use |
+| Behavior | Detail |
 | --- | --- |
-| **API** | Backend dev server (`dotnet watch`, `uvicorn`, and similar) |
-| **Frontend** | UI dev server (`npm run dev`, Vite, and similar) |
-| **Services** | Databases, Docker Compose stacks, supporting services |
-| **Logs** | Tail or follow log output |
-| **Test** | Test runners |
-| **Build** | Compile or production builds |
+| **Label** | `{Type} · {command}` (for example `Frontend · npm run dev`) |
+| **On click** | Inserts the command string; stores task type metadata on the row |
+| **After add** | That pill hides while the command is in use |
+| **Clear row** | Use the **×** on the command field (CmdPal/Run) or clear the text; the pill returns |
+| **Undo** | **Ctrl+Z** / **Ctrl+Y** in CmdPal and Run undo pill add, clear, and show-more toggles (not per-keystroke command typing) |
+| **Save** | Blank rows are dropped; at least one launch row is kept |
+| **Editor padding** | New/edit forms start with three empty launch rows so the first few pill clicks avoid layout rebuilds (CmdPal) |
 
-Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. When you **create** a workspace or **discover git repos**, Quick Shell can seed multiple launch rows automatically when the project layout is clear.
+Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. When you **create** a workspace or **discover git repos**, Quick Shell can still seed multiple launch rows automatically when the project layout is clear.
+
+**Privacy:** classification reads only the workspace folder you chose. Commands may appear in tooltips; they are not logged or uploaded. Raycast uses the local `QuickShell.Suggest` helper (`QUICKSHELL_SUGGEST_EXE` overrides its path for development).
 
 ---
 
@@ -210,7 +213,7 @@ Open the **⋯** menu on any workspace (or press **Ctrl+K**) for edit, favorite,
 | Check workspace health | **⋯** → **Workspace status…** |
 | Set or switch git branch target | Edit workspace details → **Target branch**, or **Workspace status…** → **Switch branch…** |
 | Allow launch on a dirty tree | **Quick Shell settings** → **Git launch** → turn off **Block launch when dirty and branch would change** |
-| Add a suggested command row | In the workspace editor, use **Quick add commands** when shown |
+| Add a suggested command row | In the workspace editor, use **Suggested commands** when shown |
 | Favorite a workspace | **⋯** → **Favorite**, or **Ctrl+F** |
 | Duplicate a workspace | **⋯** → **Duplicate**, or **Ctrl+Shift+D** |
 | Delete a workspace | **⋯** → **Delete**, or **Ctrl+Delete** |
@@ -269,7 +272,7 @@ Preferred for multiple terminals or commands per workspace. Each entry:
 | `RunAsAdmin` | No | `true` to launch this entry elevated |
 | `IsEnabled` | No | `false` to skip this launch (default `true`) |
 | `Order` | No | Sort order when multiple launches are enabled |
-| `TaskType` | No | Task category for the editor and **Quick add commands** picker: `none`, `api`, `frontend`, `services`, `logs`, `test`, or `build` |
+| `TaskType` | No | Task category metadata for search and suggestions: `none`, `api`, `frontend`, `services`, `logs`, `test`, or `build` |
 
 ### Optional links and companion app
 

@@ -50,11 +50,33 @@ internal static class WtProfilesService
             _writeTimes.Clear();
             _profilesBySettingsPath.Clear();
             _locations = [];
-            TestParseCount = 0;
+            TestLocationsOverride = null;
             TestOnParseForTests = null;
+            TestParseCount = 0;
         }
 
         WindowsTerminalInstallDiscovery.InvalidateCache();
+    }
+
+    internal sealed class TestScope : IDisposable
+    {
+        public TestScope(TerminalSettingsLocation[] locations, Action? onParse = null)
+        {
+            lock (Sync)
+            {
+                TestLocationsOverride = locations;
+                TestOnParseForTests = onParse;
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (Sync)
+            {
+                TestLocationsOverride = null;
+                TestOnParseForTests = null;
+            }
+        }
     }
 
     private static TerminalSettingsLocation[] GetLocations()
@@ -207,9 +229,18 @@ internal static class WtProfilesService
     private static WtProfileInfo[] ReadProfilesForLocation(TerminalSettingsLocation location)
     {
         TestParseCount++;
-        TestOnParseForTests?.Invoke();
+        if (IsActiveTestSettingsPath(location.SettingsPath))
+        {
+            TestOnParseForTests?.Invoke();
+        }
+
         return TryReadProfiles(location).ToArray();
     }
+
+    private static bool IsActiveTestSettingsPath(string settingsPath) =>
+        TestLocationsOverride is { Length: > 0 } locations
+        && locations.Any(entry =>
+            string.Equals(entry.SettingsPath, settingsPath, StringComparison.OrdinalIgnoreCase));
 
     private static void RebuildMergedCache()
     {

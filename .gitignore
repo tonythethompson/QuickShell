@@ -51,6 +51,7 @@ pr9-comments-latest.json
 tessl.json
 /.tmp/tasks
 tmp-dump.csx
+*.orig
 
 # --- ltm-power ---
 ltm/store/*.jsonl

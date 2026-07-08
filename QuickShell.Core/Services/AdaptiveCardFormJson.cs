@@ -289,18 +289,22 @@ internal static class AdaptiveCardFormJson
         string action,
         string associatedInputs = "auto",
         string? style = null,
-        string? dataJson = null)
+        string? dataJson = null,
+        string? whenExpression = null)
     {
         var styleLine = string.IsNullOrWhiteSpace(style)
             ? string.Empty
             : ", \"style\": \"" + Escape(style) + "\"";
+        var whenLine = string.IsNullOrWhiteSpace(whenExpression)
+            ? string.Empty
+            : ", \"$when\": \"" + Escape(whenExpression) + "\"";
         var data = dataJson ?? $$"""{ "action": "{{Escape(action)}}" }""";
         return $$"""
         {
           "type": "Action.Submit",
           "title": "{{Escape(glyph)}}",
           "tooltip": "{{Escape(tooltip)}}",
-          "associatedInputs": "{{associatedInputs}}"{{styleLine}},
+          "associatedInputs": "{{associatedInputs}}"{{styleLine}}{{whenLine}},
           "data": {{data}}
         }
         """;

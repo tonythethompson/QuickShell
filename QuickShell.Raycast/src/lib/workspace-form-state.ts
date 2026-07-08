@@ -173,3 +173,25 @@ export function filterWorkspacesForEdit(workspaces: Workspace[], query: string):
 export function additionalLaunchCount(workspace: Workspace): number {
   return Math.max(0, workspace.launches.filter((entry) => entry.isEnabled).length - 1);
 }
+
+export type PillKeyPayload = {
+  taskType: string;
+  command: string;
+};
+
+export function encodePillKey(pill: PillKeyPayload): string {
+  return JSON.stringify({ taskType: pill.taskType, command: pill.command });
+}
+
+export function decodePillKey(key: string): PillKeyPayload | undefined {
+  try {
+    const parsed = JSON.parse(key) as Partial<PillKeyPayload>;
+    if (typeof parsed.taskType !== "string" || typeof parsed.command !== "string") {
+      return undefined;
+    }
+
+    return { taskType: parsed.taskType, command: parsed.command };
+  } catch {
+    return undefined;
+  }
+}

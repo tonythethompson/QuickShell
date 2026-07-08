@@ -6,12 +6,12 @@ namespace QuickShell.Core.Tests;
 public sealed class ShortcutFormLaunchSectionTests
 {
     [Fact]
-    public void ToLaunchInputs_TrimsTrailingBlankRowWithNoTaskType()
+    public void ToLaunchInputs_TrimsTrailingPlaceholderBlankRowWithNoTaskType()
     {
-        var rows = new List<ShortcutFormLaunchSection.CommandRowDraft>
+        var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start" },
-            new() { Command = string.Empty, TaskType = TaskTypeCatalog.None },
+            new() { Command = string.Empty, TaskType = TaskTypeCatalog.None, IsEditorPlaceholder = true },
         };
 
         var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
@@ -21,9 +21,52 @@ public sealed class ShortcutFormLaunchSectionTests
     }
 
     [Fact]
+    public void ToLaunchInputs_TrimsMiddlePlaceholderBlankRowWithNoTaskType()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "npm start" },
+            new() { Command = string.Empty, TaskType = TaskTypeCatalog.None, IsEditorPlaceholder = true },
+            new() { Command = "npm test" },
+        };
+
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+
+        Assert.Equal(2, inputs.Count);
+        Assert.Equal("npm start", inputs[0].Command);
+        Assert.Equal("npm test", inputs[1].Command);
+    }
+
+    [Fact]
+    public void ToLaunchInputs_PreservesIntentionalBlankRowWithNoTaskType()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "npm start" },
+            new() { Command = string.Empty, TaskType = TaskTypeCatalog.None, LaunchTarget = "wt:pwsh" },
+        };
+
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+
+        Assert.Equal(2, inputs.Count);
+        Assert.Equal(string.Empty, inputs[1].Command);
+        Assert.Equal("wt:pwsh", inputs[1].LaunchTarget);
+    }
+
+    [Fact]
+    public void EnsureMinimumRows_PadsToThree()
+    {
+        var rows = new List<LaunchRowDraft> { new() { Command = "npm start" } };
+
+        LaunchRowListEditor.EnsureMinimumRowsForEditor(rows, "default");
+
+        Assert.Equal(3, rows.Count);
+    }
+
+    [Fact]
     public void ToLaunchInputs_RetainsTrailingBlankRowWithTypedTaskType()
     {
-        var rows = new List<ShortcutFormLaunchSection.CommandRowDraft>
+        var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start" },
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.Services },
