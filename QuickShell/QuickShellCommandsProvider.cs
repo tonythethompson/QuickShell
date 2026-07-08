@@ -1,6 +1,8 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Commands;
+using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Pages.Dev;
@@ -15,6 +17,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 #if CMDPAL_HOVER_ACTIONS
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
 #endif
+    private readonly ServiceProvider _services;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private readonly CreateShortcutCommand _createShortcutCommand;
@@ -28,6 +31,18 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
     {
         GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
+
+        using (StartupPerformanceTrace.Measure("CmdPal composition root"))
+        {
+            var collection = new ServiceCollection();
+            collection.AddQuickShellCore();
+            _services = collection.BuildServiceProvider();
+
+            var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
+            var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
+            QuickShellRuntimeServices.Attach(shortcuts, drafts, ownedByServiceProvider: true);
+        }
+
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
             _settingsManager = new QuickShellSettingsManager(ReloadPages);
@@ -234,7 +249,9 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         {
             _fallbackPage.Value.Dispose();
         }
+
         QuickShellRuntimeServices.Dispose();
+        _services.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);
     }
