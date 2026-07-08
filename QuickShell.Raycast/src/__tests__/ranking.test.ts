@@ -1,15 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildBrowseSections,
-  computeBrowseScore,
-  getRecentWorkspaces,
-  sortWorkspacesForSearch,
-} from "../lib/ranking";
+import { buildBrowseSections, computeBrowseScore, getRecentWorkspaces, sortWorkspacesForSearch } from "../lib/ranking";
 import type { Workspace } from "../lib/schema";
 
-function workspace(
-  partial: Partial<Workspace> & Pick<Workspace, "id" | "name">,
-): Workspace {
+function workspace(partial: Partial<Workspace> & Pick<Workspace, "id" | "name">): Workspace {
   return {
     id: partial.id,
     name: partial.name,
@@ -52,9 +45,7 @@ describe("ranking", () => {
       lastUsedUtc: new Date().toISOString(),
     });
 
-    expect(computeBrowseScore(favorite)).toBeGreaterThan(
-      computeBrowseScore(recent),
-    );
+    expect(computeBrowseScore(favorite)).toBeGreaterThan(computeBrowseScore(recent));
   });
 
   it("returns favorites, recents, and remaining workspaces", () => {

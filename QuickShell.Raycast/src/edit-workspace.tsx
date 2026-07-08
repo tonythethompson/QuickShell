@@ -1,36 +1,37 @@
-import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Color, Icon, LaunchProps, List } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import WorkspaceForm from "./components/workspace-form";
+import WindowsRequiredView from "./components/windows-required-view";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
-import { assessWorkspaceHealth } from "./lib/workspace-health";
-import {
-  additionalLaunchCount,
-  filterWorkspacesForEdit,
-} from "./lib/workspace-form-state";
+import { assessWorkspaceHealthForList } from "./lib/workspace-health";
+import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
+import { additionalLaunchCount, filterWorkspacesForEdit } from "./lib/workspace-form-state";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
+import { isWindowsPlatform } from "./lib/platform";
+import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import type { QuickShellSettings, Workspace } from "./lib/schema";
 
-type EditWorkspaceCommandProps = {
-  arguments?: {
-    workspaceId?: string;
-  };
-};
+type EditWorkspaceCommandProps = LaunchProps<{ arguments: Arguments.EditWorkspace }>;
 
-export default function EditWorkspaceCommand({
-  arguments: args,
-}: EditWorkspaceCommandProps) {
+export default function EditWorkspaceCommand({ arguments: args }: EditWorkspaceCommandProps) {
   const [searchText, setSearchText] = useState("");
   const storage = getQuickShellStorage();
   const requestedWorkspaceId = args?.workspaceId?.trim();
 
   const { data, isLoading, error, revalidate } = usePromise(async () => {
-    const [workspaces, settings] = await Promise.all([
-      storage.getWorkspaces(),
-      storage.getSettings(),
-    ]);
+    const [workspaces, settings] = await Promise.all([storage.getWorkspaces(), storage.getSettings()]);
     return { workspaces, settings };
   }, []);
+
+  useLoadErrorToast(error, "Failed to load workspaces");
+
+  const healthIndex = useMemo(() => {
+    if (!data) {
+      return null;
+    }
+    return buildWorkspaceHealthIndex(data.workspaces, data.settings);
+  }, [data]);
 
   const workspaces = useMemo(() => {
     if (!data) {
@@ -43,12 +44,12 @@ export default function EditWorkspaceCommand({
     if (!data || !requestedWorkspaceId) {
       return null;
     }
-    return (
-      data.workspaces.find(
-        (workspace) => workspace.id === requestedWorkspaceId,
-      ) ?? null
-    );
+    return data.workspaces.find((workspace) => workspace.id === requestedWorkspaceId) ?? null;
   }, [data, requestedWorkspaceId]);
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
+  }
 
   if (preselectedWorkspace) {
     return (
@@ -83,18 +84,12 @@ export default function EditWorkspaceCommand({
       throttle
     >
       {error ? (
-        <List.EmptyView
-          icon={Icon.ExclamationMark}
-          title="Failed to load workspaces"
-          description={error.message}
-        />
+        <List.EmptyView icon={Icon.ExclamationMark} title="Failed to load workspaces" description={error.message} />
       ) : null}
 
       {!error && workspaces.length === 0 ? (
         <List.EmptyView
-          title={
-            searchText.trim() ? "No matching workspaces" : "No workspaces yet"
-          }
+          title={searchText.trim() ? "No matching workspaces" : "No workspaces yet"}
           description={
             searchText.trim()
               ? "Try another name, abbreviation, or directory."
@@ -104,7 +99,7 @@ export default function EditWorkspaceCommand({
       ) : null}
 
       {workspaces.map((workspace) =>
-        renderWorkspacePickerItem(workspace, data?.settings, async () => {
+        renderWorkspacePickerItem(workspace, data?.settings, healthIndex, async () => {
           await revalidate();
         }),
       )}
@@ -115,11 +110,16 @@ export default function EditWorkspaceCommand({
 function renderWorkspacePickerItem(
   workspace: Workspace,
   settings: QuickShellSettings | undefined,
+  healthIndex: ReturnType<typeof buildWorkspaceHealthIndex> | null,
   onSaved: () => Promise<void>,
 ) {
-  const health = settings
-    ? assessWorkspaceHealth(workspace, settings)
-    : { ok: true, issues: [] };
+  const health =
+    settings && healthIndex
+      ? lookupWorkspaceHealth(healthIndex, workspace, settings)
+      : assessWorkspaceHealthForList(
+          workspace,
+          settings ?? { terminalApplication: "wt", defaultProfile: "__default__", recentWorkspaceCount: 8 },
+        );
   const extraLaunches = additionalLaunchCount(workspace);
   const accessories: List.Item.Accessory[] = [];
   if (workspace.abbreviation) {
@@ -141,9 +141,7 @@ function renderWorkspacePickerItem(
     <List.Item
       key={workspace.id}
       title={workspace.name}
-      subtitle={
-        health.ok ? workspaceSubtitle(workspace) : health.issues[0]?.message
-      }
+      subtitle={health.ok ? workspaceSubtitle(workspace) : health.issues[0]?.message}
       icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
       accessories={accessories}
       actions={
@@ -151,13 +149,7 @@ function renderWorkspacePickerItem(
           <Action.Push
             title="Edit Workspace"
             icon={Icon.Pencil}
-            target={
-              <WorkspaceForm
-                mode="edit"
-                initialWorkspace={workspace}
-                onSaved={onSaved}
-              />
-            }
+            target={<WorkspaceForm mode="edit" initialWorkspace={workspace} onSaved={onSaved} />}
           />
         </ActionPanel>
       }

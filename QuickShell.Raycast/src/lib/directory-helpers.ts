@@ -4,6 +4,9 @@ export function deriveNameFromDirectory(directory: string): string {
     return "";
   }
   const segments = trimmed.split(/[\\/]/).filter(Boolean);
+  if (segments.length === 0) {
+    return trimmed;
+  }
   return segments[segments.length - 1] ?? trimmed;
 }
 

@@ -1,148 +1,178 @@
-import {
-  Action,
-  ActionPanel,
-  Form,
-  Icon,
-  showToast,
-  Toast,
-} from "@raycast/api";
-import { useEffect, useMemo, useState } from "react";
+import { Action, ActionPanel, Clipboard, Icon, List, openExtensionPreferences, showToast, Toast } from "@raycast/api";
+import { usePromise } from "@raycast/utils";
+import { useState } from "react";
+import WindowsRequiredView from "./components/windows-required-view";
+import { getQuickShellSettingsFromPreferences } from "./lib/extension-preferences";
 import { getQuickShellStorage } from "./lib/raycast-storage";
 import { showStorageFailure } from "./lib/failure-feedback";
-import { recentCountFromEnabled } from "./lib/settings";
-import type { QuickShellSettings } from "./lib/schema";
-import {
-  TERMINAL_APPLICATION_CHOICES,
-  getDefaultProfileChoices,
-  normalizeDefaultProfile,
-  settingsSummary,
-} from "./lib/terminal-options";
+import { isWindowsPlatform } from "./lib/platform";
+import { useLoadErrorToast } from "./lib/use-load-error-toast";
+import { isRecentSectionEnabled } from "./lib/settings";
+import { settingsSummary } from "./lib/terminal-options";
 
 export default function SettingsCommand() {
   const storage = getQuickShellStorage();
-  const [isLoading, setIsLoading] = useState(true);
-  const [settings, setSettings] = useState<QuickShellSettings | null>(null);
-  const [terminalApplication, setTerminalApplication] =
-    useState<QuickShellSettings["terminalApplication"]>("wt");
-  const [defaultProfile, setDefaultProfile] = useState("__default__");
-  const [showRecents, setShowRecents] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const preferences = getQuickShellSettingsFromPreferences();
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const loaded = await storage.getSettings();
-        if (!cancelled) {
-          setSettings(loaded);
-          setTerminalApplication(loaded.terminalApplication);
-          setDefaultProfile(loaded.defaultProfile);
-          setShowRecents(loaded.recentWorkspaceCount > 0);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [storage]);
+  const { data, isLoading, error, revalidate } = usePromise(async () => {
+    const [workspaceCount, canUndo, canRedo] = await Promise.all([
+      storage.getWorkspaces().then((workspaces) => workspaces.length),
+      Promise.resolve(storage.canUndo()),
+      Promise.resolve(storage.canRedo()),
+    ]);
+    return { workspaceCount, canUndo, canRedo };
+  }, []);
 
-  const profileChoices = useMemo(
-    () => getDefaultProfileChoices(terminalApplication),
-    [terminalApplication],
-  );
+  useLoadErrorToast(error, "Failed to load workspace data");
 
-  async function handleSave() {
-    const next: QuickShellSettings = {
-      terminalApplication,
-      defaultProfile: normalizeDefaultProfile(
-        terminalApplication,
-        defaultProfile,
-      ),
-      recentWorkspaceCount: recentCountFromEnabled(showRecents),
-    };
-
+  async function handleExport() {
     try {
-      await storage.updateSettings(next);
-      setSettings(next);
+      const json = await storage.exportJson();
+      await Clipboard.copy(json);
       await showToast({
         style: Toast.Style.Success,
-        title: "Settings saved",
-        message: settingsSummary(next),
+        title: "Exported",
+        message: "Workspaces JSON copied to clipboard.",
       });
-    } catch (error) {
-      await showStorageFailure("Save settings", error);
+    } catch (exportError) {
+      await showStorageFailure("Export workspaces", exportError);
     }
   }
 
-  return (
-    <Form
-      isLoading={isLoading}
-      actions={
-        <ActionPanel>
-          <Action
-            title="Save Settings"
-            icon={Icon.Check}
-            onAction={handleSave}
-          />
-        </ActionPanel>
+  async function handleImport() {
+    try {
+      const text = await Clipboard.readText();
+      const trimmed = text?.trim() ?? "";
+      if (!trimmed) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Clipboard empty",
+          message: "Copy QuickShell JSON first.",
+        });
+        return;
       }
+      const result = await storage.importJson(trimmed, "merge");
+      await revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Import complete",
+        message: `${result.imported} imported, ${result.skipped} skipped.`,
+      });
+    } catch (importError) {
+      await showStorageFailure("Import workspaces", importError);
+    }
+  }
+
+  async function handleUndo() {
+    const changed = await storage.undo();
+    if (!changed) {
+      return;
+    }
+    await revalidate();
+    await showToast({ style: Toast.Style.Success, title: "Undo", message: "Reverted the last workspace change." });
+  }
+
+  async function handleRedo() {
+    const changed = await storage.redo();
+    if (!changed) {
+      return;
+    }
+    await revalidate();
+    await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+  }
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
+  }
+
+  const workspaceCount = data?.workspaceCount ?? 0;
+  const recentsEnabled = isRecentSectionEnabled(preferences.recentWorkspaceCount);
+
+  return (
+    <List
+      isLoading={isLoading}
+      searchText={searchText}
+      onSearchTextChange={setSearchText}
+      searchBarPlaceholder="Search manage actions..."
+      throttle
     >
-      <Form.Description
-        title="Current"
-        text={
-          settings
-            ? settingsSummary(settings)
-            : "Loading QuickShell defaults..."
-        }
-      />
-      <Form.Dropdown
-        id="terminalApplication"
-        title="Default Terminal App"
-        value={terminalApplication}
-        onChange={(value) => {
-          const nextApp = value as QuickShellSettings["terminalApplication"];
-          setTerminalApplication(nextApp);
-          const choices = getDefaultProfileChoices(nextApp);
-          if (!choices.some((choice) => choice.id === defaultProfile)) {
-            setDefaultProfile("__default__");
+      {error ? (
+        <List.EmptyView icon={Icon.ExclamationMark} title="Failed to load workspace data" description={error.message} />
+      ) : null}
+
+      <List.Section title="Defaults">
+        <List.Item
+          title="Extension Preferences"
+          subtitle={settingsSummary(preferences)}
+          icon={Icon.Gear}
+          accessories={[{ text: recentsEnabled ? "Recents on" : "Recents off" }]}
+          actions={
+            <ActionPanel>
+              <Action title="Open Extension Preferences" icon={Icon.Gear} onAction={() => openExtensionPreferences()} />
+            </ActionPanel>
           }
-        }}
-      >
-        {TERMINAL_APPLICATION_CHOICES.map((choice) => (
-          <Form.Dropdown.Item
-            key={choice.id}
-            value={choice.id}
-            title={choice.title}
-          />
-        ))}
-      </Form.Dropdown>
-      <Form.Dropdown
-        id="defaultProfile"
-        title="Default Profile"
-        value={defaultProfile}
-        onChange={setDefaultProfile}
-      >
-        {profileChoices.map((choice) => (
-          <Form.Dropdown.Item
-            key={choice.id}
-            value={choice.id}
-            title={choice.title}
-          />
-        ))}
-      </Form.Dropdown>
-      <Form.Checkbox
-        id="showRecents"
-        label="Show Recent workspaces"
-        value={showRecents}
-        onChange={setShowRecents}
-      />
-      <Form.Description
-        title="Recents"
-        text="When enabled, Open Workspace shows up to 8 recent workspaces above older items."
-      />
-    </Form>
+        />
+      </List.Section>
+
+      <List.Section title="Workspace Data">
+        <List.Item
+          title="Export Workspaces"
+          subtitle={`${workspaceCount} workspace${workspaceCount === 1 ? "" : "s"} to clipboard JSON`}
+          icon={Icon.Upload}
+          actions={
+            <ActionPanel>
+              <Action title="Export Workspaces" icon={Icon.Upload} onAction={handleExport} />
+            </ActionPanel>
+          }
+        />
+        <List.Item
+          title="Import from Clipboard"
+          subtitle="Merge QuickShell or CmdPal JSON into this extension"
+          icon={Icon.Download}
+          actions={
+            <ActionPanel>
+              <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImport} />
+            </ActionPanel>
+          }
+        />
+      </List.Section>
+
+      <List.Section title="History">
+        <List.Item
+          title="Undo Last Change"
+          subtitle={data?.canUndo ? "Available" : "Nothing to undo"}
+          icon={Icon.ArrowCounterClockwise}
+          actions={
+            <ActionPanel>
+              <Action title="Undo" icon={Icon.ArrowCounterClockwise} onAction={handleUndo} />
+            </ActionPanel>
+          }
+        />
+        <List.Item
+          title="Redo Last Change"
+          subtitle={data?.canRedo ? "Available" : "Nothing to redo"}
+          icon={Icon.ArrowClockwise}
+          actions={
+            <ActionPanel>
+              <Action title="Redo" icon={Icon.ArrowClockwise} onAction={handleRedo} />
+            </ActionPanel>
+          }
+        />
+      </List.Section>
+
+      <List.Section title="Tips">
+        <List.Item
+          title="Root Search"
+          subtitle='Type "qs" or a home keyword in Raycast root search'
+          icon={Icon.MagnifyingGlass}
+        />
+        <List.Item
+          title="Fallback Command"
+          subtitle="Register Open Workspace as a fallback command to honor root-search text"
+          icon={Icon.Terminal}
+        />
+      </List.Section>
+    </List>
   );
 }

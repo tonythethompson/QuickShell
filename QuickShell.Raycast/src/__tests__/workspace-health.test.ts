@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Workspace } from "../lib/schema";
 import { DEFAULT_SETTINGS } from "../lib/schema";
-import {
-  assessWorkspaceHealth,
-  formatHealthIssues,
-} from "../lib/workspace-health";
+import { assessWorkspaceHealth, formatHealthIssues } from "../lib/workspace-health";
 
 const workspace: Workspace = {
   id: "1",
@@ -35,14 +32,9 @@ const workspace: Workspace = {
 
 describe("workspace-health", () => {
   it("reports validation failures honestly", () => {
-    const report = assessWorkspaceHealth(
-      { ...workspace, name: "" },
-      DEFAULT_SETTINGS,
-    );
+    const report = assessWorkspaceHealth({ ...workspace, name: "" }, DEFAULT_SETTINGS);
     expect(report.ok).toBe(false);
-    expect(report.issues.some((issue) => issue.code === "validation")).toBe(
-      true,
-    );
+    expect(report.issues.some((issue) => issue.code === "validation")).toBe(true);
   });
 
   it("joins multiple issues for display", () => {

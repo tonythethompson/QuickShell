@@ -2,40 +2,45 @@ import {
   Action,
   ActionPanel,
   Alert,
+  Clipboard,
   Color,
   Icon,
+  LaunchProps,
   List,
   confirmAlert,
   open,
+  showToast,
+  Toast,
+  updateCommandMetadata,
   Keyboard,
 } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
-import {
-  showHealthFailure,
-  showLaunchFailure,
-  showLaunchSuccess,
-  showStorageFailure,
-} from "./lib/failure-feedback";
+import WindowsRequiredView from "./components/windows-required-view";
+import WorkspaceForm from "./components/workspace-form";
+import { createBlankWorkspace } from "./lib/create-workspace-initial";
+import { showHealthFailure, showLaunchFailure, showLaunchSuccess, showStorageFailure } from "./lib/failure-feedback";
 import { executeWorkspaceLaunch } from "./lib/launch-executor";
 import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
-import {
-  hasAbbreviationMatch,
-  searchTaskActions,
-  searchWorkspaces,
-} from "./lib/search";
+import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
-import { assessWorkspaceHealth } from "./lib/workspace-health";
+import { assessWorkspaceHealthForLaunch } from "./lib/workspace-health";
+import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
+import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from "./lib/launch-context";
+import { isWindowsPlatform } from "./lib/platform";
+import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 
 type LoadedData = {
   workspaces: Workspace[];
   settings: QuickShellSettings;
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 type WorkspaceRow = {
@@ -48,18 +53,38 @@ type SectionGroup = {
   rows: WorkspaceRow[];
 };
 
-export default function OpenWorkspaceCommand() {
-  const [searchText, setSearchText] = useState("");
+export default function OpenWorkspaceCommand({
+  fallbackText,
+  launchContext,
+}: LaunchProps<{ launchContext?: OpenWorkspaceLaunchContext }>) {
+  const [searchText, setSearchText] = useState(() => resolveOpenWorkspaceSearchSeed(fallbackText, launchContext));
   const storage = getQuickShellStorage();
 
-  const { data, isLoading, error, revalidate } =
-    usePromise(async (): Promise<LoadedData> => {
-      const [workspaces, settings] = await Promise.all([
-        storage.getWorkspaces(),
-        storage.getSettings(),
-      ]);
-      return { workspaces, settings };
-    }, []);
+  const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
+    const [workspaces, settings] = await Promise.all([storage.getWorkspaces(), storage.getSettings()]);
+    return {
+      workspaces,
+      settings,
+      canUndo: storage.canUndo(),
+      canRedo: storage.canRedo(),
+    };
+  }, []);
+
+  useLoadErrorToast(error, "Failed to load workspaces");
+
+  useEffect(() => {
+    const seeded = resolveOpenWorkspaceSearchSeed(fallbackText, launchContext);
+    if (seeded) {
+      setSearchText(seeded);
+    }
+  }, [fallbackText, launchContext?.focusWorkspaceId, launchContext?.focusWorkspaceName]);
+
+  const healthIndex = useMemo(() => {
+    if (!data) {
+      return null;
+    }
+    return buildWorkspaceHealthIndex(data.workspaces, data.settings);
+  }, [data]);
 
   const sectionGroups = useMemo((): SectionGroup[] => {
     if (!data) {
@@ -68,10 +93,7 @@ export default function OpenWorkspaceCommand() {
 
     const query = searchText.trim();
     if (!query) {
-      const sections = buildBrowseSections(
-        data.workspaces,
-        data.settings.recentWorkspaceCount,
-      );
+      const sections = buildBrowseSections(data.workspaces, data.settings.recentWorkspaceCount);
       const groups: SectionGroup[] = [];
 
       if (sections.favorites.length > 0) {
@@ -81,10 +103,7 @@ export default function OpenWorkspaceCommand() {
         });
       }
 
-      if (
-        isRecentSectionEnabled(data.settings.recentWorkspaceCount) &&
-        sections.recents.length > 0
-      ) {
+      if (isRecentSectionEnabled(data.settings.recentWorkspaceCount) && sections.recents.length > 0) {
         groups.push({
           title: RECENT_SECTION_TITLE,
           rows: sections.recents.map((workspace) => ({ workspace })),
@@ -112,10 +131,7 @@ export default function OpenWorkspaceCommand() {
       return [
         {
           title: "Launch actions",
-          rows: taskActions.map((item) => ({
-            workspace: item.workspace,
-            launch: item.launch,
-          })),
+          rows: taskActions.map((item) => ({ workspace: item.workspace, launch: item.launch })),
         },
       ];
     }
@@ -129,12 +145,28 @@ export default function OpenWorkspaceCommand() {
     return [{ rows: ranked.map((workspace) => ({ workspace })) }];
   }, [data, searchText]);
 
-  const isEmpty =
-    !isLoading &&
-    !error &&
-    sectionGroups.every((group) => group.rows.length === 0);
+  const isEmpty = !isLoading && !error && sectionGroups.every((group) => group.rows.length === 0);
 
-  async function handleOpen(workspace: Workspace, launch?: LaunchEntry) {
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    const count = data.workspaces.length;
+    void updateCommandMetadata({
+      subtitle: count === 0 ? "No workspaces" : count === 1 ? "1 workspace" : `${count} workspaces`,
+    });
+
+    return () => {
+      void updateCommandMetadata({ subtitle: null });
+    };
+  }, [data?.workspaces.length]);
+
+  async function handleOpen(
+    workspace: Workspace,
+    launch?: LaunchEntry,
+    options?: { runAsAdmin?: boolean; runAsStandard?: boolean },
+  ) {
     if (!data) {
       return;
     }
@@ -143,25 +175,25 @@ export default function OpenWorkspaceCommand() {
       ? {
           ...workspace,
           launches: workspace.launches.map((entry) =>
-            entry.id === launch.id
-              ? { ...entry, isEnabled: true }
-              : { ...entry, isEnabled: false },
+            entry.id === launch.id ? { ...entry, isEnabled: true } : { ...entry, isEnabled: false },
           ),
         }
       : workspace;
 
-    const health = assessWorkspaceHealth(launchWorkspace, data.settings);
+    const health = assessWorkspaceHealthForLaunch(launchWorkspace, data.settings);
     if (!health.ok) {
       await showHealthFailure(health.issues);
       return;
     }
 
-    const plan = buildWorkspaceLaunchPlan(launchWorkspace, data.settings);
-    const result = await executeWorkspaceLaunch(
-      plan,
-      data.settings,
-      raycastExec,
-    );
+    const plan = buildWorkspaceLaunchPlan(launchWorkspace, data.settings, {
+      runAsAdmin: options?.runAsAdmin,
+      runAsStandard: options?.runAsStandard,
+    });
+    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec, {
+      includeCompanion: !launch,
+      includeDevServer: !launch,
+    });
     if (!result.ok) {
       await showLaunchFailure(result);
       return;
@@ -169,10 +201,13 @@ export default function OpenWorkspaceCommand() {
 
     try {
       await storage.markWorkspaceUsed(workspace.id);
+      await storage.flushRecentWrites();
       await revalidate();
+      const warningSuffix =
+        result.ok && result.postLaunchWarnings?.length ? ` ${result.postLaunchWarnings.join(" ")}` : "";
       await showLaunchSuccess(
         launch ? `Launching ${launch.label}` : `Opening ${workspace.name}`,
-        result.summary,
+        `${result.summary}${warningSuffix}`,
       );
     } catch (markError) {
       await showStorageFailure("Update recent workspaces", markError);
@@ -183,10 +218,7 @@ export default function OpenWorkspaceCommand() {
     try {
       await storage.setFavorite(workspace.id, !workspace.isPinned);
       await revalidate();
-      await showLaunchSuccess(
-        workspace.isPinned ? "Removed from favorites" : "Added to favorites",
-        workspace.name,
-      );
+      await showLaunchSuccess(workspace.isPinned ? "Removed from favorites" : "Added to favorites", workspace.name);
     } catch (favoriteError) {
       await showStorageFailure("Favorite update", favoriteError);
     }
@@ -229,15 +261,69 @@ export default function OpenWorkspaceCommand() {
     }
   }
 
+  async function handleExport() {
+    try {
+      const json = await storage.exportJson();
+      await Clipboard.copy(json);
+      await showToast({ style: Toast.Style.Success, title: "Workspaces copied", message: "JSON copied to clipboard." });
+    } catch (exportError) {
+      await showStorageFailure("Export workspaces", exportError);
+    }
+  }
+
+  async function handleImportFromClipboard() {
+    try {
+      const text = await Clipboard.readText();
+      const trimmed = text?.trim() ?? "";
+      if (!trimmed) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Clipboard empty",
+          message: "Copy QuickShell JSON first.",
+        });
+        return;
+      }
+      const result = await storage.importJson(trimmed, "merge");
+      await revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Import complete",
+        message: `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed.`,
+      });
+    } catch (importError) {
+      await showStorageFailure("Import workspaces", importError);
+    }
+  }
+
+  async function handleUndo() {
+    const changed = await storage.undo();
+    if (!changed) {
+      return;
+    }
+    await revalidate();
+    await showToast({ style: Toast.Style.Success, title: "Undo", message: "Reverted the last change." });
+  }
+
+  async function handleRedo() {
+    const changed = await storage.redo();
+    if (!changed) {
+      return;
+    }
+    await revalidate();
+    await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+  }
+
+  if (!isWindowsPlatform()) {
+    return <WindowsRequiredView />;
+  }
+
   function renderWorkspaceItem({ workspace, launch }: WorkspaceRow) {
-    if (!data) {
+    if (!data || !healthIndex) {
       return null;
     }
 
-    const title = launch
-      ? `${workspace.name} — ${launch.label}`
-      : workspace.name;
-    const health = assessWorkspaceHealth(workspace, data.settings);
+    const title = launch ? `${workspace.name} — ${launch.label}` : workspace.name;
+    const health = lookupWorkspaceHealth(healthIndex, workspace, data.settings);
     const accessories: List.Item.Accessory[] = [];
     if (workspace.abbreviation) {
       accessories.push({ text: workspace.abbreviation });
@@ -252,31 +338,44 @@ export default function OpenWorkspaceCommand() {
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
     }
 
+    const wantsAdmin = workspace.runAsAdmin || launch?.runAsAdmin;
+
     return (
       <List.Item
         key={launch ? `${workspace.id}:${launch.id}` : workspace.id}
         title={title}
-        subtitle={
-          health.ok
-            ? workspaceSubtitle(workspace, launch)
-            : health.issues[0]?.message
-        }
+        subtitle={health.ok ? workspaceSubtitle(workspace, launch) : health.issues[0]?.message}
         icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
         accessories={accessories}
         actions={
           <ActionPanel>
             <ActionPanel.Section title="Open">
-              <Action
-                title="Open"
-                icon={Icon.Terminal}
-                onAction={() => handleOpen(workspace, launch)}
-              />
+              <Action title="Open" icon={Icon.Terminal} onAction={() => handleOpen(workspace, launch)} />
+              {wantsAdmin ? (
+                <Action
+                  title="Run Normally"
+                  icon={Icon.Terminal}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  onAction={() => handleOpen(workspace, launch, { runAsStandard: true })}
+                />
+              ) : null}
+              {wantsAdmin ? null : (
+                <Action
+                  title="Run as Administrator"
+                  icon={Icon.Shield}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  onAction={() => handleOpen(workspace, launch, { runAsAdmin: true })}
+                />
+              )}
               <Action
                 title="Open Folder"
                 icon={Icon.Folder}
                 shortcut={Keyboard.Shortcut.Common.OpenWith}
                 onAction={() => handleOpenFolder(workspace)}
               />
+              {workspace.repoUrl ? (
+                <Action.OpenInBrowser title="Open Repository" url={workspace.repoUrl} icon={Icon.Globe} />
+              ) : null}
             </ActionPanel.Section>
             <ActionPanel.Section title="Manage">
               <Action.Push
@@ -328,35 +427,78 @@ export default function OpenWorkspaceCommand() {
       isLoading={isLoading}
       searchText={searchText}
       onSearchTextChange={setSearchText}
-      searchBarPlaceholder="Search workspaces by name, abbreviation, directory, or launch..."
+      searchBarPlaceholder="Search workspaces (qs, home keyword, name, launch...)"
       throttle
+      actions={
+        <ActionPanel>
+          <ActionPanel.Section title="Workspaces">
+            <Action.Push
+              title="Create Workspace"
+              icon={Icon.Plus}
+              target={
+                <WorkspaceForm
+                  mode="create"
+                  initialWorkspace={createBlankWorkspace()}
+                  onSaved={async () => {
+                    await revalidate();
+                  }}
+                />
+              }
+            />
+            <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
+            <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
+          </ActionPanel.Section>
+          <ActionPanel.Section title="History">
+            <Action
+              title="Undo"
+              icon={Icon.ArrowCounterClockwise}
+              shortcut={{ modifiers: ["cmd"], key: "z" }}
+              onAction={handleUndo}
+            />
+            <Action
+              title="Redo"
+              icon={Icon.ArrowClockwise}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "z" }}
+              onAction={handleRedo}
+            />
+          </ActionPanel.Section>
+        </ActionPanel>
+      }
     >
       {error ? (
-        <List.EmptyView
-          icon={Icon.ExclamationMark}
-          title="Failed to load workspaces"
-          description={error.message}
-        />
+        <List.EmptyView icon={Icon.ExclamationMark} title="Failed to load workspaces" description={error.message} />
       ) : null}
 
       {!error && isEmpty ? (
         <List.EmptyView
-          title={
-            searchText.trim() ? "No matching workspaces" : "No workspaces yet"
-          }
+          title={searchText.trim() ? "No matching workspaces" : "No workspaces yet"}
           description={
             searchText.trim()
-              ? "Try searching by name, abbreviation, directory, or launch command."
+              ? "Try searching by home keyword, name, directory, or launch command."
               : "Create a workspace to get started."
+          }
+          actions={
+            <ActionPanel>
+              <Action.Push
+                title="Create Workspace"
+                icon={Icon.Plus}
+                target={
+                  <WorkspaceForm
+                    mode="create"
+                    initialWorkspace={createBlankWorkspace()}
+                    onSaved={async () => {
+                      await revalidate();
+                    }}
+                  />
+                }
+              />
+            </ActionPanel>
           }
         />
       ) : null}
 
       {sectionGroups.map((group, index) => (
-        <List.Section
-          key={group.title ?? `section-${index}`}
-          title={group.title}
-        >
+        <List.Section key={group.title ?? `section-${index}`} title={group.title}>
           {group.rows.map((row) => renderWorkspaceItem(row))}
         </List.Section>
       ))}

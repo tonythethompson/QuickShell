@@ -8,9 +8,7 @@ export type WorkspaceSetupTask = {
 
 const PREFERRED_SCRIPT_NAMES = ["dev", "start", "test", "build"];
 
-export function buildProjectSetupSuggestions(
-  directory: string,
-): WorkspaceSetupTask[] {
+export function buildProjectSetupSuggestions(directory: string): WorkspaceSetupTask[] {
   if (!directory.trim() || !existsSync(directory)) {
     return [];
   }
@@ -41,14 +39,7 @@ export function buildProjectSetupSuggestions(
   return tasks;
 }
 
-export function tryGetPrimaryCommand(directory: string): string | null {
-  return buildProjectSetupSuggestions(directory)[0]?.command ?? null;
-}
-
-function addNodeSuggestions(
-  directory: string,
-  add: (label: string, command: string) => void,
-) {
+function addNodeSuggestions(directory: string, add: (label: string, command: string) => void) {
   const packageJsonPath = path.join(directory, "package.json");
   if (!existsSync(packageJsonPath)) {
     return;
@@ -69,10 +60,7 @@ function addNodeSuggestions(
   }
 }
 
-function addDotNetSuggestions(
-  directory: string,
-  add: (label: string, command: string) => void,
-) {
+function addDotNetSuggestions(directory: string, add: (label: string, command: string) => void) {
   const csprojs = findFiles(directory, ".csproj", 2);
   if (csprojs.length === 0) {
     return;
@@ -89,10 +77,7 @@ function addDotNetSuggestions(
   }
 }
 
-function addGoSuggestions(
-  directory: string,
-  add: (label: string, command: string) => void,
-) {
+function addGoSuggestions(directory: string, add: (label: string, command: string) => void) {
   if (!existsSync(path.join(directory, "go.mod"))) {
     return;
   }
@@ -100,10 +85,7 @@ function addGoSuggestions(
   add("Tests", "go test ./...");
 }
 
-function addDockerSuggestions(
-  directory: string,
-  add: (label: string, command: string) => void,
-) {
+function addDockerSuggestions(directory: string, add: (label: string, command: string) => void) {
   if (
     !existsSync(path.join(directory, "docker-compose.yml")) &&
     !existsSync(path.join(directory, "docker-compose.yaml")) &&
@@ -115,32 +97,19 @@ function addDockerSuggestions(
   add("Docker up", "docker compose up");
 }
 
-function addPythonSuggestions(
-  directory: string,
-  add: (label: string, command: string) => void,
-) {
+function addPythonSuggestions(directory: string, add: (label: string, command: string) => void) {
   if (existsSync(path.join(directory, "manage.py"))) {
     add("Run", "python manage.py runserver");
   }
 }
 
-function findFiles(
-  directory: string,
-  extension: string,
-  maxDepth: number,
-): string[] {
+function findFiles(directory: string, extension: string, maxDepth: number): string[] {
   const results: string[] = [];
   walk(directory, 0, maxDepth, results, extension);
   return results;
 }
 
-function walk(
-  current: string,
-  depth: number,
-  maxDepth: number,
-  results: string[],
-  extension: string,
-) {
+function walk(current: string, depth: number, maxDepth: number, results: string[], extension: string) {
   if (depth > maxDepth) {
     return;
   }
@@ -172,10 +141,6 @@ function walk(
 }
 
 function quoteIfNeeded(value: string): string {
-  if (!/\s/.test(value)) {
-    return value;
-  }
-
   return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
@@ -183,14 +148,11 @@ function toTitle(value: string): string {
   if (!value) {
     return "Task";
   }
-  return value.toLowerCase() === "test"
-    ? "Tests"
-    : value.charAt(0).toUpperCase() + value.slice(1);
+  return value.toLowerCase() === "test" ? "Tests" : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function disambiguateSuggestionLabel(label: string, command: string): string {
-  const trimmedLabel =
-    label.trim() || suggestionLabelForCommand(command, "Launch");
+  const trimmedLabel = label.trim() || suggestionLabelForCommand(command, "Launch");
   const lower = command.trim().toLowerCase();
 
   if (lower.startsWith("go ")) {
@@ -209,10 +171,7 @@ function disambiguateSuggestionLabel(label: string, command: string): string {
   return trimmedLabel;
 }
 
-function ensureUniqueSuggestionLabel(
-  label: string,
-  seenLabels: Set<string>,
-): string {
+function ensureUniqueSuggestionLabel(label: string, seenLabels: Set<string>): string {
   if (!seenLabels.has(label.toLowerCase())) {
     return label;
   }
@@ -226,10 +185,7 @@ function ensureUniqueSuggestionLabel(
   return candidate;
 }
 
-export function suggestionLabelForCommand(
-  command: string,
-  fallback: string,
-): string {
+export function suggestionLabelForCommand(command: string, fallback: string): string {
   const trimmed = command.trim();
   if (!trimmed) {
     return fallback || "Launch";

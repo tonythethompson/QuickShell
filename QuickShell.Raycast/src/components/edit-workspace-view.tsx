@@ -9,10 +9,7 @@ type EditWorkspaceViewProps = {
   onSaved?: () => Promise<void> | void;
 };
 
-export default function EditWorkspaceView({
-  workspaceId,
-  onSaved,
-}: EditWorkspaceViewProps) {
+export default function EditWorkspaceView({ workspaceId, onSaved }: EditWorkspaceViewProps) {
   const storage = getQuickShellStorage();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,8 +19,7 @@ export default function EditWorkspaceView({
     void (async () => {
       try {
         const workspaces = await storage.getWorkspaces();
-        const found =
-          workspaces.find((item) => item.id === workspaceId) ?? null;
+        const found = workspaces.find((item) => item.id === workspaceId) ?? null;
         if (!cancelled) {
           setWorkspace(found);
         }
@@ -45,15 +41,10 @@ export default function EditWorkspaceView({
   if (!workspace) {
     return (
       <Form>
-        <Form.Description
-          title="Workspace not found"
-          text="This workspace may have been deleted."
-        />
+        <Form.Description title="Workspace not found" text="This workspace may have been deleted." />
       </Form>
     );
   }
 
-  return (
-    <WorkspaceForm mode="edit" initialWorkspace={workspace} onSaved={onSaved} />
-  );
+  return <WorkspaceForm mode="edit" initialWorkspace={workspace} onSaved={onSaved} />;
 }
