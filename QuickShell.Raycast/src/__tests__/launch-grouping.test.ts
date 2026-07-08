@@ -10,10 +10,7 @@ const settings: QuickShellSettings = {
   terminalApplication: "wt",
 };
 
-function entry(
-  terminal: string,
-  overrides: Partial<LaunchPlanEntry> = {},
-): LaunchPlanEntry {
+function entry(terminal: string, overrides: Partial<LaunchPlanEntry> = {}): LaunchPlanEntry {
   return {
     workspace: {
       id: "1",
@@ -63,11 +60,7 @@ describe("launch-grouping", () => {
   });
 
   it("splits mixed elevation into separate groups", () => {
-    const groups = groupLaunchEntries(
-      [entry("wt"), entry("wt", { runAsAdmin: true })],
-      settings,
-      false,
-    );
+    const groups = groupLaunchEntries([entry("wt"), entry("wt", { runAsAdmin: true })], settings, false);
 
     expect(groups).toHaveLength(2);
     expect(groups.some((group) => group.runAsAdmin)).toBe(true);

@@ -13,8 +13,7 @@ import {
 export type ExecFn = (command: string, args: string[]) => Promise<void>;
 
 export type LaunchExecutionResult =
-  | { ok: true; summary: string; postLaunchWarnings?: string[] }
-  | { ok: false; message: string; cause?: unknown };
+  { ok: true; summary: string; postLaunchWarnings?: string[] } | { ok: false; message: string; cause?: unknown };
 
 export async function executeWorkspaceLaunch(
   plan: LaunchPlan,

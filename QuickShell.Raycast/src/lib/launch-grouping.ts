@@ -11,9 +11,7 @@ export function usesWindowsTerminalProfiles(terminalApplication: TerminalApplica
   return terminalApplication !== "conhost";
 }
 
-export function getWorkspaceTabHostExecutable(
-  terminalApplication: TerminalApplication,
-): string | null {
+export function getWorkspaceTabHostExecutable(terminalApplication: TerminalApplication): string | null {
   if (!usesWindowsTerminalProfiles(terminalApplication)) {
     return null;
   }
@@ -30,10 +28,7 @@ export function tryGetTabHostExecutable(
 
   if (
     workspaceTabHostExecutable &&
-    (target.kind === "powershell" ||
-      target.kind === "pwsh" ||
-      target.kind === "cmd" ||
-      target.kind === "wsl")
+    (target.kind === "powershell" || target.kind === "pwsh" || target.kind === "cmd" || target.kind === "wsl")
   ) {
     return workspaceTabHostExecutable;
   }
