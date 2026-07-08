@@ -1,0 +1,40 @@
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_cd70e11c4cb2f1::t_2002d33461728d 1-15,24-26,28-33
+  s_cd70e11c4cb2f1::t_936fdc1d6e299f 16-23,27
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_cd70e11c4cb2f1::t_6b9fc466381409 1-66
+QuickShell/QuickShellCommandsProvider.cs
+  s_939add5b1d5a89::t_848ac7cca698f9 3,5,20,34-45,252,254
+Directory.Packages.props
+  s_cd70e11c4cb2f1::t_62ffe60169863d 8
+QuickShell.Core.Tests/QuickShell.Core.Tests.csproj
+  s_cd70e11c4cb2f1::t_ae9e63fb3e8905 16
+QuickShell.Core/QuickShell.Core.csproj
+  s_cd70e11c4cb2f1::t_bfe377318ff48e 13-16
+QuickShell/Services/QuickShellRuntimeServices.cs
+  s_cd70e11c4cb2f1::t_da063df1956803 5-9,12-13,16-26,28-31,35-40,61-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "50ef146b39d22c1e6af06f79b721a9cb5a3a3076",
+  "prompts": {},
+  "sessions": {
+    "s_939add5b1d5a89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "15dce266-6f37-40a0-8f56-a9cb0ab6889c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
