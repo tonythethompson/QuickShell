@@ -65,21 +65,29 @@ export default function SettingsCommand() {
   }
 
   async function handleUndo() {
-    const changed = await storage.undo();
-    if (!changed) {
-      return;
+    try {
+      const changed = await storage.undo();
+      if (!changed) {
+        return;
+      }
+      await revalidate();
+      await showToast({ style: Toast.Style.Success, title: "Undo", message: "Reverted the last workspace change." });
+    } catch (undoError) {
+      await showStorageFailure("Undo workspace change", undoError);
     }
-    await revalidate();
-    await showToast({ style: Toast.Style.Success, title: "Undo", message: "Reverted the last workspace change." });
   }
 
   async function handleRedo() {
-    const changed = await storage.redo();
-    if (!changed) {
-      return;
+    try {
+      const changed = await storage.redo();
+      if (!changed) {
+        return;
+      }
+      await revalidate();
+      await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
+    } catch (redoError) {
+      await showStorageFailure("Redo workspace change", redoError);
     }
-    await revalidate();
-    await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
   }
 
   if (!isWindowsPlatform()) {

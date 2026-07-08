@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   discoverDefaultProfileChoices,
   discoverWorkspaceTerminalChoices,
+  parseJsoncForTests,
   resetTerminalCatalogCacheForTests,
 } from "../lib/terminal-catalog";
 
@@ -25,5 +26,17 @@ describe("terminal-catalog", () => {
     expect(choices.some((choice) => choice.id === "powershell" || choice.id === "pwsh" || choice.id === "cmd")).toBe(
       true,
     );
+  });
+
+  it("parses JSONC with inline comments", () => {
+    const parsed = parseJsoncForTests(`{
+      "profiles": {
+        "list": [
+          { "name": "PowerShell", "hidden": false }, // default
+        ],
+      },
+    }`) as { profiles?: { list?: Array<{ name?: string }> } };
+
+    expect(parsed.profiles?.list?.[0]?.name).toBe("PowerShell");
   });
 });

@@ -9,11 +9,11 @@ export default function CreateWorkspaceCommand({
   arguments: args,
   draftValues,
 }: LaunchProps<{ arguments: Arguments.CreateWorkspace; draftValues?: Form.Values }>) {
+  const initialWorkspace = useMemo(() => createWorkspaceFromDirectory(args?.directory), [args?.directory]);
+
   if (!isWindowsPlatform()) {
     return <WindowsRequiredView />;
   }
-
-  const initialWorkspace = useMemo(() => createWorkspaceFromDirectory(args?.directory), [args?.directory]);
 
   return (
     <WorkspaceForm

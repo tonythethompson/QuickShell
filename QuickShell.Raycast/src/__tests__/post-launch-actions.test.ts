@@ -6,5 +6,11 @@ describe("post-launch-actions", () => {
     expect(buildCompanionArguments("{folder}", "C:\\Projects\\web")).toEqual(["C:\\Projects\\web"]);
     expect(buildCompanionArguments(".", "C:\\Projects\\web")).toEqual(["C:\\Projects\\web"]);
     expect(buildCompanionArguments("-n {folder}", "C:\\Projects\\web")).toEqual(["-n", "C:\\Projects\\web"]);
+    expect(buildCompanionArguments('--title "My Project"', "C:\\Projects\\web")).toEqual(["--title", "My Project"]);
+    expect(buildCompanionArguments("--profile John's --reuse-window", "C:\\Projects\\web")).toEqual([
+      "--profile",
+      "John's",
+      "--reuse-window",
+    ]);
   });
 });

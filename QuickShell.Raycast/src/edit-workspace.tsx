@@ -10,7 +10,7 @@ import { additionalLaunchCount, filterWorkspacesForEdit } from "./lib/workspace-
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
-import type { QuickShellSettings, Workspace } from "./lib/schema";
+import { DEFAULT_SETTINGS, type QuickShellSettings, type Workspace } from "./lib/schema";
 
 type EditWorkspaceCommandProps = LaunchProps<{ arguments: Arguments.EditWorkspace }>;
 
@@ -116,10 +116,7 @@ function renderWorkspacePickerItem(
   const health =
     settings && healthIndex
       ? lookupWorkspaceHealth(healthIndex, workspace, settings)
-      : assessWorkspaceHealthForList(
-          workspace,
-          settings ?? { terminalApplication: "wt", defaultProfile: "__default__", recentWorkspaceCount: 8 },
-        );
+      : assessWorkspaceHealthForList(workspace, settings ?? DEFAULT_SETTINGS);
   const extraLaunches = additionalLaunchCount(workspace);
   const accessories: List.Item.Accessory[] = [];
   if (workspace.abbreviation) {

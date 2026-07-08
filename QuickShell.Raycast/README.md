@@ -25,7 +25,7 @@ Root search: type `qs`, `quickshell`, or a workspace home keyword. Register **Op
 ```
 QuickShell.Raycast/
 ├── assets/              # extension and command icons (512px PNG)
-├── changelog.md         # Store Version History (no version field in package.json)
+├── CHANGELOG.md         # Store Version History (no version field in package.json)
 ├── eslint.config.js     # Raycast ESLint flat config
 ├── package.json         # Raycast manifest + npm metadata + preferences
 ├── src/
@@ -60,11 +60,11 @@ npm run build
 npm run dev
 ```
 
-Run `npm run build` before submitting Store changes. Do not add a `version` field to `package.json`; Store versioning uses `changelog.md`.
+Run `npm run build` before submitting Store changes. Do not add a `version` field to `package.json`; Store versioning uses `CHANGELOG.md`.
 
 ## Store checklist
 
-- [x] Extension preferences for defaults, `changelog.md`, ESLint/Prettier scaffold
+- [x] Extension preferences for defaults, `CHANGELOG.md`, ESLint/Prettier scaffold
 - [x] `useForm` validation, drafts, `launchCommand`, fallback text support
 - [ ] Store screenshots (Raycast Window Capture)
 - [ ] Dedicated icon for Discover Git Repos command

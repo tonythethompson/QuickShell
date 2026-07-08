@@ -56,7 +56,7 @@ function importShortcutArray(items: unknown[], existing?: StoredData): ImportRes
         return false;
       }
       const record = item as UnknownRecord;
-      if (record.type === "separator" || record.Type === "separator") {
+      if (record.type === "separator") {
         return false;
       }
       return true;
