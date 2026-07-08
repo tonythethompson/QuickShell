@@ -13,7 +13,9 @@ type ExtensionPreferences = {
   /** Default Profile - Profile name for the default terminal app. Use __default__ for the app default profile. */
   "defaultProfile": string,
   /** Recent Workspaces - Show recently opened workspaces in Open Workspace. */
-  "showRecents": boolean
+  "showRecents": boolean,
+  /** Multi-command Launch - When supported, open multiple launch commands as tabs in one Windows Terminal window instead of separate windows. */
+  "singleWindowTabs": boolean
 }
 
 /** Preferences accessible in all the extension's commands */

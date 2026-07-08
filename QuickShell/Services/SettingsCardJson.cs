@@ -82,6 +82,29 @@ internal static class SettingsCardJson
         }
         """;
 
+    public static string MultiLaunchTabsToggle(bool singleWindowTabs, bool showWtHint) =>
+        $$"""
+        {
+          "type": "Container",
+          "spacing": "None",
+          "items": [
+            {
+              "type": "Input.Toggle",
+              "id": "singleWindowTabs",
+              "title": "Open multiple commands in one Windows Terminal window",
+              "spacing": "None",
+              "value": "{{(singleWindowTabs ? "true" : "false")}}",
+              "valueOn": "true",
+              "valueOff": "false",
+              {{ChangeActionSave("saveMultiLaunch")}}
+            },
+            {{SubtleText(showWtHint
+                ? "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
+                : "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows.")}}
+          ]
+        }
+        """;
+
     public static string BuildChoicesJson(IEnumerable<ChoiceSetSetting.Choice> choices) =>
         string.Join(",\n", choices.Select(choice =>
             $$"""{ "title": "{{Escape(choice.Title)}}", "value": "{{Escape(choice.Value)}}" }"""));

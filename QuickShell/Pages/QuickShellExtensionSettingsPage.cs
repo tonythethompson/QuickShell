@@ -13,6 +13,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
     private readonly object _contentSync = new();
 
     private TerminalDefaultsSettingsForm? _terminalDefaultsForm;
+    private MultiLaunchSettingsForm? _multiLaunchForm;
     private HomeDisplaySettingsForm? _homeDisplayForm;
     private GitLaunchSettingsForm? _gitLaunchForm;
     private ShortcutTransferSettingsForm? _transferForm;
@@ -35,6 +36,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
     {
         EnsureSettingsForms();
         _terminalDefaultsForm?.SyncFromSettings();
+        _multiLaunchForm?.SyncFromSettings();
         _homeDisplayForm?.SyncFromSettings();
         _gitLaunchForm?.SyncFromSettings();
         RaiseItemsChanged();
@@ -60,6 +62,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         }
 
         content.Add(_terminalDefaultsForm!);
+        content.Add(_multiLaunchForm!);
         content.Add(_homeDisplayForm!);
         content.Add(_gitLaunchForm!);
         content.Add(_transferForm!);
@@ -72,6 +75,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         {
             var refreshSettings = (Action)RefreshContent;
             _terminalDefaultsForm ??= new TerminalDefaultsSettingsForm(_settingsManager, _onReload, refreshSettings);
+            _multiLaunchForm ??= new MultiLaunchSettingsForm(_settingsManager, _onReload, refreshSettings);
             _homeDisplayForm ??= new HomeDisplaySettingsForm(_settingsManager, _onReload, refreshSettings);
             _gitLaunchForm ??= new GitLaunchSettingsForm(_settingsManager, _onReload, refreshSettings);
             _transferForm ??= new ShortcutTransferSettingsForm(_onReload, refreshSettings);

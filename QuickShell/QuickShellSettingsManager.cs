@@ -12,6 +12,7 @@ internal sealed class QuickShellSettingsManager
     private const string DefaultProfileSettingId = "defaultProfile";
     private const string RecentWorkspaceCountSettingId = QuickShellRecentSettings.SettingKey;
     private const string BlockDirtyBranchSwitchSettingId = "blockDirtyBranchSwitch";
+    private const string MultiLaunchPresentationSettingId = QuickShellMultiLaunchSettings.SettingKey;
 
     private readonly QuickShellJsonSettingsStore _settingsStore;
     private readonly Settings _settings;
@@ -74,8 +75,9 @@ internal sealed class QuickShellSettingsManager
         initialProfile = NormalizeStoredDefaultProfile(initialProfile);
         var initialRecentCount = ReadRecentWorkspaceCount();
         var initialBlockDirtyBranchSwitch = ReadBlockDirtyBranchSwitch();
+        var initialMultiLaunchPresentation = ReadMultiLaunchPresentation();
 
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}"}""");
+        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}","{{MultiLaunchPresentationSettingId}}":"{{initialMultiLaunchPresentation}}"}""");
         SyncDefaultProfileChoices();
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
@@ -108,6 +110,9 @@ internal sealed class QuickShellSettingsManager
 
     public bool BlockDirtyBranchSwitch => ReadBlockDirtyBranchSwitch();
 
+    public bool SeparateWindowsForMultiLaunch =>
+        QuickShellMultiLaunchSettings.IsSeparateWindows(ReadMultiLaunchPresentation());
+
     internal void UpdateTerminalDefaults(string app, string profile)
     {
         app = EnsureValidTerminalApplication(app);
@@ -128,6 +133,15 @@ internal sealed class QuickShellSettingsManager
     internal void UpdateBlockDirtyBranchSwitch(bool enabled)
     {
         _settings.Update($$"""{"{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(enabled)}}"}""");
+        PersistSettings();
+    }
+
+    internal void UpdateMultiLaunchPresentation(bool singleWindowTabs)
+    {
+        var value = singleWindowTabs
+            ? QuickShellMultiLaunchSettings.SingleWindowTabs
+            : QuickShellMultiLaunchSettings.SeparateWindows;
+        _settings.Update($$"""{"{{MultiLaunchPresentationSettingId}}":"{{value}}"}""");
         PersistSettings();
     }
 
@@ -309,6 +323,12 @@ internal sealed class QuickShellSettingsManager
     {
         var raw = _settings.GetSetting<string>(BlockDirtyBranchSwitchSettingId);
         return !string.Equals(raw, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string ReadMultiLaunchPresentation()
+    {
+        var raw = _settings.GetSetting<string>(MultiLaunchPresentationSettingId);
+        return QuickShellMultiLaunchSettings.Normalize(raw);
     }
 
     private static string FormatBool(bool value) => value ? "true" : "false";

@@ -88,5 +88,6 @@ describe("windows-launch", () => {
     const plan = buildWorkspaceLaunchPlan(multi, DEFAULT_SETTINGS);
     expect(plan.entries).toHaveLength(2);
     expect(plan.groupedArguments.join(" ")).toContain("new-tab");
+    expect(plan.groupedArguments.join(" ")).not.toContain("-w");
   });
 });
