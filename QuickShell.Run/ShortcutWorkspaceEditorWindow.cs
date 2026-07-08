@@ -725,7 +725,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         var directory = _directoryBox.Text.Trim();
 
-        var usedCommands = _launchRows.Select(row => row.CommandText);
+        var usedCommands = _launchRows.Select(row => row.CommandText).ToList();
 
         _suggestionLoader.Schedule(
 

@@ -89,16 +89,57 @@ internal static class ProjectClassificationCache
         }
     }
 
+    private static readonly string[] ClassifierMarkerFiles =
+    [
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-workspace.yml",
+        "bun.lockb",
+        "bun.lock",
+        "Cargo.toml",
+        "pyproject.toml",
+        "requirements.txt",
+        "setup.py",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "compose.yml",
+        "compose.yaml",
+        "Makefile",
+        "makefile",
+        "justfile",
+        "Justfile",
+        "Taskfile.yml",
+        "Taskfile.yaml",
+        "go.mod",
+        "deno.json",
+        "deno.jsonc",
+        "Procfile",
+        "Gemfile",
+        "mix.exs",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "devcontainer.json",
+        Path.Combine(".vscode", "tasks.json"),
+    ];
+
     private static string BuildFingerprint(string directory)
     {
         var builder = new StringBuilder();
-        AppendFileFingerprint(builder, Path.Combine(directory, "package.json"));
-        AppendFileFingerprint(builder, Path.Combine(directory, "docker-compose.yml"));
-        AppendFileFingerprint(builder, Path.Combine(directory, "docker-compose.yaml"));
-        AppendFileFingerprint(builder, Path.Combine(directory, "compose.yml"));
-        AppendFileFingerprint(builder, Path.Combine(directory, "compose.yaml"));
-        AppendFileFingerprint(builder, Path.Combine(directory, "Cargo.toml"));
-        AppendFileFingerprint(builder, Path.Combine(directory, "pyproject.toml"));
+        foreach (var marker in ClassifierMarkerFiles)
+        {
+            AppendFileFingerprint(builder, Path.Combine(directory, marker));
+        }
+
+        AppendDirectoryFingerprint(builder, Path.Combine(directory, ".vscode"));
+        AppendDirectoryFingerprint(builder, Path.Combine(directory, ".devcontainer"));
+
+        foreach (var workspace in Directory
+                     .EnumerateFiles(directory, "*.code-workspace", SearchOption.TopDirectoryOnly)
+                     .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
+        {
+            AppendFileFingerprint(builder, workspace);
+        }
 
         foreach (var project in Directory
                      .EnumerateFiles(directory, "*.*", SearchOption.TopDirectoryOnly)
@@ -127,6 +168,20 @@ internal static class ProjectClassificationCache
         builder.Append(path);
         builder.Append('|');
         builder.Append(info.Length);
+        builder.Append('|');
+        builder.Append(info.LastWriteTimeUtc.Ticks);
+        builder.Append(';');
+    }
+
+    private static void AppendDirectoryFingerprint(StringBuilder builder, string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return;
+        }
+
+        var info = new DirectoryInfo(path);
+        builder.Append(path);
         builder.Append('|');
         builder.Append(info.LastWriteTimeUtc.Ticks);
         builder.Append(';');

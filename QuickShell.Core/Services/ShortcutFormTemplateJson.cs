@@ -318,16 +318,30 @@ internal static class ShortcutFormTemplateJson
                      launchRows.Select(row => row.Command),
                      draft.ExpandSuggestionPills))
         {
-            fields.Add($"\"{entry.Key}\": \"{Escape(entry.Value)}\"");
+            fields.Add(FormatPillDataField(entry.Key, entry.Value));
         }
 
         foreach (var entry in SuggestionPillPresentation.BuildClearLaunchFields(launchRows))
         {
-            fields.Add($"\"{entry.Key}\": \"{entry.Value}\"");
+            fields.Add(FormatPillDataField(entry.Key, entry.Value));
         }
 
         return string.Join(",\n", fields);
     }
+
+    private static string FormatPillDataField(string key, string value) =>
+        IsBooleanPillField(key)
+            ? $"\"{key}\": {(string.Equals(value, "true", StringComparison.Ordinal) ? "true" : "false")}"
+            : $"\"{key}\": \"{Escape(value)}\"";
+
+    private static bool IsBooleanPillField(string key) =>
+        key is "ShowSuggestionPills"
+            or "SuggestionScanning"
+            or "ExpandSuggestionPills"
+            or "ShowMoreSuggestions"
+            or "ShowFewerSuggestions"
+        || key.StartsWith("ShowPill_", StringComparison.Ordinal)
+        || key.StartsWith("ShowClearLaunch_", StringComparison.Ordinal);
 
     public static string BuildDiscardPromptTemplate() =>
         """

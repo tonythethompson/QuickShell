@@ -269,7 +269,7 @@ public sealed class ShortcutFormTemplateJsonTests
         Assert.Equal("api", document.RootElement.GetProperty("LaunchType_1").GetString());
         Assert.Equal("default", document.RootElement.GetProperty("LaunchTarget_0").GetString());
         Assert.Equal("wt:pwsh", document.RootElement.GetProperty("LaunchTarget_1").GetString());
-        Assert.Equal("false", document.RootElement.GetProperty("ShowSuggestionPills").GetString());
+        Assert.False(document.RootElement.GetProperty("ShowSuggestionPills").GetBoolean());
     }
 
     [Fact]
@@ -288,8 +288,8 @@ public sealed class ShortcutFormTemplateJsonTests
                 });
 
             using var document = JsonDocument.Parse(dataJson);
-            Assert.Equal("true", document.RootElement.GetProperty("ShowSuggestionPills").GetString());
-            Assert.Equal("true", document.RootElement.GetProperty("ShowPill_0").GetString());
+            Assert.True(document.RootElement.GetProperty("ShowSuggestionPills").GetBoolean());
+            Assert.True(document.RootElement.GetProperty("ShowPill_0").GetBoolean());
         }
         finally
         {

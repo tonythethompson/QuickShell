@@ -47,6 +47,7 @@ internal static class LaunchRowListEditor
             LaunchTarget = index == 0
                 ? fallbackLaunchTarget
                 : TerminalCatalog.SameAsPreviousLaunchTargetId,
+            IsEditorPlaceholder = true,
         };
 
     public static void ClearRow(List<LaunchRowDraft> rows, int index)
@@ -58,6 +59,7 @@ internal static class LaunchRowListEditor
 
         rows[index].Command = string.Empty;
         rows[index].TaskType = TaskTypeCatalog.None;
+        rows[index].IsEditorPlaceholder = false;
     }
 
     public static bool ApplyPill(List<LaunchRowDraft> rows, CommandSuggestionPill pill, string fallbackLaunchTarget)
@@ -71,6 +73,7 @@ internal static class LaunchRowListEditor
 
         rows[targetIndex].Command = pill.Command;
         rows[targetIndex].TaskType = pill.TaskType;
+        rows[targetIndex].IsEditorPlaceholder = false;
         return targetIndex == rows.Count - 1 && rows.Count > MinimumEditorRowCount;
     }
 
@@ -91,7 +94,8 @@ internal static class LaunchRowListEditor
     {
         var rows = commands.Select(row => row.Clone()).ToList();
         rows.RemoveAll(row =>
-            string.IsNullOrWhiteSpace(row.Command)
+            row.IsEditorPlaceholder
+            && string.IsNullOrWhiteSpace(row.Command)
             && string.Equals(TaskTypeCatalog.Normalize(row.TaskType), TaskTypeCatalog.None, StringComparison.Ordinal));
 
         if (rows.Count == 0)
