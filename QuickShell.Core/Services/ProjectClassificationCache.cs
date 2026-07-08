@@ -146,7 +146,8 @@ internal static class ProjectClassificationCache
                      .Where(path =>
                          path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
                          || path.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
-                         || path.EndsWith(".sln", StringComparison.OrdinalIgnoreCase))
+                         || path.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
+                         || path.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
                      .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
                      .Take(CommandSuggestionService.MaxRootProjects))
         {

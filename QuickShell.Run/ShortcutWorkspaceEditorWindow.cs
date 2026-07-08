@@ -653,7 +653,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         {
 
-            AddLaunchRow();
+            AddLaunchRow(isEditorPlaceholder: true);
 
         }
 
@@ -661,11 +661,23 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-    private void AddLaunchRow() => AddLaunchRow(null, _launchRows.Count);
+    private void AddLaunchRow() => AddLaunchRow(isEditorPlaceholder: false);
 
 
 
-    private void AddLaunchRow(WorkspaceEntry? launch, int order)
+    private void AddLaunchRow(bool isEditorPlaceholder) =>
+
+        AddLaunchRow(null, _launchRows.Count, isEditorPlaceholder);
+
+
+
+    private void AddLaunchRow(WorkspaceEntry? launch, int order) =>
+
+        AddLaunchRow(launch, order, isEditorPlaceholder: false);
+
+
+
+    private void AddLaunchRow(WorkspaceEntry? launch, int order, bool isEditorPlaceholder)
 
     {
 
@@ -687,7 +699,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             TaskTypeCatalog.Normalize(launch?.TaskType),
 
-            order);
+            order,
+
+            isEditorPlaceholder);
 
         _launchRows.Add(row);
 
@@ -773,7 +787,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         _editHistory.PushBeforeChange(CaptureSnapshot());
 
-        var target = _launchRows.FirstOrDefault(row => string.IsNullOrWhiteSpace(row.CommandText));
+        var target = _launchRows.FirstOrDefault(row =>
+
+            row.IsEditorPlaceholder && string.IsNullOrWhiteSpace(row.CommandText));
 
         if (target is null)
 
@@ -917,7 +933,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
                 snapshot.TaskType,
 
-                i);
+                i,
+
+                snapshot.IsEditorPlaceholder);
 
         }
 
@@ -939,7 +957,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         string taskType,
 
-        int order)
+        int order,
+
+        bool isEditorPlaceholder = false)
 
     {
 
@@ -961,7 +981,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             taskType,
 
-            order);
+            order,
+
+            isEditorPlaceholder);
 
         _launchRows.Add(row);
 
@@ -1287,6 +1309,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         private string _taskType;
 
+        private bool _isEditorPlaceholder;
+
 
 
         public LaunchRow(
@@ -1307,7 +1331,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             string taskType,
 
-            int order)
+            int order,
+
+            bool isEditorPlaceholder = false)
 
         {
 
@@ -1316,6 +1342,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
             _entryId = launch?.Id ?? Guid.NewGuid().ToString("N");
 
             _taskType = TaskTypeCatalog.Normalize(taskType);
+
+            _isEditorPlaceholder = isEditorPlaceholder;
 
 
 
@@ -1451,6 +1479,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
                 _taskType = TaskTypeCatalog.None;
 
+                _isEditorPlaceholder = false;
+
                 _owner.RefreshSuggestionPanel();
 
             };
@@ -1509,15 +1539,37 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             _taskType = pill.TaskType;
 
+            _isEditorPlaceholder = false;
+
         }
 
 
 
-        public bool ShouldPersist() =>
+        public bool IsEditorPlaceholder => _isEditorPlaceholder;
 
-            !string.IsNullOrWhiteSpace(CommandBox.Text)
 
-            || !string.Equals(_taskType, TaskTypeCatalog.None, StringComparison.Ordinal);
+
+        public bool ShouldPersist()
+
+        {
+
+            if (_isEditorPlaceholder
+
+                && string.IsNullOrWhiteSpace(CommandBox.Text)
+
+                && string.Equals(_taskType, TaskTypeCatalog.None, StringComparison.Ordinal))
+
+            {
+
+                return false;
+
+            }
+
+
+
+            return true;
+
+        }
 
 
 
@@ -1535,7 +1587,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
                 AdminBox.IsChecked == true,
 
-                EnabledBox.IsChecked == true);
+                EnabledBox.IsChecked == true,
+
+                _isEditorPlaceholder);
 
 
 
@@ -1550,6 +1604,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
                 TaskType = _taskType,
 
                 LaunchTarget = TerminalBox.SelectedValue as string ?? "default",
+
+                IsEditorPlaceholder = _isEditorPlaceholder,
 
             };
 

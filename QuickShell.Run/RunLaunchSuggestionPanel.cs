@@ -12,7 +12,8 @@ internal sealed record RunLaunchRowSnapshot(
     string TaskType,
     string LaunchTarget,
     bool RunAsAdmin,
-    bool IsEnabled);
+    bool IsEnabled,
+    bool IsEditorPlaceholder = false);
 
 internal sealed class RunLaunchSuggestionPanel
 {

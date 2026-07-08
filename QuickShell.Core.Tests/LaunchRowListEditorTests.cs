@@ -60,4 +60,31 @@ public sealed class LaunchRowListEditorTests
 
         Assert.Equal(3, rows.Count);
     }
+
+    [Fact]
+    public void ApplyPill_PrefersEditorPlaceholderOverIntentionalBlank()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "npm start", LaunchTarget = "default" },
+            new() { LaunchTarget = "wt:pwsh" },
+            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
+        };
+
+        var pill = new CommandSuggestionPill(
+            "docker compose up",
+            TaskTypeCatalog.Services,
+            "Services",
+            "Services · docker compose up",
+            "docker compose up",
+            10,
+            "docker");
+
+        Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(string.Empty, rows[1].Command);
+        Assert.Equal("wt:pwsh", rows[1].LaunchTarget);
+        Assert.Equal("docker compose up", rows[2].Command);
+        Assert.False(rows[2].IsEditorPlaceholder);
+    }
 }

@@ -81,12 +81,13 @@ internal static class LaunchRowListEditor
     {
         for (var i = 0; i < rows.Count; i++)
         {
-            if (string.IsNullOrWhiteSpace(rows[i].Command))
+            if (rows[i].IsEditorPlaceholder && string.IsNullOrWhiteSpace(rows[i].Command))
             {
                 return i;
             }
         }
 
+        // Do not overwrite intentional blank (folder-only) launches; caller should append.
         return -1;
     }
 

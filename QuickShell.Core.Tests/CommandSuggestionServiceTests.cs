@@ -57,9 +57,9 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
         var rows = new List<LaunchRowDraft>
         {
-            new() { LaunchTarget = "default" },
-            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
-            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { LaunchTarget = "default", IsEditorPlaceholder = true },
+            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
+            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
         };
 
         var pills = CommandSuggestionService.GetPills(_root, []);

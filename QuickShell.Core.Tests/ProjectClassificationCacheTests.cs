@@ -37,6 +37,19 @@ public sealed class ProjectClassificationCacheTests : IDisposable
         Assert.True(classification.Has(ProjectStack.Node));
     }
 
+    [Fact]
+    public void Classify_DetectsDotNetWhenSlnxAppearsWithoutInvalidation()
+    {
+        var before = ProjectClassificationCache.Classify(_root);
+        Assert.False(before.Has(ProjectStack.DotNet));
+
+        File.WriteAllText(Path.Combine(_root, "QuickShell.slnx"), "<Solution />");
+
+        var after = ProjectClassificationCache.Classify(_root);
+
+        Assert.True(after.Has(ProjectStack.DotNet));
+    }
+
     public void Dispose()
     {
         ProjectClassificationCache.Invalidate(_root);
