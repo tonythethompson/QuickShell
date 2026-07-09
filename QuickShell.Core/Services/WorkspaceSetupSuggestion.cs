@@ -1,3 +1,4 @@
+using QuickShell.Classification;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -7,7 +8,7 @@ internal static class WorkspaceSetupSuggestion
     private static readonly string[] PreferredTaskNames = ["dev", "start", "test", "build"];
 
     public static IReadOnlyList<WorkspaceSetupTask> Build(string directory) =>
-        Build(directory, ProjectClassifier.Classify(directory));
+        Build(directory, ProjectAnalysisAccessor.Instance.Classify(directory));
 
     public static IReadOnlyList<WorkspaceSetupTask> Build(string directory, ProjectClassification classification)
     {
@@ -115,7 +116,7 @@ internal static class WorkspaceSetupSuggestion
             {
                 if (classification.NodeScripts.ContainsKey(scriptName))
                 {
-                    Add(ToTitle(scriptName), DevServerUrlDetection.FormatPackageScriptCommand(directory, scriptName));
+                    Add(ToTitle(scriptName), ProjectAnalysisAccessor.Instance.FormatPackageScriptCommand(directory, scriptName));
                 }
             }
         }

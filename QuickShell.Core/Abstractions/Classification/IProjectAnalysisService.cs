@@ -15,4 +15,14 @@ internal interface IProjectAnalysisService
     string? TrySuggestTaskCommand(string? directory, string? taskType, TaskTypePickContext pickContext);
 
     string GetTaskTypeChoiceTooltip(string? directory, string? taskType, TaskTypePickContext pickContext);
+
+    CompanionAppSuggestion? TrySuggestCompanionApp(string directory);
+
+    string? TryDetectDevServerUrl(string directory);
+
+    string? TryInferTaskType(string directory);
+
+    string? TryDetectDevLaunchCommand(string directory);
+
+    string FormatPackageScriptCommand(string directory, string scriptName);
 }

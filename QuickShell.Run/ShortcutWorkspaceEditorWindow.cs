@@ -1,5 +1,7 @@
 using QuickShell.Models;
 
+using QuickShell.Classification;
+
 using QuickShell.Services;
 
 using System.IO;
@@ -535,7 +537,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         {
 
-            _devServerUrlBox.Text = DevServerUrlDetection.TryDetectDevServerUrl(directory) ?? string.Empty;
+            _devServerUrlBox.Text = ProjectAnalysisAccessor.Instance.TryDetectDevServerUrl(directory) ?? string.Empty;
 
         }
 

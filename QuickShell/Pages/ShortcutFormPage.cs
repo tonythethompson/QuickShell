@@ -661,7 +661,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (string.IsNullOrWhiteSpace(_draft.DevServerUrl))
         {
-            _draft.DevServerUrl = DevServerUrlDetection.TryDetectDevServerUrl(normalized) ?? string.Empty;
+            _draft.DevServerUrl = QuickShellServices.Current.ProjectAnalysis.TryDetectDevServerUrl(normalized) ?? string.Empty;
         }
 
         TryAutofillLaunchCommand(normalized);

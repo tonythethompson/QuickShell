@@ -12,7 +12,15 @@ internal static class ProjectClassificationPipeline
         new DotNetProjectClassifier(),
         new DockerComposeProjectClassifier(),
         new TaskRunnerProjectClassifier(),
-        new MiscellaneousProjectClassifier(),
+        new RustProjectClassifier(),
+        new PythonProjectClassifier(),
+        new EditorProjectClassifier(),
+        new GoProjectClassifier(),
+        new JavaProjectClassifier(),
+        new DenoProjectClassifier(),
+        new ProcfileProjectClassifier(),
+        new RubyProjectClassifier(),
+        new ElixirProjectClassifier(),
     ];
 
     internal static ProjectClassification Classify(

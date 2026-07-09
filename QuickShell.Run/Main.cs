@@ -5,6 +5,8 @@ using System.Windows.Controls;
 using ManagedCommon;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PowerToys.Settings.UI.Library;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Services;
@@ -61,6 +63,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             collection.AddQuickShellCore();
             _services = collection.BuildServiceProvider();
             _shortcuts = _services.GetRequiredService<IShortcutRepository>();
+            ProjectAnalysisAccessor.Instance = _services.GetRequiredService<IProjectAnalysisService>();
             _settings = new QuickShellSettingsReader();
             _context = context;
             UpdateIconPath(context.API.GetCurrentTheme());

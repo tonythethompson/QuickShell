@@ -2,6 +2,7 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Commands;
 using QuickShell.Services.CommandRouting;
 using QuickShell.Pages;
@@ -48,6 +49,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
             var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
+            ProjectAnalysisAccessor.Instance = projectAnalysis;
             QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis));
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
             KickoffGitRepoIndexPrewarm();

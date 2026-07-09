@@ -1,3 +1,5 @@
+using QuickShell.Classification;
+
 namespace QuickShell.Services;
 
 internal static class TaskTypeCandidateBuilder
@@ -38,7 +40,7 @@ internal static class TaskTypeCandidateBuilder
             foreach (var (scriptName, scriptValue) in context.Classification.NodeScripts
                          .Take(CommandSuggestionService.MaxNodeScripts))
             {
-                var command = DevServerUrlDetection.FormatPackageScriptCommand(context.Directory, scriptName);
+                var command = ProjectAnalysisAccessor.Instance.FormatPackageScriptCommand(context.Directory, scriptName);
                 AddCandidate(
                     candidates,
                     seenCommands,
@@ -359,7 +361,7 @@ internal static class TaskTypeCandidateBuilder
         var label = NormalizeSuggestionLabel(suggestion.Label);
         return label.Equals("Run", StringComparison.OrdinalIgnoreCase)
             && string.Equals(
-                DevServerUrlDetection.TryInferTaskType(context.Directory),
+                ProjectAnalysisAccessor.Instance.TryInferTaskType(context.Directory),
                 TaskTypeCatalog.Frontend,
                 StringComparison.Ordinal);
     }
@@ -399,7 +401,7 @@ internal static class TaskTypeCandidateBuilder
 
     private static bool IsLikelyFrontendNodeCommand(string command, string directory) =>
         string.Equals(
-            DevServerUrlDetection.TryInferTaskType(directory),
+            ProjectAnalysisAccessor.Instance.TryInferTaskType(directory),
             TaskTypeCatalog.Frontend,
             StringComparison.Ordinal)
         && ContainsAny(command, "npm ", "pnpm ", "yarn ", "bun ", "deno task");

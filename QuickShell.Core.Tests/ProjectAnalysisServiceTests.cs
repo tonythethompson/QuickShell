@@ -74,6 +74,93 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
         Assert.True(layout.HasTaskfile);
     }
 
+    [Fact]
+    public void Classify_matches_legacy_project_classifier_for_rust_layout()
+    {
+        File.WriteAllText(Path.Combine(_root, "Cargo.toml"), "[package]\nname = \"demo\"\n");
+
+        var service = _services.GetRequiredService<IProjectAnalysisService>();
+        var viaService = service.Classify(_root);
+        var viaLegacy = ProjectClassifier.Classify(_root);
+
+        Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
+        Assert.True(viaService.Has(ProjectStack.Rust));
+    }
+
+    [Fact]
+    public void Classify_matches_legacy_project_classifier_for_python_layout()
+    {
+        File.WriteAllText(Path.Combine(_root, "pyproject.toml"), "[project]\nname = \"demo\"\n");
+
+        var service = _services.GetRequiredService<IProjectAnalysisService>();
+        var viaService = service.Classify(_root);
+        var viaLegacy = ProjectClassifier.Classify(_root);
+
+        Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
+        Assert.True(viaService.Has(ProjectStack.Python));
+    }
+
+    [Fact]
+    public void Classify_matches_legacy_project_classifier_for_go_layout()
+    {
+        File.WriteAllText(Path.Combine(_root, "go.mod"), "module example.com/demo\n\ngo 1.22\n");
+
+        var service = _services.GetRequiredService<IProjectAnalysisService>();
+        var viaService = service.Classify(_root);
+        var viaLegacy = ProjectClassifier.Classify(_root);
+
+        Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
+        Assert.True(viaService.Has(ProjectStack.Go));
+    }
+
+    [Fact]
+    public void Layout_analyzer_detects_rust_and_companion_signals()
+    {
+        File.WriteAllText(Path.Combine(_root, "Cargo.toml"), "[package]\nname = \"demo\"\n");
+        Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+
+        var layout = _services.GetRequiredService<IProjectLayoutAnalyzer>().Analyze(_root);
+
+        Assert.True(layout.HasCargoToml);
+        Assert.True(layout.HasVsCodeDirectory);
+    }
+
+    [Fact]
+    public void TryDetectDevServerUrl_matches_static_detector()
+    {
+        File.WriteAllText(
+            Path.Combine(_root, "package.json"),
+            """
+            {
+              "scripts": { "dev": "vite --port 4321" }
+            }
+            """);
+
+        var service = _services.GetRequiredService<IProjectAnalysisService>();
+        Assert.Equal(
+            DevServerUrlDetection.TryDetectDevServerUrl(_root),
+            service.TryDetectDevServerUrl(_root));
+    }
+
+    [Fact]
+    public void TrySuggestCompanionApp_matches_static_detector()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+
+        var service = _services.GetRequiredService<IProjectAnalysisService>();
+        var viaService = service.TrySuggestCompanionApp(_root);
+        var viaStatic = CompanionAppDetection.TrySuggestFromDirectory(_root);
+
+        if (viaStatic is null)
+        {
+            Assert.Null(viaService);
+            return;
+        }
+
+        Assert.NotNull(viaService);
+        Assert.Equal(viaStatic.PresetId, viaService.PresetId);
+    }
+
     public void Dispose()
     {
         _services.Dispose();

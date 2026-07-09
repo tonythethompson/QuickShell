@@ -7,16 +7,24 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
 {
     private readonly IReadOnlyList<IProjectClassifier> _classifiers;
     private readonly IProjectLayoutAnalyzer _layoutAnalyzer;
+    private readonly ICompanionAppDetector _companionAppDetector;
+    private readonly IDevServerDetector _devServerDetector;
 
     public ProjectAnalysisService(
         IEnumerable<IProjectClassifier> classifiers,
-        IProjectLayoutAnalyzer layoutAnalyzer)
+        IProjectLayoutAnalyzer layoutAnalyzer,
+        ICompanionAppDetector companionAppDetector,
+        IDevServerDetector devServerDetector)
     {
         ArgumentNullException.ThrowIfNull(classifiers);
         ArgumentNullException.ThrowIfNull(layoutAnalyzer);
+        ArgumentNullException.ThrowIfNull(companionAppDetector);
+        ArgumentNullException.ThrowIfNull(devServerDetector);
 
         _classifiers = classifiers.OrderByDescending(classifier => classifier.Priority).ToArray();
         _layoutAnalyzer = layoutAnalyzer;
+        _companionAppDetector = companionAppDetector;
+        _devServerDetector = devServerDetector;
     }
 
     public ProjectClassification Classify(string directory) =>
@@ -36,4 +44,19 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
 
     public string GetTaskTypeChoiceTooltip(string? directory, string? taskType, TaskTypePickContext pickContext) =>
         TaskTypeCommandSuggestion.GetChoiceTooltip(directory, taskType, pickContext);
+
+    public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
+        _companionAppDetector.TrySuggest(directory);
+
+    public string? TryDetectDevServerUrl(string directory) =>
+        _devServerDetector.TryDetectDevServerUrl(directory);
+
+    public string? TryInferTaskType(string directory) =>
+        _devServerDetector.TryInferTaskType(directory);
+
+    public string? TryDetectDevLaunchCommand(string directory) =>
+        _devServerDetector.TryDetectDevLaunchCommand(directory);
+
+    public string FormatPackageScriptCommand(string directory, string scriptName) =>
+        _devServerDetector.FormatPackageScriptCommand(directory, scriptName);
 }

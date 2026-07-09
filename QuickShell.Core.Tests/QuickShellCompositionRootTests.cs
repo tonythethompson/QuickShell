@@ -87,6 +87,13 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         Assert.NotEmpty(_services.GetServices<IProjectClassifier>());
     }
 
+    [Fact]
+    public void AddQuickShellCore_resolves_companion_and_dev_server_detectors()
+    {
+        Assert.IsType<Classification.Detectors.CompanionAppDetector>(_services.GetRequiredService<ICompanionAppDetector>());
+        Assert.IsType<Classification.Detectors.DevServerDetector>(_services.GetRequiredService<IDevServerDetector>());
+    }
+
     public void Dispose()
     {
         _services.Dispose();
