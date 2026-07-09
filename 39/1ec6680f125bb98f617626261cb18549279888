@@ -1,0 +1,21 @@
+.github/workflows/release-extension.yml
+  s_7d3406d887fcc7::t_6150d2883fa3f4 171-172
+QuickShell.Raycast/src/lib/windows-launch.ts
+  s_7d3406d887fcc7::t_9833f5fae6676f 121,124-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "391ec6680f125bb98f617626261cb18549279888",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
