@@ -22,7 +22,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
     private readonly TerminalShortcut? _existing;
 
-    private readonly ShortcutRepository _shortcuts;
+    private readonly IShortcutRepository _shortcuts;
 
     private readonly TerminalShortcut _working;
 
@@ -71,7 +71,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-    public ShortcutWorkspaceEditorWindow(TerminalShortcut? existing, ShortcutRepository shortcuts)
+    public ShortcutWorkspaceEditorWindow(TerminalShortcut? existing, IShortcutRepository shortcuts)
 
     {
 
@@ -1671,7 +1671,7 @@ internal static class ShortcutEditor
 
 {
 
-    public static bool TryShowDialog(TerminalShortcut? existing, ShortcutRepository shortcuts, out string message)
+    public static bool TryShowDialog(TerminalShortcut? existing, IShortcutRepository shortcuts, out string message)
 
     {
 

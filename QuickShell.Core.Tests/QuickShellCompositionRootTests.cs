@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
 using QuickShell.Services;
 
@@ -75,6 +76,15 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         Assert.IsType<GitRepoIndexService>(_services.GetRequiredService<IGitRepoIndex>());
         Assert.IsType<WorkspaceGitOperationsService>(_services.GetRequiredService<IWorkspaceGitOperations>());
         Assert.IsType<WorkspaceHealthCheckerService>(_services.GetRequiredService<IWorkspaceHealthChecker>());
+    }
+
+    [Fact]
+    public void AddQuickShellCore_resolves_project_analysis_service()
+    {
+        var analysis = _services.GetRequiredService<IProjectAnalysisService>();
+        Assert.IsType<Classification.ProjectAnalysisService>(analysis);
+        Assert.Same(analysis, _services.GetRequiredService<IProjectAnalysisService>());
+        Assert.NotEmpty(_services.GetServices<IProjectClassifier>());
     }
 
     public void Dispose()

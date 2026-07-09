@@ -1,5 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
+using QuickShell.Classification.Classifiers;
 using QuickShell.Services;
 
 namespace QuickShell.Composition;
@@ -39,6 +42,14 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IGitRepoIndex, GitRepoIndexService>();
         services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperationsService>();
         services.AddTransient<IWorkspaceHealthChecker, WorkspaceHealthCheckerService>();
+
+        services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
+        services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, DotNetProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, DockerComposeProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, TaskRunnerProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, MiscellaneousProjectClassifier>();
+        services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
 
         return services;
     }
