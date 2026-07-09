@@ -1,0 +1,21 @@
+QuickShell.Run/QuickShellRunSettingsPanel.cs
+  s_7d3406d887fcc7::t_4ef1fb7e63f691 1-96
+QuickShell.Raycast/src/__tests__/windows-launch.test.ts
+  s_7d3406d887fcc7::t_f433755fca2d0d 43-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "fee0baa4a5a5e898805eb3a2643215c1e080d40f",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
