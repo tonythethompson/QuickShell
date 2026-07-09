@@ -13,7 +13,7 @@ public sealed class QuickShellCompositionRootTests : IDisposable
 
     public QuickShellCompositionRootTests()
     {
-        _configDirectory = Path.Combine(
+        _configDirectory = Path.Join(
             Path.GetTempPath(),
             "quickshell-composition-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_configDirectory);
@@ -44,7 +44,7 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         Assert.Same(drafts, draftsAgain);
         Assert.IsType<ShortcutDraftStore>(drafts);
         Assert.Equal(
-            Path.Combine(_configDirectory, "shortcut-edit-draft.json"),
+            Path.Join(_configDirectory, "shortcut-edit-draft.json"),
             drafts.DraftPath);
         Assert.Same(repository, _services.GetRequiredService<IShortcutRepository>());
     }
