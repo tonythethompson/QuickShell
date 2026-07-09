@@ -168,6 +168,8 @@ jobs:
   winget-update:
     needs: build
     runs-on: windows-latest
+    permissions:
+      contents: read
     if: >-
       needs.build.result == 'success' &&
       (
