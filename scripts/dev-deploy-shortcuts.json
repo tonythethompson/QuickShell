@@ -1,0 +1,50 @@
+[
+  {
+    "Type": "separator",
+    "Title": "QuickShell dev deploy"
+  },
+  {
+    "Name": "Deploy all QuickShell",
+    "Abbreviation": "ddeploy",
+    "Directory": "A:\\QuickShell",
+    "Command": "& .\\scripts\\ddeploy.ps1 -SkipElevation",
+    "Terminal": "pwsh"
+  },
+  {
+    "Name": "Deploy CmdPal",
+    "Abbreviation": "dcmd",
+    "Directory": "A:\\QuickShell",
+    "Command": "& .\\scripts\\deploy.ps1 -SkipElevation",
+    "Terminal": "pwsh"
+  },
+  {
+    "Name": "Deploy Run plugin",
+    "Abbreviation": "drun",
+    "Directory": "A:\\QuickShell",
+    "Command": "& .\\scripts\\build-run-plugin.ps1 -Deploy",
+    "Terminal": "pwsh"
+  },
+  {
+    "Name": "Deploy Raycast",
+    "Abbreviation": "dray",
+    "Directory": "A:\\QuickShell\\QuickShell.Raycast",
+    "Command": "npm run build",
+    "Terminal": "pwsh",
+    "Launches": [
+      {
+        "Label": "Build",
+        "Terminal": "pwsh",
+        "Command": "npm run build",
+        "IsEnabled": true,
+        "Order": 0
+      },
+      {
+        "Label": "Dev server",
+        "Terminal": "pwsh",
+        "Command": "npm run dev",
+        "IsEnabled": true,
+        "Order": 1
+      }
+    ]
+  }
+]
