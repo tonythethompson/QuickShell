@@ -1,0 +1,130 @@
+QuickShell.Core/Classification/ProjectLayout.cs
+  s_cd70e11c4cb2f1::t_24c127c9cb647a 11-22
+  s_c83f8a2ca719be::t_38da918d1f9466 23-32
+QuickShell.Core/Abstractions/Classification/ICompanionAppDetector.cs
+  s_cd70e11c4cb2f1::t_7ad792c8e804e1 1-8
+QuickShell.Core/Classification/Detectors/CompanionAppDetector.cs
+  s_cd70e11c4cb2f1::t_d88b501ba398b6 1-90
+QuickShell.Core/Services/CompanionAppSuggestion.cs
+  s_cd70e11c4cb2f1::t_b4e88b47e9b3d6 1-12
+QuickShell.Core/Classification/Classifiers/JavaProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_22a6f8a14ff9a0 1-20
+QuickShell.Core/Classification/Classifiers/RubyProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_e7746ba17d8626 1-20
+QuickShell.Core/Classification/Classifiers/EditorProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_bc7aca1ad2143f 1-23
+QuickShell.Core/Classification/Classifiers/DenoProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_0f81b7195db90f 1-20
+QuickShell.Core/Classification/Classifiers/ElixirProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_6da7b788ceb5b4 1-20
+QuickShell.Core/Classification/ProjectAnalysisAccessor.cs
+  s_cd70e11c4cb2f1::t_2eafc84e97b476 1-26
+QuickShell.Core.Tests/ProjectAnalysisServiceTests.cs
+  s_cd70e11c4cb2f1::t_0fc488887bdf41 77-87,90,92,95-97,99,103,105,108-110,112,116,118-119,128,130,139,145,147,150
+  s_c83f8a2ca719be::t_7a4ed5206f7224 88-89,91,93-94,98,100-102,104,106-107,111,113-115,117,120-127,129,131-138,140-144,146,148-149,151-163
+QuickShell.Core/Abstractions/Classification/IDevServerDetector.cs
+  s_cd70e11c4cb2f1::t_e2f864a628d832 1-12
+QuickShell.Core/Classification/ProjectLayoutAnalyzer.cs
+  s_cd70e11c4cb2f1::t_6fc472de03150b 13,26,29-51,54-68
+  s_c83f8a2ca719be::t_4fa1b3ce07dc71 69-83
+  s_c83f8a2ca719be::t_f2499b751b1578 84-85,98-109
+QuickShell.Core/Classification/Detectors/DevServerDetector.cs
+  s_cd70e11c4cb2f1::t_93c66d54c72352 1-272
+QuickShell.Core/Services/WorkspaceSeedFactory.cs
+  s_cd70e11c4cb2f1::t_71154076be4f71 15
+  s_cd70e11c4cb2f1::t_8ca954741a9e8b 1
+  s_cd70e11c4cb2f1::t_04f0964481ff8d 32,37,53,56-57,74,88-105
+QuickShell.Core/Services/TaskTypeCommandSuggestion.cs
+  s_cd70e11c4cb2f1::t_f46b1ef478e0aa 1-2
+  s_cd70e11c4cb2f1::t_dc71d6f1375f9f 113
+QuickShell.Core/Services/WorkspaceSetupSuggestion.cs
+  s_cd70e11c4cb2f1::t_ce370656e6b1e5 1
+  s_cd70e11c4cb2f1::t_a4fb3e6af89a1a 11,119
+QuickShell.Core/Classification/Classifiers/ProcfileProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_bdef3c29a8706a 5,7
+  s_cd70e11c4cb2f1::t_1a95b6a243efc3 9,13-17
+QuickShell.Core/Classification/Classifiers/PythonProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_5c458ead5d6d3b 1-20
+QuickShell.Core/Classification/Classifiers/GoProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_f015474b911c06 1-20
+QuickShell.Core/Classification/ProjectAnalysisService.cs
+  s_cd70e11c4cb2f1::t_1113bb8e3b9bd4 10-11,15-17,21-22
+  s_c83f8a2ca719be::t_f5cb0cc2c89985 26-27,47-61
+QuickShell.Core.Tests/ProjectAnalysisAccessorTests.cs
+  s_cd70e11c4cb2f1::t_5fe8814046b759 1-40,42-44,50-52,60,62-107
+  s_cd70e11c4cb2f1::t_23a370ad8f5e1c 41,45-49,53-59,61
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_cd70e11c4cb2f1::t_1d8a2471e4bc41 6
+  s_7d3406d887fcc7::t_e3d9478177300f 52-62
+QuickShell.Core/Services/TaskTypeCandidateBuilder.cs
+  s_cd70e11c4cb2f1::t_9466dc740e27fa 1
+  s_cd70e11c4cb2f1::t_3d03f9c0de6dde 2
+  s_70f84c8e7645e1::t_69ae269dcef9ab 43,364,404
+QuickShell.Core/Services/CompanionAppDetection.cs
+  s_cd70e11c4cb2f1::t_ae5dbece6e27e8 1-2,4
+  s_cd70e11c4cb2f1::t_88f7383cefda76 8,10-11
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_cd70e11c4cb2f1::t_8e5e28ef24f0c9 3
+  s_c83f8a2ca719be::t_8bdf9e84f9d1a9 4,540
+QuickShell.Core/Classification/Classifiers/RustProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_17401b7d06d579 1-20
+QuickShell.Core/Services/DevServerUrlDetection.cs
+  s_cd70e11c4cb2f1::t_2d8b3022be6457 1-2,6,8,10-11
+  s_cd70e11c4cb2f1::t_e540c59dd73c79 13-14,16-17,19-20
+QuickShell.Core/Abstractions/Classification/IProjectAnalysisService.cs
+  s_c83f8a2ca719be::t_4b6f01da763359 18-27
+QuickShell.Core/Classification/ProjectClassificationPipeline.cs
+  s_c83f8a2ca719be::t_02e2e84159b7fc 15-23
+QuickShell.Run/Main.cs
+  s_c83f8a2ca719be::t_a5f17a1e3d9c17 8-9,66
+QuickShell/QuickShellCommandsProvider.cs
+  s_7d3406d887fcc7::t_991f0acdd89cf0 5,52
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_7d3406d887fcc7::t_168adfd8a6b98e 90-96
+QuickShell.Core/Services/GitRepoDiscovery.cs
+  s_cd70e11c4cb2f1::t_f6a7e1234d1096 3,169
+QuickShell.Core/Services/ProjectClassificationCache.cs
+  s_cd70e11c4cb2f1::t_36b1fb4202536f 5-6,32
+QuickShell/Pages/ShortcutFormPage.cs
+  s_cd70e11c4cb2f1::t_f5de22165683b7 664
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f1cdb86937009654dcfb5bce0161cbee531be704",
+  "prompts": {},
+  "sessions": {
+    "s_70f84c8e7645e1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e4d1ea7e-b4a3-425b-8de3-35f902dbd699",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_c83f8a2ca719be": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "55084df2-d5b5-4bd6-b1a4-39ecfa7c2b77",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
