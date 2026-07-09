@@ -1,0 +1,79 @@
+QuickShell.Core/Classification/ProjectLayoutAnalyzer.cs
+  s_7d3406d887fcc7::t_ccd360d5e6e156 1-46
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_cd70e11c4cb2f1::t_8db11b183d4230 3,81-89
+QuickShell.Core/Classification/ProjectLayout.cs
+  s_7d3406d887fcc7::t_416526272e1e50 1-11
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_cd70e11c4cb2f1::t_e6a220b1fd3486 3-5,46-53
+QuickShell/QuickShellCommandsProvider.cs
+  s_cd70e11c4cb2f1::t_c064d2545553ec 4,50-51
+QuickShell.Core/Abstractions/Classification/IProjectAnalysisService.cs
+  s_7d3406d887fcc7::t_47a1b0af6e099c 1-18
+QuickShell.Core/Abstractions/Classification/IProjectClassifier.cs
+  s_7d3406d887fcc7::t_c2224207207f43 1-12
+QuickShell.Core/Abstractions/Classification/IProjectLayoutAnalyzer.cs
+  s_7d3406d887fcc7::t_da3b1088463fdb 1-8
+QuickShell.Core/Classification/ProjectClassificationContributor.cs
+  s_7d3406d887fcc7::t_7bbaf122ed10d1 1-22
+QuickShell.Core/Classification/ProjectClassificationPipeline.cs
+  s_7d3406d887fcc7::t_4e62024ea71808 1-37
+QuickShell.Core.Tests/ProjectAnalysisServiceTests.cs
+  s_cd70e11c4cb2f1::t_627fd480474f17 1-93
+QuickShell.Core/Classification/Classifiers/DockerComposeProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_920360f640a401 1-20
+QuickShell.Core/Classification/Classifiers/DotNetProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_b2cacee8cc4152 1-26
+QuickShell.Core/Classification/Classifiers/MiscellaneousProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_e6fab8a6e660cf 1-23
+QuickShell.Core/Classification/Classifiers/NodeProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_47cc4a644f12a9 1-20
+QuickShell.Core/Classification/Classifiers/TaskRunnerProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_97cc11b7a4e0a2 1-20
+QuickShell.Core/Classification/ProjectAnalysisService.cs
+  s_cd70e11c4cb2f1::t_945ea3261e2d8e 1-39
+QuickShell.Core/Classification/ProjectClassificationBuilder.cs
+  s_cd70e11c4cb2f1::t_36a102d0a0d195 1-571
+QuickShell.Core/Services/ProjectClassifier.cs
+  s_cd70e11c4cb2f1::t_67f99fcbef0983 1-2,6,8-12
+QuickShell.Run/Main.cs
+  s_cd70e11c4cb2f1::t_1da31052d9f9e4 6,8,40-41,60-63,72-75,105-107,133
+QuickShell.Run/QuickShellRunSettingsPanel.cs
+  s_cd70e11c4cb2f1::t_e7df379bdc653a 1-191
+QuickShell.Run/QuickShellRunSettingsWindow.cs
+  s_cd70e11c4cb2f1::t_2a229d61d59807 19,41,545
+QuickShell.Run/RunFileDialogs.cs
+  s_cd70e11c4cb2f1::t_517d8513530e26 10,39
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_cd70e11c4cb2f1::t_a2f3702a6b99f4 25,74,1674
+QuickShell/Pages/ShortcutFormLaunchSection.cs
+  s_cd70e11c4cb2f1::t_34b6231576c3ec 87-90
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_cd70e11c4cb2f1::t_a70c55849d9b33 75
+QuickShell/Services/QuickShellServices.cs
+  s_cd70e11c4cb2f1::t_42e9269cfed22d 2,29-30,34-35,40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "98e3f9689ebf57192e66336b59bfbbd35cba7751",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
