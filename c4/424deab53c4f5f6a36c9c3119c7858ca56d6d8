@@ -1,0 +1,19 @@
+QuickShell/Pages/ShortcutFormLaunchSection.cs
+  s_7d3406d887fcc7::t_86314ee1126a5d 87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c4424deab53c4f5f6a36c9c3119c7858ca56d6d8",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
