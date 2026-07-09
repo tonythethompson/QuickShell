@@ -1,0 +1,21 @@
+.github/workflows/cline-pr-review.yml
+  s_7d3406d887fcc7::t_93229a396a4405 1-99
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_7d3406d887fcc7::t_720be0cdb7f876 16,47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6270df081d67678473e602e2db5afc39eaec3903",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
