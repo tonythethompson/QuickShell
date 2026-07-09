@@ -23,8 +23,8 @@ internal sealed partial class ResetProjectsCommand : InvokableCommand
             ImportConflictState.Clear();
         }
 
-        QuickShellRuntimeServices.Drafts.Clear();
-        var result = QuickShellRuntimeServices.Shortcuts.ResetAll();
+        QuickShellServices.Current.Drafts.Clear();
+        var result = QuickShellServices.Current.Shortcuts.ResetAll();
         if (result.Success)
         {
             _onReload();

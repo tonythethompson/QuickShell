@@ -17,6 +17,11 @@ internal static class WorktreeBranchTargetStore
 
     private static bool _loaded;
 
+    /// <summary>
+    /// Process-default atomic writer. Tests may replace; production leaves the default instance.
+    /// </summary>
+    internal static IAtomicFileWriter FileWriter { get; set; } = new AtomicFileWriter();
+
     public static string? GetTarget(string worktreeKey)
     {
         if (GetTargetOverride is { } getOverride)
@@ -169,12 +174,6 @@ internal static class WorktreeBranchTargetStore
     private static void SaveLocked()
     {
         var path = ResolveFilePath();
-        var directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         var payload = new WorktreeBranchTargetsDocument
         {
             Targets = Targets.ToDictionary(
@@ -183,7 +182,9 @@ internal static class WorktreeBranchTargetStore
                 StringComparer.OrdinalIgnoreCase),
         };
 
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, QuickShellJsonContext.Default.WorktreeBranchTargetsDocument));
+        FileWriter.WriteAllTextAtomic(
+            path,
+            JsonSerializer.Serialize(payload, QuickShellJsonContext.Default.WorktreeBranchTargetsDocument));
     }
 
     private static string ResolveFilePath() =>

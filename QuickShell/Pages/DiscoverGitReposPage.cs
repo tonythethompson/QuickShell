@@ -7,7 +7,7 @@ namespace QuickShell.Pages;
 
 internal partial class DiscoverGitReposPage : DynamicListPage
 {
-    public const string PageId = "com.quickshell.discover-git-repos";
+    public const string PageId = QuickShellDeepLinkIds.DiscoverGitRepos;
 
     private readonly Action _onReload;
     private readonly object _refreshSync = new();
@@ -79,11 +79,11 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     {
         try
         {
-            var shortcuts = QuickShellRuntimeServices.Shortcuts.GetShortcuts();
+            var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
             var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
-            var settings = QuickShellRuntimeServices.Settings;
+            var settings = QuickShellServices.Current.Settings;
 
             if (!string.IsNullOrWhiteSpace(query))
             {

@@ -19,7 +19,7 @@ internal sealed partial class ToggleFavoriteShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var favorited = QuickShellRuntimeServices.Shortcuts.TogglePinned(_name);
+        var favorited = QuickShellServices.Current.Shortcuts.TogglePinned(_name);
         _onChanged();
         return QuickShellNavigation.StayOpen(
             favorited ? $"Favorited '{_name}'." : $"Removed '{_name}' from favorites.");

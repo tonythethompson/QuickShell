@@ -8,7 +8,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class PendingShortcutEditPage : ContentPage
 {
-    public const string PageId = "com.quickshell.pending-shortcut-edit";
+    public const string PageId = QuickShellDeepLinkIds.PendingShortcutEdit;
 
     private readonly Action _onReload;
 
@@ -95,7 +95,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
     {
         if (action == "discard")
         {
-            QuickShellRuntimeServices.Drafts.Clear();
+            QuickShellServices.Current.Drafts.Clear();
             _onReload();
             _onSettingsChanged?.Invoke();
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_Discarded);
@@ -106,7 +106,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_UnableToReadForm);
         }
 
-        var pending = QuickShellRuntimeServices.Drafts.Pending;
+        var pending = QuickShellServices.Current.Drafts.Pending;
         if (pending is null)
         {
             _onReload();
@@ -114,7 +114,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_NonePending);
         }
 
-        var result = QuickShellRuntimeServices.Drafts.TryCommitPending(onSaved: null);
+        var result = QuickShellServices.Current.Drafts.TryCommitPending(onSaved: null);
         if (!result.Success)
         {
             return QuickShellNavigation.StayOnSettings(result.Message);
@@ -127,7 +127,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
 
     private void ApplyPendingState()
     {
-        var pending = QuickShellRuntimeServices.Drafts.Pending;
+        var pending = QuickShellServices.Current.Drafts.Pending;
         if (pending is null)
         {
             DataJson = $$"""

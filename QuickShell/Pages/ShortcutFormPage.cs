@@ -162,11 +162,11 @@ internal sealed partial class ShortcutForm : FormContent
                 }
                 else
                 {
-                    QuickShellRuntimeServices.Drafts.Cleared -= handler;
+                    QuickShellServices.Current.Drafts.Cleared -= handler;
                 }
             };
             _draftClearedHandler = handler;
-            QuickShellRuntimeServices.Drafts.Cleared += handler;
+            QuickShellServices.Current.Drafts.Cleared += handler;
             _subscribedToDraftCleared = true;
         }
     }
@@ -184,7 +184,7 @@ internal sealed partial class ShortcutForm : FormContent
 
     private void ResetToSavedBaseline()
     {
-        var saved = QuickShellRuntimeServices.Shortcuts.GetByName(_originalName!);
+        var saved = QuickShellServices.Current.Shortcuts.GetByName(_originalName!);
         if (saved is null)
         {
             return;
@@ -230,7 +230,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (_draftClearedHandler is not null)
         {
-            QuickShellRuntimeServices.Drafts.Cleared -= _draftClearedHandler;
+            QuickShellServices.Current.Drafts.Cleared -= _draftClearedHandler;
         }
 
         _subscribedToDraftCleared = false;
@@ -261,7 +261,7 @@ internal sealed partial class ShortcutForm : FormContent
             return;
         }
 
-        if (!QuickShellRuntimeServices.Drafts.TryGetForRestore(_originalName, out var persisted))
+        if (!QuickShellServices.Current.Drafts.TryGetForRestore(_originalName, out var persisted))
         {
             return;
         }
@@ -544,7 +544,7 @@ internal sealed partial class ShortcutForm : FormContent
     private void RebuildTemplate(List<LaunchRowDraft> commands)
     {
         var terminalApplicationId =
-            QuickShellRuntimeServices.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
+            QuickShellServices.Current.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
         var commandCount = Math.Max(1, commands.Count);
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
         const string templateSchemaKey = "suggestion-pills-v1";
@@ -801,7 +801,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (!HasUnsavedChanges())
         {
-            QuickShellRuntimeServices.Drafts.Clear();
+            QuickShellServices.Current.Drafts.Clear();
             return LeaveShortcutForm();
         }
 
@@ -816,7 +816,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (action == "discard")
         {
-            QuickShellRuntimeServices.Drafts.Clear();
+            QuickShellServices.Current.Drafts.Clear();
             return LeaveShortcutForm();
         }
 
@@ -896,7 +896,7 @@ internal sealed partial class ShortcutForm : FormContent
                 draft.Name,
                 draft.LaunchTarget,
                 draft.RunAsAdmin),
-            QuickShellRuntimeServices.Shortcuts,
+            QuickShellServices.Current.Shortcuts,
             onSaved: null,
             draft.DevServerUrl,
             draft.RepoUrl,
@@ -911,7 +911,7 @@ internal sealed partial class ShortcutForm : FormContent
             return QuickShellNavigation.StayOpen(result.Message);
         }
 
-        QuickShellRuntimeServices.Drafts.Clear();
+        QuickShellServices.Current.Drafts.Clear();
         SettingsFormHelpers.SchedulePostNavigationRefresh(_onSaved);
         return LeaveShortcutForm(result.Message);
     }
@@ -969,7 +969,7 @@ internal sealed partial class ShortcutForm : FormContent
             return;
         }
 
-        QuickShellRuntimeServices.Drafts.SaveIfDirty(
+        QuickShellServices.Current.Drafts.SaveIfDirty(
             _originalName,
             ToDraftData(_draft),
             ToDraftData(_baselineDraft),
@@ -1407,7 +1407,7 @@ internal sealed partial class ShortcutForm : FormContent
     private static string FormTerminalChoicesJson() =>
         TerminalCatalog.BuildFormChoicesJson(
             includeDefaultChoice: true,
-            QuickShellRuntimeServices.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal);
+            QuickShellServices.Current.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal);
 
     private static bool ParseToggleBool(string? value, bool fallback) =>
         value switch

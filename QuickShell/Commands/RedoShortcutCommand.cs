@@ -16,7 +16,7 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        if (!QuickShellRuntimeServices.Shortcuts.Redo())
+        if (!QuickShellServices.Current.Shortcuts.Redo())
         {
             return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }

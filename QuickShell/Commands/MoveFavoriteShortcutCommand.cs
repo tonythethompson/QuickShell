@@ -46,10 +46,10 @@ internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
     {
         var moved = _move switch
         {
-            FavoriteMoveKind.Up => QuickShellRuntimeServices.Shortcuts.MovePinned(_name, -1),
-            FavoriteMoveKind.Down => QuickShellRuntimeServices.Shortcuts.MovePinned(_name, +1),
-            FavoriteMoveKind.ToTop => QuickShellRuntimeServices.Shortcuts.MovePinnedToEdge(_name, toTop: true),
-            FavoriteMoveKind.ToBottom => QuickShellRuntimeServices.Shortcuts.MovePinnedToEdge(_name, toTop: false),
+            FavoriteMoveKind.Up => QuickShellServices.Current.Shortcuts.MovePinned(_name, -1),
+            FavoriteMoveKind.Down => QuickShellServices.Current.Shortcuts.MovePinned(_name, +1),
+            FavoriteMoveKind.ToTop => QuickShellServices.Current.Shortcuts.MovePinnedToEdge(_name, toTop: true),
+            FavoriteMoveKind.ToBottom => QuickShellServices.Current.Shortcuts.MovePinnedToEdge(_name, toTop: false),
             _ => false,
         };
 

@@ -46,12 +46,65 @@ internal static class ShortcutLayoutJson
     {
         layout = [];
 
-        if (root.ValueKind != JsonValueKind.Array)
+        return root.ValueKind switch
+        {
+            JsonValueKind.Array => TryParseEntries(root, out layout),
+            JsonValueKind.Object => TryParseEnvelope(root, out layout),
+            _ => false,
+        };
+    }
+
+    public static byte[] Serialize(IReadOnlyList<ShortcutLayoutEntry> layout)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("version", PersistenceVersion.Current);
+            writer.WritePropertyName("entries");
+            WriteEntries(writer, layout);
+            writer.WriteEndObject();
+        }
+
+        return stream.ToArray();
+    }
+
+    public static TerminalShortcut[] ExtractShortcuts(IReadOnlyList<ShortcutLayoutEntry> layout) =>
+        layout
+            .Where(entry => entry.Kind == ShortcutLayoutEntryKind.Shortcut && entry.Shortcut is not null)
+            .Select(entry => entry.Shortcut!)
+            .ToArray();
+
+    private static bool TryParseEnvelope(JsonElement root, out List<ShortcutLayoutEntry> layout)
+    {
+        layout = [];
+
+        if (!root.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
         {
             return false;
         }
 
-        foreach (var element in root.EnumerateArray())
+        if (root.TryGetProperty("version", out var versionProperty) &&
+            versionProperty.ValueKind == JsonValueKind.Number &&
+            versionProperty.TryGetInt32(out var version) &&
+            version > PersistenceVersion.Current)
+        {
+            return false;
+        }
+
+        return TryParseEntries(entries, out layout);
+    }
+
+    private static bool TryParseEntries(JsonElement entries, out List<ShortcutLayoutEntry> layout)
+    {
+        layout = [];
+
+        if (entries.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        foreach (var element in entries.EnumerateArray())
         {
             if (element.ValueKind != JsonValueKind.Object)
             {
@@ -76,47 +129,35 @@ internal static class ShortcutLayoutJson
         return true;
     }
 
-    public static byte[] Serialize(IReadOnlyList<ShortcutLayoutEntry> layout)
+    private static void WriteEntries(Utf8JsonWriter writer, IReadOnlyList<ShortcutLayoutEntry> layout)
     {
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
+        writer.WriteStartArray();
+
+        foreach (var entry in layout)
         {
-            writer.WriteStartArray();
-
-            foreach (var entry in layout)
+            if (entry.Kind == ShortcutLayoutEntryKind.Separator)
             {
-                if (entry.Kind == ShortcutLayoutEntryKind.Separator)
+                writer.WriteStartObject();
+                writer.WriteString("Type", "separator");
+                if (!string.IsNullOrWhiteSpace(entry.SeparatorTitle))
                 {
-                    writer.WriteStartObject();
-                    writer.WriteString("Type", "separator");
-                    if (!string.IsNullOrWhiteSpace(entry.SeparatorTitle))
-                    {
-                        writer.WriteString("Title", entry.SeparatorTitle);
-                    }
-
-                    writer.WriteEndObject();
-                    continue;
+                    writer.WriteString("Title", entry.SeparatorTitle);
                 }
 
-                if (entry.Shortcut is null)
-                {
-                    continue;
-                }
-
-                JsonSerializer.Serialize(writer, entry.Shortcut, QuickShellJsonContext.Default.TerminalShortcut);
+                writer.WriteEndObject();
+                continue;
             }
 
-            writer.WriteEndArray();
+            if (entry.Shortcut is null)
+            {
+                continue;
+            }
+
+            JsonSerializer.Serialize(writer, entry.Shortcut, QuickShellJsonContext.Default.TerminalShortcut);
         }
 
-        return stream.ToArray();
+        writer.WriteEndArray();
     }
-
-    public static TerminalShortcut[] ExtractShortcuts(IReadOnlyList<ShortcutLayoutEntry> layout) =>
-        layout
-            .Where(entry => entry.Kind == ShortcutLayoutEntryKind.Shortcut && entry.Shortcut is not null)
-            .Select(entry => entry.Shortcut!)
-            .ToArray();
 
     private static bool TryReadSeparator(JsonElement element, out ShortcutLayoutEntry separator)
     {

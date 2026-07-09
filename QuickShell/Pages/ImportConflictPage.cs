@@ -10,7 +10,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class ImportConflictPage : ContentPage
 {
-    public const string PageId = "com.quickshell.import-conflict";
+    public const string PageId = QuickShellDeepLinkIds.ImportConflict;
 
     public ImportConflictPage(Action onReload)
     {
@@ -193,8 +193,8 @@ internal sealed partial class ImportConflictForm : FormContent
         return pending.Kind switch
         {
             ImportTransferKind.Projects => merge
-                ? QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult()
-                : QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult(),
+                ? QuickShellServices.Current.Shortcuts.ImportMergeAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult()
+                : QuickShellServices.Current.Shortcuts.ImportReplaceAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult(),
             _ => new ShortcutTransferResult { Success = false, Message = Strings.ImportConflictPage_UnknownImportType },
         };
     }

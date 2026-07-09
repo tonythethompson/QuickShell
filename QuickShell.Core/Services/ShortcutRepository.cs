@@ -28,6 +28,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private const int MaxHistoryEntries = 25;
 
     private readonly string? _configDirectoryOverride;
+    private readonly IAtomicFileWriter _fileWriter;
 
     private readonly SemaphoreSlim _sync = new(1, 1);
     private readonly Mutex _fileMutex = new(false, @"Global\QuickShell_shortcuts_json");
@@ -45,14 +46,22 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private System.Threading.Timer? _persistTimer;
     private bool _disposed;
 
+    public event EventHandler? WorkspacesChanged;
+
     public ShortcutRepository()
         : this(configDirectory: null)
     {
     }
 
     internal ShortcutRepository(string? configDirectory)
+        : this(configDirectory, writer: null)
+    {
+    }
+
+    internal ShortcutRepository(string? configDirectory, IAtomicFileWriter? writer)
     {
         _configDirectoryOverride = configDirectory;
+        _fileWriter = writer ?? new AtomicFileWriter();
     }
 
     public string ConfigDirectory =>
@@ -1238,6 +1247,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             WriteLayoutAtomic(_layout);
             _lastGoodLayout = CloneLayout(_layout);
             _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
+            RaiseWorkspacesChanged();
             return true;
         }
 
@@ -1339,6 +1349,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         SyncShortcutsFromLayout(_layout);
         _lastGoodLayout = CloneLayout(_layout);
         _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
+        RaiseWorkspacesChanged();
     }
 
     private void SchedulePersistLocked()
@@ -1380,11 +1391,6 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             throw new InvalidOperationException("Shortcut data is too large to save.");
         }
 
-        Directory.CreateDirectory(ConfigDirectory);
-
-        var tempPath = ConfigPath + ".tmp";
-        var backupPath = ConfigPath + ".bak";
-
         if (!_fileMutex.WaitOne(TimeSpan.FromSeconds(5)))
         {
             throw new IOException("Could not acquire the shortcut store lock.");
@@ -1392,32 +1398,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
         try
         {
-            File.WriteAllBytes(tempPath, payload);
-
-            if (File.Exists(ConfigPath))
-            {
-                File.Replace(tempPath, ConfigPath, backupPath, ignoreMetadataErrors: true);
-            }
-            else
-            {
-                File.Move(tempPath, ConfigPath);
-            }
+            _fileWriter.WriteAllBytesAtomic(ConfigPath, payload);
         }
         finally
         {
             _fileMutex.ReleaseMutex();
-
-            try
-            {
-                if (File.Exists(tempPath))
-                {
-                    File.Delete(tempPath);
-                }
-            }
-            catch
-            {
-                // Best effort.
-            }
         }
     }
 
@@ -2003,6 +1988,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         CompanionAppPath = shortcut.CompanionAppPath,
         CompanionAppArguments = shortcut.CompanionAppArguments,
     };
+
+    private void RaiseWorkspacesChanged() => WorkspacesChanged?.Invoke(this, EventArgs.Empty);
 
     private void WithLock(Action action)
     {

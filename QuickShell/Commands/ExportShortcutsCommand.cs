@@ -26,7 +26,7 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
         }
 
         using var cancellation = new CancellationTokenSource(IoTimeout);
-        var result = QuickShellRuntimeServices.Shortcuts.TryExportToFileAsync(path, cancellation.Token).GetAwaiter().GetResult();
+        var result = QuickShellServices.Current.Shortcuts.TryExportToFileAsync(path, cancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
             return Finish(Strings.ExportFailedFormat(result.Error));

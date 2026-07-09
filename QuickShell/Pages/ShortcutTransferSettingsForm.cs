@@ -62,11 +62,11 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private CommandResult ConfirmResetWorkspaces()
     {
-        var count = QuickShellRuntimeServices.Shortcuts.GetShortcuts().Count;
+        var count = QuickShellServices.Current.Shortcuts.GetShortcuts().Count;
         return CommandResult.Confirm(new ConfirmationArgs
         {
             Title = Strings.ResetProjects_Title,
-            Description = BuildResetDescription(count, QuickShellRuntimeServices.Shortcuts.ConfigPath),
+            Description = BuildResetDescription(count, QuickShellServices.Current.Shortcuts.ConfigPath),
             PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged),
         });
     }
@@ -94,8 +94,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var transferResult = pending.Kind switch
         {
             ImportTransferKind.Projects => ExecuteProjectImportAction(token => merge
-                ? QuickShellRuntimeServices.Shortcuts.ImportMergeAsync(pending.Path, token)
-                : QuickShellRuntimeServices.Shortcuts.ImportReplaceAsync(pending.Path, token)),
+                ? QuickShellServices.Current.Shortcuts.ImportMergeAsync(pending.Path, token)
+                : QuickShellServices.Current.Shortcuts.ImportReplaceAsync(pending.Path, token)),
             _ => new ImportTransferResult(false, "Unknown import type."),
         };
 

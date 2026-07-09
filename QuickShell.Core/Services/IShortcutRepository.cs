@@ -6,6 +6,8 @@ namespace QuickShell.Services;
 
 internal interface IShortcutRepository
 {
+    event EventHandler? WorkspacesChanged;
+
     string ConfigDirectory { get; }
 
     string ConfigPath { get; }

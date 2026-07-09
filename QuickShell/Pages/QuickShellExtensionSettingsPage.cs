@@ -6,7 +6,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 {
-    public const string PageId = "com.quickshell.settings";
+    public const string PageId = QuickShellDeepLinkIds.Settings;
 
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly Action _onReload;
@@ -56,7 +56,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         var refreshSettings = (Action)RefreshContent;
         var content = new List<IContent>();
 
-        if (QuickShellRuntimeServices.Drafts.HasPending)
+        if (QuickShellServices.Current.Drafts.HasPending)
         {
             content.Add(new PendingShortcutEditForm(_onReload, refreshSettings));
         }

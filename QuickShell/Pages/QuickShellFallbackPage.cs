@@ -138,8 +138,8 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private static List<GitRepoCandidate> GetDiscoverPreviewRepos()
     {
-        var extraRoots = GitRepoSearchRoots.FromShortcuts(QuickShellRuntimeServices.Shortcuts.GetShortcuts());
-        var savedDirectories = QuickShellRuntimeServices.Shortcuts.GetShortcuts()
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(QuickShellServices.Current.Shortcuts.GetShortcuts());
+        var savedDirectories = QuickShellServices.Current.Shortcuts.GetShortcuts()
             .Select(shortcut => shortcut.Directory)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 

@@ -26,7 +26,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         _onChanged = onChanged;
         _knownStatus = knownStatus;
         _knownTargetBranch = knownTargetBranch;
-        Id = $"com.quickshell.worktree-branch.picker.page.{shortcutId}";
+        Id = ShortcutCommandIds.WorktreeBranchPicker(shortcutId);
         Title = "Switch branch";
         Name = "Switch branch";
         Icon = new IconInfo("\uE8AB");
@@ -41,7 +41,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 
     private IListItem[] BuildItems()
     {
-        var shortcut = QuickShellRuntimeServices.Shortcuts.GetById(_shortcutId);
+        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return
