@@ -84,7 +84,7 @@ internal static class ShortcutFormLaunchSection
             ? TaskTypePickContext.Empty
             : TaskTypePickContext.FromCommands(existingCommands);
 
-        var suggestion = QuickShellServices.Current.ProjectAnalysis.TrySuggestTaskCommand(
+        var suggestion = TaskTypeCommandSuggestion.TrySuggest(
             directory,
             normalized,
             pickContext);
