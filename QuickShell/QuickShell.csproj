@@ -42,7 +42,7 @@
           Inputs="$(MSBuildProjectDirectory)\Assets\icon\quickshell-icon.svg;$(MSBuildProjectDirectory)\Assets\icon\quickshell-icon-raycast.svg;$(MSBuildProjectDirectory)\Assets\icon\export-msix-icons.ps1;$(MSBuildProjectDirectory)\Assets\run\quickshell-run.dark.svg;$(MSBuildProjectDirectory)\Assets\run\quickshell-run.light.svg;$(MSBuildProjectDirectory)\Assets\run\export-run-icons.ps1;$(MSBuildProjectDirectory)\Assets\raycast\export-raycast-icons.ps1;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1;$(MSBuildProjectDirectory)\..\scripts\LogoAssetGenerator\Program.cs"
           Outputs="$(MSBuildProjectDirectory)\Assets\StoreLogo.png">
     <Exec WorkingDirectory="$(MSBuildProjectDirectory)\.."
-          Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1&quot;" />
+          Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1&quot;" />
   </Target>
 
   <ItemGroup>
