@@ -1,0 +1,19 @@
+QuickShell/QuickShellSettingsManager.cs
+  s_e3c5a28cff02bb::t_d6522ea4f9fc90 23,59-64,69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "a8972ba94723bc6c31c873755980e69b069850d8",
+  "prompts": {},
+  "sessions": {
+    "s_e3c5a28cff02bb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b95d8c77-57c6-4ea9-9e91-8691a68a5cf4",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
