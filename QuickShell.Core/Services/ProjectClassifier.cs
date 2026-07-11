@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -397,15 +398,9 @@ internal static partial class ProjectClassifier
 
             try
             {
-                foreach (var line in File.ReadLines(path))
-                {
-                    if (line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
-                        || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-                return false;
+                return File.ReadLines(path).Any(line =>
+                    line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
+                    || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
