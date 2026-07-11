@@ -412,14 +412,8 @@ internal static class WorkspaceSetupSuggestion
 
             try
             {
-                foreach (var line in File.ReadLines(path))
-                {
-                    if (line.Contains(value, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-                return false;
+                return File.ReadLines(path)
+                    .Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
