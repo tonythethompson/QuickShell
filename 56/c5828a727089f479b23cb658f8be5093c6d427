@@ -1,0 +1,33 @@
+QuickShell.Raycast/scripts/verify-raycast-cli.js
+  s_9b93a3cc5e3199::t_516c91a295546d 19
+  s_9b93a3cc5e3199::t_1670b0dbd7fdc1 18
+  s_9b93a3cc5e3199::t_8a330fa71fdca4 20-22
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_cd70e11c4cb2f1::t_a2bcea1af62d2c 17,33-40,93-98
+QuickShell/Pages/QuickShellExtensionSettingsPage.cs
+  s_cd70e11c4cb2f1::t_a35578d709ff7d 16,38,63,75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "56c5828a727089f479b23cb658f8be5093c6d427",
+  "prompts": {},
+  "sessions": {
+    "s_9b93a3cc5e3199": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "498811fb-a47f-4805-b8d9-99a729c3f813",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_cd70e11c4cb2f1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "991d4c11-6750-45c7-85ac-0bc2641a5cad",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
