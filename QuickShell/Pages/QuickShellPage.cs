@@ -13,10 +13,13 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly SearchDebouncer _searchDebouncer;
     private readonly object _reloadSync = new();
+    private readonly object _refreshSync = new();
     private IListItem[] _items = [];
     private string _query = string.Empty;
     private bool _hasShownInitialList;
     private bool _reloadScheduled;
+    private bool _refreshInProgress;
+    private bool _refreshQueued;
     private bool _disposed;
 
     public QuickShellPage(
@@ -187,12 +190,25 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             return;
         }
 
+        lock (_refreshSync)
+        {
+            if (_refreshInProgress)
+            {
+                _refreshQueued = true;
+                _query = query ?? string.Empty;
+                return;
+            }
+
+            _refreshInProgress = true;
+        }
+
         // #region agent log
         var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         AgentDebugLog.Write(
             "QuickShellPage.cs:RefreshItems",
             "start",
             new { queryLength = query?.Length ?? 0, startedUtc = refreshStartedUtc },
+            runId: "post-fix",
             hypothesisId: "D");
         // #endregion
 
@@ -251,15 +267,36 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 itemCount = _items.Length,
                 elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
             },
+            runId: "post-fix",
             hypothesisId: "D");
         // #endregion
         }
         catch (Exception ex)
         {
             // #region agent log
-            AgentDebugLog.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D");
+            AgentDebugLog.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-fix");
             // #endregion
             throw;
+        }
+        finally
+        {
+            string? queuedQuery = null;
+            var shouldRefreshAgain = false;
+            lock (_refreshSync)
+            {
+                _refreshInProgress = false;
+                if (_refreshQueued)
+                {
+                    _refreshQueued = false;
+                    queuedQuery = _query;
+                    shouldRefreshAgain = true;
+                }
+            }
+
+            if (shouldRefreshAgain && queuedQuery is not null)
+            {
+                RefreshItems(queuedQuery);
+            }
         }
     }
 

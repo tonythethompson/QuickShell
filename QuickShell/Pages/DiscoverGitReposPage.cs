@@ -15,17 +15,26 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     private string _query = string.Empty;
     private bool _refreshScheduled;
     private bool _hasShownInitialList;
+    private bool _awaitingGitRefresh;
 
     public DiscoverGitReposPage(Action onReload)
     {
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);
-        GitRepoIndex.Invalidate();
         SetOpeningItems();
     }
 
-    public override IListItem[] GetItems() => _items;
+    public override IListItem[] GetItems()
+    {
+        if (_awaitingGitRefresh && !GitRepoIndex.IsRefreshInFlight)
+        {
+            _awaitingGitRefresh = false;
+            RefreshItems(_query);
+        }
+
+        return _items;
+    }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
@@ -85,16 +94,37 @@ internal partial class DiscoverGitReposPage : DynamicListPage
 
     private void RefreshItems(string query)
     {
+        // #region agent log
+        var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        AgentDebugLog.Write(
+            "DiscoverGitReposPage.cs:RefreshItems",
+            "start",
+            new { queryLength = query?.Length ?? 0, refreshInFlight = GitRepoIndex.IsRefreshInFlight },
+            runId: "post-fix",
+            hypothesisId: "H");
+        // #endregion
+
         try
         {
             var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
             var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
             if (discovered.Count == 0
-                && GitRepoIndex.TryRunAfterNextRefreshIfInFlight(() => RefreshItems(_query)))
+                && GitRepoIndex.TryRunAfterNextRefreshIfInFlight(() => _awaitingGitRefresh = true))
             {
+                _awaitingGitRefresh = true;
+                // #region agent log
+                AgentDebugLog.Write(
+                    "DiscoverGitReposPage.cs:RefreshItems",
+                    "waiting-for-scan",
+                    new { elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc },
+                    runId: "post-fix",
+                    hypothesisId: "H");
+                // #endregion
                 return;
             }
+
+            _awaitingGitRefresh = false;
 
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
             var settings = QuickShellServices.Current.Settings;
@@ -128,9 +158,30 @@ internal partial class DiscoverGitReposPage : DynamicListPage
 
             _items = items.ToArray();
             RaiseItemsChanged();
+
+            // #region agent log
+            AgentDebugLog.Write(
+                "DiscoverGitReposPage.cs:RefreshItems",
+                "complete",
+                new
+                {
+                    itemCount = _items.Length,
+                    discoveredCount = discovered.Count,
+                    elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
+                },
+                runId: "post-fix",
+                hypothesisId: "H");
+            // #endregion
         }
-        catch
+        catch (Exception ex)
         {
+            // #region agent log
+            AgentDebugLog.WriteException(
+                "DiscoverGitReposPage.cs:RefreshItems",
+                ex,
+                hypothesisId: "H",
+                runId: "post-fix");
+            // #endregion
             _items =
             [
                 new ListItem(new NoOpCommand())

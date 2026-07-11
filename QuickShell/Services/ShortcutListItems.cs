@@ -14,7 +14,8 @@ internal static class ShortcutListItems
         Action? onChanged = null,
         CreateShortcutCommand? createShortcutCommand = null)
     {
-        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
+        const bool requireDirectoryExists = false;
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
             ? new ShortcutFormPage(shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, settings);
@@ -22,8 +23,8 @@ internal static class ShortcutListItems
         var item = new ListItem(primaryCommand)
         {
             Title = shortcut.Name,
-            Subtitle = ShortcutHealth.BuildListSubtitle(shortcut),
-            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
+            Subtitle = ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists),
+            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
         };
 
         var tags = ShortcutDisplayTags.BuildTags(
@@ -44,7 +45,8 @@ internal static class ShortcutListItems
                         shortcut,
                         onChanged,
                         settings,
-                        createShortcutCommand)
+                        createShortcutCommand,
+                        needsRepair)
                     : item.MoreCommands;
         }
 
