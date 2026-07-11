@@ -1,0 +1,17 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "83b05b0f113aa726c8874756fb8c4ebf9a8aba4f",
+  "prompts": {},
+  "sessions": {
+    "s_d5c70b326f8126": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5166-fcb0-7801-a88d-eee591343108",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
