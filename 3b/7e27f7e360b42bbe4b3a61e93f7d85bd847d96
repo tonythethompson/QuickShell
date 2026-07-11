@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/WorkspaceStatusSnapshotTests.cs
+  s_d5c70b326f8126::t_4a446224c40de4 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "3b7e27f7e360b42bbe4b3a61e93f7d85bd847d96",
+  "prompts": {},
+  "sessions": {
+    "s_d5c70b326f8126": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5166-fcb0-7801-a88d-eee591343108",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
