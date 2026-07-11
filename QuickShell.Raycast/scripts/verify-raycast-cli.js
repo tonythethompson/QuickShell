@@ -1,4 +1,5 @@
 const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
@@ -14,8 +15,21 @@ if (!meetsNodeRequirement) {
   process.exit(1);
 }
 
-const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
-const result = spawnSync(npxCommand, ["--no-install", "ray", "--version"], {
+const rayRunJs = path.join(root, "node_modules", "@raycast", "api", "bin", "run.js");
+if (!fs.existsSync(rayRunJs)) {
+  console.error("Raycast CLI is unavailable or incomplete.");
+  console.error(`Missing: ${rayRunJs}`);
+  console.error("");
+  console.error("Repair steps (PowerShell):");
+  console.error("  cd QuickShell.Raycast");
+  console.error("  Remove-Item -Recurse -Force node_modules");
+  console.error("  Remove-Item -Force package-lock.json");
+  console.error("  npm install");
+  console.error("  npm run dev");
+  process.exit(1);
+}
+
+const result = spawnSync(process.execPath, [rayRunJs, "--version"], {
   cwd: root,
   encoding: "utf8",
 });
@@ -24,6 +38,9 @@ if (result.status !== 0) {
   console.error("Raycast CLI is unavailable or incomplete.");
   if (result.stderr?.trim()) {
     console.error(result.stderr.trim());
+  }
+  if (result.stdout?.trim()) {
+    console.error(result.stdout.trim());
   }
   console.error("");
   console.error("Repair steps (PowerShell):");

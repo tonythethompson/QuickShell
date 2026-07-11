@@ -14,6 +14,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     private IListItem[] _items = [];
     private string _query = string.Empty;
     private bool _refreshScheduled;
+    private bool _hasShownInitialList;
 
     public DiscoverGitReposPage(Action onReload)
     {
@@ -22,7 +23,6 @@ internal partial class DiscoverGitReposPage : DynamicListPage
         Icon = new IconInfo(ShortcutGlyphs.Discover);
         GitRepoIndex.Invalidate();
         SetOpeningItems();
-        ScheduleRefreshItems();
     }
 
     public override IListItem[] GetItems() => _items;
@@ -30,6 +30,14 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
         var normalized = newSearch ?? string.Empty;
+
+        if (!_hasShownInitialList)
+        {
+            _hasShownInitialList = true;
+            ScheduleRefreshItems();
+            return;
+        }
+
         if (string.Equals(_query, normalized, StringComparison.Ordinal))
         {
             return;
@@ -82,6 +90,12 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
             var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
+            if (discovered.Count == 0
+                && GitRepoIndex.TryRunAfterNextRefreshIfInFlight(() => RefreshItems(_query)))
+            {
+                return;
+            }
+
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
             var settings = QuickShellServices.Current.Settings;
 

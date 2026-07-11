@@ -107,7 +107,7 @@ internal static partial class ShortcutLaunchFormJson
                   "spacing": "None",
                   "actions": [
                     {{AdaptiveCardFormJson.IconSubmitAction(
-                        FormActionGlyphs.Refresh,
+                        FormActionGlyphs.RefreshLabel,
                         FormActionGlyphs.RefreshProfileListTooltip,
                         "refreshTerminals",
                         "none")}}
