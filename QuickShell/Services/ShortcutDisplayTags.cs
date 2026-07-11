@@ -11,10 +11,15 @@ internal static class ShortcutDisplayTags
         string terminalApplicationId,
         string defaultProfileId)
     {
-        var snapshot = WorkspaceStatusService.CaptureForList(
-            shortcut,
-            terminalApplicationId,
-            defaultProfileId);
+        if (!WorkspaceStatusService.TryGetCached(
+                shortcut,
+                terminalApplicationId,
+                defaultProfileId,
+                out var snapshot))
+        {
+            return null;
+        }
+
         var tags = new List<Tag>(capacity: 2);
 
         if (snapshot.Attention != WorkspaceAttentionState.None)

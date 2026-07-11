@@ -44,6 +44,9 @@ if (result.status !== 0) {
   if (result.stderr?.trim()) {
     console.error(result.stderr.trim());
   }
+  if (result.stdout?.trim()) {
+    console.error(result.stdout.trim());
+  }
   console.error("");
   console.error("Repair steps (PowerShell):");
   console.error("  cd QuickShell.Raycast");

@@ -920,7 +920,7 @@ internal sealed partial class ShortcutForm : FormContent
     {
         UnsubscribeFromDraftCleared();
         _releaseForm?.Invoke();
-        return QuickShellNavigation.PopToShortcutsList(toastMessage);
+        return QuickShellNavigation.ReturnToShortcutsList(toastMessage);
     }
 
     private void ApplyDraft(FormDraft draft, bool persist = true, bool forceTemplateRebuild = false)

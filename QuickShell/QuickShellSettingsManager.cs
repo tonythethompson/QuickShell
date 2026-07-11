@@ -25,6 +25,10 @@ internal sealed class QuickShellSettingsManager
 
     public QuickShellSettingsManager(Action? onReload = null)
     {
+        // #region agent log
+        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
+        // #endregion
+
         _settingsStore = new QuickShellJsonSettingsStore();
         _settings = _settingsStore.Settings;
 
@@ -69,6 +73,14 @@ internal sealed class QuickShellSettingsManager
         _settings.Add(_multiLaunchPresentationSetting);
         _settingsStore.LoadSettings();
 
+        // #region agent log
+        AgentDebugLog.Write(
+            "QuickShellSettingsManager.cs:ctor",
+            "after LoadSettings",
+            new { settingsPath = _settingsStore.FilePath, exists = File.Exists(_settingsStore.FilePath) },
+            hypothesisId: "A");
+        // #endregion
+
         var usedLegacyDefaults = false;
         var initialApp = _settings.GetSetting<string>(TerminalApplicationSettingId);
         var initialProfile = _settings.GetSetting<string>(DefaultProfileSettingId);
@@ -86,7 +98,18 @@ internal sealed class QuickShellSettingsManager
         var initialMultiLaunchPresentation = ReadMultiLaunchPresentation();
 
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}","{{MultiLaunchPresentationSettingId}}":"{{initialMultiLaunchPresentation}}"}""");
+
+        // #region agent log
+        AgentDebugLog.Write(
+            "QuickShellSettingsManager.cs:ctor",
+            "before SyncDefaultProfileChoices",
+            new { initialApp, initialProfile },
+            hypothesisId: "C");
+        // #endregion
         SyncDefaultProfileChoices();
+        // #region agent log
+        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
+        // #endregion
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
         {
@@ -94,6 +117,10 @@ internal sealed class QuickShellSettingsManager
         }
 
         _settingsPage = new Pages.QuickShellExtensionSettingsPage(this, onReload);
+
+        // #region agent log
+        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
+        // #endregion
     }
 
     public event EventHandler? SettingsChanged;
