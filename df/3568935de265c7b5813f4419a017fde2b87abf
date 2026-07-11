@@ -1,0 +1,67 @@
+QuickShell/Services/AgentDebugLog.cs
+  s_7d3406d887fcc7::t_25f8f81306f667 1-101
+QuickShell.Core/Services/FormActionGlyphs.cs
+  s_7d3406d887fcc7::t_25f8f81306f667 12-13
+  s_7d3406d887fcc7::t_8ca586a433c04e 14-24
+QuickShell/Program.cs
+  s_7d3406d887fcc7::t_25f8f81306f667 2,15-37,49-51,58,68,78,80
+  s_7d3406d887fcc7::t_f61431bb21d81e 52,56-57,59-67,69-74,79,81
+QuickShell.Raycast/scripts/generate-icons.sh
+  s_7d3406d887fcc7::t_25f8f81306f667 5-6,8-9,13
+  s_7d3406d887fcc7::t_dd2d3346560134 14-20,22
+QuickShell/Pages/BehaviorSettingsForm.cs
+  s_7d3406d887fcc7::t_25f8f81306f667 1-158
+QuickShell/Assets/raycast/export-raycast-icons.ps1
+  s_7d3406d887fcc7::t_25f8f81306f667 1-2,10-11
+  s_7d3406d887fcc7::t_c13e588e5e68a9 28,30,33-43,45-46
+.gitignore
+  s_7d3406d887fcc7::t_7ae9c5af540b56 63-64
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_7d3406d887fcc7::t_cd14bcb17d4ed7 114,126-127
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_7d3406d887fcc7::t_d7a0980198114a 97,102
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_7d3406d887fcc7::t_4c99c6529475c2 101
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_7d3406d887fcc7::t_d5f47aa6e56329 110
+QuickShell/Assets/icon/export-msix-icons.ps1
+  s_7d3406d887fcc7::t_d18c16b4fe6761 4,89,145
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_7d3406d887fcc7::t_d9464c46c1a074 17,33-40,93-98
+QuickShell/Pages/QuickShellExtensionSettingsPage.cs
+  s_7d3406d887fcc7::t_bafc1be00143b3 16,38,63,75
+QuickShell/Pages/QuickShellPage.cs
+  s_7d3406d887fcc7::t_396f858b5b7449 190-201,245-257,259-262,266-268
+QuickShell/Pages/ShortcutDetailsFormPage.cs
+  s_7d3406d887fcc7::t_bdaeff2c457184 261,266
+QuickShell/Pages/ShortcutFormPage.cs
+  s_7d3406d887fcc7::t_fc1880c7a92034 923
+QuickShell/Pages/TerminalDefaultsSettingsForm.cs
+  s_7d3406d887fcc7::t_23d28c7d59f088 261,271
+QuickShell/QuickShellCommandsProvider.cs
+  s_7d3406d887fcc7::t_ff413d427f0c5b 34-37,43-45,47-49,55-57,68-74,85-87,92-94,132,138,145-148
+QuickShell/QuickShellSettingsManager.cs
+  s_7d3406d887fcc7::t_b37809527ed42e 28-31,76-83,101-108,110-112,120-123
+QuickShell/Services/SettingsCardJson.cs
+  s_7d3406d887fcc7::t_ead20d5c0463b7 108-131
+QuickShell/Services/ShortcutDisplayTags.cs
+  s_7d3406d887fcc7::t_d14c0ef9866fb1 14-22
+QuickShell.Raycast/scripts/verify-raycast-cli.js
+  s_7d3406d887fcc7::t_06a0e3186a25e6 47-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "df3568935de265c7b5813f4419a017fde2b87abf",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
