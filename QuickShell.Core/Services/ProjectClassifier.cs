@@ -397,9 +397,17 @@ internal static partial class ProjectClassifier
 
             try
             {
-                var contents = File.ReadAllText(path);
-                return contents.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
-                    || contents.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase);
+                // PERF: Read line by line instead of allocating the whole file as a single string
+                // Reduces memory usage and allows early exit.
+                foreach (var line in File.ReadLines(path))
+                {
+                    if (line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
+                        || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
             catch
             {
@@ -535,7 +543,16 @@ internal static partial class ProjectClassifier
 
             try
             {
-                return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+                // PERF: Read line by line instead of allocating the whole file as a single string
+                // Reduces memory usage and allows early exit.
+                foreach (var line in File.ReadLines(path))
+                {
+                    if (line.Contains(value, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
             catch
             {
