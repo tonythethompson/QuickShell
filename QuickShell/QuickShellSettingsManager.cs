@@ -20,6 +20,7 @@ internal sealed class QuickShellSettingsManager
     private readonly ChoiceSetSetting _defaultProfileSetting;
     private readonly TextSetting _recentWorkspaceCountSetting;
     private readonly TextSetting _blockDirtyBranchSwitchSetting;
+    private readonly TextSetting _multiLaunchPresentationSetting;
     private readonly Pages.QuickShellExtensionSettingsPage _settingsPage;
 
     public QuickShellSettingsManager(Action? onReload = null)
@@ -55,10 +56,17 @@ internal sealed class QuickShellSettingsManager
             "When a worktree target branch differs from HEAD, block launch and branch switching if the working tree has uncommitted changes.",
             "true");
 
+        _multiLaunchPresentationSetting = new TextSetting(
+            MultiLaunchPresentationSettingId,
+            "Multi-command launch",
+            "Whether multi-command workspaces open as tabs in one window or as separate windows.",
+            QuickShellMultiLaunchSettings.SingleWindowTabs);
+
         _settings.Add(_terminalApplicationSetting);
         _settings.Add(_defaultProfileSetting);
         _settings.Add(_recentWorkspaceCountSetting);
         _settings.Add(_blockDirtyBranchSwitchSetting);
+        _settings.Add(_multiLaunchPresentationSetting);
         _settingsStore.LoadSettings();
 
         var usedLegacyDefaults = false;
