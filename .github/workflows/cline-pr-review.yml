@@ -97,3 +97,5 @@ jobs:
 
           # Check CI status
           gh pr checks '"${PR_NUMBER}"'
+          ```
+          '
