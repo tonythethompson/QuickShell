@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/WorkspaceHealthCheckTests.cs
+  s_7d3406d887fcc7::t_d18d0c37d5505e 230,253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "ff6332a8d0f67b9698717b1d60ff0d7b70c6f0da",
+  "prompts": {},
+  "sessions": {
+    "s_7d3406d887fcc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a3fafde-d4ec-4929-8665-2924ae609ffe",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
