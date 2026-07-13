@@ -40,6 +40,7 @@ Data root: `%LOCALAPPDATA%\QuickShell\` (`shortcuts.json`, `settings.json`, draf
 | [git-and-discover.md](./git-and-discover.md) | Worktree targets, git gate UI, discover repos |
 | [hosts.md](./hosts.md) | CmdPal vs Run vs Raycast parity |
 | [post-launch.md](./post-launch.md) | Dev-server URL, companion timing, link actions |
+| [roadmap-next-steps.md](./roadmap-next-steps.md) | Clean / fix / improve / optimize priorities and PR sequence |
 
 ## Proposals and audit
 
