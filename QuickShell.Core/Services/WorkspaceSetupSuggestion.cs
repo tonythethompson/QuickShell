@@ -412,7 +412,8 @@ internal static class WorkspaceSetupSuggestion
 
             try
             {
-                return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+                // PERF: Read line-by-line instead of loading the entire file into a single string to reduce memory allocations and allow early exit
+                return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
