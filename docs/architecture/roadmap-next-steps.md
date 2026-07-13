@@ -19,15 +19,15 @@
 
 ## Tier 0 — Stop the bleeding (do first)
 
-| # | Action | Status | Deliverable |
-|---|--------|--------|-------------|
-| **0.1** | Inventory 0001–0005 vs code; mark landed / partial / not started | **Done** (2026-07-13) | [proposal-status.md](./proposal-status.md) + Status lines on `000x` files |
-| **0.2** | CmdPal / Run / Raycast parity matrix | **Done** (2026-07-13) | [parity-matrix.md](./parity-matrix.md) |
-| **0.3** | Spine changes must update matching architecture tours | **Done** (2026-07-13) | [CONTRIBUTING-architecture.md](./CONTRIBUTING-architecture.md) |
+| # | Action | Why decisive |
+|---|--------|----------------|
+| **0.1** | **Inventory what’s already landed from 0001–0002** (DI, envelope, atomic writer, `WorkspacesChanged`) and mark proposals **landed / partial / obsolete** | Avoid re-implementing done work or designing against a dead audit |
+| **0.2** | **Define a “parity matrix”** (1 page): CmdPal / Run / Raycast × launch, settings, health, git targets, import/export, pills | Stops accidental half-features and Raycast drift |
+| **0.3** | **Rule: any launch/persistence/routing change updates the matching `docs/architecture/*` tour in the same PR** | Keep the as-built map from rotting |
 
-**Exit criteria:** Met — use proposal-status + as-built tours + parity matrix as shared truth.
+**Exit criteria:** You can point at “current architecture truth” without re-auditing from zero.
 
-See also: [README.md](./README.md), [hosts.md](./hosts.md).
+See also: [README.md](./README.md) (as-built vs proposals), [hosts.md](./hosts.md).
 
 ---
 
@@ -154,11 +154,11 @@ After that: either **typed routing cleanup** or **startup perf** with numbers.
 
 ## Single most decisive step
 
-If you only do one thing next (Tier 0 is done):
+If you only do one thing next:
 
-> **PR B/C from the sequence below: finish DI for launch/health hot paths, then suggestion registry + agent PATH pills.**
+> **PR A (truth) + PR C (registry + agent pills).**
 
-Tier 0 removed thrashing about “what’s already built.” C proves the intelligence layer can grow without more static soup **and** ships something users feel.
+A stops thrashing. C proves the intelligence layer can grow without more static soup **and** ships something users feel (agent multi-launch is already a manual pattern — make the product suggest it).
 
 ---
 
