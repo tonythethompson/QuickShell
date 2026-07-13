@@ -15,6 +15,7 @@ Contributor-oriented tours of how the code works today live under **`docs/archit
 - Start: [`docs/architecture/README.md`](docs/architecture/README.md)
 - Core spines: overview, launch, persistence, forms, intelligence (pills), companions
 - Hosts & chrome: settings, CmdPal surface, git/discover, hosts (CmdPal/Run/Raycast), post-launch
+- Priorities: [\docs/architecture/roadmap-next-steps.md\](docs/architecture/roadmap-next-steps.md)
 
 Numbered `0001`–`0005` docs in that folder are **proposals** (may lag landed code). Prefer the as-built tours when changing behavior, and update the matching tour when you change a spine.
 
