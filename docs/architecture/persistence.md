@@ -139,7 +139,7 @@ Also first-time import from `shortcuts.json.bak` or old product path `TerminalSh
 
 ## Raycast
 
-`QuickShellStorage` mirrors layout/undo/recent debounce in Raycast storage API — **does not** share the desktop JSON path unless the user import/exports.
+`QuickShellStorage` mirrors layout/undo/recent debounce in Raycast storage API — **does not** share the desktop JSON path unless the user imports or exports.
 
 ## Key files
 
