@@ -16,7 +16,7 @@ How the three launchers share concepts and where they diverge.
 | **Action keyword** | Extension name + fallback | **`qs`** (+ global activation phrases) | Raycast commands |
 | **Package** | Store / WinGet CmdPal packages | Bundled with full WinGet / GH setup | Raycast store / sideload |
 
-Desktop CmdPal + Run **share** Core data files. Raycast is **parallel** unless the user import/exports JSON.
+Desktop CmdPal + Run **share** Core data files. Raycast is **parallel** unless the user imports or exports JSON.
 
 ## CmdPal
 
