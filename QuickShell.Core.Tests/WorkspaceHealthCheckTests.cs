@@ -227,6 +227,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = true;
         var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
+        WorkspaceStatusService.Capture(shortcut, TerminalHostIds.WindowsConsoleHost, "cmd", forceRefresh: true);
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
@@ -249,6 +250,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         shortcut.OpenDevServerOnLaunch = true;
         shortcut.RunAsAdmin = true;
         shortcut.IsPinned = true;
+        WorkspaceStatusService.Capture(shortcut, TerminalHostIds.WindowsConsoleHost, "cmd", forceRefresh: true);
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
