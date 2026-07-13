@@ -41,19 +41,22 @@ Data root: `%LOCALAPPDATA%\QuickShell\` (`shortcuts.json`, `settings.json`, draf
 | [hosts.md](./hosts.md) | CmdPal vs Run vs Raycast parity |
 | [post-launch.md](./post-launch.md) | Dev-server URL, companion timing, link actions |
 | [roadmap-next-steps.md](./roadmap-next-steps.md) | Clean / fix / improve / optimize priorities and PR sequence |
+| [proposal-status.md](./proposal-status.md) | **Tier 0.1** — 0001–0005 landed / partial / not started |
+| [parity-matrix.md](./parity-matrix.md) | **Tier 0.2** — CmdPal / Run / Raycast capability matrix |
+| [CONTRIBUTING-architecture.md](./CONTRIBUTING-architecture.md) | **Tier 0.3** — when PRs must update tours |
 
 ## Proposals and audit
 
-| Doc | Topic |
-|-----|--------|
-| [QuickShell-Architectural-Audit-2026-07-08.md](./QuickShell-Architectural-Audit-2026-07-08.md) | Snapshot review (risks, layering, ranked improvements) |
-| [0001-…](./0001-introduce-dependency-injection-composition-root.md) | DI + composition root |
-| [0002-…](./0002-persistence-hardening-atomic-writes-schema-version.md) | Atomic writer + schema version |
-| [0003-…](./0003-replace-string-command-routing-with-typed-descriptors.md) | Typed command routing |
-| [0004-…](./0004-service-consolidation-registry-pattern.md) | Classifier / suggestion registry |
-| [0005-…](./0005-formal-disposable-cancellation-ownership-expanded-tests.md) | Lifetime / cancellation / tests |
+| Doc | Topic | Status (see inventory) |
+|-----|--------|------------------------|
+| [QuickShell-Architectural-Audit-2026-07-08.md](./QuickShell-Architectural-Audit-2026-07-08.md) | Snapshot review (risks, layering, ranked improvements) | Point-in-time |
+| [0001-…](./0001-introduce-dependency-injection-composition-root.md) | DI + composition root | **Partial** |
+| [0002-…](./0002-persistence-hardening-atomic-writes-schema-version.md) | Atomic writer + schema version | **Landed** (Core) |
+| [0003-…](./0003-replace-string-command-routing-with-typed-descriptors.md) | Typed command routing | **Partial / mostly landed** |
+| [0004-…](./0004-service-consolidation-registry-pattern.md) | Classifier / suggestion registry | **Not started** |
+| [0005-…](./0005-formal-disposable-cancellation-ownership-expanded-tests.md) | Lifetime / cancellation / tests | **Partial** |
 
-Parts of 0001/0002 may already be landed (e.g. `AddQuickShellCore`, envelope `version`, `IAtomicFileWriter`, `WorkspacesChanged`). Confirm against the tree before implementing “from scratch.”
+Do **not** re-implement 0001/0002 from scratch. Read [proposal-status.md](./proposal-status.md) first.
 
 ## Related (outside this folder)
 
@@ -65,3 +68,5 @@ Parts of 0001/0002 may already be landed (e.g. `AddQuickShellCore`, envelope `ve
 ## Keeping docs honest
 
 When you change a spine (launch grouping, persistence format, pill scoring, companion presets, settings keys, routing IDs, host parity), update the matching as-built page in the same PR. Prefer diagrams + file tables over exhaustive API listings.
+
+**Required process:** [CONTRIBUTING-architecture.md](./CONTRIBUTING-architecture.md).

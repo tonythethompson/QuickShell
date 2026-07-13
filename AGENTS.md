@@ -16,6 +16,7 @@ Contributor-oriented tours of how the code works today live under **`docs/archit
 - Core spines: overview, launch, persistence, forms, intelligence (pills), companions
 - Hosts & chrome: settings, CmdPal surface, git/discover, hosts (CmdPal/Run/Raycast), post-launch
 - Priorities: [\docs/architecture/roadmap-next-steps.md\](docs/architecture/roadmap-next-steps.md)
+- Tier 0 truth: [docs/architecture/proposal-status.md](docs/architecture/proposal-status.md), [docs/architecture/parity-matrix.md](docs/architecture/parity-matrix.md), [docs/architecture/CONTRIBUTING-architecture.md](docs/architecture/CONTRIBUTING-architecture.md)
 
 Numbered `0001`–`0005` docs in that folder are **proposals** (may lag landed code). Prefer the as-built tours when changing behavior, and update the matching tour when you change a spine.
 
