@@ -1,0 +1,137 @@
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_346222076cb913::t_c319cf6897cdf6 15-17,45,47,49,58,62,124,128
+  s_346222076cb913::t_815b1bb2515a46 31-33,36-44,46,48,50-51,55-57,59-61,63,69,126,130,166,169
+  s_542e1c77edaf3a::t_caa5c42bc21b3d 26,64-68,70,74-75,77,84,91,109,114-116,121,123,125,127,129,145,165,167-168
+.github/workflows/opencode.yml
+  s_fca57e9f03181a::t_e0f7059536d92a 1-28,30-31
+  s_fca57e9f03181a::t_1f9afe5307d992 29
+QuickShell.Core/Services/TerminalListIconCache.cs
+  s_346222076cb913::t_7dfcd74f976ba3 89,91-96,98-101,106-107
+  s_34f1a37c2ec4ef::t_538c317ab32ba6 1-88,90,97,102-105,108-154
+QuickShell/Services/SettingsCardJson.cs
+  s_346222076cb913::t_9e2992cab18587 2
+  s_34f1a37c2ec4ef::t_2f4c470e6f5062 3
+  s_346222076cb913::t_ee4ca7a2994565 67-72,75-78,80-91
+  s_346222076cb913::t_ace8dc42926f58 79
+  s_346222076cb913::t_e169bcf534571a 92-93
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_346222076cb913::t_3787c42224618d 35
+  s_34f1a37c2ec4ef::t_6c202ea1413295 33-34,37-41,43,49-51
+  s_34f1a37c2ec4ef::t_620601eb8995d0 19-21,42,52
+  s_34f1a37c2ec4ef::t_3d4c00243cdce2 102
+  s_34f1a37c2ec4ef::t_b76641881ef9f9 174-175
+working-diff.txt
+  s_346222076cb913::t_f316f910458f4c 1-827
+QuickShell.Core/Services/AdaptiveCardFormJson.cs
+  s_34f1a37c2ec4ef::t_9563f6d5ef40f1 160,168
+QuickShell/Pages/QuickShellPage.cs
+  s_346222076cb913::t_8dca66f34b1f2d 25
+  s_34f1a37c2ec4ef::t_60d9134141c1b8 90-101,333,337,381,383,385,388,481,484,488,490,493,495-496
+  s_34f1a37c2ec4ef::t_22b86d85e70ec9 6
+  s_34f1a37c2ec4ef::t_e35b18d0477c5b 27,29
+  s_34f1a37c2ec4ef::t_b16194f794c64c 7
+  s_34f1a37c2ec4ef::t_244c749ec047c6 28
+  s_34f1a37c2ec4ef::t_0162f59ce01c60 332
+  s_34f1a37c2ec4ef::t_c5bfae24958cd4 334-336
+  s_34f1a37c2ec4ef::t_e08abf867bc3c1 378-380
+  s_34f1a37c2ec4ef::t_c2fd4f827305b2 382
+  s_34f1a37c2ec4ef::t_df4f75d29c703e 384
+  s_34f1a37c2ec4ef::t_9c51e822866902 386-387
+  s_34f1a37c2ec4ef::t_1084a908b7d5a8 389-391,478-480
+  s_34f1a37c2ec4ef::t_720f6de5dd9eb5 482-483
+  s_34f1a37c2ec4ef::t_5c6233543dc2a9 485-487
+  s_34f1a37c2ec4ef::t_7c26f14446a074 489
+  s_34f1a37c2ec4ef::t_503dcefe433bac 491-492
+  s_34f1a37c2ec4ef::t_4a3c4acf8318a3 494
+QuickShell/Services/ExtensionCallbackQueue.cs
+  s_34f1a37c2ec4ef::t_7c6331a3fb3b0e 1-33
+QuickShell/Services/PackageServicingShutdownWatcher.cs
+  s_346222076cb913::t_8bdb11c55702e7 83,86,88-98,309-314
+  s_34f1a37c2ec4ef::t_72a48c9eb25ba9 1-18,22-29,31-36,39-82,99-108,112,114-115,117-120,122-231,233-308,315-330
+  s_34f1a37c2ec4ef::t_01ce148ffcc5cd 19-21
+  s_346222076cb913::t_f8ae98a04ae7eb 84-85,87
+  s_34f1a37c2ec4ef::t_3ff05b67bf1dbf 109-111,113,116,121
+  s_34f1a37c2ec4ef::t_022b52bd785640 30,37-38
+  s_34f1a37c2ec4ef::t_e31b582209bf7b 232
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_34f1a37c2ec4ef::t_6fe2d9c936610c 332-344
+  s_34f1a37c2ec4ef::t_dee1ca9da30dae 20,24-25
+specs/tech-architecture/tech-stack.md
+  s_0ac797c83ce668::t_484466a527c6bf 1-216
+opencode.json
+  s_fca57e9f03181a::t_e91b7e368a006b 1-21
+QuickShell/Pages/ShortcutFormLaunchSection.cs
+  s_34f1a37c2ec4ef::t_cdff9c17dc6c82 13
+QuickShell.Core/Services/ShortcutHealth.cs
+  s_bdc10b6c0b92a9::t_6313350fbe384a 44
+QuickShell.Core/Services/TerminalLaunchGlyphs.cs
+  s_bdc10b6c0b92a9::t_3d5fbe521ebea1 13-38
+QuickShell/Pages/BehaviorSettingsForm.cs
+  s_bdc10b6c0b92a9::t_838b1c4048f31d 112-125
+QuickShell/Pages/GitLaunchSettingsForm.cs
+  s_bdc10b6c0b92a9::t_d01b3939de6a89 75-81
+QuickShell/Pages/ShortcutFormPage.cs
+  s_bdc10b6c0b92a9::t_f29f8833e7cb50 1113,1117,1122
+QuickShell/Program.cs
+  s_bdc10b6c0b92a9::t_5185465da6d085 82-106
+QuickShell/QuickShellCommandsProvider.cs
+  s_bdc10b6c0b92a9::t_aff3793b089619 37,198
+QuickShell.Core.Tests/ShortcutContextCommandsHomePinBugTests.cs
+  s_0ac797c83ce668::t_8b0bcf6ed07b1f 1-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "3973271e27059af882f2600de1583fa7c066a184",
+  "prompts": {},
+  "sessions": {
+    "s_0ac797c83ce668": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019f60aa-88bb-718c-adf8-27e9529b30e9",
+        "model": "big-pickle"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_346222076cb913": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "2e4df69e-521f-4a7d-930b-5b9edfe672d6",
+        "model": "SWE-1.7"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_34f1a37c2ec4ef": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a49e015c-da45-486c-b322-1a5561ef64a1",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_542e1c77edaf3a": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "f656a894-f2c6-407e-a779-9c6b5fdac5ec",
+        "model": "SWE-1.7"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_bdc10b6c0b92a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5e69-1bd6-7fe1-af24-6fe2749f573c",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_fca57e9f03181a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0a169ce1bffemi0c6I5iANrtVc",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
