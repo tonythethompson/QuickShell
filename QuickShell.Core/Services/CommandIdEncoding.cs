@@ -17,7 +17,7 @@ internal static class CommandIdEncoding
         {
             normalized = Path.GetFullPath(normalized);
         }
-        catch
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)
         {
             // Keep trimmed input when full path normalization fails.
         }
@@ -34,7 +34,7 @@ internal static class CommandIdEncoding
             value = Encoding.UTF8.GetString(Convert.FromHexString(encoded));
             return !string.IsNullOrEmpty(value);
         }
-        catch
+        catch (Exception ex) when (ex is FormatException or ArgumentException or DecoderFallbackException)
         {
             return false;
         }

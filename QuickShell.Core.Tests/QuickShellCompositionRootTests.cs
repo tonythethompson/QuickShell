@@ -105,7 +105,7 @@ public sealed class QuickShellCompositionRootTests : IDisposable
                 Directory.Delete(_configDirectory, recursive: true);
             }
         }
-        catch
+        catch (IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup.
         }

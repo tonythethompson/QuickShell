@@ -102,7 +102,7 @@ internal sealed class ProjectLayoutAnalyzer : IProjectLayoutAnalyzer
         {
             return Directory.EnumerateFiles(rootPath, pattern, SearchOption.TopDirectoryOnly).Any();
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
             return false;
         }

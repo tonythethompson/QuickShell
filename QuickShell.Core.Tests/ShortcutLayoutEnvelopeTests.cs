@@ -171,8 +171,8 @@ public sealed class ShortcutLayoutEnvelopeTests
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch
-            {
+            catch (IOException or UnauthorizedAccessException)
+        {
             }
         }
     }

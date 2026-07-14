@@ -14,7 +14,7 @@ internal static class ProjectClassificationContributor
         {
             classifier.Contribute(rootPath, layout, builder);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Repository discovery should degrade to fewer suggestions, not fail.
         }

@@ -172,7 +172,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
                 Directory.Delete(_root, recursive: true);
             }
         }
-        catch
+        catch (IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup.
         }
