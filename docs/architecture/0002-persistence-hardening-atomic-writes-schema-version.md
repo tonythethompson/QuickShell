@@ -1,7 +1,5 @@
 **Proposed Refactor PR**
 
-**Status:** Landed (Core goals) — see [proposal-status.md](./proposal-status.md); residual polish only
-
 **Title:**  
 Persistence Hardening: Shared Atomic Writer + Explicit Schema Versioning for Secondary Stores and Shortcuts Envelope
 

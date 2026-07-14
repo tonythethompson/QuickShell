@@ -8,18 +8,6 @@ QuickShell is a Windows keyboard-first workspace launcher (.NET WinUI + PowerToy
 
 Quick Shell is a **Windows-only .NET 10 desktop product**: a PowerToys Command Palette extension (`QuickShell`), a PowerToys Run plugin (`QuickShell.Run`), and a shared business-logic library (`QuickShell.Core`, tested by `QuickShell.Core.Tests`). Every runnable component targets `net10.0-windows*` and depends on WinForms/WPF/WinUI, the Windows App SDK, CsWinRT, and MSIX packaging.
 
-## Architecture (as-built)
-
-Contributor-oriented tours of how the code works today live under **`docs/architecture/`**:
-
-- Start: [`docs/architecture/README.md`](docs/architecture/README.md)
-- Core spines: overview, launch, persistence, forms, intelligence (pills), companions
-- Hosts & chrome: settings, CmdPal surface, git/discover, hosts (CmdPal/Run/Raycast), post-launch
-- Priorities: [\docs/architecture/roadmap-next-steps.md\](docs/architecture/roadmap-next-steps.md)
-- Tier 0 truth: [docs/architecture/proposal-status.md](docs/architecture/proposal-status.md), [docs/architecture/parity-matrix.md](docs/architecture/parity-matrix.md), [docs/architecture/CONTRIBUTING-architecture.md](docs/architecture/CONTRIBUTING-architecture.md)
-
-Numbered `0001`–`0005` docs in that folder are **proposals** (may lag landed code). Prefer the as-built tours when changing behavior, and update the matching tour when you change a spine.
-
 ## Build and test
 
 - **Desktop app (Windows)**: `dotnet build QuickShell.sln` and `dotnet test QuickShell.sln` — see `README.md` and `.github/workflows/ci.yml`
