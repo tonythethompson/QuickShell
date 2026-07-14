@@ -86,12 +86,12 @@ internal static class AgentDebugLog
         if (!string.IsNullOrWhiteSpace(workspaceRoot))
         {
             paths.Add(Path.IsPathRooted(workspaceRoot)
-                ? Path.Combine(workspaceRoot, "debug-a49e01.log")
-                : Path.Combine(Environment.CurrentDirectory, workspaceRoot, "debug-a49e01.log"));
+                ? Path.Join(workspaceRoot, "debug-a49e01.log")
+                : Path.Join(Environment.CurrentDirectory, workspaceRoot, "debug-a49e01.log"));
         }
 
         paths.Add(@"A:\QuickShell\debug-a49e01.log");
-        paths.Add(Path.Combine(
+        paths.Add(Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "QuickShell",
             "debug-a49e01.log"));

@@ -25,13 +25,13 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
         }
 
         return TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".cursor")),
+                Directory.Exists(Path.Join(directory, ".cursor")),
                 CompanionAppCatalog.PresetCursor)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".vscode")),
+                Directory.Exists(Path.Join(directory, ".vscode")),
                 CompanionAppCatalog.PresetVsCode)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".obsidian")),
+                Directory.Exists(Path.Join(directory, ".obsidian")),
                 CompanionAppCatalog.PresetObsidian)
             ?? TrySuggestFromPreset(
                 WorkspaceCompanionSignals.HasZedProject(directory),

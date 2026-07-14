@@ -12,7 +12,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
 
     public ProjectAnalysisAccessorTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-accessor-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-accessor-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _original = ProjectAnalysisAccessor.Instance;
     }
@@ -21,7 +21,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
     public void WorkspaceSeedFactory_uses_accessor_for_dev_server_detection()
     {
         File.WriteAllText(
-            Path.Combine(_root, "package.json"),
+            Path.Join(_root, "package.json"),
             """
             {
               "scripts": { "dev": "vite --port 4321" }
@@ -58,7 +58,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
             Classification = ProjectClassification.Empty,
         });
 
-        Assert.Equal(ProjectStack.Rust, fake.ClassifyResult.Stacks);
+        Assert.Equal(ProjectStack.Rust, seed.Classification.Stacks);
     }
 
     public void Dispose()

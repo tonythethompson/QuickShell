@@ -14,7 +14,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             return null;
         }
 
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return null;
@@ -55,7 +55,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             return null;
         }
 
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return null;
@@ -86,7 +86,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             return null;
         }
 
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return null;
@@ -162,18 +162,18 @@ internal sealed partial class DevServerDetector : IDevServerDetector
 
     private static PackageManagerKind DetectPackageManager(string directory)
     {
-        if (File.Exists(Path.Combine(directory, "pnpm-lock.yaml")))
+        if (File.Exists(Path.Join(directory, "pnpm-lock.yaml")))
         {
             return PackageManagerKind.Pnpm;
         }
 
-        if (File.Exists(Path.Combine(directory, "bun.lockb"))
-            || File.Exists(Path.Combine(directory, "bun.lock")))
+        if (File.Exists(Path.Join(directory, "bun.lockb"))
+            || File.Exists(Path.Join(directory, "bun.lock")))
         {
             return PackageManagerKind.Bun;
         }
 
-        if (File.Exists(Path.Combine(directory, "yarn.lock")))
+        if (File.Exists(Path.Join(directory, "yarn.lock")))
         {
             return PackageManagerKind.Yarn;
         }

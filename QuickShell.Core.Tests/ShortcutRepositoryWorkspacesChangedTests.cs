@@ -10,7 +10,7 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
 
         var raised = 0;
@@ -26,7 +26,7 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
         repository.Upsert(CreateShortcut("Alpha", workspaceDirectory));
 
@@ -42,7 +42,7 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var importPath = Path.Combine(directory.Path, "incoming.json");
+        var importPath = Path.Join(directory.Path, "incoming.json");
         File.WriteAllText(importPath, """
             [
               { "Name": "Beta", "Directory": "C:\\\\Other" }
@@ -63,7 +63,7 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
         repository.Upsert(CreateShortcut("Alpha", workspaceDirectory));
 
@@ -81,7 +81,7 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
         var shortcut = CreateShortcut("Alpha", workspaceDirectory);
         repository.Upsert(shortcut);
@@ -106,7 +106,7 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
     {
         public TempDataDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quickshell-tests", Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Join(System.IO.Path.GetTempPath(), "quickshell-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
 

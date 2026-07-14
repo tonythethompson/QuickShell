@@ -15,40 +15,40 @@ internal sealed class ProjectLayoutAnalyzer : IProjectLayoutAnalyzer
 
         return new ProjectLayout(
             RootPath: rootPath,
-            HasGit: Directory.Exists(Path.Combine(rootPath, ".git")),
+            HasGit: Directory.Exists(Path.Join(rootPath, ".git")),
             HasDockerCompose: HasAnyFile(
                 rootPath,
                 "docker-compose.yml",
                 "docker-compose.yaml",
                 "compose.yml",
                 "compose.yaml"),
-            HasPackageJson: File.Exists(Path.Combine(rootPath, "package.json")),
+            HasPackageJson: File.Exists(Path.Join(rootPath, "package.json")),
             HasCsproj: HasAnyTopLevelFile(rootPath, "*.csproj"),
             HasTaskfile: HasAnyFile(rootPath, "Taskfile.yml", "Taskfile.yaml"),
             HasMakefile: HasAnyFile(rootPath, "Makefile", "makefile"),
             HasJustfile: HasAnyFile(rootPath, "justfile", "Justfile"),
-            HasCargoToml: File.Exists(Path.Combine(rootPath, "Cargo.toml")),
-            HasPyprojectToml: File.Exists(Path.Combine(rootPath, "pyproject.toml")),
-            HasRequirementsTxt: File.Exists(Path.Combine(rootPath, "requirements.txt")),
-            HasSetupPy: File.Exists(Path.Combine(rootPath, "setup.py")),
-            HasGoMod: File.Exists(Path.Combine(rootPath, "go.mod")),
-            HasPomXml: File.Exists(Path.Combine(rootPath, "pom.xml")),
+            HasCargoToml: File.Exists(Path.Join(rootPath, "Cargo.toml")),
+            HasPyprojectToml: File.Exists(Path.Join(rootPath, "pyproject.toml")),
+            HasRequirementsTxt: File.Exists(Path.Join(rootPath, "requirements.txt")),
+            HasSetupPy: File.Exists(Path.Join(rootPath, "setup.py")),
+            HasGoMod: File.Exists(Path.Join(rootPath, "go.mod")),
+            HasPomXml: File.Exists(Path.Join(rootPath, "pom.xml")),
             HasGradleBuild: HasAnyFile(rootPath, "build.gradle", "build.gradle.kts"),
             HasDenoJson: HasAnyFile(rootPath, "deno.json", "deno.jsonc"),
-            HasProcfile: File.Exists(Path.Combine(rootPath, "Procfile")),
-            HasGemfile: File.Exists(Path.Combine(rootPath, "Gemfile")),
-            HasMixExs: File.Exists(Path.Combine(rootPath, "mix.exs")),
-            HasVsCodeDirectory: Directory.Exists(Path.Combine(rootPath, ".vscode")),
-            HasDevContainerDirectory: Directory.Exists(Path.Combine(rootPath, ".devcontainer")),
-            HasDevContainerJson: File.Exists(Path.Combine(rootPath, "devcontainer.json")),
+            HasProcfile: File.Exists(Path.Join(rootPath, "Procfile")),
+            HasGemfile: File.Exists(Path.Join(rootPath, "Gemfile")),
+            HasMixExs: File.Exists(Path.Join(rootPath, "mix.exs")),
+            HasVsCodeDirectory: Directory.Exists(Path.Join(rootPath, ".vscode")),
+            HasDevContainerDirectory: Directory.Exists(Path.Join(rootPath, ".devcontainer")),
+            HasDevContainerJson: File.Exists(Path.Join(rootPath, "devcontainer.json")),
             HasCodeWorkspace: HasAnyTopLevelFile(rootPath, "*.code-workspace"),
-            HasCursorDirectory: Directory.Exists(Path.Combine(rootPath, ".cursor")),
-            HasObsidianDirectory: Directory.Exists(Path.Combine(rootPath, ".obsidian")),
-            HasZedDirectory: Directory.Exists(Path.Combine(rootPath, ".zed")),
-            HasIdeaDirectory: Directory.Exists(Path.Combine(rootPath, ".idea")),
+            HasCursorDirectory: Directory.Exists(Path.Join(rootPath, ".cursor")),
+            HasObsidianDirectory: Directory.Exists(Path.Join(rootPath, ".obsidian")),
+            HasZedDirectory: Directory.Exists(Path.Join(rootPath, ".zed")),
+            HasIdeaDirectory: Directory.Exists(Path.Join(rootPath, ".idea")),
             HasSublimeProject: HasAnyTopLevelFile(rootPath, "*.sublime-project"),
             HasSolutionFile: HasAnyTopLevelFile(rootPath, "*.sln")
-                || Directory.Exists(Path.Combine(rootPath, ".vs")));
+                || Directory.Exists(Path.Join(rootPath, ".vs")));
     }
 
     private static ProjectLayout Empty(string rootPath) =>
@@ -87,7 +87,7 @@ internal sealed class ProjectLayoutAnalyzer : IProjectLayoutAnalyzer
     {
         foreach (var name in names)
         {
-            if (File.Exists(Path.Combine(rootPath, name)))
+            if (File.Exists(Path.Join(rootPath, name)))
             {
                 return true;
             }
