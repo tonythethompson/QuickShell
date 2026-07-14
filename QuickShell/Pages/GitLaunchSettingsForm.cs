@@ -72,24 +72,13 @@ internal sealed partial class GitLaunchSettingsForm : FormContent
               "version": "1.6",
               "body": [
                 {{SettingsCardJson.SectionHeader("Git launch")}},
-                {
-                  "type": "Container",
-                  "spacing": "None",
-                  "items": [
-                    {
-                      "type": "Input.Toggle",
-                      "id": "{{BlockDirtyBranchSwitchField}}",
-                      "title": "Block launch when dirty and branch would change",
-                      "spacing": "None",
-                      "value": "{{(_pendingBlockDirtyBranchSwitch ? "true" : "false")}}",
-                      "valueOn": "true",
-                      "valueOff": "false",
-                      {{SettingsCardJson.ChangeActionSave("saveGitLaunch")}}
-                    },
-                    {{SettingsCardJson.SubtleText("When a worktree target branch differs from HEAD, block launch and branch switching if the working tree has uncommitted changes.")}},
-                    {{SettingsCardJson.SubtleText("Need two branches open at once? Use git worktree add to create a separate folder and workspace.")}}
-                  ]
-                }
+                {{SettingsCardJson.ToggleSetting(
+                    id: BlockDirtyBranchSwitchField,
+                    label: "Block launch when dirty and branch would change",
+                    help: "When a worktree target branch differs from HEAD, block launch and branch switching if the working tree has uncommitted changes.",
+                    value: _pendingBlockDirtyBranchSwitch,
+                    saveAction: "saveGitLaunch")}},
+                {{SettingsCardJson.SubtleText("Need two branches open at once? Use git worktree add to create a separate folder and workspace.")}}
               ]
             }
             """;

@@ -16,6 +16,9 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     private bool _refreshScheduled;
     private bool _hasShownInitialList;
     private bool _awaitingGitRefresh;
+    private bool _needsInitialRefresh = true;
+
+    private const string ScanningTitle = "Scanning for git repositories";
 
     public DiscoverGitReposPage(Action onReload)
     {
@@ -27,14 +30,25 @@ internal partial class DiscoverGitReposPage : DynamicListPage
 
     public override IListItem[] GetItems()
     {
-        if (_awaitingGitRefresh && !GitRepoIndex.IsRefreshInFlight)
+        ExtensionCallbackQueue.Drain();
+
+        if (_needsInitialRefresh && !_refreshScheduled && !_awaitingGitRefresh)
         {
-            _awaitingGitRefresh = false;
-            RefreshItems(_query);
+            ScheduleRefreshItems();
+        }
+        else if ((_awaitingGitRefresh || IsShowingScanningPlaceholder())
+                 && !GitRepoIndex.IsRefreshInFlight
+                 && !_refreshScheduled)
+        {
+            ScheduleRefreshItems();
         }
 
         return _items;
     }
+
+    private bool IsShowingScanningPlaceholder() =>
+        _items.Length == 1
+        && _items[0] is ListItem { Title: ScanningTitle };
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
@@ -85,7 +99,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage
         [
             new ListItem(new NoOpCommand())
             {
-                Title = "Scanning for git repositories",
+                Title = ScanningTitle,
                 Subtitle = "Results will appear in a moment.",
                 Icon = new IconInfo(ShortcutGlyphs.Discover),
             },
@@ -157,6 +171,8 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             }
 
             _items = items.ToArray();
+            _needsInitialRefresh = false;
+            _awaitingGitRefresh = false;
             RaiseItemsChanged();
 
             // #region agent log

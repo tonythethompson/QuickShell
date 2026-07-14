@@ -143,6 +143,20 @@ internal static class ShortcutContextCommands
 
         var items = new List<CommandContextItem>();
 
+        // Open
+        var enabledLaunches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
+        if (enabledLaunches.Count > 1)
+        {
+            foreach (var launch in enabledLaunches)
+            {
+                items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(shortcut, launch, settings))
+                {
+                    Title = ShortcutDisplay.GetLaunchContextMenuTitle(launch, enabledLaunches),
+                    Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(launch)),
+                });
+            }
+        }
+
         AddElevationContextCommand(items, shortcut, settings);
         AddFolderAndLinkCommands(items, shortcut);
         AddStatusCommand(items, shortcut, settings, onChanged);
@@ -157,6 +171,40 @@ internal static class ShortcutContextCommands
             title: Strings.Menu_Edit,
             showInHoverActions: true,
             hoverOrder: HoverOrderEdit));
+
+        var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned);
+        items.Add(WithShortcut(
+            favoriteCommand,
+            ctrl: true,
+            alt: false,
+            shift: false,
+            VirtualKey.F,
+            title: favoriteCommand.Name,
+            showInHoverActions: true,
+            hoverOrder: HoverOrderFavorite));
+
+        var duplicateCommand = new DuplicateShortcutCommand(shortcut, onChanged);
+        items.Add(WithShortcut(
+            duplicateCommand,
+            ctrl: true,
+            alt: false,
+            shift: true,
+            VirtualKey.D,
+            title: duplicateCommand.Name,
+            showInHoverActions: true,
+            hoverOrder: HoverOrderDuplicate));
+
+        var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged);
+        items.Add(WithShortcut(
+            deleteCommand,
+            ctrl: true,
+            alt: false,
+            shift: false,
+            VirtualKey.Delete,
+            title: deleteCommand.Name,
+            isCritical: true,
+            showInHoverActions: true,
+            hoverOrder: HoverOrderDelete));
 
         return items.ToArray();
     }

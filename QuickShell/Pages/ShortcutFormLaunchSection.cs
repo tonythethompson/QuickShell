@@ -10,7 +10,7 @@ internal static class ShortcutFormLaunchSection
         List<LaunchRowDraft> commands;
         if (shortcut is null)
         {
-            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget }];
+            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget, IsEditorPlaceholder = true }];
         }
         else
         {

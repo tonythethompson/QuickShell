@@ -3,6 +3,8 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuickShell.Pages;
 
@@ -20,7 +22,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _reloadScheduled;
     private bool _refreshInProgress;
     private bool _refreshQueued;
+    private bool _needsInitialRefresh = true;
     private bool _disposed;
+    private int _iconUpgradeGeneration;
+    private List<(ListItem Item, TerminalShortcut Shortcut)> _iconUpgradeTargets = [];
+    private IReadOnlyList<(ListItem Item, string Icon)>? _pendingIconApplies;
 
     public QuickShellPage(
         QuickShellSettingsManager settings,
@@ -81,7 +87,18 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         ApplyQuery(normalized);
     }
 
-    public override IListItem[] GetItems() => _items;
+    public override IListItem[] GetItems()
+    {
+        ExtensionCallbackQueue.Drain();
+        ApplyPendingProfileIcons();
+
+        if (!_disposed && _needsInitialRefresh && !_refreshInProgress && !_reloadScheduled)
+        {
+            SchedulePostNavigationReload();
+        }
+
+        return _items;
+    }
 
     public void Reload()
     {
@@ -214,6 +231,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         try
         {
+            // #region agent log
+            var phaseLayoutStart = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            // #endregion
+            _iconUpgradeTargets = [];
             var pinnedInOrder = QuickShellServices.Current.Shortcuts.GetShortcuts()
             .Where(s => s.IsPinned)
             .OrderBy(s => s.PinOrder ?? int.MaxValue)
@@ -256,7 +277,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         _items = items.ToArray();
+        _needsInitialRefresh = false;
         RaiseItemsChanged();
+
+        var upgradeTargets = _iconUpgradeTargets;
+        var upgradeGeneration = Interlocked.Increment(ref _iconUpgradeGeneration);
+        ScheduleProfileIconUpgrade(upgradeTargets, upgradeGeneration);
 
         // #region agent log
         AgentDebugLog.Write(
@@ -266,9 +292,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             {
                 itemCount = _items.Length,
                 elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
+                buildElapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - phaseLayoutStart,
+                upgradeTargets = upgradeTargets.Count,
+                hypothesis = "F-glyphs",
             },
             runId: "post-fix",
-            hypothesisId: "D");
+            hypothesisId: "F");
         // #endregion
         }
         catch (Exception ex)
@@ -300,8 +329,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
     }
 
-    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> _) =>
-        ShortcutListItems.CreateOpen(shortcut, _settings, Reload, _createShortcutCommand);
+    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> _)
+    {
+        var item = ShortcutListItems.CreateOpen(shortcut, _settings, Reload, _createShortcutCommand);
+        _iconUpgradeTargets.Add((item, shortcut));
+        return item;
+    }
 
     private IEnumerable<IListItem> BuildHomeLayoutItems(
         IReadOnlyList<ShortcutLayoutEntry> layout,
@@ -339,6 +372,126 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                      showDefaultWorkspacesHeader: hasFavorites))
         {
             yield return item;
+        }
+    }
+
+    private void ScheduleProfileIconUpgrade(
+        IReadOnlyList<(ListItem Item, TerminalShortcut Shortcut)> targets,
+        int generation)
+    {
+        if (targets.Count == 0 || _disposed)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            // #region agent log
+            var startedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            AgentDebugLog.Write(
+                "QuickShellPage.cs:IconUpgrade",
+                "start",
+                new { targetCount = targets.Count, generation },
+                runId: "post-fix",
+                hypothesisId: "G");
+            // #endregion
+
+            try
+            {
+                TerminalListIconCache.PrewarmProfiles();
+
+                var upgrades = new List<(ListItem Item, string Icon)>();
+                foreach (var (item, shortcut) in targets)
+                {
+                    if (_disposed || generation != Interlocked.Add(ref _iconUpgradeGeneration, 0))
+                    {
+                        return;
+                    }
+
+                    var upgraded = TerminalListIconCache.TryResolveUpgradedListIcon(shortcut);
+                    if (string.IsNullOrWhiteSpace(upgraded))
+                    {
+                        continue;
+                    }
+
+                    var fast = ShortcutHealth.GetListGlyph(shortcut, needsRepair: false);
+                    if (string.Equals(upgraded, fast, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    upgrades.Add((item, upgraded));
+                }
+
+                if (upgrades.Count == 0)
+                {
+                    // #region agent log
+                    AgentDebugLog.Write(
+                        "QuickShellPage.cs:IconUpgrade",
+                        "complete-noop",
+                        new
+                        {
+                            generation,
+                            elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startedUtc,
+                        },
+                        runId: "post-fix",
+                        hypothesisId: "G");
+                    // #endregion
+                    return;
+                }
+
+                ExtensionCallbackQueue.Enqueue(() =>
+                {
+                    if (_disposed || generation != Interlocked.Add(ref _iconUpgradeGeneration, 0))
+                    {
+                        return;
+                    }
+
+                    _pendingIconApplies = upgrades;
+                    ApplyPendingProfileIcons();
+                    RaiseItemsChanged();
+
+                    // #region agent log
+                    AgentDebugLog.Write(
+                        "QuickShellPage.cs:IconUpgrade",
+                        "applied",
+                        new
+                        {
+                            upgradedCount = upgrades.Count,
+                            generation,
+                            listIconPixels = TerminalListIconCache.ListIconPixels,
+                            elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startedUtc,
+                        },
+                        runId: "post-fix",
+                        hypothesisId: "G");
+                    // #endregion
+                });
+            }
+            catch (Exception ex)
+            {
+                // #region agent log
+                AgentDebugLog.WriteException(
+                    "QuickShellPage.cs:IconUpgrade",
+                    ex,
+                    hypothesisId: "G",
+                    runId: "post-fix");
+                // #endregion
+            }
+        });
+    }
+
+    private void ApplyPendingProfileIcons()
+    {
+        IReadOnlyList<(ListItem Item, string Icon)>? pending =
+            Interlocked.Exchange(ref _pendingIconApplies, null);
+        if (pending is null || pending.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var (item, icon) in pending)
+        {
+            item.Icon = new IconInfo(icon);
         }
     }
 }

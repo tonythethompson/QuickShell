@@ -157,7 +157,7 @@ internal static class AdaptiveCardFormJson
             {
               "type": "Column",
               "width": "stretch",
-              "verticalContentAlignment": "Center",
+              "verticalContentAlignment": "Bottom",
               "items": [
                 {{inputJson}}
               ]
@@ -165,7 +165,7 @@ internal static class AdaptiveCardFormJson
             {
               "type": "Column",
               "width": "auto",
-              "verticalContentAlignment": "Center",
+              "verticalContentAlignment": "Bottom",
               "items": [
                 {
                   "type": "ActionSet",

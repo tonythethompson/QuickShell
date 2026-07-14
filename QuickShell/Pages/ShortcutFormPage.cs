@@ -1110,14 +1110,16 @@ internal sealed partial class ShortcutForm : FormContent
         for (var i = 0; i < count; i++)
         {
             var prior = i < existing.Count ? existing[i] : new LaunchRowDraft();
+            var command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command;
             merged.Add(new LaunchRowDraft
             {
                 Id = prior.Id,
-                Command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command,
+                Command = command,
                 TaskType = TaskTypeCatalog.Normalize(data[$"LaunchType_{i}"]?.ToString() ?? prior.TaskType),
                 LaunchTarget = data[$"LaunchTarget_{i}"]?.ToString()
                     ?? prior.LaunchTarget
                     ?? fallbackLaunchTarget,
+                IsEditorPlaceholder = string.IsNullOrWhiteSpace(command) && prior.IsEditorPlaceholder,
             });
         }
 

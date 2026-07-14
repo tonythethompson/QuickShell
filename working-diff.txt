@@ -1,0 +1,827 @@
+diff --git a/QuickShell.Core/Services/AdaptiveCardFormJson.cs b/QuickShell.Core/Services/AdaptiveCardFormJson.cs
+index b76a400..957d5c7 100644
+--- a/QuickShell.Core/Services/AdaptiveCardFormJson.cs
++++ b/QuickShell.Core/Services/AdaptiveCardFormJson.cs
+@@ -155,19 +155,19 @@ internal static class AdaptiveCardFormJson
+           "spacing": "Small",
+           "columns": [
+             {
+               "type": "Column",
+               "width": "stretch",
+-              "verticalContentAlignment": "Center",
++              "verticalContentAlignment": "Bottom",
+               "items": [
+                 {{inputJson}}
+               ]
+             },
+             {
+               "type": "Column",
+               "width": "auto",
+-              "verticalContentAlignment": "Center",
++              "verticalContentAlignment": "Bottom",
+               "items": [
+                 {
+                   "type": "ActionSet",
+                   "spacing": "None",
+                   "actions": [
+diff --git a/QuickShell.Core/Services/GitRepoIndex.cs b/QuickShell.Core/Services/GitRepoIndex.cs
+index ca81e4c..ae300f0 100644
+--- a/QuickShell.Core/Services/GitRepoIndex.cs
++++ b/QuickShell.Core/Services/GitRepoIndex.cs
+@@ -15,13 +15,16 @@ internal static class GitRepoIndex
+ 
+     internal static Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? DiscoverOverride { get; set; }
+ 
+     /// <summary>
+     /// CmdPal extension thread captured at provider startup; refresh waiters must run there.
++    /// When null (MTA host), <see cref="ExtensionThreadPoster"/> queues work for list pages to drain.
+     /// </summary>
+     internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
+ 
++    internal static Action<Action>? ExtensionThreadPoster { get; set; }
++
+     public static bool IsRefreshInFlight
+     {
+         get
+         {
+             lock (Sync)
+@@ -324,11 +327,23 @@ internal static class GitRepoIndex
+     }
+ 
+     private static void RunOnExtensionThread(Action action)
+     {
+         var extensionContext = ExtensionSynchronizationContext;
+-        if (extensionContext is null || ReferenceEquals(SynchronizationContext.Current, extensionContext))
++        if (extensionContext is null)
++        {
++            if (ExtensionThreadPoster is not null)
++            {
++                ExtensionThreadPoster(action);
++                return;
++            }
++
++            action();
++            return;
++        }
++
++        if (ReferenceEquals(SynchronizationContext.Current, extensionContext))
+         {
+             action();
+             return;
+         }
+ 
+diff --git a/QuickShell.Core/Services/ShortcutHealth.cs b/QuickShell.Core/Services/ShortcutHealth.cs
+index 9033d9a..b3ad3dd 100644
+--- a/QuickShell.Core/Services/ShortcutHealth.cs
++++ b/QuickShell.Core/Services/ShortcutHealth.cs
+@@ -39,11 +39,11 @@ internal static class ShortcutHealth
+         if (shortcut.RunAsAdmin)
+         {
+             return ShortcutGlyphs.AdminLaunch;
+         }
+ 
+-        return TerminalLaunchGlyphs.GetForShortcut(shortcut);
++        return TerminalLaunchGlyphs.GetForList(shortcut);
+     }
+ 
+     public static string BuildListSubtitle(TerminalShortcut shortcut, bool requireDirectoryExists = true)
+     {
+         if (string.IsNullOrWhiteSpace(shortcut.Directory))
+diff --git a/QuickShell.Core/Services/TerminalLaunchGlyphs.cs b/QuickShell.Core/Services/TerminalLaunchGlyphs.cs
+index 6cb9819..b599d55 100644
+--- a/QuickShell.Core/Services/TerminalLaunchGlyphs.cs
++++ b/QuickShell.Core/Services/TerminalLaunchGlyphs.cs
+@@ -8,10 +8,36 @@ internal static class TerminalLaunchGlyphs
+     {
+         var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
+         return launches.Count == 0 ? ShortcutGlyphs.NewWindow : GetForLaunch(launches[0]);
+     }
+ 
++    /// <summary>
++    /// List/menu icon without resolving Windows Terminal profile icons on disk.
++    /// Profile icon probing is too slow for first paint of large workspace lists.
++    /// </summary>
++    public static string GetForList(TerminalShortcut shortcut)
++    {
++        var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
++        if (launches.Count == 0)
++        {
++            return ShortcutGlyphs.NewWindow;
++        }
++
++        return GetForList(launches[0]);
++    }
++
++    public static string GetForList(WorkspaceEntry launch)
++    {
++        var taskGlyph = TaskTypeCatalog.GetGlyph(launch.TaskType);
++        if (taskGlyph is not null)
++        {
++            return taskGlyph;
++        }
++
++        return GetFallbackGlyph(launch, profile: null);
++    }
++
+     public static string GetForLaunch(WorkspaceEntry launch)
+     {
+         var profile = TerminalProfileResolver.ResolveForLaunch(launch);
+ 
+         if (profile is not null && IsWslProfile(profile))
+diff --git a/QuickShell/Commands/OpenTerminalShortcutCommand.cs b/QuickShell/Commands/OpenTerminalShortcutCommand.cs
+index 1eb4b7a..27f3ba3 100644
+--- a/QuickShell/Commands/OpenTerminalShortcutCommand.cs
++++ b/QuickShell/Commands/OpenTerminalShortcutCommand.cs
+@@ -41,11 +41,11 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
+ 
+         if (runAsStandard)
+         {
+             return needsRepair
+                 ? ShortcutGlyphs.IncidentTriangle
+-                : TerminalLaunchGlyphs.GetForShortcut(shortcut);
++                : TerminalLaunchGlyphs.GetForList(shortcut);
+         }
+ 
+         if (runAsAdmin || shortcut.RunAsAdmin)
+         {
+             return ShortcutGlyphs.AdminLaunch;
+diff --git a/QuickShell/Pages/BehaviorSettingsForm.cs b/QuickShell/Pages/BehaviorSettingsForm.cs
+index f629484..aaa6674 100644
+--- a/QuickShell/Pages/BehaviorSettingsForm.cs
++++ b/QuickShell/Pages/BehaviorSettingsForm.cs
+@@ -107,11 +107,24 @@ internal sealed partial class BehaviorSettingsForm : FormContent
+         TemplateJson = $$"""
+             {
+               "type": "AdaptiveCard",
+               "version": "1.6",
+               "body": [
+-                {{SettingsCardJson.TwoColumnSection(multiLaunchColumn, homeDisplayColumn)}}
++                {
++                  "type": "Container",
++                  "spacing": "None",
++                  "items": [
++                    {{multiLaunchColumn}}
++                  ]
++                },
++                {
++                  "type": "Container",
++                  "spacing": "Medium",
++                  "items": [
++                    {{homeDisplayColumn}}
++                  ]
++                }
+               ]
+             }
+             """;
+     }
+ 
+diff --git a/QuickShell/Pages/DiscoverGitReposPage.cs b/QuickShell/Pages/DiscoverGitReposPage.cs
+index a72d9f3..ebc0925 100644
+--- a/QuickShell/Pages/DiscoverGitReposPage.cs
++++ b/QuickShell/Pages/DiscoverGitReposPage.cs
+@@ -14,10 +14,13 @@ internal partial class DiscoverGitReposPage : DynamicListPage
+     private IListItem[] _items = [];
+     private string _query = string.Empty;
+     private bool _refreshScheduled;
+     private bool _hasShownInitialList;
+     private bool _awaitingGitRefresh;
++    private bool _needsInitialRefresh = true;
++
++    private const string ScanningTitle = "Scanning for git repositories";
+ 
+     public DiscoverGitReposPage(Action onReload)
+     {
+         _onReload = onReload;
+         Id = PageId;
+@@ -25,19 +28,30 @@ internal partial class DiscoverGitReposPage : DynamicListPage
+         SetOpeningItems();
+     }
+ 
+     public override IListItem[] GetItems()
+     {
+-        if (_awaitingGitRefresh && !GitRepoIndex.IsRefreshInFlight)
++        ExtensionCallbackQueue.Drain();
++
++        if (_needsInitialRefresh && !_refreshScheduled)
+         {
+-            _awaitingGitRefresh = false;
+-            RefreshItems(_query);
++            ScheduleRefreshItems();
++        }
++        else if ((_awaitingGitRefresh || IsShowingScanningPlaceholder())
++                 && !GitRepoIndex.IsRefreshInFlight
++                 && !_refreshScheduled)
++        {
++            ScheduleRefreshItems();
+         }
+ 
+         return _items;
+     }
+ 
++    private bool IsShowingScanningPlaceholder() =>
++        _items.Length == 1
++        && _items[0] is ListItem { Title: ScanningTitle };
++
+     public override void UpdateSearchText(string oldSearch, string newSearch)
+     {
+         var normalized = newSearch ?? string.Empty;
+ 
+         if (!_hasShownInitialList)
+@@ -83,11 +97,11 @@ internal partial class DiscoverGitReposPage : DynamicListPage
+     {
+         _items =
+         [
+             new ListItem(new NoOpCommand())
+             {
+-                Title = "Scanning for git repositories",
++                Title = ScanningTitle,
+                 Subtitle = "Results will appear in a moment.",
+                 Icon = new IconInfo(ShortcutGlyphs.Discover),
+             },
+         ];
+     }
+@@ -155,10 +169,12 @@ internal partial class DiscoverGitReposPage : DynamicListPage
+                     Icon = new IconInfo("\uE946"),
+                 });
+             }
+ 
+             _items = items.ToArray();
++            _needsInitialRefresh = false;
++            _awaitingGitRefresh = false;
+             RaiseItemsChanged();
+ 
+             // #region agent log
+             AgentDebugLog.Write(
+                 "DiscoverGitReposPage.cs:RefreshItems",
+diff --git a/QuickShell/Pages/GitLaunchSettingsForm.cs b/QuickShell/Pages/GitLaunchSettingsForm.cs
+index 79271eb..2fcda01 100644
+--- a/QuickShell/Pages/GitLaunchSettingsForm.cs
++++ b/QuickShell/Pages/GitLaunchSettingsForm.cs
+@@ -70,28 +70,17 @@ internal sealed partial class GitLaunchSettingsForm : FormContent
+             {
+               "type": "AdaptiveCard",
+               "version": "1.6",
+               "body": [
+                 {{SettingsCardJson.SectionHeader("Git launch")}},
+-                {
+-                  "type": "Container",
+-                  "spacing": "None",
+-                  "items": [
+-                    {
+-                      "type": "Input.Toggle",
+-                      "id": "{{BlockDirtyBranchSwitchField}}",
+-                      "title": "Block launch when dirty and branch would change",
+-                      "spacing": "None",
+-                      "value": "{{(_pendingBlockDirtyBranchSwitch ? "true" : "false")}}",
+-                      "valueOn": "true",
+-                      "valueOff": "false",
+-                      {{SettingsCardJson.ChangeActionSave("saveGitLaunch")}}
+-                    },
+-                    {{SettingsCardJson.SubtleText("When a worktree target branch differs from HEAD, block launch and branch switching if the working tree has uncommitted changes.")}},
+-                    {{SettingsCardJson.SubtleText("Need two branches open at once? Use git worktree add to create a separate folder and workspace.")}}
+-                  ]
+-                }
++                {{SettingsCardJson.ToggleSetting(
++                    id: BlockDirtyBranchSwitchField,
++                    label: "Block launch when dirty and branch would change",
++                    help: "When a worktree target branch differs from HEAD, block launch and branch switching if the working tree has uncommitted changes.",
++                    value: _pendingBlockDirtyBranchSwitch,
++                    saveAction: "saveGitLaunch")}},
++                {{SettingsCardJson.SubtleText("Need two branches open at once? Use git worktree add to create a separate folder and workspace.")}}
+               ]
+             }
+             """;
+     }
+ 
+diff --git a/QuickShell/Pages/QuickShellPage.cs b/QuickShell/Pages/QuickShellPage.cs
+index 3d35a6d..a56f005 100644
+--- a/QuickShell/Pages/QuickShellPage.cs
++++ b/QuickShell/Pages/QuickShellPage.cs
+@@ -1,10 +1,12 @@
+ using Microsoft.CommandPalette.Extensions;
+ using Microsoft.CommandPalette.Extensions.Toolkit;
+ using QuickShell.Commands;
+ using QuickShell.Models;
+ using QuickShell.Services;
++using System.Threading;
++using System.Threading.Tasks;
+ 
+ namespace QuickShell.Pages;
+ 
+ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+ {
+@@ -18,11 +20,15 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+     private string _query = string.Empty;
+     private bool _hasShownInitialList;
+     private bool _reloadScheduled;
+     private bool _refreshInProgress;
+     private bool _refreshQueued;
++    private bool _needsInitialRefresh = true;
+     private bool _disposed;
++    private int _iconUpgradeGeneration;
++    private List<(ListItem Item, TerminalShortcut Shortcut)> _iconUpgradeTargets = [];
++    private IReadOnlyList<(ListItem Item, string Icon)>? _pendingIconApplies;
+ 
+     public QuickShellPage(
+         QuickShellSettingsManager settings,
+         CreateShortcutCommand createShortcutCommand)
+     {
+@@ -79,11 +85,22 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+         }
+ 
+         ApplyQuery(normalized);
+     }
+ 
+-    public override IListItem[] GetItems() => _items;
++    public override IListItem[] GetItems()
++    {
++        ExtensionCallbackQueue.Drain();
++        ApplyPendingProfileIcons();
++
++        if (!_disposed && _needsInitialRefresh && !_refreshInProgress && !_reloadScheduled)
++        {
++            SchedulePostNavigationReload();
++        }
++
++        return _items;
++    }
+ 
+     public void Reload()
+     {
+         SchedulePostNavigationReload();
+     }
+@@ -212,10 +229,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+             hypothesisId: "D");
+         // #endregion
+ 
+         try
+         {
++            // #region agent log
++            var phaseLayoutStart = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
++            // #endregion
++            _iconUpgradeTargets = [];
+             var pinnedInOrder = QuickShellServices.Current.Shortcuts.GetShortcuts()
+             .Where(s => s.IsPinned)
+             .OrderBy(s => s.PinOrder ?? int.MaxValue)
+             .ToList();
+         var items = new List<IListItem>();
+@@ -254,23 +275,31 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+                 });
+             }
+         }
+ 
+         _items = items.ToArray();
++        _needsInitialRefresh = false;
+         RaiseItemsChanged();
+ 
++        var upgradeTargets = _iconUpgradeTargets;
++        var upgradeGeneration = ++_iconUpgradeGeneration;
++        ScheduleProfileIconUpgrade(upgradeTargets, upgradeGeneration);
++
+         // #region agent log
+         AgentDebugLog.Write(
+             "QuickShellPage.cs:RefreshItems",
+             "complete",
+             new
+             {
+                 itemCount = _items.Length,
+                 elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
++                buildElapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - phaseLayoutStart,
++                upgradeTargets = upgradeTargets.Count,
++                hypothesis = "F-glyphs",
+             },
+             runId: "post-fix",
+-            hypothesisId: "D");
++            hypothesisId: "F");
+         // #endregion
+         }
+         catch (Exception ex)
+         {
+             // #region agent log
+@@ -298,12 +327,16 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+                 RefreshItems(queuedQuery);
+             }
+         }
+     }
+ 
+-    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> _) =>
+-        ShortcutListItems.CreateOpen(shortcut, _settings, Reload, _createShortcutCommand);
++    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> _)
++    {
++        var item = ShortcutListItems.CreateOpen(shortcut, _settings, Reload, _createShortcutCommand);
++        _iconUpgradeTargets.Add((item, shortcut));
++        return item;
++    }
+ 
+     private IEnumerable<IListItem> BuildHomeLayoutItems(
+         IReadOnlyList<ShortcutLayoutEntry> layout,
+         List<TerminalShortcut> pinnedInOrder)
+     {
+@@ -339,6 +372,126 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
+                      showDefaultWorkspacesHeader: hasFavorites))
+         {
+             yield return item;
+         }
+     }
++
++    private void ScheduleProfileIconUpgrade(
++        IReadOnlyList<(ListItem Item, TerminalShortcut Shortcut)> targets,
++        int generation)
++    {
++        if (targets.Count == 0 || _disposed)
++        {
++            return;
++        }
++
++        _ = Task.Run(() =>
++        {
++            // #region agent log
++            var startedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
++            AgentDebugLog.Write(
++                "QuickShellPage.cs:IconUpgrade",
++                "start",
++                new { targetCount = targets.Count, generation },
++                runId: "post-fix",
++                hypothesisId: "G");
++            // #endregion
++
++            try
++            {
++                TerminalListIconCache.PrewarmProfiles();
++
++                var upgrades = new List<(ListItem Item, string Icon)>();
++                foreach (var (item, shortcut) in targets)
++                {
++                    if (_disposed || generation != _iconUpgradeGeneration)
++                    {
++                        return;
++                    }
++
++                    var upgraded = TerminalListIconCache.TryResolveUpgradedListIcon(shortcut);
++                    if (string.IsNullOrWhiteSpace(upgraded))
++                    {
++                        continue;
++                    }
++
++                    var fast = ShortcutHealth.GetListGlyph(shortcut, needsRepair: false);
++                    if (string.Equals(upgraded, fast, StringComparison.Ordinal))
++                    {
++                        continue;
++                    }
++
++                    upgrades.Add((item, upgraded));
++                }
++
++                if (upgrades.Count == 0 || _disposed || generation != _iconUpgradeGeneration)
++                {
++                    // #region agent log
++                    AgentDebugLog.Write(
++                        "QuickShellPage.cs:IconUpgrade",
++                        "complete-noop",
++                        new
++                        {
++                            generation,
++                            elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startedUtc,
++                        },
++                        runId: "post-fix",
++                        hypothesisId: "G");
++                    // #endregion
++                    return;
++                }
++
++                _pendingIconApplies = upgrades;
++                ExtensionCallbackQueue.Enqueue(() =>
++                {
++                    if (_disposed || generation != _iconUpgradeGeneration)
++                    {
++                        return;
++                    }
++
++                    ApplyPendingProfileIcons();
++                    RaiseItemsChanged();
++
++                    // #region agent log
++                    AgentDebugLog.Write(
++                        "QuickShellPage.cs:IconUpgrade",
++                        "applied",
++                        new
++                        {
++                            upgradedCount = upgrades.Count,
++                            generation,
++                            listIconPixels = TerminalListIconCache.ListIconPixels,
++                            elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startedUtc,
++                        },
++                        runId: "post-fix",
++                        hypothesisId: "G");
++                    // #endregion
++                });
++            }
++            catch (Exception ex)
++            {
++                // #region agent log
++                AgentDebugLog.WriteException(
++                    "QuickShellPage.cs:IconUpgrade",
++                    ex,
++                    hypothesisId: "G",
++                    runId: "post-fix");
++                // #endregion
++            }
++        });
++    }
++
++    private void ApplyPendingProfileIcons()
++    {
++        IReadOnlyList<(ListItem Item, string Icon)>? pending =
++            Interlocked.Exchange(ref _pendingIconApplies, null);
++        if (pending is null || pending.Count == 0)
++        {
++            return;
++        }
++
++        foreach (var (item, icon) in pending)
++        {
++            item.Icon = new IconInfo(icon);
++        }
++    }
+ }
+diff --git a/QuickShell/Pages/ShortcutFormLaunchSection.cs b/QuickShell/Pages/ShortcutFormLaunchSection.cs
+index 154940c..76f8d7d 100644
+--- a/QuickShell/Pages/ShortcutFormLaunchSection.cs
++++ b/QuickShell/Pages/ShortcutFormLaunchSection.cs
+@@ -8,11 +8,11 @@ internal static class ShortcutFormLaunchSection
+     public static List<LaunchRowDraft> CommandsFromShortcut(TerminalShortcut? shortcut, string fallbackLaunchTarget)
+     {
+         List<LaunchRowDraft> commands;
+         if (shortcut is null)
+         {
+-            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget }];
++            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget, IsEditorPlaceholder = true }];
+         }
+         else
+         {
+             ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
+             var launches = shortcut.Launches.OrderBy(entry => entry.Order).ToList();
+diff --git a/QuickShell/Pages/ShortcutFormPage.cs b/QuickShell/Pages/ShortcutFormPage.cs
+index cd8bc38..bf6dd09 100644
+--- a/QuickShell/Pages/ShortcutFormPage.cs
++++ b/QuickShell/Pages/ShortcutFormPage.cs
+@@ -1108,18 +1108,20 @@ internal sealed partial class ShortcutForm : FormContent
+         var fallbackLaunchTarget = GetDefaultRowLaunchTarget();
+         var merged = new List<LaunchRowDraft>();
+         for (var i = 0; i < count; i++)
+         {
+             var prior = i < existing.Count ? existing[i] : new LaunchRowDraft();
++            var command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command;
+             merged.Add(new LaunchRowDraft
+             {
+                 Id = prior.Id,
+-                Command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command,
++                Command = command,
+                 TaskType = TaskTypeCatalog.Normalize(data[$"LaunchType_{i}"]?.ToString() ?? prior.TaskType),
+                 LaunchTarget = data[$"LaunchTarget_{i}"]?.ToString()
+                     ?? prior.LaunchTarget
+                     ?? fallbackLaunchTarget,
++                IsEditorPlaceholder = string.IsNullOrWhiteSpace(command) && prior.IsEditorPlaceholder,
+             });
+         }
+ 
+         return merged;
+     }
+diff --git a/QuickShell/Pages/WorkspaceStatusPage.cs b/QuickShell/Pages/WorkspaceStatusPage.cs
+index 0d33771..6c009e1 100644
+--- a/QuickShell/Pages/WorkspaceStatusPage.cs
++++ b/QuickShell/Pages/WorkspaceStatusPage.cs
+@@ -10,30 +10,49 @@ namespace QuickShell.Pages;
+ 
+ internal sealed partial class WorkspaceStatusPage : ContentPage
+ {
+     private readonly TerminalShortcut _shortcut;
+     private readonly QuickShellSettingsManager _settings;
++    private readonly Action _onChanged;
++    private bool _commandsReady;
+ 
+     public WorkspaceStatusPage(
+         TerminalShortcut shortcut,
+         QuickShellSettingsManager settings,
+         Action onChanged)
+     {
+         _shortcut = shortcut;
+         _settings = settings;
++        _onChanged = onChanged;
+         Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
+         Name = "Workspace status";
+         Title = shortcut.Name;
+         Icon = new IconInfo("");
+-        Commands = BuildGitCommands(shortcut, settings, onChanged);
++        // Do not probe git status here. Home list builds this page for every
++        // workspace when attaching MoreCommands; defer until the page opens.
++        Commands = [];
+     }
+ 
+-    public override IContent[] GetContent() =>
+-        [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
++    public override IContent[] GetContent()
++    {
++        EnsureGitCommands();
++        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
++    }
+ 
+     private WorkspaceStatusForm? _form;
+ 
++    private void EnsureGitCommands()
++    {
++        if (_commandsReady)
++        {
++            return;
++        }
++
++        Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
++        _commandsReady = true;
++    }
++
+     private static CommandContextItem[] BuildGitCommands(
+         TerminalShortcut shortcut,
+         QuickShellSettingsManager settings,
+         Action onChanged)
+     {
+diff --git a/QuickShell/Program.cs b/QuickShell/Program.cs
+index b4fc3d2..c31ea1d 100644
+--- a/QuickShell/Program.cs
++++ b/QuickShell/Program.cs
+@@ -77,10 +77,35 @@ public class Program
+ 
+         // #region agent log
+         AgentDebugLog.Write("Program.cs:RunComServer", "com server started", hypothesisId: "E");
+         // #endregion
+ 
++        // Message-only HWND so Store update/uninstall can deliver WM_CLOSE / end-session
++        // instead of force-killing the quiescent COM host (HANG_QUIESCE).
++        using var packageShutdown = PackageServicingShutdownWatcher.Start(extensionDisposedEvent);
++        try
++        {
++            Console.CancelKeyPress += (_, e) =>
++            {
++                e.Cancel = true;
++                // #region agent log
++                AgentDebugLog.Write(
++                    "Program.cs:CancelKeyPress",
++                    "signal-exit",
++                    runId: "post-fix",
++                    hypothesisId: "S");
++                // #endregion
++                extensionDisposedEvent.Set();
++            };
++        }
++        catch (Exception ex)
++        {
++            // #region agent log
++            AgentDebugLog.WriteException("Program.cs:CancelKeyPress", ex, hypothesisId: "S", runId: "post-fix");
++            // #endregion
++        }
++
+         extensionDisposedEvent.WaitOne();
+         server.Stop();
+         server.UnsafeDispose();
+     }
+ }
+diff --git a/QuickShell/QuickShellCommandsProvider.cs b/QuickShell/QuickShellCommandsProvider.cs
+index 95ad889..e751c73 100644
+--- a/QuickShell/QuickShellCommandsProvider.cs
++++ b/QuickShell/QuickShellCommandsProvider.cs
+@@ -32,10 +32,11 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
+         // #region agent log
+         AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
+         // #endregion
+ 
+         GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
++        GitRepoIndex.ExtensionThreadPoster = ExtensionCallbackQueue.Enqueue;
+         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
+ 
+         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
+         {
+             // #region agent log
+@@ -192,10 +193,11 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
+         {
+             _fallbackPage.Value.Dispose();
+         }
+ 
+         QuickShellServices.Unbind();
++        GitRepoIndex.ExtensionThreadPoster = null;
+         _services.Dispose();
+         base.Dispose();
+         GC.SuppressFinalize(this);
+     }
+ }
+diff --git a/QuickShell/Services/SettingsCardJson.cs b/QuickShell/Services/SettingsCardJson.cs
+index b6782da..9811f14 100644
+--- a/QuickShell/Services/SettingsCardJson.cs
++++ b/QuickShell/Services/SettingsCardJson.cs
+@@ -60,49 +60,59 @@ internal static class SettingsCardJson
+           "data": { "action": "{{Escape(action)}}" }
+         }
+         """;
+ 
+     public static string RecentEnabledToggle(bool enabled) =>
+-        $$"""
+-        {
+-          "type": "Container",
+-          "spacing": "None",
+-          "items": [
+-            {
+-              "type": "Input.Toggle",
+-              "id": "showRecents",
+-              "title": "Show recent workspaces",
+-              "spacing": "None",
+-              "value": "{{(enabled ? "true" : "false")}}",
+-              "valueOn": "true",
+-              "valueOff": "false",
+-              {{ChangeActionSave("saveRecents")}}
+-            },
+-            {{SubtleText($"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page.")}}
+-          ]
+-        }
+-        """;
++        ToggleSetting(
++            id: "showRecents",
++            label: "Show recent workspaces",
++            help: $"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page.",
++            value: enabled,
++            saveAction: "saveRecents");
+ 
+     public static string MultiLaunchTabsToggle(bool singleWindowTabs, bool showWtHint) =>
++        ToggleSetting(
++            id: "singleWindowTabs",
++            label: "Open multiple commands in one Windows Terminal window",
++            help: showWtHint
++                ? "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
++                : "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows.",
++            value: singleWindowTabs,
++            saveAction: "saveMultiLaunch");
++
++    /// <summary>
++    /// CmdPal Adaptive Cards do not wrap <c>Input.Toggle</c> titles, so long titles overflow
++    /// neighboring columns. Put the label in a wrapping TextBlock and keep the toggle title short.
++    /// </summary>
++    public static string ToggleSetting(
++        string id,
++        string label,
++        string help,
++        bool value,
++        string saveAction) =>
+         $$"""
+         {
+           "type": "Container",
+           "spacing": "None",
+           "items": [
++            {
++              "type": "TextBlock",
++              "text": "{{Escape(label)}}",
++              "wrap": true,
++              "spacing": "None"
++            },
+             {
+               "type": "Input.Toggle",
+-              "id": "singleWindowTabs",
+-              "title": "Open multiple commands in one Windows Terminal window",
+-              "spacing": "None",
+-              "value": "{{(singleWindowTabs ? "true" : "false")}}",
++              "id": "{{Escape(id)}}",
++              "title": "Enabled",
++              "spacing": "Small",
++              "value": "{{(value ? "true" : "false")}}",
+               "valueOn": "true",
+               "valueOff": "false",
+-              {{ChangeActionSave("saveMultiLaunch")}}
++              {{ChangeActionSave(saveAction)}}
+             },
+-            {{SubtleText(showWtHint
+-                ? "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
+-                : "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows.")}}
++            {{SubtleText(help)}}
+           ]
+         }
+         """;
+ 
+     public static string TwoColumnSection(string leftJson, string rightJson) =>
+@@ -111,18 +121,19 @@ internal static class SettingsCardJson
+           "type": "ColumnSet",
+           "spacing": "Medium",
+           "columns": [
+             {
+               "type": "Column",
+-              "width": "1",
++              "width": "stretch",
+               "items": [
+                 {{leftJson}}
+               ]
+             },
+             {
+               "type": "Column",
+-              "width": "1",
++              "width": "stretch",
++              "spacing": "Medium",
+               "items": [
+                 {{rightJson}}
+               ]
+             }
+           ]

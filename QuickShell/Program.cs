@@ -79,6 +79,31 @@ public class Program
         AgentDebugLog.Write("Program.cs:RunComServer", "com server started", hypothesisId: "E");
         // #endregion
 
+        // Message-only HWND so Store update/uninstall can deliver WM_CLOSE / end-session
+        // instead of force-killing the quiescent COM host (HANG_QUIESCE).
+        using var packageShutdown = PackageServicingShutdownWatcher.Start(extensionDisposedEvent);
+        try
+        {
+            Console.CancelKeyPress += (_, e) =>
+            {
+                e.Cancel = true;
+                // #region agent log
+                AgentDebugLog.Write(
+                    "Program.cs:CancelKeyPress",
+                    "signal-exit",
+                    runId: "post-fix",
+                    hypothesisId: "S");
+                // #endregion
+                extensionDisposedEvent.Set();
+            };
+        }
+        catch (Exception ex)
+        {
+            // #region agent log
+            AgentDebugLog.WriteException("Program.cs:CancelKeyPress", ex, hypothesisId: "S", runId: "post-fix");
+            // #endregion
+        }
+
         extensionDisposedEvent.WaitOne();
         server.Stop();
         server.UnsafeDispose();

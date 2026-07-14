@@ -109,7 +109,20 @@ internal sealed partial class BehaviorSettingsForm : FormContent
               "type": "AdaptiveCard",
               "version": "1.6",
               "body": [
-                {{SettingsCardJson.TwoColumnSection(multiLaunchColumn, homeDisplayColumn)}}
+                {
+                  "type": "Container",
+                  "spacing": "None",
+                  "items": [
+                    {{multiLaunchColumn}}
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "spacing": "Medium",
+                  "items": [
+                    {{homeDisplayColumn}}
+                  ]
+                }
               ]
             }
             """;

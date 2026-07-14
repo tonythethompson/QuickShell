@@ -12,6 +12,9 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
 {
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
+    private readonly Action _onChanged;
+    private bool _commandsReady;
+    private WorkspaceStatusSnapshot? _snapshot;
 
     public WorkspaceStatusPage(
         TerminalShortcut shortcut,
@@ -20,39 +23,72 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     {
         _shortcut = shortcut;
         _settings = settings;
+        _onChanged = onChanged;
         Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");
-        Commands = BuildGitCommands(shortcut, settings, onChanged);
+        // Do not probe git status here. Home list builds this page for every
+        // workspace when attaching MoreCommands; defer until the page opens.
+        Commands = [];
     }
 
-    public override IContent[] GetContent() =>
-        [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
+    public override IContent[] GetContent()
+    {
+        EnsureGitCommands();
+        if (_form is not null)
+        {
+            _form.Refresh(_snapshot!);
+            return [_form];
+        }
+
+        return [_form = new WorkspaceStatusForm(
+            _shortcut,
+            _settings,
+            () => _form = null,
+            onRefresh: () => _commandsReady = false,
+            _snapshot!)];
+    }
 
     private WorkspaceStatusForm? _form;
+
+    private void EnsureGitCommands()
+    {
+        if (_commandsReady)
+        {
+            return;
+        }
+
+        _snapshot = WorkspaceStatusService.Capture(
+            _shortcut,
+            _settings.TerminalApplicationId,
+            _settings.DefaultProfileId,
+            forceRefresh: true);
+        Commands = BuildGitCommands(_shortcut, _settings, _onChanged, _snapshot);
+        _commandsReady = true;
+    }
 
     private static CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action onChanged)
+        Action onChanged,
+        WorkspaceStatusSnapshot? snapshot)
     {
-        if (!WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var status))
+        if (snapshot?.Git is null)
         {
             return [];
         }
 
-        var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
         var items = new List<CommandContextItem>
         {
-            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target))
+            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, snapshot.Git, snapshot.TargetBranch))
             {
                 Title = "Switch branch…",
                 Icon = new IconInfo(""),
             },
         };
 
-        if (!string.IsNullOrWhiteSpace(target))
+        if (!string.IsNullOrWhiteSpace(snapshot.TargetBranch))
         {
             items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged))
             {
@@ -70,17 +106,28 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
     private readonly Action _releaseForm;
+    private readonly Action _onRefresh;
 
     public WorkspaceStatusForm(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action releaseForm)
+        Action releaseForm,
+        Action onRefresh,
+        WorkspaceStatusSnapshot? initialSnapshot = null)
     {
         _shortcut = shortcut;
         _settings = settings;
         _releaseForm = releaseForm;
+        _onRefresh = onRefresh;
         TemplateJson = Template;
-        Refresh(forceRefresh: true);
+        if (initialSnapshot is not null)
+        {
+            Refresh(initialSnapshot);
+        }
+        else
+        {
+            Refresh(forceRefresh: true);
+        }
     }
 
     public override CommandResult SubmitForm(string inputs, string data) =>
@@ -95,6 +142,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         {
             case "refresh":
                 Refresh(forceRefresh: true);
+                _onRefresh();
                 return CommandResult.KeepOpen();
             case "copyDiagnostics":
                 LaunchDiagnosticsState.TryCopyLastReport(out var message);
@@ -114,6 +162,11 @@ internal sealed partial class WorkspaceStatusForm : FormContent
             _settings.TerminalApplicationId,
             _settings.DefaultProfileId,
             forceRefresh);
+        Refresh(snapshot);
+    }
+
+    internal void Refresh(WorkspaceStatusSnapshot snapshot)
+    {
         DataJson = new JsonObject
         {
             ["Launches"] = BuildLaunchSummary(_shortcut),

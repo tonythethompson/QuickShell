@@ -1,4 +1,6 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using System.Globalization;
+using System.Text;
 
 namespace QuickShell.Services;
 
@@ -62,45 +64,55 @@ internal static class SettingsCardJson
         """;
 
     public static string RecentEnabledToggle(bool enabled) =>
-        $$"""
-        {
-          "type": "Container",
-          "spacing": "None",
-          "items": [
-            {
-              "type": "Input.Toggle",
-              "id": "showRecents",
-              "title": "Show recent workspaces",
-              "spacing": "None",
-              "value": "{{(enabled ? "true" : "false")}}",
-              "valueOn": "true",
-              "valueOff": "false",
-              {{ChangeActionSave("saveRecents")}}
-            },
-            {{SubtleText($"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page.")}}
-          ]
-        }
-        """;
+        ToggleSetting(
+            id: "showRecents",
+            label: "Show recent workspaces",
+            help: $"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page.",
+            value: enabled,
+            saveAction: "saveRecents");
 
     public static string MultiLaunchTabsToggle(bool singleWindowTabs, bool showWtHint) =>
+        ToggleSetting(
+            id: "singleWindowTabs",
+            label: "Open multiple commands in one Windows Terminal window",
+            help: showWtHint
+                ? "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
+                : "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows.",
+            value: singleWindowTabs,
+            saveAction: "saveMultiLaunch");
+
+    /// <summary>
+    /// CmdPal Adaptive Cards do not wrap <c>Input.Toggle</c> titles, so long titles overflow
+    /// neighboring columns. Put the label in a wrapping TextBlock and keep the toggle title short.
+    /// </summary>
+    public static string ToggleSetting(
+        string id,
+        string label,
+        string help,
+        bool value,
+        string saveAction) =>
         $$"""
         {
           "type": "Container",
           "spacing": "None",
           "items": [
             {
+              "type": "TextBlock",
+              "text": "{{Escape(label)}}",
+              "wrap": true,
+              "spacing": "None"
+            },
+            {
               "type": "Input.Toggle",
-              "id": "singleWindowTabs",
-              "title": "Open multiple commands in one Windows Terminal window",
-              "spacing": "None",
-              "value": "{{(singleWindowTabs ? "true" : "false")}}",
+              "id": "{{Escape(id)}}",
+              "title": "Enabled",
+              "spacing": "Small",
+              "value": "{{(value ? "true" : "false")}}",
               "valueOn": "true",
               "valueOff": "false",
-              {{ChangeActionSave("saveMultiLaunch")}}
+              {{ChangeActionSave(saveAction)}}
             },
-            {{SubtleText(showWtHint
-                ? "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
-                : "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows.")}}
+            {{SubtleText(help)}}
           ]
         }
         """;
@@ -113,14 +125,15 @@ internal static class SettingsCardJson
           "columns": [
             {
               "type": "Column",
-              "width": "1",
+              "width": "stretch",
               "items": [
                 {{leftJson}}
               ]
             },
             {
               "type": "Column",
-              "width": "1",
+              "width": "stretch",
+              "spacing": "Medium",
               "items": [
                 {{rightJson}}
               ]
@@ -200,6 +213,53 @@ internal static class SettingsCardJson
         _ => "Good",
     };
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value)
+    {
+        if (value is null)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            switch (c)
+            {
+                case '\\':
+                    sb.Append("\\\\");
+                    break;
+                case '"':
+                    sb.Append("\\\"");
+                    break;
+                case '\b':
+                    sb.Append("\\b");
+                    break;
+                case '\f':
+                    sb.Append("\\f");
+                    break;
+                case '\n':
+                    sb.Append("\\n");
+                    break;
+                case '\r':
+                    sb.Append("\\r");
+                    break;
+                case '\t':
+                    sb.Append("\\t");
+                    break;
+                default:
+                    if (c < 0x20)
+                    {
+                        sb.Append("\\u").Append(((int)c).ToString("X4", CultureInfo.InvariantCulture));
+                    }
+                    else
+                    {
+                        sb.Append(c);
+                    }
+
+                    break;
+            }
+        }
+
+        return sb.ToString();
+    }
 }

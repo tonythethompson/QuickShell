@@ -10,6 +10,32 @@ internal static class TerminalLaunchGlyphs
         return launches.Count == 0 ? ShortcutGlyphs.NewWindow : GetForLaunch(launches[0]);
     }
 
+    /// <summary>
+    /// List/menu icon without resolving Windows Terminal profile icons on disk.
+    /// Profile icon probing is too slow for first paint of large workspace lists.
+    /// </summary>
+    public static string GetForList(TerminalShortcut shortcut)
+    {
+        var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
+        if (launches.Count == 0)
+        {
+            return ShortcutGlyphs.NewWindow;
+        }
+
+        return GetForList(launches[0]);
+    }
+
+    public static string GetForList(WorkspaceEntry launch)
+    {
+        var taskGlyph = TaskTypeCatalog.GetGlyph(launch.TaskType);
+        if (taskGlyph is not null)
+        {
+            return taskGlyph;
+        }
+
+        return GetFallbackGlyph(launch, profile: null);
+    }
+
     public static string GetForLaunch(WorkspaceEntry launch)
     {
         var profile = TerminalProfileResolver.ResolveForLaunch(launch);

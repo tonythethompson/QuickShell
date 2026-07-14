@@ -34,6 +34,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         // #endregion
 
         GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
+        GitRepoIndex.ExtensionThreadPoster = ExtensionCallbackQueue.Enqueue;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
@@ -194,6 +195,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         }
 
         QuickShellServices.Unbind();
+        GitRepoIndex.ExtensionThreadPoster = null;
         _services.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);
