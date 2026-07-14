@@ -105,6 +105,30 @@ internal static class SettingsCardJson
         }
         """;
 
+    public static string TwoColumnSection(string leftJson, string rightJson) =>
+        $$"""
+        {
+          "type": "ColumnSet",
+          "spacing": "Medium",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "1",
+              "items": [
+                {{leftJson}}
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "1",
+              "items": [
+                {{rightJson}}
+              ]
+            }
+          ]
+        }
+        """;
+
     public static string BuildChoicesJson(IEnumerable<ChoiceSetSetting.Choice> choices) =>
         string.Join(",\n", choices.Select(choice =>
             $$"""{ "title": "{{Escape(choice.Title)}}", "value": "{{Escape(choice.Value)}}" }"""));

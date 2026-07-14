@@ -133,9 +133,10 @@ internal static class ShortcutContextCommands
         TerminalShortcut shortcut,
         Action onChanged,
         QuickShellSettingsManager settings,
-        CreateShortcutCommand? createShortcutCommand = null)
+        CreateShortcutCommand? createShortcutCommand = null,
+        bool? needsRepair = null)
     {
-        if (ShortcutHealth.WouldNeedRepair(shortcut))
+        if (needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return BuildRepairOnly(shortcut, onChanged, settings);
         }

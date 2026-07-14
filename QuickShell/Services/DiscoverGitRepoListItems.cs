@@ -184,13 +184,15 @@ internal static class DiscoverGitRepoListItems
         var items = new List<CommandContextItem>(BuildDirectoryCommands(directory));
         foreach (var shortcut in matchingShortcuts)
         {
-            if (ShortcutHealth.WouldNeedRepair(shortcut))
+            const bool requireDirectoryExists = false;
+            var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
+            if (needsRepair)
             {
                 items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged))
                 {
                     Title = shortcut.Name,
                     Subtitle = Strings.RepairWorkspace,
-                    Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
+                    Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
                 });
                 continue;
             }
@@ -199,7 +201,7 @@ internal static class DiscoverGitRepoListItems
             {
                 Title = shortcut.Name,
                 Subtitle = Strings.OpenWorkspace,
-                Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut)),
+                Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
             });
 
             items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged))
