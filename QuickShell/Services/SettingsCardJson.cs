@@ -1,6 +1,5 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using System.Globalization;
-using System.Text;
+using System.Text.Json;
 
 namespace QuickShell.Services;
 
@@ -213,53 +212,6 @@ internal static class SettingsCardJson
         _ => "Good",
     };
 
-    private static string Escape(string value)
-    {
-        if (value is null)
-        {
-            return string.Empty;
-        }
-
-        var sb = new StringBuilder(value.Length);
-        foreach (var c in value)
-        {
-            switch (c)
-            {
-                case '\\':
-                    sb.Append("\\\\");
-                    break;
-                case '"':
-                    sb.Append("\\\"");
-                    break;
-                case '\b':
-                    sb.Append("\\b");
-                    break;
-                case '\f':
-                    sb.Append("\\f");
-                    break;
-                case '\n':
-                    sb.Append("\\n");
-                    break;
-                case '\r':
-                    sb.Append("\\r");
-                    break;
-                case '\t':
-                    sb.Append("\\t");
-                    break;
-                default:
-                    if (c < 0x20)
-                    {
-                        sb.Append("\\u").Append(((int)c).ToString("X4", CultureInfo.InvariantCulture));
-                    }
-                    else
-                    {
-                        sb.Append(c);
-                    }
-
-                    break;
-            }
-        }
-
-        return sb.ToString();
-    }
+    private static string Escape(string? value) =>
+        value is null ? string.Empty : JsonEncodedText.Encode(value).Value;
 }
