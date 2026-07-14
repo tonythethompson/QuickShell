@@ -1,6 +1,8 @@
 # QuickShell Architectural Audit
 **Principal Software Architect Review** — July 2026
 
+> **As-built tours (current):** see [README.md](./README.md) and the linked overview/launch/persistence/forms/intelligence/companions pages. This audit is a point-in-time review and proposal set; parts may already be implemented.
+
 QuickShell is a feature-rich PowerToys Command Palette extension (with a PowerToys Run plugin and a TypeScript Raycast-for-Windows extension that mirrors workspace concepts) that enables terminal-centric users to manage “workspaces” (project folders + multi-launch configurations), launch them in any discovered terminal profile (Windows Terminal, WSL, classic shells, Intelligent Terminal), handle git worktrees/branches, perform health checks, and edit everything in-palette. It is built on .NET 10 with the Microsoft.CommandPalette.Extensions SDK (v0.11.x), MSIX packaging, AOT/trimming, and a cleanly separated `QuickShell.Core` library. Raycast does **not** consume the .NET Core assembly — it reimplements shared concepts in TypeScript for parity.
 
 ---

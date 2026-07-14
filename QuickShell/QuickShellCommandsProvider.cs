@@ -29,17 +29,30 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public QuickShellCommandsProvider()
     {
+        // #region agent log
+        AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
+        // #endregion
+
         GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
+            // #endregion
             _settingsManager = new QuickShellSettingsManager(ReloadPages);
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
+            // #endregion
             _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
         {
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
+            // #endregion
             var collection = new ServiceCollection();
             collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages);
             _services = collection.BuildServiceProvider();
@@ -48,6 +61,13 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
             QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager));
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
+            // #region agent log
+            AgentDebugLog.Write(
+                "QuickShellCommandsProvider.cs:ctor",
+                "after composition root",
+                new { shortcutCount = shortcuts.GetShortcuts().Count },
+                hypothesisId: "B");
+            // #endregion
             KickoffGitRepoIndexPrewarm();
         }
 
@@ -58,10 +78,16 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
         {
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
+            // #endregion
             _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
             _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after page setup", hypothesisId: "D");
+            // #endregion
         }
 
         var settingsPage = _settingsManager.SettingsPage;
@@ -99,17 +125,23 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 #endif
                     },
                     ..ShortcutContextCommands.BuildUndoRedoCommands(ReloadPages),
+#if DEBUG
                     new CommandContextItem(new CmdPalFormReproIndexPage())
                     {
                         Title = "CmdPal form repros",
                         Icon = new IconInfo("\uE8FD"),
                     },
+#endif
                 ],
             },
         ];
 
         _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_settingsManager, ReloadPages));
         _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand, _settingsManager)];
+
+        // #region agent log
+        AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
+        // #endregion
     }
 
     public override ICommandItem[] TopLevelCommands() => _commands;
