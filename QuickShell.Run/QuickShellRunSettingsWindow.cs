@@ -16,7 +16,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     private readonly QuickShellSettingsReader _settings;
 
-    private readonly ShortcutRepository _shortcuts;
+    private readonly IShortcutRepository _shortcuts;
 
     private readonly ComboBox _terminalAppBox;
 
@@ -38,7 +38,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         QuickShellSettingsReader settings,
 
-        ShortcutRepository shortcuts)
+        IShortcutRepository shortcuts)
 
     {
 
@@ -542,7 +542,7 @@ internal static class QuickShellRunSettingsDialog
 
 {
 
-    public static void Show(QuickShellSettingsReader settings, ShortcutRepository shortcuts)
+    public static void Show(QuickShellSettingsReader settings, IShortcutRepository shortcuts)
 
     {
 

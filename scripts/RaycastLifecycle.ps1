@@ -130,7 +130,7 @@ function Deploy-RaycastExtension {
 
     Push-Location $raycastRoot
     try {
-        if (-not (Test-Path 'node_modules')) {
+        if (-not (Test-Path 'node_modules/@raycast/api')) {
             Write-Host 'Installing Raycast extension dependencies...'
             npm install
             if ($LASTEXITCODE -ne 0) {

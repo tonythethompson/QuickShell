@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
+using QuickShell.Classification;
+
 namespace QuickShell.Services;
 
 internal static class ProjectClassificationCache
@@ -27,7 +29,7 @@ internal static class ProjectClassificationCache
             return cached.Classification;
         }
 
-        var classification = ProjectClassifier.Classify(normalized);
+        var classification = ProjectAnalysisAccessor.Instance.Classify(normalized);
         Entries[normalized] = new CacheEntry(fingerprint, classification);
         TrackInsertion(normalized);
         return classification;

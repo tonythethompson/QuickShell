@@ -250,6 +250,52 @@ function Test-NeedsAdminElevation {
     }
 }
 
+function Get-ExpectedAppVersion {
+    param([string]$Root)
+
+    $propsPath = Join-Path $Root 'Directory.Build.props'
+    if (-not (Test-Path $propsPath)) {
+        throw "Missing Directory.Build.props at $propsPath"
+    }
+
+    [xml]$props = Get-Content $propsPath
+    $version = $props.Project.PropertyGroup.AppVersion | Select-Object -First 1
+    if (-not $version) {
+        throw 'AppVersion not found in Directory.Build.props'
+    }
+
+    return [string]$version
+}
+
+function Assert-QuickShellMsixInstalled {
+    param([string]$Root)
+
+    $expectedVersion = Get-ExpectedAppVersion -Root $Root
+    $package = Get-AppxPackage -Name 'tonythethompson.536944BA0D095' -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+
+    if (-not $package) {
+        throw 'Quick Shell MSIX is not installed (tonythethompson.536944BA0D095).'
+    }
+
+    if ([string]$package.Version -ne $expectedVersion) {
+        Write-Warning "Installed MSIX version $($package.Version) differs from repo AppVersion $expectedVersion."
+    }
+    else {
+        Write-Host "Verified MSIX $($package.Name) v$($package.Version)" -ForegroundColor Green
+        Write-Host "  InstallLocation: $($package.InstallLocation)" -ForegroundColor DarkGray
+    }
+
+    $wingetExe = Join-Path $env:LOCALAPPDATA 'Programs\QuickShell\QuickShell.exe'
+    if (Test-Path $wingetExe) {
+        Write-Warning @"
+WinGet/EXE install detected at $wingetExe.
+This can conflict with the dev MSIX (CmdPal may load the wrong registration).
+Uninstall tonythethompson.QuickShellforCmdPal via winget or Settings before the dev MSIX loop.
+"@
+    }
+}
+
 function Get-DeployArgumentList {
     $argList = @(
         '-NoProfile',
@@ -341,25 +387,39 @@ QuickShell will use NuGet Microsoft.CommandPalette.Extensions.
     $installed = @(
         Get-AppxPackage -Name 'tonythethompson.536944BA0D095' -ErrorAction SilentlyContinue
         Get-AppxPackage -Name 'QuickShell' -ErrorAction SilentlyContinue
-    )
-    foreach ($package in $installed) {
-        Write-Host "Removing previous install $($package.PackageFullName)..."
-        Remove-AppxPackage -Package $package.PackageFullName
-    }
+    ) | Where-Object { $_ }
 
+    $installError = $null
     try {
-        Add-AppxPackage -Path $msix.FullName
+        Add-AppxPackage -Path $msix.FullName -ForceUpdateFromAnyVersion
     }
     catch {
-        throw @"
-Package install failed because the dev certificate is not trusted.
+        $installError = $_.Exception.Message
+        if ($installed) {
+            Write-Host 'In-place upgrade failed; removing previous install before retry...' -ForegroundColor Yellow
+            foreach ($package in $installed) {
+                Write-Host "Removing $($package.PackageFullName)..."
+                Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue
+            }
+        }
+
+        try {
+            Add-AppxPackage -Path $msix.FullName
+        }
+        catch {
+            throw @"
+Package install failed because the dev certificate is not trusted or the MSIX could not be installed.
 
 Run deploy as administrator (omit -SkipElevation) so the cert is trusted machine-wide:
   powershell -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -RecreateCertificate
 
 Original error: $($_.Exception.Message)
+$(if ($installError) { "Upgrade attempt: $installError" })
 "@
+        }
     }
+
+    Assert-QuickShellMsixInstalled -Root $ProjectRoot
 
     Write-Host ''
     Write-Host 'Quick Shell installed.' -ForegroundColor Green

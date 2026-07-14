@@ -7,7 +7,7 @@ namespace QuickShell.Run;
 
 internal static class RunFileDialogs
 {
-    public static bool TryExportShortcuts(ShortcutRepository shortcuts, Window? owner, out string message)
+    public static bool TryExportShortcuts(IShortcutRepository shortcuts, Window? owner, out string message)
     {
         var dialog = new SaveFileDialog
         {
@@ -36,7 +36,7 @@ internal static class RunFileDialogs
     }
 
     public static bool TryImportShortcuts(
-        ShortcutRepository shortcuts,
+        IShortcutRepository shortcuts,
         Window? owner,
         bool replace,
         out string message)
