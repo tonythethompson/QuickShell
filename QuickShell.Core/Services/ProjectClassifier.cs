@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -399,15 +400,9 @@ internal static partial class ProjectClassifier
             {
                 // PERF: Read line by line instead of allocating the whole file as a single string
                 // Reduces memory usage and allows early exit.
-                foreach (var line in File.ReadLines(path))
-                {
-                    if (line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
-                        || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-                return false;
+                return File.ReadLines(path).Any(line =>
+                    line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
+                    || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
