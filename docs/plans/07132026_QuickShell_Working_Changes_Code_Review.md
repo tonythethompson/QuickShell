@@ -16,8 +16,8 @@ Recommendation: Either rename the helper to make it clear it is synchronous or i
 Medium Priority
 4. DiscoverGitReposPage may spin RefreshItems while waiting for the git scan
 Files: DiscoverGitReposPage.cs lines 31–47, 109–139
-Issue: GetItems calls ScheduleRefreshItems whenever _needsInitialRefresh is true and _refreshScheduled is false. If RefreshItems early-returns because the git scan is still in flight, it leaves _needsInitialRefresh true and does not call RaiseItemsChanged. The next GetItems call will schedule RefreshItems again. Because SchedulePostNavigationRefresh is synchronous, this can call RefreshItems repeatedly while the background scan is in progress.
-Recommendation: Set _needsInitialRefresh = false after the first attempt (or add a small throttle) so RefreshItems is not scheduled on every GetItems while waiting.
+Issue: When RefreshItems waits for an in-flight scan, it sets _awaitingGitRefresh = true; GetItems then suppresses the initial refresh branch and waits for !GitRepoIndex.IsRefreshInFlight before scheduling again.
+Recommendation: Remove this item.
 5. TerminalListIconCache metadata I/O is not fully guarded
 Files: TerminalListIconCache.cs lines 85–132
 Issue: The timestamp calls are already inside a try/catch that returns sourcePath on failure, so metadata I/O does not escape CreateOrGetResizedPath as described.
