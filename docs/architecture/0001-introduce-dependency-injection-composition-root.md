@@ -1,6 +1,6 @@
 # PR: Introduce Dependency Injection + Composition Root in `QuickShell.Core`
 
-**Status:** Proposed (ready for implementation)
+**Status:** Partial — see [proposal-status.md](./proposal-status.md) (DI composition landed; many statics remain)
 **Type:** Foundational Refactor / Architectural Improvement  
 **Priority:** P0  
 **Estimated Effort:** Medium (~1–2 days focused work)  

@@ -1,5 +1,7 @@
 # PR Proposal: 0004 — Consolidate Discovery / Classifier / Task Suggestion Helpers via Registry + Plugin Pattern
 
+**Status:** Not started — see [proposal-status.md](./proposal-status.md)
+
 **Title**  
 Consolidate Discovery / Classifier / Task Suggestion Helpers (~90 `Services/` files; start with the intelligence cluster) into a Registry + Plugin Architecture
 
