@@ -345,7 +345,12 @@ For contributors and local MSIX installs (recommended for development):
 **Prerequisites:** Windows 11, .NET 10 SDK, Visual Studio 2022 (Windows workload), PowerToys with Command Palette enabled.
 
 ```powershell
-# Default dev loop: stop CmdPal, build/install MSIX, start CmdPal
+# All surfaces (CmdPal MSIX + Run plugin + Raycast)
+.\scripts\ddeploy.ps1
+# same as:
+.\scripts\deploy-all.ps1
+
+# CmdPal only: stop CmdPal, build/install signed MSIX, start CmdPal
 .\scripts\deploy.ps1
 
 # Same, with local PowerToys CmdPal SDK (sibling PowerToys checkout)
@@ -353,11 +358,22 @@ For contributors and local MSIX installs (recommended for development):
 
 # Skip UAC entirely (trusts cert in CurrentUser\TrustedPeople)
 .\scripts\deploy.ps1 -SkipElevation
+.\scripts\ddeploy.ps1 -SkipElevation
 ```
 
 After the first successful install, `deploy.ps1` stays in your current terminal. It only elevates when the dev certificate is not trusted yet. Approve UAC once if prompted; later runs skip elevation automatically.
 
-Then run **Reload Command Palette Extension** in Command Palette.
+**Required after every CmdPal deploy:** run **Reload Command Palette Extension** in Command Palette, then search **Quick Shell**.
+
+**Dev deploy from workspaces:** install launcher shortcuts into your shared shortcuts file, then reload the extension:
+
+```powershell
+.\scripts\install-dev-deploy-shortcuts.ps1
+```
+
+This adds `ddeploy`, `dcmd`, `drun`, and `dray` workspaces that run the scripts above from PowerShell.
+
+**WinGet EXE vs dev MSIX:** `winget install tonythethompson.QuickShellforCmdPal` installs an unpackaged EXE with COM registration. The dev loop installs a signed MSIX (`tonythethompson.536944BA0D095`). Both target Command Palette but use different registration paths. For local development, uninstall the WinGet CmdPal-only package before using `deploy.ps1`, or CmdPal may load the wrong build. `deploy.ps1` warns when it detects `%LOCALAPPDATA%\Programs\QuickShell\QuickShell.exe`.
 
 ---
 

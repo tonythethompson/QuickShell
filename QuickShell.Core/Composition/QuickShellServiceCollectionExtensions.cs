@@ -1,5 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
+using QuickShell.Classification.Classifiers;
+using QuickShell.Classification.Detectors;
 using QuickShell.Services;
 
 namespace QuickShell.Composition;
@@ -39,6 +43,24 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IGitRepoIndex, GitRepoIndexService>();
         services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperationsService>();
         services.AddTransient<IWorkspaceHealthChecker, WorkspaceHealthCheckerService>();
+
+        services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
+        services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, DotNetProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, DockerComposeProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, TaskRunnerProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, RustProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, PythonProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, EditorProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, GoProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, JavaProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, DenoProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, ProcfileProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, RubyProjectClassifier>();
+        services.AddSingleton<IProjectClassifier, ElixirProjectClassifier>();
+        services.AddSingleton<ICompanionAppDetector, CompanionAppDetector>();
+        services.AddSingleton<IDevServerDetector, DevServerDetector>();
+        services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
 
         return services;
     }

@@ -3,7 +3,11 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Windows.Controls;
 using ManagedCommon;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PowerToys.Settings.UI.Library;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Services;
 using Wox.Plugin;
@@ -35,7 +39,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private PluginInitContext? _context;
     private string _iconPath = string.Empty;
-    private ShortcutRepository? _shortcuts;
+    private ServiceProvider? _services;
+    private IShortcutRepository? _shortcuts;
     private QuickShellSettingsReader? _settings;
     private QuickShellRunSettingsPanel? _settingsPanel;
     private string _lastQuery = string.Empty;
@@ -54,7 +59,11 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         using var startupTrace = StartupPerformanceTrace.Measure("Run plugin init");
         using (StartupPerformanceTrace.Measure("Run services setup"))
         {
-            _shortcuts = new ShortcutRepository();
+            var collection = new ServiceCollection();
+            collection.AddQuickShellCore();
+            _services = collection.BuildServiceProvider();
+            _shortcuts = _services.GetRequiredService<IShortcutRepository>();
+            ProjectAnalysisAccessor.Instance = _services.GetRequiredService<IProjectAnalysisService>();
             _settings = new QuickShellSettingsReader();
             _context = context;
             UpdateIconPath(context.API.GetCurrentTheme());
@@ -63,7 +72,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
         using (StartupPerformanceTrace.Measure("Run shortcut preload kickoff"))
         {
-            BeginShortcutPreload(_shortcuts);
+            if (_shortcuts is ShortcutRepository repository)
+            {
+                BeginShortcutPreload(repository);
+            }
         }
     }
 
@@ -93,7 +105,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             _context.API.ThemeChanged -= OnThemeChanged;
         }
 
-        _shortcuts?.Dispose();
+        _services?.Dispose();
+        _services = null;
+        _shortcuts = null;
         _disposed = true;
         GC.SuppressFinalize(this);
     }
@@ -119,7 +133,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     public void UpdateSettings(PowerLauncherPluginSettings settings) =>
         _settingsPanel?.UpdateSettings(settings);
 
-    private ShortcutRepository Shortcuts =>
+    private IShortcutRepository Shortcuts =>
         _shortcuts ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
 
     private QuickShellSettingsReader Settings =>

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
 
@@ -25,14 +26,18 @@ internal sealed class QuickShellServices
 
     public QuickShellSettingsManager Settings { get; }
 
+    public IProjectAnalysisService ProjectAnalysis { get; }
+
     public QuickShellServices(
         ShortcutRepository shortcuts,
         ShortcutDraftStore drafts,
-        QuickShellSettingsManager settings)
+        QuickShellSettingsManager settings,
+        IProjectAnalysisService projectAnalysis)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
         BeginShortcutPreload();
     }
 

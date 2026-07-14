@@ -3,6 +3,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(TerminalLauncherOverrideCollection.Name)]
 public sealed class WorkspaceStatusSnapshotTests
 {
     [Fact]

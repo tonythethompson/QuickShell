@@ -1,3 +1,5 @@
+using QuickShell.Classification;
+
 namespace QuickShell.Services;
 
 internal static class TaskTypeCommandSuggestion
@@ -108,7 +110,7 @@ internal static class TaskTypeCommandSuggestion
             return false;
         }
 
-        var classification = ProjectClassifier.Classify(directory);
+        var classification = ProjectAnalysisAccessor.Instance.Classify(directory);
         var suggestions = WorkspaceSetupSuggestion.Build(directory, classification);
         context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification);
         return true;
