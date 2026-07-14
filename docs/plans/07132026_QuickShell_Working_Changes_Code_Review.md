@@ -29,8 +29,8 @@ Recommendation: Either refresh Commands when GetContent is re-entered, or ensure
 Low Priority / Pattern Issues
 7. SettingsCardJson.Escape is a fragile manual JSON escaper
 Files: SettingsCardJson.cs lines 214–215
-Issue: It only escapes \ and ". Newlines, tabs, control characters, etc. are not escaped. AdaptiveCardFormJson already uses JsonSerializer.Serialize for escaping; SettingsCardJson should do the same for consistency and safety.
-Note: Currently only controlled strings are passed in, so this is not an active bug, but it is a pattern violation.
+Issue: Escape handles the standard control escapes and encodes remaining characters below 0x20 as \uXXXX, so the stated JSON escaping gap is not present.
+Note: Remove this item.
 8. ShortcutHealth.GetListGlyph uses GetForList but OpenTerminalShortcutCommand also does
 Files: ShortcutHealth.cs lines 39–44; QuickShell/Commands/OpenTerminalShortcutCommand.cs lines 137–142
 Issue: OpenTerminalShortcutCommand.ResolveLaunchIcon now uses TerminalLaunchGlyphs.GetForList for the runAsStandard case. This is correct for the ListItem first paint, but OpenTerminalShortcutCommand is also used as the context menu command "Run normally". The context menu command’s icon will therefore be the fast fallback glyph, not the actual profile icon. This may be an intentional performance trade-off, but it is a UI regression for the context menu.
