@@ -258,7 +258,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
         var refreshAction = AdaptiveCardFormJson.IconSubmitAction(
 
-            FormActionGlyphs.RefreshLabel,
+            FormActionGlyphs.Refresh,
 
             FormActionGlyphs.RefreshProfileListTooltip,
 
@@ -268,7 +268,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
         var saveAction = AdaptiveCardFormJson.IconSubmitAction(
 
-            FormActionGlyphs.SaveLabel,
+            FormActionGlyphs.Save,
 
             FormActionGlyphs.SaveTerminalDefaultsTooltip,
 

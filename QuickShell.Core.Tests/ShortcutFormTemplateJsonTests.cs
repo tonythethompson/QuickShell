@@ -111,7 +111,7 @@ public sealed class ShortcutFormTemplateJsonTests
     {
         var template = BuildDefaultTemplate(["dir", string.Empty]);
         Assert.Contains("\"id\": \"LaunchTarget_0\"", template, StringComparison.Ordinal);
-        Assert.Contains(FormActionGlyphs.RefreshLabel, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.Refresh, template, StringComparison.Ordinal);
         Assert.Contains("refreshTerminals", template, StringComparison.Ordinal);
         Assert.Contains(FormActionGlyphs.RefreshProfileListTooltip, template, StringComparison.Ordinal);
         Assert.Contains(FormActionGlyphs.ClearCommandTooltip, template, StringComparison.Ordinal);
@@ -123,8 +123,8 @@ public sealed class ShortcutFormTemplateJsonTests
         Assert.DoesNotContain("+ Add command", template, StringComparison.Ordinal);
         Assert.DoesNotContain("\"title\": \"Browse folder\"", template, StringComparison.Ordinal);
         Assert.DoesNotContain("\"title\": \"Paste path\"", template, StringComparison.Ordinal);
-        Assert.Contains(FormActionGlyphs.BrowseLabel, template, StringComparison.Ordinal);
-        Assert.Contains(FormActionGlyphs.PasteLabel, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.FolderOpen, template, StringComparison.Ordinal);
+        Assert.Contains(FormActionGlyphs.Paste, template, StringComparison.Ordinal);
         Assert.Contains(FormActionGlyphs.BrowseFolderTooltip, template, StringComparison.Ordinal);
         Assert.Contains(FormActionGlyphs.PastePathTooltip, template, StringComparison.Ordinal);
         Assert.Contains("\"text\": \"Commands\"", template, StringComparison.Ordinal);

@@ -2,7 +2,7 @@ name: Cline PR Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review]
+    types: [opened, ready_for_review]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -29,12 +29,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "npm"
@@ -47,16 +47,16 @@ jobs:
         # and ensure the corresponding secret is set in your repo settings.
         run: |
           cline auth --provider cline-pass \
-            --apikey "${{ secrets.CLINE_API_KEY }}" \
+            --apikey "${{ secrets.CLINE_API_KEY}}" \
             --modelid cline-pass/deepseek-v4-pro
 
       - name: Get PR number
         id: pr
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "number=${{ inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+            echo "number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
           else
-            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Review PR with Cline
@@ -81,44 +81,21 @@ jobs:
               ]
             }
         run: |
-          # Build prompt via heredoc to avoid backtick shell expansion
-          PROMPT=$(cat <<'CLINEPROMPT'
-          You are a GitHub PR reviewer for this repository. Your goal is to give the PR author helpful feedback and give maintainers the context they need to review efficiently.
+          cline --auto-approve true 'You are a GitHub PR reviewer for this repository. Your goal is to give the PR author helpful feedback and give maintainers the context they need to review efficiently.
 
-          PR: #${PR_NUMBER}
+          PR: #'"${PR_NUMBER}"'
 
           ## Gather context
           Use `gh` commands to fetch the PR diff, details, and checks.
 
           ```bash
           # Get full PR details
-          gh pr view '${PR_NUMBER}' --json number,title,body,author,createdAt,updatedAt,isDraft,labels,commits,files,additions,deletions,changedFiles,baseRefName,headRefName,mergeable,reviewDecision
+          gh pr view '"${PR_NUMBER}"' --json number,title,body,author,createdAt,updatedAt,isDraft,labels,commits,files,additions,deletions,changedFiles,baseRefName,headRefName,mergeable,reviewDecision
 
           # Get the diff
-          gh pr diff '${PR_NUMBER}'
+          gh pr diff '"${PR_NUMBER}"'
 
           # Check CI status
-          gh pr checks '${PR_NUMBER}'
+          gh pr checks '"${PR_NUMBER}"'
           ```
-
-          ## Review systematically
-
-          1. **Architecture fit** — does the change respect dependency direction? No domain → infra leaks.
-          2. **No fake readiness** — provider registered ≠ model downloaded ≠ stage ran ≠ stage succeeded.
-          3. **Pipeline stage rules** — original artifacts preserved on skip/fail. Statuses distinguish success/skipped/failed/disabled.
-          4. **Cross-platform** — no Win32-only assumptions unless Windows-only boundary.
-          5. **License/model gates** — new model references must have manifest entry + known commercial license.
-
-          ## Output format
-          - Concise Markdown
-          - Severity tags: **blocker** / **major** / **minor** / **nit**
-          - File path + specific fix per finding
-          - If no issues found, say so in one sentence
-          CLINEPROMPT
-          )
-
-          # Substitute PR_NUMBER in bash (not in heredoc)
-          PROMPT="${PROMPT//\$\{PR_NUMBER\}/${PR_NUMBER}}"
-          PROMPT="${PROMPT//\$\{GITHUB_REPO\}/${GITHUB_REPO}}"
-
-          cline --auto-approve true "$PROMPT"
+          '

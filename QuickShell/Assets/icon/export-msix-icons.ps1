@@ -1,7 +1,8 @@
 # Quick Shell MSIX icon exports (sources under QuickShell/Assets/icon):
 #   micro-smooth @ 32px -> 16px
 #   sharp SVG + crispEdges -> 24-48, 64px
-#   flat SVG -> 50px StoreLogo + 128-1024px MSIX ladder + scale-200 variants
+#   flat SVG supersample 100px -> 50px StoreLogo
+#   flat SVG -> 128-1024px MSIX ladder + scale-200 variants
 #   soft SVG -> marketing 128px
 #   filtered SVG -> marketing 256px+
 # MSIX packaging PNGs are written to QuickShell/Assets/ (manifest paths).
@@ -76,6 +77,23 @@ function Export-Micro16 {
   }
 }
 
+function Export-Supersampled {
+  param(
+    [Parameter(Mandatory)] [string] $SvgPath,
+    [Parameter(Mandatory)] [string] $OutPath,
+    [Parameter(Mandatory)] [int] $RenderWidth,
+    [Parameter(Mandatory)] [int] $OutputSize
+  )
+  $temp = Join-Path $exportDir "temp-$OutputSize-$([guid]::NewGuid().ToString('N')).png"
+  try {
+    Export-Icon -SvgPath $SvgPath -OutPath $temp -Width $RenderWidth -ShapeRendering 2 -ImageRendering 0
+    Downscale-Png -SrcPath $temp -DstPath $OutPath -Size $OutputSize
+  }
+  finally {
+    if (Test-Path $temp) { Remove-Item -Force $temp }
+  }
+}
+
 New-Item -ItemType Directory -Force -Path $exportDir, $marketingDir | Out-Null
 
 $sharpSizes = @(24, 32, 44, 48, 64)
@@ -86,7 +104,7 @@ foreach ($s in $sharpSizes) {
 }
 
 Export-Micro16 -SvgPath $microSmoothSrc -OutPath (Join-Path $exportDir 'quickshell-icon-16.png')
-Export-Icon -SvgPath $flatSrc -OutPath (Join-Path $exportDir 'quickshell-icon-50.png') -Width 50 -ShapeRendering 2
+Export-Supersampled -SvgPath $flatSrc -OutPath (Join-Path $exportDir 'quickshell-icon-50.png') -RenderWidth 100 -OutputSize 50
 
 foreach ($s in $flatSizes) {
   Export-Icon -SvgPath $flatSrc -OutPath (Join-Path $exportDir "quickshell-icon-$s.png") -Width $s -ShapeRendering 2
@@ -142,6 +160,6 @@ Write-Host "  Preview:         $exportDir"
 Write-Host "  MSIX packaging:  $assetsDir"
 Write-Host '  Micro smooth:    16 px (32px AA render, downscaled)'
 Write-Host "  Sharp (solid):   24, 32, 44, 48, 64 px"
-Write-Host '  Store logo:      50 px (flat resvg, same pipeline as other MSIX sizes)'
+Write-Host '  Store logo:      50 px (100px flat supersample)'
 Write-Host "  Flat (MSIX):     $($flatSizes -join ', ') px + wide tile"
 Write-Host '  Store posters:   PosterArt_720x1080, PosterArt_1440x2160'

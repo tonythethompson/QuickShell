@@ -11,6 +11,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
 
     public WorkspaceHealthCheckTests()
     {
+        WorkspaceStatusService.ResetCacheForTests();
         _root = Path.Combine(Path.GetTempPath(), "quickshell-health-check-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         WorkspaceHealthCheck.ExecutableExistsOverride = executable =>

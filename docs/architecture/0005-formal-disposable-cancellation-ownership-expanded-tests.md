@@ -1,7 +1,5 @@
 # PR Proposal: 0005
 
-**Status:** Partial — see [proposal-status.md](./proposal-status.md)
-
 **Title:**  
 Formalize `IDisposable` / `IAsyncDisposable` Ownership + Cancellation Token Discipline + Expanded Test Coverage
 

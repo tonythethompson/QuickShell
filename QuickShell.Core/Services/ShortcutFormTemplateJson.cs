@@ -94,12 +94,12 @@ internal static class ShortcutFormTemplateJson
                 """,
                 $$"""
                 {{AdaptiveCardFormJson.IconSubmitAction(
-                    FormActionGlyphs.BrowseLabel,
+                    FormActionGlyphs.FolderOpen,
                     FormActionGlyphs.BrowseFolderTooltip,
                     "browse",
                     "none")}},
                 {{AdaptiveCardFormJson.IconSubmitAction(
-                    FormActionGlyphs.PasteLabel,
+                    FormActionGlyphs.Paste,
                     FormActionGlyphs.PastePathTooltip,
                     "paste",
                     "none")}}

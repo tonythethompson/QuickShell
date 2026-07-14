@@ -258,12 +258,12 @@ internal sealed partial class ShortcutDetailsForm : FormContent
             """,
             $$"""
             {{AdaptiveCardFormJson.IconSubmitAction(
-                FormActionGlyphs.BrowseLabel,
+                FormActionGlyphs.FolderOpen,
                 FormActionGlyphs.BrowseFolderTooltip,
                 "browse",
                 "auto")}},
             {{AdaptiveCardFormJson.IconSubmitAction(
-                FormActionGlyphs.PasteLabel,
+                FormActionGlyphs.Paste,
                 FormActionGlyphs.PastePathTooltip,
                 "paste",
                 "auto")}}

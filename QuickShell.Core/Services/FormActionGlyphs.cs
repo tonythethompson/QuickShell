@@ -9,19 +9,6 @@ internal static class FormActionGlyphs
 
     public const string Save = "\uE74E";
 
-    /// <summary>Visible button labels for CmdPal forms (Segoe MDL2 glyphs in titles render as missing glyphs).</summary>
-    public const string RefreshLabel = "Refresh";
-
-    public const string SaveLabel = "Save";
-
-    public const string BrowseLabel = "Browse";
-
-    public const string PasteLabel = "Paste";
-
-    public const string AddLabel = "Add";
-
-    public const string RemoveLabel = "Remove";
-
     public const string Add = "\uE710";
 
     public const string Remove = "\uE74D";

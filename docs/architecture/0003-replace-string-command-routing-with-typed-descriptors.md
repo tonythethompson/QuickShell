@@ -1,7 +1,5 @@
 # PR Proposal: 0003
 
-**Status:** Partial / mostly landed — see [proposal-status.md](./proposal-status.md)
-
 **Title:**  
 Replace Brittle String-Based Command Routing with Typed `CommandDescriptor` + Registry Pattern
 

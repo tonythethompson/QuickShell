@@ -1,5 +1,5 @@
-# Quick Shell Raycast extension icons (red >_ tile from quickshell-icon-raycast.svg).
-# Deploys all PNGs under QuickShell.Raycast/assets/.
+# Quick Shell Raycast extension icon (red >_ tile variant).
+# Deploys extension-icon.png (+ @dark copy) to QuickShell.Raycast/assets/.
 $ErrorActionPreference = 'Stop'
 
 $raycastDir = $PSScriptRoot
@@ -7,8 +7,7 @@ $assetsDir = Split-Path $raycastDir -Parent
 $repoRoot = Split-Path (Split-Path $assetsDir -Parent) -Parent
 $iconSrc = Join-Path $assetsDir 'icon\quickshell-icon-raycast.svg'
 $raycastAssets = Join-Path $repoRoot 'QuickShell.Raycast\assets'
-$extensionSize = 512
-$workspaceListSize = 128
+$iconSize = 512
 
 function Export-Icon {
   param(
@@ -25,22 +24,9 @@ New-Item -ItemType Directory -Force -Path $raycastAssets | Out-Null
 
 $extensionIcon = Join-Path $raycastAssets 'extension-icon.png'
 $extensionIconDark = Join-Path $raycastAssets 'extension-icon@dark.png'
-$workspaceIcon = Join-Path $raycastAssets 'workspace-icon.png'
 
-Export-Icon -SvgPath $iconSrc -OutPath $extensionIcon -Width $extensionSize
+Export-Icon -SvgPath $iconSrc -OutPath $extensionIcon -Width $iconSize
 Copy-Item -Force $extensionIcon $extensionIconDark
 
-Export-Icon -SvgPath $iconSrc -OutPath $workspaceIcon -Width $workspaceListSize
-
-foreach ($commandIcon in @(
-    'command-open.png',
-    'command-create.png',
-    'command-edit.png',
-    'command-settings.png'))
-{
-  Copy-Item -Force $extensionIcon (Join-Path $raycastAssets $commandIcon)
-}
-
 Write-Host 'Quick Shell Raycast icon exports complete:'
-Write-Host "  Extension + commands: $raycastAssets (${extensionSize}px)"
-Write-Host "  Workspace list icon:  $workspaceIcon (${workspaceListSize}px)"
+Write-Host "  Extension icon: $raycastAssets (${iconSize}px)"

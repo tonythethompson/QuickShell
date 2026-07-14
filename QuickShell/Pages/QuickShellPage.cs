@@ -13,13 +13,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly SearchDebouncer _searchDebouncer;
     private readonly object _reloadSync = new();
-    private readonly object _refreshSync = new();
     private IListItem[] _items = [];
     private string _query = string.Empty;
     private bool _hasShownInitialList;
     private bool _reloadScheduled;
-    private bool _refreshInProgress;
-    private bool _refreshQueued;
     private bool _disposed;
 
     public QuickShellPage(
@@ -55,6 +52,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         HoverActionsVisibility = HoverActionsVisibility.HoverOrSelected;
 #endif
         SetOpeningItems();
+        SchedulePostNavigationReload();
     }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
@@ -190,31 +188,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             return;
         }
 
-        lock (_refreshSync)
-        {
-            if (_refreshInProgress)
-            {
-                _refreshQueued = true;
-                _query = query ?? string.Empty;
-                return;
-            }
-
-            _refreshInProgress = true;
-        }
-
-        // #region agent log
-        var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        AgentDebugLog.Write(
-            "QuickShellPage.cs:RefreshItems",
-            "start",
-            new { queryLength = query?.Length ?? 0, startedUtc = refreshStartedUtc },
-            runId: "post-fix",
-            hypothesisId: "D");
-        // #endregion
-
-        try
-        {
-            var pinnedInOrder = QuickShellServices.Current.Shortcuts.GetShortcuts()
+        var pinnedInOrder = QuickShellServices.Current.Shortcuts.GetShortcuts()
             .Where(s => s.IsPinned)
             .OrderBy(s => s.PinOrder ?? int.MaxValue)
             .ToList();
@@ -257,51 +231,31 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         _items = items.ToArray();
         RaiseItemsChanged();
-
-        // #region agent log
-        AgentDebugLog.Write(
-            "QuickShellPage.cs:RefreshItems",
-            "complete",
-            new
-            {
-                itemCount = _items.Length,
-                elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
-            },
-            runId: "post-fix",
-            hypothesisId: "D");
-        // #endregion
-        }
-        catch (Exception ex)
-        {
-            // #region agent log
-            AgentDebugLog.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-fix");
-            // #endregion
-            throw;
-        }
-        finally
-        {
-            string? queuedQuery = null;
-            var shouldRefreshAgain = false;
-            lock (_refreshSync)
-            {
-                _refreshInProgress = false;
-                if (_refreshQueued)
-                {
-                    _refreshQueued = false;
-                    queuedQuery = _query;
-                    shouldRefreshAgain = true;
-                }
-            }
-
-            if (shouldRefreshAgain && queuedQuery is not null)
-            {
-                RefreshItems(queuedQuery);
-            }
-        }
     }
 
-    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> _) =>
-        ShortcutListItems.CreateOpen(shortcut, _settings, Reload, _createShortcutCommand);
+    private ListItem BuildShortcutItem(TerminalShortcut shortcut, List<TerminalShortcut> pinnedInOrder)
+    {
+        var item = ShortcutListItems.CreateOpen(shortcut, _settings, Reload);
+
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
+        {
+            return item;
+        }
+
+        var moveVisibility = PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder);
+
+        var moreCommands = new List<CommandContextItem>(
+            ShortcutContextCommands.Build(
+                shortcut,
+                Reload,
+                _settings,
+                _createShortcutCommand,
+                moveVisibility: moveVisibility));
+
+        item.MoreCommands = moreCommands.ToArray();
+
+        return item;
+    }
 
     private IEnumerable<IListItem> BuildHomeLayoutItems(
         IReadOnlyList<ShortcutLayoutEntry> layout,

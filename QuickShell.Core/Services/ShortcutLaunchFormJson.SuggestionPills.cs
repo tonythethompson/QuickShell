@@ -98,7 +98,7 @@ internal static partial class ShortcutLaunchFormJson
                 }
                 """,
             AdaptiveCardFormJson.IconSubmitAction(
-                FormActionGlyphs.RemoveLabel,
+                FormActionGlyphs.Remove,
                 FormActionGlyphs.ClearCommandTooltip,
                 "clearLaunch",
                 "auto",

@@ -4,7 +4,7 @@ namespace QuickShell.Services;
 
 internal static class ShortcutHealth
 {
-    public static bool WouldNeedRepair(TerminalShortcut shortcut, bool requireDirectoryExists = true)
+    public static bool WouldNeedRepair(TerminalShortcut shortcut)
     {
         if (string.IsNullOrWhiteSpace(shortcut.Name) || string.IsNullOrWhiteSpace(shortcut.Directory))
         {
@@ -16,7 +16,7 @@ internal static class ShortcutHealth
             return true;
         }
 
-        if (requireDirectoryExists && !ShortcutValidation.DirectoryExists(shortcut.Directory))
+        if (!ShortcutValidation.DirectoryExists(shortcut.Directory))
         {
             return true;
         }
@@ -29,9 +29,9 @@ internal static class ShortcutHealth
         return !ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out _);
     }
 
-    public static string GetListGlyph(TerminalShortcut shortcut, bool? needsRepair = null)
+    public static string GetListGlyph(TerminalShortcut shortcut)
     {
-        if (needsRepair ?? WouldNeedRepair(shortcut))
+        if (WouldNeedRepair(shortcut))
         {
             return ShortcutGlyphs.IncidentTriangle;
         }
@@ -44,7 +44,7 @@ internal static class ShortcutHealth
         return TerminalLaunchGlyphs.GetForShortcut(shortcut);
     }
 
-    public static string BuildListSubtitle(TerminalShortcut shortcut, bool requireDirectoryExists = true)
+    public static string BuildListSubtitle(TerminalShortcut shortcut)
     {
         if (string.IsNullOrWhiteSpace(shortcut.Directory))
         {
@@ -56,7 +56,7 @@ internal static class ShortcutHealth
             return "Invalid folder path · fix in edit";
         }
 
-        if (requireDirectoryExists && !ShortcutValidation.DirectoryExists(shortcut.Directory))
+        if (!ShortcutValidation.DirectoryExists(shortcut.Directory))
         {
             return $"Folder not found · {ShortcutDisplay.ShortenPathForDisplay(shortcut.Directory)}";
         }
@@ -68,8 +68,7 @@ internal static class ShortcutHealth
             return $"Invalid workspace · {launchError}";
         }
 
-        if (requireDirectoryExists
-            && shortcut.OpenCompanionAppOnLaunch
+        if (shortcut.OpenCompanionAppOnLaunch
             && !string.IsNullOrWhiteSpace(shortcut.CompanionAppPath)
             && !CompanionAppCatalog.TryResolveExecutablePath(shortcut.CompanionAppPath, out _))
         {
