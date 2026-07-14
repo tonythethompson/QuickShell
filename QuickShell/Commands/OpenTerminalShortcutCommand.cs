@@ -36,9 +36,12 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 
     private static string ResolveLaunchIcon(TerminalShortcut shortcut, bool runAsAdmin, bool runAsStandard)
     {
+        const bool requireDirectoryExists = false;
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
+
         if (runAsStandard)
         {
-            return ShortcutHealth.WouldNeedRepair(shortcut)
+            return needsRepair
                 ? ShortcutGlyphs.IncidentTriangle
                 : TerminalLaunchGlyphs.GetForShortcut(shortcut);
         }
@@ -48,7 +51,7 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
             return ShortcutGlyphs.AdminLaunch;
         }
 
-        return ShortcutHealth.GetListGlyph(shortcut);
+        return ShortcutHealth.GetListGlyph(shortcut, needsRepair);
     }
 
     public override CommandResult Invoke()
