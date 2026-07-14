@@ -36,7 +36,7 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _drafts = new ShortcutDraftStore(_repository);
         _settings = new QuickShellSettingsManager();
 
-        QuickShellServices.Bind(new QuickShellServices(_repository, _drafts, _settings));
+        QuickShellServices.Bind(new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService()));
     }
 
     public void Dispose()

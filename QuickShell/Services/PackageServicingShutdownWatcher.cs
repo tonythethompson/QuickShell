@@ -76,6 +76,8 @@ internal sealed class PackageServicingShutdownWatcher : IDisposable
 
         if (!_thread.Join(TimeSpan.FromSeconds(2)))
         {
+            // Message-pump threads can't be safely force-terminated; if the pump
+            // hasn't exited we let it run and the process exits with the COM host.
             AgentDebugLog.Write(
                 "PackageServicingShutdownWatcher",
                 "join-timeout",

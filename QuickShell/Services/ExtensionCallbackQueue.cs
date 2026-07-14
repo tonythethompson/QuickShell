@@ -28,6 +28,12 @@ internal static class ExtensionCallbackQueue
             {
                 // Host torn down before callback ran.
             }
+            catch (Exception ex)
+            {
+                // A queued UI callback failed; keep draining so later callbacks still run
+                // and page rendering isn't abandoned. Matching RunOnExtensionThread's policy.
+                AgentDebugLog.WriteException("ExtensionCallbackQueue.Drain", ex, hypothesisId: "Q");
+            }
         }
     }
 }

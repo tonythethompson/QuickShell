@@ -198,6 +198,8 @@ internal partial class DiscoverGitReposPage : DynamicListPage
                 hypothesisId: "H",
                 runId: "post-fix");
             // #endregion
+            _needsInitialRefresh = false;
+            _awaitingGitRefresh = false;
             _items =
             [
                 new ListItem(new NoOpCommand())

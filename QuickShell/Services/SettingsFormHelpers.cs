@@ -14,7 +14,10 @@ internal static class SettingsFormHelpers
 
     /// <summary>
     /// Defers the refresh so the calling page can return its current items before the
-    /// heavier refresh work runs. Keeps the same exception handling as ScheduleRefresh.
+    /// heavier refresh work runs, then marshals the callback back to the CmdPal extension
+    /// thread (via ExtensionCallbackQueue, drained from GetItems) so RaiseItemsChanged and
+    /// page notifications run where the host expects them. COM/disposed exceptions are
+    /// swallowed by the queue drain, matching ScheduleRefresh.
     /// </summary>
     internal static void SchedulePostNavigationRefresh(Action? refresh)
     {
@@ -26,7 +29,7 @@ internal static class SettingsFormHelpers
         _ = Task.Run(async () =>
         {
             await Task.Delay(PostNavigationRefreshDelayMs).ConfigureAwait(false);
-            InvokeSafe(refresh);
+            ExtensionCallbackQueue.Enqueue(refresh);
         });
     }
 

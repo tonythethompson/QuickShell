@@ -23,7 +23,14 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     {
         _shortcut = shortcut;
         _settings = settings;
-        _onChanged = onChanged;
+        _onChanged = () =>
+        {
+            // Branch switches invalidate the captured snapshot so the next
+            // open re-probes git status instead of reusing stale commands.
+            _commandsReady = false;
+            _snapshot = null;
+            onChanged();
+        };
         Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
         Name = "Workspace status";
         Title = shortcut.Name;
