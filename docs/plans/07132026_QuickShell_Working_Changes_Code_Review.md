@@ -20,8 +20,8 @@ Issue: GetItems calls ScheduleRefreshItems whenever _needsInitialRefresh is true
 Recommendation: Set _needsInitialRefresh = false after the first attempt (or add a small throttle) so RefreshItems is not scheduled on every GetItems while waiting.
 5. TerminalListIconCache metadata I/O is not fully guarded
 Files: TerminalListIconCache.cs lines 85–132
-Issue: File.GetLastWriteTimeUtc(sourcePath) and File.GetLastWriteTimeUtc(destPath) are inside the lock but outside the try. If those calls throw (e.g., permission denied on a packaged asset), CreateOrGetResizedPath propagates the exception even though the Image.FromFile fallback try is intended to handle icon failures. The outer Task.Run in QuickShellPage catches it, but that skips the whole upgrade for that shortcut.
-Recommendation: Move the File.GetLastWriteTimeUtc calls inside the try and fall back to sourcePath on any failure.
+Issue: The timestamp calls are already inside a try/catch that returns sourcePath on failure, so metadata I/O does not escape CreateOrGetResizedPath as described.
+Recommendation: Remove this item.
 6. WorkspaceStatusPage Commands are built once and never invalidated
 Files: WorkspaceStatusPage.cs lines 43–52
 Issue: EnsureGitCommands sets _commandsReady after the first build. If a user switches branches using the context commands and returns to the same WorkspaceStatusPage instance, the branch-picker command still has the old status.
