@@ -105,6 +105,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 
         if (string.Equals(_query, normalized, StringComparison.Ordinal))
         {
+            _searchDebouncer.Schedule(normalized);
             return;
         }
 
