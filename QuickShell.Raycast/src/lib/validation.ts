@@ -195,7 +195,8 @@ export function normalizeWorkspace(workspace: Workspace): Workspace {
 
 /** Dual-read: list if present, else synthesize from legacy scalar companion fields. */
 export function normalizeCompanionApps(workspace: Workspace): CompanionAppEntry[] {
-  const fromList = (workspace.companionApps ?? [])
+  const fromList = [...(workspace.companionApps ?? [])]
+    .sort((left, right) => left.order - right.order)
     .filter((entry) => entry?.path?.trim())
     .map((entry, index) => ({
       id: entry.id?.trim() || createStableId(),
