@@ -1,0 +1,37 @@
+QuickShell.Core.Tests/TaskTypeCandidatePickTests.cs
+  s_ed48411fbae681::t_85891db3cb7c5c 5,90
+QuickShell.Core.Tests/ProjectAnalysisAccessorTests.cs
+  s_ed48411fbae681::t_85891db3cb7c5c 8-10
+  s_ed48411fbae681::t_f4a08f1cb32c55 11-13
+  s_a319543187b812::t_e4faa251eafad2 14
+QuickShell.Core.Tests/ProjectAnalysisServiceTests.cs
+  s_a319543187b812::t_0ab32a9edf683a 9
+QuickShell.Core.Tests/TaskTypeCommandSuggestionTests.cs
+  s_a319543187b812::t_416fdbe74149d2 6
+QuickShell.Core.Tests/WorkspaceUtilityTests.cs
+  s_a319543187b812::t_caa0bbb719e94e 593
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "8711eba4f100228da95d8c1c8c7a71e60b4bd834",
+  "prompts": {},
+  "sessions": {
+    "s_a319543187b812": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f682f-b4f6-7bd1-9d0d-86adffff6b0c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
