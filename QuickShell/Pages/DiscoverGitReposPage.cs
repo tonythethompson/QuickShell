@@ -2,6 +2,7 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Services;
+using System.Threading;
 
 namespace QuickShell.Pages;
 
@@ -16,6 +17,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
     private const int KeepSelectionRefresh = -2;
 
     private readonly Action _onReload;
+    private readonly SynchronizationContext? _extensionSynchronizationContext;
     private readonly object _refreshSync = new();
     private readonly SearchDebouncer _searchDebouncer;
     private readonly Dictionary<string, ListItem> _itemCache = new(StringComparer.OrdinalIgnoreCase);
@@ -30,6 +32,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
     public DiscoverGitReposPage(Action onReload)
     {
         _onReload = onReload;
+        _extensionSynchronizationContext = SynchronizationContext.Current ?? GitRepoIndex.ExtensionSynchronizationContext;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);
@@ -98,6 +101,13 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 
     private void ApplyQueryDebounced(string normalized)
     {
+        if (_extensionSynchronizationContext is not null
+            && !ReferenceEquals(SynchronizationContext.Current, _extensionSynchronizationContext))
+        {
+            _extensionSynchronizationContext.Post(_ => ApplyQueryDebounced(normalized), null);
+            return;
+        }
+
         if (_disposed)
         {
             return;

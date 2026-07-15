@@ -68,13 +68,23 @@ internal static class JetBrainsInstallDiscovery
 
     private static string? ResolveCached(string key, Func<string?> resolve)
     {
-        if (ProductCache.TryGetValue(key, out var cached))
+        if (ProductCache.TryGetValue(key, out var cached)
+            && cached is not null
+            && File.Exists(cached))
         {
             return cached;
         }
 
         var resolved = resolve();
-        ProductCache[key] = resolved;
+        if (resolved is not null)
+        {
+            ProductCache[key] = resolved;
+        }
+        else
+        {
+            ProductCache.TryRemove(key, out _);
+        }
+
         return resolved;
     }
 

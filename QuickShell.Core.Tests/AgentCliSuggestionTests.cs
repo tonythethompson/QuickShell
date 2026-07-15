@@ -48,6 +48,18 @@ public sealed class AgentCliSuggestionTests : IDisposable
     }
 
     [Fact]
+    public void BuildPills_CursorAgentExecutable_UsesAgentCommand()
+    {
+        AgentCliCatalog.IsCommandOnPathOverride = name =>
+            name.Equals("agent", StringComparison.OrdinalIgnoreCase);
+
+        var cursor = Assert.Single(AgentCliSuggestion.BuildPills(_root, TaskTypePickContext.Empty));
+
+        Assert.Equal("agent", cursor.Command);
+        Assert.Contains("Cursor Agent", cursor.Tooltip, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildPills_GhAloneDoesNotSuggestCopilot()
     {
         AgentCliCatalog.IsCommandOnPathOverride = name =>

@@ -94,6 +94,15 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public void Upsert(TerminalShortcut shortcut, string? originalName = null)
     {
+        if (!string.IsNullOrWhiteSpace(originalName)
+            && _byName.TryGetValue(originalName, out var existing))
+        {
+            _byId.Remove(existing.Id);
+            _byName.Remove(originalName);
+        }
+
+        _byId[shortcut.Id] = shortcut;
+        _byName[shortcut.Name] = shortcut;
     }
 
     public bool Delete(string name) => false;

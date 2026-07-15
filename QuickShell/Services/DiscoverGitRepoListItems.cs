@@ -86,15 +86,6 @@ internal static class DiscoverGitRepoListItems
         var cacheKey = "new:" + candidate.Directory;
         usedKeys?.Add(cacheKey);
 
-        if (itemCache is not null && itemCache.TryGetValue(cacheKey, out var existing))
-        {
-            existing.Title = title ?? candidate.Name;
-            existing.Subtitle = BuildSubtitleForNew(candidate);
-            existing.Icon = new IconInfo(ShortcutGlyphs.Add);
-            existing.MoreCommands = BuildDirectoryCommands(candidate.Directory);
-            return existing;
-        }
-
         var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate)))
         {
             Title = title ?? candidate.Name,
@@ -102,11 +93,6 @@ internal static class DiscoverGitRepoListItems
             Icon = new IconInfo(ShortcutGlyphs.Add),
             MoreCommands = BuildDirectoryCommands(candidate.Directory),
         };
-
-        if (itemCache is not null)
-        {
-            itemCache[cacheKey] = item;
-        }
 
         return item;
     }
@@ -127,15 +113,6 @@ internal static class DiscoverGitRepoListItems
             ? BuildSavedWorkspaceCommands(candidate.Directory, matchingShortcuts, settings, onSaved)
             : BuildDirectoryCommands(candidate.Directory);
 
-        if (itemCache is not null && itemCache.TryGetValue(cacheKey, out var existing))
-        {
-            existing.Title = title ?? candidate.Name;
-            existing.Subtitle = BuildSubtitleForSaved(candidate, matchingShortcuts);
-            existing.Icon = new IconInfo(ShortcutGlyphs.Saved);
-            existing.MoreCommands = moreCommands;
-            return existing;
-        }
-
         var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate)))
         {
             Title = title ?? candidate.Name,
@@ -143,11 +120,6 @@ internal static class DiscoverGitRepoListItems
             Icon = new IconInfo(ShortcutGlyphs.Saved),
             MoreCommands = moreCommands,
         };
-
-        if (itemCache is not null)
-        {
-            itemCache[cacheKey] = item;
-        }
 
         return item;
     }

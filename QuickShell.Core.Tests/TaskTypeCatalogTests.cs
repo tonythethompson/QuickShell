@@ -63,6 +63,12 @@ public sealed class TaskTypeCatalogTests
         }
     }
 
+    [Fact]
+    public void GetChoices_IncludesAgent()
+    {
+        Assert.Contains(TaskTypeCatalog.GetChoices(), choice => choice.Id == TaskTypeCatalog.Agent && choice.Title == "Agent");
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

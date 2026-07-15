@@ -41,6 +41,22 @@ public sealed class LaunchRowListEditorTests
     }
 
     [Fact]
+    public void ClearRow_PreservesEffectiveTargetForSameAsPreviousSuccessor()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "one", LaunchTarget = "wt:pwsh" },
+            new() { Command = "two", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { Command = "three", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+        };
+
+        LaunchRowListEditor.ClearRow(rows, 0, "default");
+
+        Assert.Equal("wt:pwsh", rows[0].LaunchTarget);
+        Assert.Equal(TerminalCatalog.SameAsPreviousLaunchTargetId, rows[1].LaunchTarget);
+    }
+
+    [Fact]
     public void TrimForSave_RemovesAllBlankRowsAndKeepsOne()
     {
         var rows = new List<LaunchRowDraft>

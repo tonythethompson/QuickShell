@@ -101,6 +101,7 @@ internal partial class ShortcutFormPage : ContentPage
         PinOrder = shortcut.PinOrder,
         LastUsedUtc = shortcut.LastUsedUtc,
         Launches = shortcut.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
+        CompanionApps = shortcut.CompanionApps.Select(CompanionAppNormalization.CloneEntry).ToList(),
         DevServerUrl = shortcut.DevServerUrl,
         RepoUrl = shortcut.RepoUrl,
         OpenCompanionAppOnLaunch = shortcut.OpenCompanionAppOnLaunch,

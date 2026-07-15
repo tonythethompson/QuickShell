@@ -62,6 +62,12 @@ internal static class LaunchRowListEditor
             return;
         }
 
+        var successor = index + 1 < rows.Count ? rows[index + 1] : null;
+        if (successor?.LaunchTarget.Equals(TerminalCatalog.SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            successor.LaunchTarget = ResolveEffectiveLaunchTarget(rows, index, fallbackLaunchTarget);
+        }
+
         rows.RemoveAt(index);
         EnsureMinimumRowsForEditor(rows, fallbackLaunchTarget);
     }
@@ -115,4 +121,22 @@ internal static class LaunchRowListEditor
 
     public static List<LaunchRowDraft> CloneRows(IEnumerable<LaunchRowDraft> rows) =>
         rows.Select(row => row.Clone()).ToList();
+
+    private static string ResolveEffectiveLaunchTarget(
+        IReadOnlyList<LaunchRowDraft> rows,
+        int index,
+        string fallbackLaunchTarget)
+    {
+        for (var i = index; i >= 0; i--)
+        {
+            var target = rows[i].LaunchTarget;
+            if (!string.IsNullOrWhiteSpace(target)
+                && !target.Equals(TerminalCatalog.SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase))
+            {
+                return target;
+            }
+        }
+
+        return fallbackLaunchTarget;
+    }
 }

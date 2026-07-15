@@ -42,9 +42,7 @@ internal static class CompanionAppFormEditor
                 var path = entry.Path?.Trim() ?? string.Empty;
                 var preset = string.IsNullOrWhiteSpace(path)
                     ? CompanionAppCatalog.PresetNone
-                    : CompanionAppCatalog.ToFormPresetValue(
-                        CompanionAppCatalog.InferPresetFromFileName(path),
-                        path);
+                    : CompanionAppCatalog.InferPresetFromFileName(path);
                 return new CompanionAppFormRow
                 {
                     Id = string.IsNullOrWhiteSpace(entry.Id) ? Guid.NewGuid().ToString("N") : entry.Id,

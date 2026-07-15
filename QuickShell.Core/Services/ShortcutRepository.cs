@@ -1018,12 +1018,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     continue;
                 }
 
-                // Once per workspace (not per launch): Directory.Exists + launch validation.
-                if (ShortcutHealth.WouldNeedRepair(shortcut))
-                {
-                    continue;
-                }
-
+                bool? requiresRepair = null;
                 foreach (var launch in shortcut.Launches)
                 {
                     if (!launch.IsEnabled)
@@ -1035,6 +1030,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     if (score <= 0)
                     {
                         continue;
+                    }
+
+                    // Avoid filesystem validation for workspaces that do not match this query.
+                    requiresRepair ??= ShortcutHealth.WouldNeedRepair(shortcut);
+                    if (requiresRepair.Value)
+                    {
+                        break;
                     }
 
                     matches ??= [];

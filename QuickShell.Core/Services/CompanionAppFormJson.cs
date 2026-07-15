@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace QuickShell.Services;
 
 /// <summary>Adaptive Card body + data fields for multi-companion form rows.</summary>
@@ -199,6 +201,11 @@ internal static class CompanionAppFormJson
         """;
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+    private static string Escape(string value)
+    {
+        var encoded = JsonSerializer.Serialize(
+            value,
+            global::QuickShell.QuickShellJsonContext.Default.String);
+        return encoded[1..^1];
+    }
 }

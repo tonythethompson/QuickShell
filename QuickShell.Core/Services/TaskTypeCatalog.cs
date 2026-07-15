@@ -23,6 +23,7 @@ internal static class TaskTypeCatalog
         (Logs, "Logs"),
         (Test, "Test"),
         (Build, "Build"),
+        (Agent, "Agent"),
     ];
 
     public static IReadOnlyList<(string Id, string Title)> GetChoices() => Definitions;

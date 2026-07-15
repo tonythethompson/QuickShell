@@ -369,7 +369,17 @@ internal static class CompanionAppCatalog
 
         if (PresetExecutableCache.TryGetValue(presetId, out var cached))
         {
-            return cached;
+            if (cached is null)
+            {
+                return null;
+            }
+
+            if (File.Exists(cached))
+            {
+                return cached;
+            }
+
+            PresetExecutableCache.TryRemove(presetId, out _);
         }
 
         var resolved = ResolveExecutableUncached(presetId);

@@ -1,9 +1,4 @@
-import {
-  DEFAULT_TERMINAL,
-  type CompanionAppEntry,
-  type LaunchEntry,
-  type Workspace,
-} from "./schema";
+import { DEFAULT_TERMINAL, type CompanionAppEntry, type LaunchEntry, type Workspace } from "./schema";
 import { createStableId } from "./ids";
 
 const MAX_NAME_LENGTH = 120;

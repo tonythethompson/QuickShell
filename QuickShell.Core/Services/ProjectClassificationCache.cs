@@ -169,7 +169,6 @@ internal static class ProjectClassificationCache
             AppendNestedDirectorySignature(builder, directory, nested);
         }
 
-        var projectCount = 0;
         foreach (var pattern in RootProjectGlobPatterns)
         {
             IEnumerable<string> matches;
@@ -183,20 +182,9 @@ internal static class ProjectClassificationCache
             }
 
             foreach (var path in matches
-                         .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-                         .Take(CommandSuggestionService.MaxRootProjects - projectCount))
+                         .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
             {
                 AppendFileStamp(builder, path);
-                projectCount++;
-                if (projectCount >= CommandSuggestionService.MaxRootProjects)
-                {
-                    break;
-                }
-            }
-
-            if (projectCount >= CommandSuggestionService.MaxRootProjects)
-            {
-                break;
             }
         }
 

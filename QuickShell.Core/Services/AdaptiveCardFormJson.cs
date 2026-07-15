@@ -16,9 +16,9 @@ internal static class AdaptiveCardFormJson
     {
         var tooltipLine = string.IsNullOrWhiteSpace(tooltip)
             ? string.Empty
-            : $""",\n          "tooltip": "{Escape(tooltip)}" """;
+            : $",\n          \"tooltip\": \"{Escape(tooltip)}\" ";
         var weightLine = bold
-            ? """,\n          "weight": "Bolder" """
+            ? ",\n          \"weight\": \"Bolder\" "
             : string.Empty;
         return $$"""
         {

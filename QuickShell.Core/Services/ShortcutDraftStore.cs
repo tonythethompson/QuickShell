@@ -194,31 +194,46 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             }).ToList()
             : null;
 
-        var result = launches is null
-            ? ShortcutFormSave.TrySave(
-                pending.OriginalName,
-                pending.Name,
-                pending.Abbreviation,
-                pending.Directory,
-                pending.Command,
-                pending.LaunchTarget,
-                pending.RunAsAdmin,
-                _shortcuts,
-                onSaved)
-            : ShortcutFormSave.TrySave(
-                pending.OriginalName,
-                pending.Name,
-                pending.Abbreviation,
-                pending.Directory,
-                launches,
-                _shortcuts,
-                onSaved,
-                pending.DevServerUrl,
-                pending.RepoUrl,
-                pending.OpenDevServerOnLaunch,
-                pending.OpenCompanionAppOnLaunch,
-                pending.CompanionAppPath,
-                pending.CompanionAppArguments);
+        var companionApps = pending.Companions is { Count: > 0 }
+            ? CompanionAppFormEditor.ToCompanionEntries(
+                pending.Companions.Select(companion => new CompanionAppFormRow
+                {
+                    Id = companion.Id,
+                    Preset = companion.Preset,
+                    Path = companion.Path,
+                    Arguments = companion.Arguments,
+                    OpenOnLaunch = companion.OpenOnLaunch,
+                }).ToList())
+            : null;
+
+        launches ??=
+        [
+            new ShortcutFormLaunchInput
+            {
+                Label = pending.Name,
+                Command = pending.Command,
+                LaunchTarget = pending.LaunchTarget,
+                RunAsAdmin = pending.RunAsAdmin,
+                IsEnabled = true,
+                TaskType = TaskTypeCatalog.None,
+            },
+        ];
+
+        var result = ShortcutFormSave.TrySave(
+            pending.OriginalName,
+            pending.Name,
+            pending.Abbreviation,
+            pending.Directory,
+            launches,
+            _shortcuts,
+            onSaved,
+            pending.DevServerUrl,
+            pending.RepoUrl,
+            pending.OpenDevServerOnLaunch,
+            pending.OpenCompanionAppOnLaunch,
+            pending.CompanionAppPath,
+            pending.CompanionAppArguments,
+            companionApps);
 
         if (result.Success)
         {
@@ -368,8 +383,15 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
     private static bool DraftMatchesShortcut(PersistedShortcutEditDraft draft, TerminalShortcut saved)
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(saved);
+        CompanionAppNormalization.EnsureCompanionsFromLegacy(saved);
 
         if (!MetadataMatches(draft, saved))
+        {
+            return false;
+        }
+
+        if (draft.Companions is { Count: > 0 }
+            && !CompanionDraftsMatchShortcut(draft.Companions, saved.CompanionApps))
         {
             return false;
         }
@@ -508,6 +530,31 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 || draft.RunAsAdmin != entry.RunAsAdmin
                 || draft.IsEnabled != entry.IsEnabled
                 || !string.Equals(TaskTypeCatalog.Normalize(draft.TaskType), TaskTypeCatalog.Normalize(entry.TaskType), StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool CompanionDraftsMatchShortcut(
+        List<PersistedShortcutCompanionDraft> draftCompanions,
+        List<CompanionAppEntry> savedCompanions)
+    {
+        var saved = savedCompanions.OrderBy(entry => entry.Order).ToList();
+        if (draftCompanions.Count != saved.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < draftCompanions.Count; i++)
+        {
+            var draft = draftCompanions[i];
+            var entry = saved[i];
+            if (!string.Equals(Normalize(draft.Path), Normalize(entry.Path), StringComparison.Ordinal)
+                || !string.Equals(Normalize(draft.Arguments), Normalize(entry.Arguments), StringComparison.Ordinal)
+                || draft.OpenOnLaunch != entry.OpenOnLaunch)
             {
                 return false;
             }

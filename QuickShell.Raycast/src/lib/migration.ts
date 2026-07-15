@@ -120,9 +120,9 @@ function migrateWorkspace(raw: unknown): Workspace | null {
           .map((entry) => migrateCompanionEntry(entry))
           .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       : Array.isArray(record.CompanionApps)
-        ? record.CompanionApps
-            .map((entry) => migrateCompanionEntry(entry))
-            .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+        ? record.CompanionApps.map((entry) => migrateCompanionEntry(entry)).filter(
+            (entry): entry is NonNullable<typeof entry> => entry !== null,
+          )
         : undefined,
   };
 
@@ -148,11 +148,7 @@ function migrateCompanionEntry(raw: unknown) {
 
   return {
     id: ensureStableId(
-      typeof record.id === "string"
-        ? record.id
-        : typeof record.Id === "string"
-          ? record.Id
-          : undefined,
+      typeof record.id === "string" ? record.id : typeof record.Id === "string" ? record.Id : undefined,
     ),
     path,
     arguments:

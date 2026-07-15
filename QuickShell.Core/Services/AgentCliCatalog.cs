@@ -57,7 +57,7 @@ internal static class AgentCliCatalog
         new(
             Id: "cursor-agent",
             Title: "Cursor Agent",
-            Command: "cursor-agent",
+            Command: "agent",
             PathNames: ["cursor-agent", "agent"],
             MarkerRelativePaths: [".cursor/cli.json", ".cursor/agent"]),
         new(

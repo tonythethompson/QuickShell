@@ -51,6 +51,25 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     }
 
     [Fact]
+    public void BuildCheapSignature_StampsFsprojAfterTenCsprojFiles()
+    {
+        for (var i = 0; i < CommandSuggestionService.MaxRootProjects; i++)
+        {
+            File.WriteAllText(Path.Combine(_root, $"{i:D2}.csproj"), "<Project />");
+        }
+
+        var project = Path.Combine(_root, "99.fsproj");
+        File.WriteAllText(project, "<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+        var first = ProjectClassificationCache.BuildCheapSignature(_root);
+
+        File.WriteAllText(project, "<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>");
+        File.SetLastWriteTimeUtc(project, DateTime.UtcNow.AddSeconds(1));
+        var second = ProjectClassificationCache.BuildCheapSignature(_root);
+
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
     public void Classify_DetectsDotNetWhenSlnxAppearsWithoutInvalidation()
     {
         var before = ProjectClassificationCache.Classify(_root);
