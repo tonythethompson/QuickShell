@@ -1,0 +1,48 @@
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_ed48411fbae681::t_a477a0874f0e4b 42-55
+  s_ed48411fbae681::t_ac24a7a309d925 14-20
+  s_ed48411fbae681::t_3bc6b64ad0bb1f 1-13,21-41,56-91
+QuickShell/Services/DiscoverGitRepoListItems.cs
+  s_ed48411fbae681::t_0464b03df0a5d0 6
+  s_ed48411fbae681::t_7a057ee933d4e4 87,90-94,103-107,120,123-127,140-144,198-226
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_ed48411fbae681::t_ac24a7a309d925 18
+QuickShell.Core/Services/AgentCliSuggestion.cs
+  s_ed48411fbae681::t_0464b03df0a5d0 25
+  s_ed48411fbae681::t_ab4fc711be4538 24
+  s_ed48411fbae681::t_39ddf3e7d5863f 26
+  s_ed48411fbae681::t_111812d4ee2f1e 16-19,36,39,41,44
+QuickShell.Core.Tests/SettingsCardJsonTests.cs
+  s_ed48411fbae681::t_cfc19e7a081fad 1-16
+QuickShell/Pages/QuickShellPage.cs
+  s_ed48411fbae681::t_4a057c207a7983 30
+  s_ed48411fbae681::t_3e34d77fb0f9c5 84-85,88,252,260,267,284-286
+QuickShell.Core.Tests/DiscoverGitRepoListItemsTests.cs
+  s_ed48411fbae681::t_1a7caa027df549 33-55
+  s_ed48411fbae681::t_a4d610ff839597 1-32,56-67
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_ed48411fbae681::t_0464b03df0a5d0 24-32
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_ed48411fbae681::t_cfc19e7a081fad 2
+  s_ed48411fbae681::t_8a4d6b196b1629 176-189
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_ed48411fbae681::t_55adc46d39ebe3 62-72
+QuickShell/Services/SettingsCardJson.cs
+  s_ed48411fbae681::t_6017d884718b6b 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "be86d90b14355e3a56de6229865849e05a569f3c",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
