@@ -1,0 +1,27 @@
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_ed48411fbae681::t_82d5b4af1bb71f 88-99,101-108
+  s_ed48411fbae681::t_902d5716f54ce0 100
+QuickShell/Pages/QuickShellPage.cs
+  s_ed48411fbae681::t_ec84a23711b5de 19
+  s_ed48411fbae681::t_47cec7767bfd59 128,131-135,142-146,504,517-518
+QuickShell/Services/ShortcutContextCommands.cs
+  s_ed48411fbae681::t_b3d103a4e2604c 44-45,106
+QuickShell/Services/ShortcutListItems.cs
+  s_ed48411fbae681::t_d6535205ad58b9 17-18,52-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "daf0d53765740501c23147e74743624482d11ff8",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
