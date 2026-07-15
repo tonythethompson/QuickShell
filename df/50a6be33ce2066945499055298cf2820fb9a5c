@@ -1,0 +1,63 @@
+QuickShell.Core/Services/CompanionAppFormJson.cs
+  s_ed48411fbae681::t_a5365cc8f4a0ae 204-210
+  s_ed48411fbae681::t_e4cad3d7188b43 1-2
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_ed48411fbae681::t_6c5f162cbc2e62 5
+  s_ed48411fbae681::t_e38528a39ffb46 20,35,104-110
+QuickShell.Core/Services/CompanionAppFormEditor.cs
+  s_ed48411fbae681::t_e4cad3d7188b43 45
+QuickShell.Core.Tests/CompanionAppFormJsonTests.cs
+  s_ed48411fbae681::t_84e00af64c6709 1-24
+QuickShell.Raycast/src/lib/migration.ts
+  s_ed48411fbae681::t_dd9697d8258602 123-125,151
+QuickShell.Raycast/src/lib/validation.ts
+  s_ed48411fbae681::t_dd9697d8258602 1
+QuickShell.Core/Services/ProjectClassificationCache.cs
+  s_ed48411fbae681::t_8fb515827677e6 185
+QuickShell.Core.Tests/LaunchRowListEditorTests.cs
+  s_ed48411fbae681::t_3760d82f2d6bad 43-58
+QuickShell.Core.Tests/ProjectClassificationCacheTests.cs
+  s_ed48411fbae681::t_ad0650af55e044 53-71
+QuickShell.Core.Tests/TaskTypeCatalogTests.cs
+  s_ed48411fbae681::t_ec035d26e44ac7 66-71
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_ed48411fbae681::t_e4055c5eaa63b3 50-61
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_ed48411fbae681::t_d5772b2a3b5438 97-105
+QuickShell.Core.Tests/ShortcutDraftStoreTests.cs
+  s_ed48411fbae681::t_85ed690bac6c88 132-180,202-221
+QuickShell.Core/Services/AdaptiveCardFormJson.cs
+  s_ed48411fbae681::t_29afa1aa149ff9 19,21
+QuickShell.Core/Services/AgentCliCatalog.cs
+  s_ed48411fbae681::t_8bd6fc89d17e48 60
+QuickShell.Core/Services/CompanionAppCatalog.cs
+  s_ed48411fbae681::t_8909124b1f388a 372-382
+QuickShell.Core/Services/JetBrainsInstallDiscovery.cs
+  s_ed48411fbae681::t_94e3b7934f1435 71-73,79-87
+QuickShell.Core/Services/LaunchRowListEditor.cs
+  s_ed48411fbae681::t_b805b58ca53f13 65-70,124-141
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_ed48411fbae681::t_7c90bb2a838e2d 197-236,386,393-398,535-559
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_ed48411fbae681::t_6eba1741d57b02 1021,1035-1041
+QuickShell.Core/Services/TaskTypeCatalog.cs
+  s_ed48411fbae681::t_062237cd4999bd 26
+QuickShell/Pages/ShortcutFormPage.cs
+  s_ed48411fbae681::t_063e00e7420a6f 104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "df50a6be33ce2066945499055298cf2820fb9a5c",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
