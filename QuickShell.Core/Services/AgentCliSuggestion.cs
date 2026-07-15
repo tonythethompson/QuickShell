@@ -13,14 +13,17 @@ internal static class AgentCliSuggestion
 
         foreach (var definition in AgentCliCatalog.Definitions)
         {
-            if (pickContext.UsedCommands.Contains(definition.Command))
+            var detectedCommand = definition.PathNames.FirstOrDefault(AgentCliCatalog.IsCommandOnPath);
+            var onPath = detectedCommand is not null;
+            var hasMarker = AgentCliCatalog.HasProjectMarker(directory, definition);
+            if (!onPath && !hasMarker)
             {
                 continue;
             }
 
-            var onPath = definition.PathNames.Any(AgentCliCatalog.IsCommandOnPath);
-            var hasMarker = AgentCliCatalog.HasProjectMarker(directory, definition);
-            if (!onPath && !hasMarker)
+            var command = detectedCommand ?? definition.Command;
+            if (pickContext.UsedCommands.Contains(command)
+                || pickContext.UsedCommands.Contains(definition.Command))
             {
                 continue;
             }
@@ -30,15 +33,15 @@ internal static class AgentCliSuggestion
             var reason = onPath
                 ? $"{definition.Title} detected on PATH"
                 : $"{definition.Title} project marker found";
-            var displayTitle = SuggestionPillPresentation.FormatDisplayTitle(definition.Command);
+            var displayTitle = SuggestionPillPresentation.FormatDisplayTitle(command);
             var tooltip = SuggestionPillPresentation.FormatTooltip(
                 "Agent",
-                definition.Command,
+                command,
                 productName: definition.Title,
-                detail: $"{reason}. Adds `{definition.Command}` as a launch command.");
+                detail: $"{reason}. Adds `{command}` as a launch command.");
 
             pills.Add(new CommandSuggestionPill(
-                definition.Command,
+                command,
                 TaskTypeCatalog.Agent,
                 "Agent",
                 displayTitle,

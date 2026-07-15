@@ -16,7 +16,7 @@ internal static class SettingsCardJson
     {
         var tooltipLine = string.IsNullOrWhiteSpace(tooltip)
             ? string.Empty
-            : $""",\n          "tooltip": "{Escape(tooltip)}" """;
+            : $",\n          \"tooltip\": \"{Escape(tooltip)}\"";
         return $$"""
         {
           "type": "TextBlock",

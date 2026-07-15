@@ -27,6 +27,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _workspacesStale;
     private bool _refreshInProgress;
     private bool _refreshQueued;
+    private bool _forceQueryRefresh;
     private bool _disposed;
 
     public QuickShellPage(
@@ -80,10 +81,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
 
             // First paint is owned by GetItems (sync build on the fetch thread).
-            // If the list is already loaded (re-open), re-apply query only when needed.
+            // On re-open, the host can restore matching text while _items still holds the
+            // previous unfiltered snapshot. Force one apply so the restored text wins.
             if (_hasLoadedWorkspaces && ListSearchQuery.HasChanged(string.Empty, normalized))
             {
-                ApplyQuery(normalized, immediate: true);
+                ApplyQuery(normalized, immediate: true, force: true);
             }
 
             return;
@@ -247,7 +249,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         _hasLoadedWorkspaces = false;
     }
 
-    private void ApplyQuery(string query, bool immediate = false)
+    private void ApplyQuery(string query, bool immediate = false, bool force = false)
     {
         if (_disposed)
         {
@@ -255,13 +257,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         var normalized = ListSearchQuery.Normalize(query);
-        if (!ListSearchQuery.HasChanged(_query, normalized))
+        if (!force && !ListSearchQuery.HasChanged(_query, normalized))
         {
             return;
         }
 
         if (immediate)
         {
+            _forceQueryRefresh |= force;
             _searchDebouncer.Schedule(normalized);
             _searchDebouncer.FlushNow();
             return;
@@ -278,7 +281,9 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         var next = ListSearchQuery.Normalize(normalized);
-        if (!ListSearchQuery.HasChanged(_query, next))
+        var forceRefresh = _forceQueryRefresh;
+        _forceQueryRefresh = false;
+        if (!forceRefresh && !ListSearchQuery.HasChanged(_query, next))
         {
             return;
         }

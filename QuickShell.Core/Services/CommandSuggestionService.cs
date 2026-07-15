@@ -21,9 +21,15 @@ internal static class CommandSuggestionService
     private static readonly Comparison<CommandSuggestionPill> PillRankComparison = static (left, right) =>
     {
         var byScore = right.Score.CompareTo(left.Score);
-        return byScore != 0
-            ? byScore
-            : string.Compare(left.DisplayTitle, right.DisplayTitle, StringComparison.OrdinalIgnoreCase);
+        if (byScore != 0)
+        {
+            return byScore;
+        }
+
+        var byTitle = string.Compare(left.DisplayTitle, right.DisplayTitle, StringComparison.OrdinalIgnoreCase);
+        return byTitle != 0
+            ? byTitle
+            : string.Compare(left.Command, right.Command, StringComparison.OrdinalIgnoreCase);
     };
 
     /// <summary>

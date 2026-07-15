@@ -1,4 +1,5 @@
 using QuickShell.Services;
+using System.Reflection;
 
 namespace QuickShell.Core.Tests;
 
@@ -170,6 +171,20 @@ public sealed class CommandSuggestionServiceTests : IDisposable
 
         Assert.NotNull(pill);
         Assert.Equal(TaskTypeCatalog.Api, pill.TaskType);
+    }
+
+    [Fact]
+    public void RankTop_EqualScoreAndTitle_OrdersByCommand()
+    {
+        var alpha = new CommandSuggestionPill("alpha", TaskTypeCatalog.Agent, "Agent", "Agent", "Agent · alpha", 94, "test");
+        var beta = new CommandSuggestionPill("beta", TaskTypeCatalog.Agent, "Agent", "Agent", "Agent · beta", 94, "test");
+        var method = typeof(CommandSuggestionService).GetMethod("RankTop", BindingFlags.NonPublic | BindingFlags.Static);
+
+        var ranked = Assert.IsType<List<CommandSuggestionPill>>(method!.Invoke(
+            null,
+            new object?[] { new[] { alpha, beta }, 2 }));
+
+        Assert.Equal(["alpha", "beta"], ranked.Select(pill => pill.Command));
     }
 
     public void Dispose()

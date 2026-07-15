@@ -15,6 +15,7 @@ namespace QuickShell.Core.Tests;
 /// delete, undo/redo, settings, …), not the stripped BuildForHomePin subset that left
 /// only elevation / folder / edit.
 /// </summary>
+[Collection(QuickShellServicesIsolation.Name)]
 public sealed class ShortcutContextMenuRegressionTests : IDisposable
 {
     private readonly string _configDirectory;

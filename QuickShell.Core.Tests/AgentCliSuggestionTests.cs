@@ -60,6 +60,17 @@ public sealed class AgentCliSuggestionTests : IDisposable
     }
 
     [Fact]
+    public void BuildPills_AlternatePathExecutable_UsesDetectedCommand()
+    {
+        AgentCliCatalog.IsCommandOnPathOverride = name =>
+            name.Equals("kiro", StringComparison.OrdinalIgnoreCase);
+
+        var kiro = Assert.Single(AgentCliSuggestion.BuildPills(_root, TaskTypePickContext.Empty));
+
+        Assert.Equal("kiro", kiro.Command);
+    }
+
+    [Fact]
     public void BuildPills_GhAloneDoesNotSuggestCopilot()
     {
         AgentCliCatalog.IsCommandOnPathOverride = name =>
