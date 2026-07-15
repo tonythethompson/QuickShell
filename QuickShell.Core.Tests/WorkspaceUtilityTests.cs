@@ -590,6 +590,7 @@ public sealed class GitRepoSearchRootsTests
     }
 }
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class CompanionAppTests : IDisposable
 {
     private readonly string _root;

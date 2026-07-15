@@ -5,6 +5,13 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class ProjectAnalysisStaticStateIsolation
+{
+    public const string Name = "ProjectAnalysisStaticState";
+}
+
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class ProjectAnalysisAccessorTests : IDisposable
 {
     private readonly string _root;
