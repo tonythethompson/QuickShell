@@ -319,6 +319,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
 
             if (_hasLoadedWorkspaces
+                && !_workspacesStale
                 && !notifyHost
                 && string.Equals(_query, normalizedQuery, StringComparison.Ordinal))
             {
