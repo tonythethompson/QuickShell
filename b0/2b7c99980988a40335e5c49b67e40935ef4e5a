@@ -1,0 +1,33 @@
+QuickShell.Core.Tests/CompanionAppLauncherTests.cs
+  s_48ee607735d0ce::t_cea4c667a0bcf7 9-12,14-15,17-31,151-289
+QuickShell.Core.Tests/TerminalLauncherTests.cs
+  s_48ee607735d0ce::t_cd08e0b30d9cdd 15,40
+QuickShell.Core.Tests/WorktreeBranchTests.cs
+  s_939add5b1d5a89::t_e818eb6c4aac3f 8,21-22,24,460
+QuickShell.Core/Services/ShortcutLaunchNormalization.cs
+  s_939add5b1d5a89::t_40c5d981e3a76d 96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b02b7c99980988a40335e5c49b67e40935ef4e5a",
+  "prompts": {},
+  "sessions": {
+    "s_48ee607735d0ce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2b6c512c-b3b0-478b-8e99-8356ce584504",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_939add5b1d5a89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "15dce266-6f37-40a0-8f56-a9cb0ab6889c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
