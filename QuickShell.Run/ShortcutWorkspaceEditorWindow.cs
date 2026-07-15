@@ -897,6 +897,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
         _working.CompanionApps = CompanionAppFormEditor.ToCompanionEntries(CaptureCompanionFormRows());
+        _working.CompanionAppPath = null;
+        _working.CompanionAppArguments = null;
+        _working.OpenCompanionAppOnLaunch = false;
         CompanionAppNormalization.NormalizeCompanions(_working);
 
 
