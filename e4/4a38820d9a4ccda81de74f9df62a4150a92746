@@ -1,0 +1,25 @@
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_ed48411fbae681::t_6f464e36d6810d 74-87,105-110
+QuickShell.Core.Tests/LaunchRowListEditorTests.cs
+  s_ed48411fbae681::t_7f5ceeb9c1da42 108,130-155
+QuickShell.Core/Services/LaunchRowListEditor.cs
+  s_ed48411fbae681::t_887845325989fe 91-92,98
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_ed48411fbae681::t_8f91b72514bc20 83-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e44a38820d9a4ccda81de74f9df62a4150a92746",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
