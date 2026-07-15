@@ -71,6 +71,20 @@ public sealed class QuickShellPageSearchTests : IDisposable
         Assert.DoesNotContain("Beta", titles);
     }
 
+    [Fact]
+    public void DiscoverSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
+    {
+        using var page = new DiscoverGitReposPage(() => { });
+        SetPrivateField(page, "_hasShownInitialList", true);
+
+        page.UpdateSearchText(string.Empty, "alpha");
+        page.UpdateSearchText("alpha", string.Empty);
+
+        GetPrivateField<SearchDebouncer>(page, "_searchDebouncer").FlushNow();
+
+        Assert.Equal(string.Empty, GetPrivateField<string>(page, "_query"));
+    }
+
     public void Dispose()
     {
         QuickShellServices.Unbind();
@@ -88,4 +102,10 @@ public sealed class QuickShellPageSearchTests : IDisposable
 
     private static void SetPrivateField<T>(QuickShellPage page, string name, T value) =>
         typeof(QuickShellPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, value);
+
+    private static void SetPrivateField<T>(DiscoverGitReposPage page, string name, T value) =>
+        typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, value);
+
+    private static T GetPrivateField<T>(DiscoverGitReposPage page, string name) =>
+        (T)typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
 }

@@ -105,7 +105,7 @@ public sealed class LaunchRowListEditorTests
         var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start", LaunchTarget = "default" },
-            new() { LaunchTarget = "wt:pwsh" },
+            new() { LaunchTarget = "wt:pwsh", IsEditorPlaceholder = true },
             new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
         };
 
@@ -125,6 +125,32 @@ public sealed class LaunchRowListEditorTests
         Assert.False(rows[1].IsEditorPlaceholder);
         Assert.Equal(string.Empty, rows[2].Command);
         Assert.True(rows[2].IsEditorPlaceholder);
+    }
+
+    [Fact]
+    public void ApplyPill_PreservesIntentionalBlankFolderLaunch()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "npm start", LaunchTarget = "default" },
+            new() { LaunchTarget = "wt:pwsh" },
+            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
+        };
+
+        var pill = new CommandSuggestionPill(
+            "docker compose up",
+            TaskTypeCatalog.Services,
+            "Services",
+            "docker compose up",
+            "Services · docker compose up",
+            10,
+            "docker");
+
+        Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
+        Assert.Equal(string.Empty, rows[1].Command);
+        Assert.False(rows[1].IsEditorPlaceholder);
+        Assert.Equal("docker compose up", rows[2].Command);
+        Assert.False(rows[2].IsEditorPlaceholder);
     }
 
     [Fact]

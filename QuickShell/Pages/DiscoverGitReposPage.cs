@@ -80,6 +80,8 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 
         if (string.Equals(_query, normalized, StringComparison.Ordinal))
         {
+            // Replace any pending different query with the text currently in CmdPal.
+            _searchDebouncer.Schedule(normalized);
             return;
         }
 
@@ -115,7 +117,6 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 
         if (string.Equals(_query, normalized, StringComparison.Ordinal))
         {
-            _searchDebouncer.Schedule(normalized);
             return;
         }
 

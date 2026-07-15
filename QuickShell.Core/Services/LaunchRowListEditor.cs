@@ -88,13 +88,14 @@ internal static class LaunchRowListEditor
     }
 
     /// <summary>
-    /// First launch slot with an empty command, so pills refill gaps after clear/compact.
+    /// First empty editor placeholder, so pills refill gaps after clear/compact without
+    /// overwriting intentional folder-only launches.
     /// </summary>
     public static int FindFirstEmptyCommandIndex(IReadOnlyList<LaunchRowDraft> rows)
     {
         for (var i = 0; i < rows.Count; i++)
         {
-            if (string.IsNullOrWhiteSpace(rows[i].Command))
+            if (rows[i].IsEditorPlaceholder && string.IsNullOrWhiteSpace(rows[i].Command))
             {
                 return i;
             }
