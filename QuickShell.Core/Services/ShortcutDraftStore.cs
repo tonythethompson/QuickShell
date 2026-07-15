@@ -113,6 +113,16 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
             CompanionAppArguments = draft.CompanionAppArguments,
+            Companions = draft.Companions
+                .Select(companion => new PersistedShortcutCompanionDraft
+                {
+                    Id = companion.Id,
+                    Preset = companion.Preset,
+                    Path = companion.Path,
+                    Arguments = companion.Arguments,
+                    OpenOnLaunch = companion.OpenOnLaunch,
+                })
+                .ToList(),
             NameCustomized = nameCustomized,
             AutoFilledName = autoFilledName,
             RunAsAdmin = draft.RunAsAdmin,
@@ -394,6 +404,11 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             return false;
         }
 
+        if (!CompanionDraftListsEqual(left.Companions, right.Companions))
+        {
+            return false;
+        }
+
         if (left.Launches.Count == 0 && right.Launches.Count == 0)
         {
             return string.Equals(Normalize(left.Command), Normalize(right.Command), StringComparison.Ordinal)
@@ -414,6 +429,31 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         && left.OpenCompanionAppOnLaunch == right.OpenCompanionAppOnLaunch
         && string.Equals(Normalize(left.CompanionAppPath), Normalize(right.CompanionAppPath), StringComparison.Ordinal)
         && string.Equals(Normalize(left.CompanionAppArguments), Normalize(right.CompanionAppArguments), StringComparison.Ordinal);
+
+    private static bool CompanionDraftListsEqual(
+        List<ShortcutFormCompanionDraftData> left,
+        List<ShortcutFormCompanionDraftData> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            var a = left[i];
+            var b = right[i];
+            if (!string.Equals(Normalize(a.Preset), Normalize(b.Preset), StringComparison.Ordinal)
+                || !string.Equals(Normalize(a.Path), Normalize(b.Path), StringComparison.Ordinal)
+                || !string.Equals(Normalize(a.Arguments), Normalize(b.Arguments), StringComparison.Ordinal)
+                || a.OpenOnLaunch != b.OpenOnLaunch)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool LaunchDraftListsEqual(
         List<ShortcutFormLaunchDraftData> left,

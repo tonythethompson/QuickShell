@@ -5,17 +5,39 @@ namespace QuickShell.Core.Tests;
 public sealed class LaunchRowListEditorTests
 {
     [Fact]
-    public void ClearRow_ClearsCommandAndTaskType()
+    public void ClearRow_RemovesRowAndCompactsLaterCommands()
     {
         var rows = new List<LaunchRowDraft>
         {
-            new() { Command = "npm run dev", TaskType = TaskTypeCatalog.Frontend },
+            new() { Command = "npm run dev", TaskType = TaskTypeCatalog.Frontend, LaunchTarget = "default" },
+            new() { Command = "npm test", TaskType = TaskTypeCatalog.Test, LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { Command = "docker compose up", TaskType = TaskTypeCatalog.Services, LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
         };
 
-        LaunchRowListEditor.ClearRow(rows, 0);
+        LaunchRowListEditor.ClearRow(rows, 1, "default");
 
-        Assert.Equal(string.Empty, rows[0].Command);
-        Assert.Equal(TaskTypeCatalog.None, rows[0].TaskType);
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("npm run dev", rows[0].Command);
+        Assert.Equal("docker compose up", rows[1].Command);
+        Assert.Equal(string.Empty, rows[2].Command);
+        Assert.True(rows[2].IsEditorPlaceholder);
+    }
+
+    [Fact]
+    public void ClearRow_FirstRow_ShiftsRemainingCommandsUp()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "one", LaunchTarget = "default" },
+            new() { Command = "two", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { Command = "three", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+        };
+
+        LaunchRowListEditor.ClearRow(rows, 0, "default");
+
+        Assert.Equal("two", rows[0].Command);
+        Assert.Equal("three", rows[1].Command);
+        Assert.Equal(string.Empty, rows[2].Command);
     }
 
     [Fact]
@@ -62,7 +84,7 @@ public sealed class LaunchRowListEditorTests
     }
 
     [Fact]
-    public void ApplyPill_PrefersEditorPlaceholderOverIntentionalBlank()
+    public void ApplyPill_FillsFirstEmptyCommandSlot()
     {
         var rows = new List<LaunchRowDraft>
         {
@@ -75,16 +97,42 @@ public sealed class LaunchRowListEditorTests
             "docker compose up",
             TaskTypeCatalog.Services,
             "Services",
-            "Services · docker compose up",
             "docker compose up",
+            "Services · docker compose up",
             10,
             "docker");
 
         Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
         Assert.Equal(3, rows.Count);
-        Assert.Equal(string.Empty, rows[1].Command);
+        Assert.Equal("docker compose up", rows[1].Command);
         Assert.Equal("wt:pwsh", rows[1].LaunchTarget);
-        Assert.Equal("docker compose up", rows[2].Command);
-        Assert.False(rows[2].IsEditorPlaceholder);
+        Assert.False(rows[1].IsEditorPlaceholder);
+        Assert.Equal(string.Empty, rows[2].Command);
+        Assert.True(rows[2].IsEditorPlaceholder);
+    }
+
+    [Fact]
+    public void ApplyPill_AfterClear_RefillsCompactedEmptySlot()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "one", LaunchTarget = "default" },
+            new() { Command = "two", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+            new() { Command = "three", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
+        };
+
+        LaunchRowListEditor.ClearRow(rows, 1, "default");
+
+        var pill = new CommandSuggestionPill(
+            "four",
+            TaskTypeCatalog.None,
+            "Command",
+            "four",
+            "four",
+            1,
+            "custom");
+
+        Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
+        Assert.Equal(["one", "three", "four"], rows.Select(row => row.Command));
     }
 }

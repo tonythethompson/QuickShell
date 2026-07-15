@@ -11,6 +11,7 @@ internal static class TaskTypeCatalog
     public const string Logs = "logs";
     public const string Test = "test";
     public const string Build = "build";
+    public const string Agent = "agent";
 
     public const string Database = Services;
 
@@ -73,6 +74,7 @@ internal static class TaskTypeCatalog
             Logs => Logs,
             Test or "tests" => Test,
             Build => Build,
+            Agent or "ai" or "agents" => Agent,
             _ => None,
         };
 
@@ -85,6 +87,7 @@ internal static class TaskTypeCatalog
             Logs => "Logs",
             Test => "Test",
             Build => "Build",
+            Agent => "Agent",
             _ => string.Empty,
         };
 
@@ -97,6 +100,7 @@ internal static class TaskTypeCatalog
             Logs => ShortcutGlyphs.TaskLogs,
             Test => ShortcutGlyphs.TaskTest,
             Build => ShortcutGlyphs.TaskBuild,
+            Agent => ShortcutGlyphs.TaskAgent,
             _ => null,
         };
 }

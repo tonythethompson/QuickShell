@@ -74,7 +74,7 @@ When editing a workspace, **Suggested commands** appear as clickable pills for f
 | **Save** | Blank rows are dropped; at least one launch row is kept |
 | **Editor padding** | New/edit forms start with three empty launch rows so the first few pill clicks avoid layout rebuilds (CmdPal) |
 
-Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. When you **create** a workspace or **discover git repos**, Quick Shell can still seed multiple launch rows automatically when the project layout is clear.
+Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. **Browse/Paste on create or edit does not auto-fill commands or companion apps** (use suggestion pills / pick a companion). **Discover git repos** still heuristically seeds launches and a companion when the project layout is clear.
 
 **Privacy:** classification reads only the workspace folder you chose. Commands may appear in tooltips; they are not logged or uploaded. Raycast uses the local `QuickShell.Suggest` helper (`QUICKSHELL_SUGGEST_EXE` overrides its path for development).
 
@@ -281,9 +281,10 @@ Preferred for multiple terminals or commands per workspace. Each entry:
 | `DevServerUrl` | No | `http://` or `https://` URL opened in your browser when the workspace runs (if **Open on launch** is enabled) |
 | `OpenDevServerOnLaunch` | No | `true` to open `DevServerUrl` whenever the full workspace runs |
 | `RepoUrl` | No | Repository URL opened from the workspace context menu |
-| `CompanionAppPath` | No | Executable path for a companion app (editor, notes app, etc.) |
-| `CompanionAppArguments` | No | Optional arguments; use `.` or `{folder}` for the workspace directory |
-| `OpenCompanionAppOnLaunch` | No | `true` to launch the companion app whenever the full workspace runs |
+| `CompanionApps` | No | Ordered list of companion apps (`Path`, `Arguments`, `OpenOnLaunch`, `Order`); max 5 |
+| `CompanionAppPath` | No | Primary companion path (mirrored from first `CompanionApps` entry; still dual-read) |
+| `CompanionAppArguments` | No | Primary arguments; use `.` or `{folder}` for the workspace directory |
+| `OpenCompanionAppOnLaunch` | No | Primary open-on-launch flag (mirrored); per-entry flags on `CompanionApps` win for multi |
 
 Mix **section headers** into the same array with workspace objects:
 

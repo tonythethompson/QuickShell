@@ -5,7 +5,12 @@ namespace QuickShell.Core.Tests;
 
 internal sealed class FakeShortcutRepository : IShortcutRepository
 {
-    public event EventHandler? WorkspacesChanged;
+    // Interface requires the event; this fake never raises it.
+    public event EventHandler? WorkspacesChanged
+    {
+        add { }
+        remove { }
+    }
 
     private readonly Dictionary<string, TerminalShortcut> _byId;
     private readonly Dictionary<string, TerminalShortcut> _byName;
@@ -98,6 +103,10 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public bool MovePinned(string name, int direction) => false;
 
     public bool MovePinnedToEdge(string name, bool toTop) => false;
+
+    public bool MovePinnedById(string id, int direction) => false;
+
+    public bool MovePinnedToEdgeById(string id, bool toTop) => false;
 
     public void MarkUsed(string shortcutId)
     {

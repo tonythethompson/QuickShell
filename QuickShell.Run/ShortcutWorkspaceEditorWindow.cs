@@ -44,15 +44,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
     private readonly TextBox _repoUrlBox;
 
-    private readonly ComboBox _companionPresetBox;
+    private readonly StackPanel _companionRowsHost = new() { Margin = new Thickness(0, 0, 0, 8) };
 
-    private readonly TextBox _companionPathBox;
-
-    private readonly TextBox _companionArgsBox;
-
-    private readonly CheckBox _openCompanionBox;
-
-    private readonly Button _companionBrowseButton;
+    private readonly List<CompanionRowUi> _companionRows = [];
 
     private readonly List<LaunchRow> _launchRows = [];
 
@@ -64,8 +58,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
     private RunDirectorySuggestionLoader? _suggestionLoader;
 
     private int _activeSuggestionGeneration;
-
-    private string _companionPreset = CompanionAppCatalog.PresetNone;
 
 
 
@@ -94,18 +86,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
             _working.Launches.Add(CreateLaunchEntry("Launch", string.Empty, "default", false, 0));
 
         }
-
-
-
-        var companion = CompanionAppCatalog.ReconcileStoredShortcut(
-
-            _working.OpenCompanionAppOnLaunch,
-
-            _working.CompanionAppPath,
-
-            _working.CompanionAppArguments);
-
-        _companionPreset = companion.Preset;
 
 
 
@@ -287,85 +267,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-        links.Children.Add(RunWpfUiHelpers.FieldLabel("Companion app", WorkspaceFormTooltips.CompanionAppPreset));
-
-        _companionPresetBox = new ComboBox
-
-        {
-
-            DisplayMemberPath = "Label",
-
-            SelectedValuePath = "Id",
-
-            Margin = new Thickness(0, 0, 0, 4),
-
-        };
-
-        foreach (var choice in CompanionAppCatalog.GetInstalledFormChoices())
-
-        {
-
-            _companionPresetBox.Items.Add(new { choice.Id, Label = choice.Title });
-
-        }
-
-
-
-        _companionPresetBox.SelectionChanged += (_, _) => ApplyCompanionPresetSelection();
-
-        links.Children.Add(_companionPresetBox);
-
-
-
-        var companionPathRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-
-        _companionPathBox = new TextBox
-
-        {
-
-            Text = companion.Path,
-
-            Margin = new Thickness(0, 0, 8, 0),
-
-            MinWidth = 360,
-
-        };
-
-        _companionBrowseButton = new Button { Content = "Browse…", MinWidth = 88 };
-
-        _companionBrowseButton.Click += (_, _) => BrowseCompanionExecutable();
-
-        companionPathRow.Children.Add(_companionPathBox);
-
-        companionPathRow.Children.Add(_companionBrowseButton);
-
-        links.Children.Add(companionPathRow);
-
-
-
-        links.Children.Add(RunWpfUiHelpers.FieldLabel("Companion app arguments"));
-
-        _companionArgsBox = new TextBox { Text = companion.Arguments, Margin = new Thickness(0, 0, 0, 8) };
-
-        links.Children.Add(_companionArgsBox);
-
-        _openCompanionBox = new CheckBox
-
-        {
-
-            Content = "Open companion app on launch",
-
-            IsChecked = companion.LaunchOnWorkspaceOpen,
-
-            Margin = new Thickness(0, 0, 0, 8),
-
-        };
-
-        links.Children.Add(_openCompanionBox);
-
-        _companionPresetBox.SelectedValue = CompanionAppCatalog.ToFormPresetValue(companion.Preset, companion.Path);
-
-        ApplyCompanionPresetSelection();
+        links.Children.Add(_companionRowsHost);
+        RebuildCompanionRows(CompanionAppFormEditor.FromShortcut(_working));
 
         tabs.Items.Add(RunWpfUiHelpers.CreateTab("_Links", links));
 
@@ -551,82 +454,62 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-    private void BrowseCompanionExecutable()
-
+    private void RebuildCompanionRows(IReadOnlyList<CompanionAppFormRow> rows)
     {
-
-        if (!RunFileDialogs.TryPickExecutable(this, out var selected))
-
+        _companionRowsHost.Children.Clear();
+        _companionRows.Clear();
+        var source = rows.ToList();
+        CompanionAppFormEditor.EnsureAtLeastOne(source);
+        for (var i = 0; i < source.Count; i++)
         {
-
-            return;
-
+            AddCompanionRowUi(source[i], i, source.Count);
         }
-
-
-
-        _companionPreset = CompanionAppCatalog.ResolvePresetAfterBrowse(selected);
-
-        _companionPresetBox.SelectedValue = _companionPreset;
-
-        ApplyCompanionPresetSelection();
-
     }
 
-
-
-    private void ApplyCompanionPresetSelection()
-
+    private void AddCompanionRowUi(CompanionAppFormRow model, int index, int totalCount)
     {
+        var row = new CompanionRowUi(this, model, index, totalCount);
+        _companionRows.Add(row);
+        _companionRowsHost.Children.Add(row.Root);
+    }
 
-        _companionPreset = _companionPresetBox.SelectedValue as string ?? CompanionAppCatalog.PresetNone;
-
-        var isCustom = string.Equals(_companionPreset, CompanionAppCatalog.PresetCustom, StringComparison.OrdinalIgnoreCase);
-
-        var isNone = string.Equals(_companionPreset, CompanionAppCatalog.PresetNone, StringComparison.OrdinalIgnoreCase);
-
-
-
-        if (isNone)
-
+    private void RefreshCompanionRowChrome()
+    {
+        var total = _companionRows.Count;
+        for (var i = 0; i < total; i++)
         {
+            _companionRows[i].RefreshChrome(i, total);
+        }
+    }
 
-            _companionPathBox.Text = string.Empty;
-
-            _companionArgsBox.Text = string.Empty;
-
-            _openCompanionBox.IsChecked = false;
-
+    private void OnAddCompanionRow()
+    {
+        if (!CompanionAppFormEditor.CanAdd(CaptureCompanionFormRows()))
+        {
+            return;
         }
 
-        else if (CompanionAppCatalog.IsCatalogPreset(_companionPreset)
+        AddCompanionRowUi(CompanionAppFormRow.Empty(), _companionRows.Count, _companionRows.Count + 1);
+        RefreshCompanionRowChrome();
+    }
 
-                 && CompanionAppCatalog.TryApplyPreset(_companionPreset, out var path, out var args))
-
+    private void OnRemoveCompanionRow(CompanionRowUi row)
+    {
+        if (_companionRows.Count <= 1)
         {
-
-            _companionPathBox.Text = path ?? string.Empty;
-
-            _companionArgsBox.Text = args;
-
+            return;
         }
 
-        else if (isCustom && string.IsNullOrWhiteSpace(_companionPathBox.Text))
+        _companionRows.Remove(row);
+        _companionRowsHost.Children.Remove(row.Root);
+        RefreshCompanionRowChrome();
+    }
 
-        {
-
-            _companionArgsBox.Text = string.Empty;
-
-        }
-
-
-
-        _companionPathBox.IsReadOnly = !isCustom;
-
-        _companionBrowseButton.IsEnabled = isCustom;
-
-        _openCompanionBox.IsEnabled = !isNone;
-
+    private List<CompanionAppFormRow> CaptureCompanionFormRows()
+    {
+        var rows = _companionRows.Select(row => row.ToFormRow()).ToList();
+        CompanionAppFormEditor.EnsureAtLeastOne(rows);
+        return rows;
     }
 
 
@@ -791,7 +674,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         var target = _launchRows.FirstOrDefault(row =>
 
-            row.IsEditorPlaceholder && string.IsNullOrWhiteSpace(row.CommandText));
+            string.IsNullOrWhiteSpace(row.CommandText));
 
         if (target is null)
 
@@ -1013,25 +896,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-        var companionState = CompanionAppCatalog.ReconcileForSave(
-
-            _companionPreset,
-
-            _companionPathBox.Text,
-
-            _companionArgsBox.Text,
-
-            _openCompanionBox.IsChecked == true);
-
-        _working.CompanionAppPath = string.IsNullOrWhiteSpace(companionState.Path) ? null : companionState.Path;
-
-        _working.CompanionAppArguments = string.IsNullOrWhiteSpace(companionState.Arguments)
-
-            ? null
-
-            : companionState.Arguments;
-
-        _working.OpenCompanionAppOnLaunch = companionState.LaunchOnWorkspaceOpen;
+        _working.CompanionApps = CompanionAppFormEditor.ToCompanionEntries(CaptureCompanionFormRows());
+        CompanionAppNormalization.NormalizeCompanions(_working);
 
 
 
@@ -1233,6 +1099,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
             RepoUrl = shortcut.RepoUrl,
 
+            CompanionApps = shortcut.CompanionApps.Select(CompanionAppNormalization.CloneEntry).ToList(),
+
             CompanionAppPath = shortcut.CompanionAppPath,
 
             CompanionAppArguments = shortcut.CompanionAppArguments,
@@ -1299,7 +1167,166 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
     }
 
+    private sealed class CompanionRowUi
+    {
+        private readonly ShortcutWorkspaceEditorWindow _owner;
+        private readonly string _entryId;
+        private readonly ComboBox _presetBox;
+        private readonly TextBox _pathBox;
+        private readonly TextBox _argsBox;
+        private readonly CheckBox _openBox;
+        private readonly Button _browseButton;
+        private readonly Button _addButton;
+        private readonly Button _removeButton;
+        private readonly TextBlock _label;
 
+        public StackPanel Root { get; }
+
+        public CompanionRowUi(ShortcutWorkspaceEditorWindow owner, CompanionAppFormRow model, int index, int totalCount)
+        {
+            _owner = owner;
+            _entryId = string.IsNullOrWhiteSpace(model.Id) ? Guid.NewGuid().ToString("N") : model.Id;
+
+            Root = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+            _label = RunWpfUiHelpers.FieldLabel(
+                index == 0 ? "Companion app" : $"Companion app {index + 1}",
+                WorkspaceFormTooltips.CompanionAppPreset);
+            Root.Children.Add(_label);
+
+            var pickerRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+            _presetBox = new ComboBox
+            {
+                DisplayMemberPath = "Label",
+                SelectedValuePath = "Id",
+                MinWidth = 280,
+                Margin = new Thickness(0, 0, 8, 0),
+            };
+            foreach (var choice in CompanionAppCatalog.GetInstalledFormChoices())
+            {
+                _presetBox.Items.Add(new { choice.Id, Label = choice.Title });
+            }
+
+            _presetBox.SelectedValue = CompanionAppCatalog.ToFormPresetValue(model.Preset, model.Path);
+            _presetBox.SelectionChanged += (_, _) => ApplyPresetSelection();
+            pickerRow.Children.Add(_presetBox);
+
+            _browseButton = new Button { Content = "Browse…", MinWidth = 72, Margin = new Thickness(0, 0, 4, 0) };
+            _browseButton.Click += (_, _) => BrowseExecutable();
+            pickerRow.Children.Add(_browseButton);
+
+            _addButton = new Button
+            {
+                Content = "+",
+                MinWidth = 32,
+                ToolTip = CompanionAppFormEditor.AddTooltip,
+                Margin = new Thickness(0, 0, 4, 0),
+            };
+            _addButton.Click += (_, _) => _owner.OnAddCompanionRow();
+            pickerRow.Children.Add(_addButton);
+
+            _removeButton = new Button
+            {
+                Content = "−",
+                MinWidth = 32,
+                ToolTip = CompanionAppFormEditor.RemoveTooltip,
+            };
+            _removeButton.Click += (_, _) => _owner.OnRemoveCompanionRow(this);
+            pickerRow.Children.Add(_removeButton);
+            Root.Children.Add(pickerRow);
+
+            _pathBox = new TextBox
+            {
+                Text = model.Path,
+                Margin = new Thickness(0, 0, 0, 4),
+                MinWidth = 360,
+            };
+            Root.Children.Add(_pathBox);
+
+            _argsBox = new TextBox
+            {
+                Text = model.Arguments,
+                Margin = new Thickness(0, 0, 0, 4),
+            };
+            Root.Children.Add(_argsBox);
+
+            _openBox = new CheckBox
+            {
+                Content = "Open on workspace launch",
+                IsChecked = model.OpenOnLaunch,
+            };
+            Root.Children.Add(_openBox);
+
+            ApplyPresetSelection(preservePath: true);
+            RefreshChrome(index, totalCount);
+        }
+
+        public void RefreshChrome(int index, int totalCount)
+        {
+            _label.Text = index == 0 ? "Companion app" : $"Companion app {index + 1}";
+            _addButton.Visibility = index == totalCount - 1 && totalCount < CompanionAppFormEditor.MaxCount
+                ? System.Windows.Visibility.Visible
+                : System.Windows.Visibility.Collapsed;
+            _removeButton.Visibility = totalCount > 1
+                ? System.Windows.Visibility.Visible
+                : System.Windows.Visibility.Collapsed;
+        }
+
+        public CompanionAppFormRow ToFormRow()
+        {
+            var preset = _presetBox.SelectedValue as string ?? CompanionAppCatalog.PresetNone;
+            return new CompanionAppFormRow
+            {
+                Id = _entryId,
+                Preset = preset,
+                Path = _pathBox.Text ?? string.Empty,
+                Arguments = _argsBox.Text ?? string.Empty,
+                OpenOnLaunch = _openBox.IsChecked == true,
+            };
+        }
+
+        private void BrowseExecutable()
+        {
+            if (!RunFileDialogs.TryPickExecutable(_owner, out var selected))
+            {
+                return;
+            }
+
+            var preset = CompanionAppCatalog.ResolvePresetAfterBrowse(selected);
+            _presetBox.SelectedValue = preset;
+            _pathBox.Text = selected;
+            ApplyPresetSelection(preservePath: true);
+        }
+
+        private void ApplyPresetSelection(bool preservePath = false)
+        {
+            var preset = _presetBox.SelectedValue as string ?? CompanionAppCatalog.PresetNone;
+            var isCustom = string.Equals(preset, CompanionAppCatalog.PresetCustom, StringComparison.OrdinalIgnoreCase);
+            var isNone = string.Equals(preset, CompanionAppCatalog.PresetNone, StringComparison.OrdinalIgnoreCase);
+
+            if (isNone)
+            {
+                if (!preservePath)
+                {
+                    _pathBox.Text = string.Empty;
+                    _argsBox.Text = string.Empty;
+                }
+
+                _openBox.IsChecked = false;
+            }
+            else if (!preservePath
+                     && CompanionAppCatalog.IsCatalogPreset(preset)
+                     && CompanionAppCatalog.TryApplyPreset(preset, out var path, out var args))
+            {
+                _pathBox.Text = path ?? string.Empty;
+                _argsBox.Text = args;
+                _openBox.IsChecked = true;
+            }
+
+            _pathBox.IsReadOnly = !isCustom;
+            _browseButton.IsEnabled = isCustom;
+            _openBox.IsEnabled = !isNone;
+        }
+    }
 
     private sealed class LaunchRow
 

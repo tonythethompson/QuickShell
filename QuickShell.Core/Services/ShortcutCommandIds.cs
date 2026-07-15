@@ -18,6 +18,9 @@ internal static class ShortcutCommandIds
     public static string FavoriteToggle(string shortcutName) =>
         $"com.quickshell.shortcut.favorite.{CommandIdEncoding.EncodeNameKey(shortcutName)}";
 
+    public static string FavoriteMove(string shortcutId, string moveKind) =>
+        $"com.quickshell.shortcut.move.{shortcutId}.{moveKind}";
+
     public static string DiscoverCreate(string directory) =>
         QuickShellDeepLinkIds.DiscoverCreatePrefix + CommandIdEncoding.EncodeDirectoryKey(directory);
 

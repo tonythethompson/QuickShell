@@ -4,10 +4,10 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-// Shares a collection with TerminalLauncherTests (see TerminalLauncherOverrideCollection)
+// Shares a collection with TerminalLauncherTests (see TerminalLauncherOverrideIsolation)
 // because both mutate the process-wide static TerminalLauncher.StartProcessOverride
 // seam, which two test classes running in parallel could otherwise clobber.
-[Collection(TerminalLauncherOverrideCollection.Name)]
+[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class ShortcutLaunchExecutorTests : IDisposable
 {
     public ShortcutLaunchExecutorTests()
@@ -270,9 +270,21 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
     }
 }
 
-[Collection(TerminalLauncherOverrideCollection.Name)]
-public sealed class WorkspaceDevServerActionsTests
+[Collection(TerminalLauncherOverrideIsolation.Name)]
+public sealed class WorkspaceDevServerActionsTests : IDisposable
 {
+    public WorkspaceDevServerActionsTests()
+    {
+        LaunchExecutorTestEnvironment.Apply();
+    }
+
+    public void Dispose()
+    {
+        LaunchExecutorTestEnvironment.Reset();
+        TerminalLauncher.StartProcessOverride = null;
+        WorkspaceDevServerActions.TryOpenOverride = null;
+    }
+
     [Fact]
     public void ShouldOpenOnWorkspaceLaunch_RequiresExplicitOptIn()
     {
@@ -320,6 +332,12 @@ public sealed class WorkspaceDevServerActionsTests
             ],
         };
 
+        var devServerOpened = false;
+        WorkspaceDevServerActions.TryOpenOverride = _ =>
+        {
+            devServerOpened = true;
+            return true;
+        };
         TerminalLauncher.StartProcessOverride = _ => true;
         try
         {
@@ -329,11 +347,13 @@ public sealed class WorkspaceDevServerActionsTests
                 TerminalHostIds.WindowsConsoleHost,
                 "cmd");
 
-            Assert.True(result.Dismiss);
+            Assert.True(result.Dismiss, result.StayOpenMessage);
+            Assert.False(devServerOpened);
         }
         finally
         {
             TerminalLauncher.StartProcessOverride = null;
+            WorkspaceDevServerActions.TryOpenOverride = null;
         }
     }
 }

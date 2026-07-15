@@ -79,21 +79,31 @@ internal sealed class TerminalShortcut
 
 
 
-    /// <summary>When true, opens <see cref="CompanionAppPath"/> whenever the full workspace runs.</summary>
+    /// <summary>
+    /// One or more GUI companion apps. When empty on disk, synthesized from the legacy
+    /// scalar companion fields on load (see <c>CompanionAppNormalization</c>).
+    /// </summary>
+    public List<CompanionAppEntry> CompanionApps { get; set; } = [];
 
+    /// <summary>
+    /// When true, opens the primary companion whenever the full workspace runs.
+    /// Mirrored from the first <see cref="CompanionApps"/> entry; prefer per-entry
+    /// <see cref="CompanionAppEntry.OpenOnLaunch"/> for multi-companion workspaces.
+    /// </summary>
     public bool OpenCompanionAppOnLaunch { get; set; }
 
-
-
-    /// <summary>Executable path for the workspace companion app (editor, notes app, etc.).</summary>
-
+    /// <summary>
+    /// Executable path for the primary companion app (editor, notes app, etc.).
+    /// Mirrored from the first <see cref="CompanionApps"/> entry.
+    /// </summary>
     public string? CompanionAppPath { get; set; }
 
-
-
-    /// <summary>Optional arguments. Use <c>.</c> or <c>{folder}</c> for the workspace directory.</summary>
-
+    /// <summary>
+    /// Optional arguments for the primary companion. Use <c>.</c> or <c>{folder}</c>
+    /// for the workspace directory. Mirrored from the first <see cref="CompanionApps"/> entry.
+    /// </summary>
     public string? CompanionAppArguments { get; set; }
 
 }
+
 

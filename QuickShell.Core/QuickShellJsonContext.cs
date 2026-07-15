@@ -18,6 +18,8 @@ namespace QuickShell;
 [JsonSerializable(typeof(List<WorkspaceDiskRecord>))]
 [JsonSerializable(typeof(WorkspaceEntry))]
 [JsonSerializable(typeof(List<WorkspaceEntry>))]
+[JsonSerializable(typeof(CompanionAppEntry))]
+[JsonSerializable(typeof(List<CompanionAppEntry>))]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(WorktreeBranchTargetsDocument))]
 internal sealed partial class QuickShellJsonContext : JsonSerializerContext;

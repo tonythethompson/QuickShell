@@ -68,12 +68,16 @@ internal static class ShortcutHealth
             return $"Invalid workspace · {launchError}";
         }
 
-        if (requireDirectoryExists
-            && shortcut.OpenCompanionAppOnLaunch
-            && !string.IsNullOrWhiteSpace(shortcut.CompanionAppPath)
-            && !CompanionAppCatalog.TryResolveExecutablePath(shortcut.CompanionAppPath, out _))
+        if (requireDirectoryExists)
         {
-            return $"Companion app missing · {ShortcutDisplay.BuildSubtitle(shortcut)}";
+            var missingCompanion = CompanionAppNormalization.GetOpenOnLaunch(shortcut)
+                .FirstOrDefault(entry =>
+                    !string.IsNullOrWhiteSpace(entry.Path)
+                    && !CompanionAppCatalog.TryResolveExecutablePath(entry.Path, out _));
+            if (missingCompanion is not null)
+            {
+                return $"Companion app missing · {ShortcutDisplay.BuildSubtitle(shortcut)}";
+            }
         }
 
         return ShortcutDisplay.BuildSubtitle(shortcut);

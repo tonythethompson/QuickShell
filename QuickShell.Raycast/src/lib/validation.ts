@@ -1,4 +1,10 @@
-import { DEFAULT_TERMINAL, type LaunchEntry, type Workspace } from "./schema";
+import {
+  DEFAULT_TERMINAL,
+  type CompanionAppEntry,
+  type LaunchEntry,
+  type Workspace,
+} from "./schema";
+import { createStableId } from "./ids";
 
 const MAX_NAME_LENGTH = 120;
 const MAX_ABBREVIATION_LENGTH = 32;
@@ -6,6 +12,7 @@ const MAX_DIRECTORY_LENGTH = 1024;
 const MAX_COMMAND_LENGTH = 4000;
 const MAX_PROFILE_LENGTH = 120;
 const MAX_LAUNCHES = 50;
+const MAX_COMPANIONS = 5;
 const MAX_WORKSPACES = 500;
 
 export type ValidationResult = { ok: true } | { ok: false; message: string };
@@ -167,6 +174,8 @@ export function isAbsoluteDirectory(directory: string): boolean {
 export function normalizeWorkspace(workspace: Workspace): Workspace {
   const launches = normalizeLaunches(workspace.launches, workspace);
   const firstEnabled = launches.find((entry) => entry.isEnabled);
+  const companionApps = normalizeCompanionApps(workspace);
+  const primaryCompanion = companionApps[0];
 
   return {
     ...workspace,
@@ -177,7 +186,48 @@ export function normalizeWorkspace(workspace: Workspace): Workspace {
     wtProfile: workspace.wtProfile?.trim() || null,
     command: firstEnabled?.command ?? workspace.command?.trim() ?? null,
     launches,
+    companionApps,
+    openCompanionAppOnLaunch: primaryCompanion?.openOnLaunch ?? false,
+    companionAppPath: primaryCompanion?.path ?? null,
+    companionAppArguments: primaryCompanion?.arguments ?? null,
   };
+}
+
+/** Dual-read: list if present, else synthesize from legacy scalar companion fields. */
+export function normalizeCompanionApps(workspace: Workspace): CompanionAppEntry[] {
+  const fromList = (workspace.companionApps ?? [])
+    .filter((entry) => entry?.path?.trim())
+    .map((entry, index) => ({
+      id: entry.id?.trim() || createStableId(),
+      path: entry.path.trim(),
+      arguments: entry.arguments?.trim() || null,
+      openOnLaunch: Boolean(entry.openOnLaunch),
+      order: index,
+    }))
+    .slice(0, MAX_COMPANIONS);
+
+  if (fromList.length > 0) {
+    return fromList;
+  }
+
+  const path = workspace.companionAppPath?.trim();
+  if (!path) {
+    return [];
+  }
+
+  return [
+    {
+      id: createStableId(),
+      path,
+      arguments: workspace.companionAppArguments?.trim() || null,
+      openOnLaunch: Boolean(workspace.openCompanionAppOnLaunch),
+      order: 0,
+    },
+  ];
+}
+
+export function getOpenOnLaunchCompanions(workspace: Workspace): CompanionAppEntry[] {
+  return normalizeCompanionApps(workspace).filter((entry) => entry.openOnLaunch);
 }
 
 export function normalizeLaunches(launches: LaunchEntry[], workspace: Workspace): LaunchEntry[] {
@@ -216,5 +266,6 @@ export const VALIDATION_LIMITS = {
   MAX_COMMAND_LENGTH,
   MAX_PROFILE_LENGTH,
   MAX_LAUNCHES,
+  MAX_COMPANIONS,
   MAX_WORKSPACES,
 };

@@ -79,6 +79,8 @@ public sealed class TaskTypeCatalogTests
     [InlineData("DATABASE", TaskTypeCatalog.Services)]
     [InlineData("database", TaskTypeCatalog.Services)]
     [InlineData("logs", TaskTypeCatalog.Logs)]
+    [InlineData("agent", TaskTypeCatalog.Agent)]
+    [InlineData("AI", TaskTypeCatalog.Agent)]
     public void Normalize_KnownValues_AreCaseInsensitiveAndTrimmed(string value, string expected)
     {
         Assert.Equal(expected, TaskTypeCatalog.Normalize(value));
@@ -98,6 +100,7 @@ public sealed class TaskTypeCatalogTests
     [InlineData(TaskTypeCatalog.Test, "Test")]
     [InlineData(TaskTypeCatalog.Build, "Build")]
     [InlineData(TaskTypeCatalog.Logs, "Logs")]
+    [InlineData(TaskTypeCatalog.Agent, "Agent")]
     public void GetTitle_KnownValues_ReturnExpectedStrings(string value, string expected)
     {
         Assert.Equal(expected, TaskTypeCatalog.GetTitle(value));
@@ -117,6 +120,7 @@ public sealed class TaskTypeCatalogTests
     [InlineData(TaskTypeCatalog.Test)]
     [InlineData(TaskTypeCatalog.Build)]
     [InlineData(TaskTypeCatalog.Logs)]
+    [InlineData(TaskTypeCatalog.Agent)]
     public void GetGlyph_KnownValues_ReturnNonEmptyGlyphs(string value)
     {
         Assert.False(string.IsNullOrEmpty(TaskTypeCatalog.GetGlyph(value)));

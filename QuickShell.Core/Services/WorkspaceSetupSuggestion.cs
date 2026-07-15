@@ -131,13 +131,17 @@ internal static class WorkspaceSetupSuggestion
             Add("Build", "dotnet build");
             Add("Tests", "dotnet test");
 
-            if (classification.RunnableDotNetProjects.Count == 1)
+            var runnableProjects = classification.RunnableDotNetProjects
+                .Where(LaunchCommandSanity.IsUsableDotNetProjectFileName)
+                .ToList();
+
+            if (runnableProjects.Count == 1)
             {
-                var project = QuoteIfNeeded(classification.RunnableDotNetProjects[0]);
+                var project = QuoteIfNeeded(runnableProjects[0]);
                 Add("Watch", $"dotnet watch --project {project}");
                 Add("Run", $"dotnet run --project {project}");
             }
-            else if (classification.RunnableDotNetProjects.Count > 1)
+            else if (runnableProjects.Count > 1)
             {
                 Add("Watch", "dotnet watch");
             }
@@ -343,6 +347,12 @@ internal static class WorkspaceSetupSuggestion
         {
             foreach (var task in classification.VsCodeTasks)
             {
+                // Skip tasks that rely on VS Code variable expansion (${workspaceFolder}, etc.).
+                if (!LaunchCommandSanity.IsUsableSuggestion(task.Command))
+                {
+                    continue;
+                }
+
                 Add($"VS Code: {task.Label}", task.Command);
             }
         }
@@ -357,7 +367,9 @@ internal static class WorkspaceSetupSuggestion
 
         private void Add(string label, string command)
         {
-            if (string.IsNullOrWhiteSpace(command) || !_seenCommands.Add(command))
+            if (string.IsNullOrWhiteSpace(command)
+                || !LaunchCommandSanity.IsUsableSuggestion(command)
+                || !_seenCommands.Add(command))
             {
                 return;
             }

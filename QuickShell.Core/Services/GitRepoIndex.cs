@@ -77,11 +77,36 @@ internal static class GitRepoIndex
         EnsureFresh(extraRoots);
         savedDirectories ??= EmptySet.Instance;
 
-        return GetCacheForRootKey(rootKey)
-            .Where(candidate => !savedDirectories.Contains(candidate.Directory))
-            .Where(candidate => Matches(candidate, trimmed))
-            .Take(maxResults)
-            .ToList();
+        // Single linear pass with early exit — index size is bounded by discovery, not workspaces.
+        maxResults = Math.Max(0, maxResults);
+        if (maxResults == 0)
+        {
+            return [];
+        }
+
+        var cache = GetCacheForRootKey(rootKey);
+        List<GitRepoCandidate>? results = null;
+        foreach (var candidate in cache)
+        {
+            if (savedDirectories.Contains(candidate.Directory))
+            {
+                continue;
+            }
+
+            if (!Matches(candidate, trimmed))
+            {
+                continue;
+            }
+
+            results ??= new List<GitRepoCandidate>(Math.Min(maxResults, 8));
+            results.Add(candidate);
+            if (results.Count >= maxResults)
+            {
+                break;
+            }
+        }
+
+        return results is null ? [] : results;
     }
 
     public static IReadOnlyList<GitRepoCandidate> GetAll(IEnumerable<string>? extraRoots = null)

@@ -16,7 +16,8 @@ internal static class DiscoverGitRepoListItems
         IEnumerable<GitRepoCandidate> discovered,
         Action onSaved,
         IReadOnlyDictionary<string, List<TerminalShortcut>> shortcutsByDirectory,
-        QuickShellSettingsManager? settings)
+        QuickShellSettingsManager? settings,
+        IDictionary<string, ListItem>? itemCache = null)
     {
         var unsaved = new List<GitRepoCandidate>();
         var saved = new List<(GitRepoCandidate Candidate, IReadOnlyList<TerminalShortcut> Shortcuts)>();
@@ -34,13 +35,15 @@ internal static class DiscoverGitRepoListItems
             }
         }
 
+        var usedKeys = itemCache is null ? null : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         if (unsaved.Count > 0)
         {
             foreach (var item in SectionListItems.InSection(
                          NotSavedSectionTitle,
                          unsaved
                              .OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
-                             .Select(candidate => CreateNew(candidate, onSaved))))
+                             .Select(candidate => CreateNew(candidate, onSaved, itemCache: itemCache, usedKeys: usedKeys))))
             {
                 yield return item;
             }
@@ -56,9 +59,19 @@ internal static class DiscoverGitRepoListItems
                                  entry.Candidate,
                                  onSaved,
                                  entry.Shortcuts,
-                                 settings))))
+                                 settings,
+                                 itemCache: itemCache,
+                                 usedKeys: usedKeys))))
             {
                 yield return item;
+            }
+        }
+
+        if (itemCache is not null && usedKeys is not null)
+        {
+            foreach (var stale in itemCache.Keys.Where(key => !usedKeys.Contains(key)).ToList())
+            {
+                itemCache.Remove(stale);
             }
         }
     }
@@ -66,8 +79,22 @@ internal static class DiscoverGitRepoListItems
     public static ListItem CreateNew(
         GitRepoCandidate candidate,
         Action onSaved,
-        string? title = null)
+        string? title = null,
+        IDictionary<string, ListItem>? itemCache = null,
+        ISet<string>? usedKeys = null)
     {
+        var cacheKey = "new:" + candidate.Directory;
+        usedKeys?.Add(cacheKey);
+
+        if (itemCache is not null && itemCache.TryGetValue(cacheKey, out var existing))
+        {
+            existing.Title = title ?? candidate.Name;
+            existing.Subtitle = BuildSubtitleForNew(candidate);
+            existing.Icon = new IconInfo(ShortcutGlyphs.Add);
+            existing.MoreCommands = BuildDirectoryCommands(candidate.Directory);
+            return existing;
+        }
+
         var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate)))
         {
             Title = title ?? candidate.Name,
@@ -75,6 +102,11 @@ internal static class DiscoverGitRepoListItems
             Icon = new IconInfo(ShortcutGlyphs.Add),
             MoreCommands = BuildDirectoryCommands(candidate.Directory),
         };
+
+        if (itemCache is not null)
+        {
+            itemCache[cacheKey] = item;
+        }
 
         return item;
     }
@@ -84,18 +116,38 @@ internal static class DiscoverGitRepoListItems
         Action onSaved,
         IReadOnlyList<TerminalShortcut> matchingShortcuts,
         QuickShellSettingsManager? settings = null,
-        string? title = null)
+        string? title = null,
+        IDictionary<string, ListItem>? itemCache = null,
+        ISet<string>? usedKeys = null)
     {
+        var cacheKey = "saved:" + candidate.Directory;
+        usedKeys?.Add(cacheKey);
+
+        var moreCommands = settings is not null && matchingShortcuts.Count > 0
+            ? BuildSavedWorkspaceCommands(candidate.Directory, matchingShortcuts, settings, onSaved)
+            : BuildDirectoryCommands(candidate.Directory);
+
+        if (itemCache is not null && itemCache.TryGetValue(cacheKey, out var existing))
+        {
+            existing.Title = title ?? candidate.Name;
+            existing.Subtitle = BuildSubtitleForSaved(candidate, matchingShortcuts);
+            existing.Icon = new IconInfo(ShortcutGlyphs.Saved);
+            existing.MoreCommands = moreCommands;
+            return existing;
+        }
+
         var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate)))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForSaved(candidate, matchingShortcuts),
             Icon = new IconInfo(ShortcutGlyphs.Saved),
+            MoreCommands = moreCommands,
         };
 
-        item.MoreCommands = settings is not null && matchingShortcuts.Count > 0
-            ? BuildSavedWorkspaceCommands(candidate.Directory, matchingShortcuts, settings, onSaved)
-            : BuildDirectoryCommands(candidate.Directory);
+        if (itemCache is not null)
+        {
+            itemCache[cacheKey] = item;
+        }
 
         return item;
     }
@@ -172,6 +224,10 @@ internal static class DiscoverGitRepoListItems
         {
             Title = Strings.OpenDirectory,
             Icon = new IconInfo("\uE838"),
+#if CMDPAL_HOVER_ACTIONS
+            ShowInHoverActions = true,
+            HoverOrder = 10,
+#endif
         },
     ];
 
@@ -182,6 +238,7 @@ internal static class DiscoverGitRepoListItems
         Action onChanged)
     {
         var items = new List<CommandContextItem>(BuildDirectoryCommands(directory));
+        var hoverOrder = 20;
         foreach (var shortcut in matchingShortcuts)
         {
             const bool requireDirectoryExists = false;
@@ -193,6 +250,10 @@ internal static class DiscoverGitRepoListItems
                     Title = shortcut.Name,
                     Subtitle = Strings.RepairWorkspace,
                     Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+#if CMDPAL_HOVER_ACTIONS
+                    ShowInHoverActions = true,
+                    HoverOrder = hoverOrder++,
+#endif
                 });
                 continue;
             }
@@ -202,12 +263,20 @@ internal static class DiscoverGitRepoListItems
                 Title = shortcut.Name,
                 Subtitle = Strings.OpenWorkspace,
                 Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+#if CMDPAL_HOVER_ACTIONS
+                ShowInHoverActions = true,
+                HoverOrder = hoverOrder++,
+#endif
             });
 
             items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged))
             {
                 Title = Strings.EditNamedFormat(shortcut.Name),
                 Icon = new IconInfo("\uE70F"),
+#if CMDPAL_HOVER_ACTIONS
+                ShowInHoverActions = true,
+                HoverOrder = hoverOrder++,
+#endif
             });
         }
 

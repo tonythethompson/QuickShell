@@ -23,6 +23,7 @@ internal static class ShortcutContextCommands
     private const int HoverOrderStatus = 6;
     private const int HoverOrderCopyDiagnostics = 7;
     private const int HoverOrderEdit = 8;
+    private const int HoverOrderCreate = 15;
     private const int HoverOrderFavorite = 20;
     private const int HoverOrderDuplicate = 30;
     private const int HoverOrderDelete = 50;
@@ -42,7 +43,9 @@ internal static class ShortcutContextCommands
         bool includeEdit = true,
         PinnedMoveVisibility moveVisibility = default)
     {
-        if (ShortcutHealth.WouldNeedRepair(shortcut))
+        // Skip DirectoryExists here — list open already uses requireDirectoryExists:false
+        // for primary rows; disk checks on every context menu make leave/reload laggy.
+        if (ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
         {
             return BuildRepairOnly(shortcut, onChanged, settings);
         }
@@ -113,6 +116,9 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderDuplicate));
 
+        AddPreSettingsCommands(items, createShortcutCommand, onChanged);
+        items.Add(CreateSettingsItem(settings));
+
         // Delete
         var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged);
         items.Add(WithShortcut(
@@ -129,37 +135,19 @@ internal static class ShortcutContextCommands
         return items.ToArray();
     }
 
+    /// <summary>
+    /// Full home-list context menu (same as <see cref="Build"/>). Kept for call-site clarity.
+    /// </summary>
     public static CommandContextItem[] BuildForHomePin(
         TerminalShortcut shortcut,
         Action onChanged,
         QuickShellSettingsManager settings,
         CreateShortcutCommand? createShortcutCommand = null,
-        bool? needsRepair = null)
-    {
-        if (needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut))
-        {
-            return BuildRepairOnly(shortcut, onChanged, settings);
-        }
-
-        var items = new List<CommandContextItem>();
-
-        AddElevationContextCommand(items, shortcut, settings);
-        AddFolderAndLinkCommands(items, shortcut);
-        AddStatusCommand(items, shortcut, settings, onChanged);
-        AddLaunchDiagnosticsCommand(items);
-
-        items.Add(WithShortcut(
-            new ShortcutFormPage(shortcut, onChanged),
-            ctrl: true,
-            alt: false,
-            shift: false,
-            VirtualKey.E,
-            title: Strings.Menu_Edit,
-            showInHoverActions: true,
-            hoverOrder: HoverOrderEdit));
-
-        return items.ToArray();
-    }
+        bool? needsRepair = null,
+        PinnedMoveVisibility moveVisibility = default) =>
+        needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut)
+            ? BuildRepairOnly(shortcut, onChanged, settings)
+            : Build(shortcut, onChanged, settings, createShortcutCommand, includeEdit: true, moveVisibility);
 
     public static CommandContextItem[] BuildRepairOnly(
         TerminalShortcut shortcut,
@@ -248,6 +236,30 @@ internal static class ShortcutContextCommands
             hoverOrder: HoverOrderRedo),
     ];
 
+    private static void AddPreSettingsCommands(
+        List<CommandContextItem> items,
+        CreateShortcutCommand? createShortcutCommand,
+        Action onChanged)
+    {
+        items.AddRange(BuildUndoRedoCommands(onChanged));
+
+        if (createShortcutCommand is null)
+        {
+            return;
+        }
+
+        items.Add(new CommandContextItem(createShortcutCommand)
+        {
+            Title = Strings.Menu_CreateWorkspace,
+            Icon = new IconInfo("\uE710"),
+            RequestedShortcut = QuickShellKeyboardShortcuts.CreateShortcut,
+#if CMDPAL_HOVER_ACTIONS
+            ShowInHoverActions = true,
+            HoverOrder = HoverOrderCreate,
+#endif
+        });
+    }
+
     private static void AddPinnedMoveCommands(
         List<CommandContextItem> items,
         TerminalShortcut shortcut,
@@ -256,7 +268,8 @@ internal static class ShortcutContextCommands
     {
         if (moveVisibility.ShowToTop)
         {
-            var moveToTopCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.ToTop, onChanged);
+            var moveToTopCommand = new MoveFavoriteShortcutCommand(
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.ToTop, onChanged);
             items.Add(WithShortcut(
                 moveToTopCommand,
                 ctrl: true,
@@ -269,7 +282,8 @@ internal static class ShortcutContextCommands
 
         if (moveVisibility.ShowUp)
         {
-            var moveUpCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.Up, onChanged);
+            var moveUpCommand = new MoveFavoriteShortcutCommand(
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.Up, onChanged);
             items.Add(WithShortcut(
                 moveUpCommand,
                 ctrl: true,
@@ -283,7 +297,8 @@ internal static class ShortcutContextCommands
 
         if (moveVisibility.ShowDown)
         {
-            var moveDownCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.Down, onChanged);
+            var moveDownCommand = new MoveFavoriteShortcutCommand(
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.Down, onChanged);
             items.Add(WithShortcut(
                 moveDownCommand,
                 ctrl: true,
@@ -297,7 +312,8 @@ internal static class ShortcutContextCommands
 
         if (moveVisibility.ShowToBottom)
         {
-            var moveToBottomCommand = new MoveFavoriteShortcutCommand(shortcut.Name, FavoriteMoveKind.ToBottom, onChanged);
+            var moveToBottomCommand = new MoveFavoriteShortcutCommand(
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.ToBottom, onChanged);
             items.Add(WithShortcut(
                 moveToBottomCommand,
                 ctrl: true,
@@ -359,10 +375,11 @@ internal static class ShortcutContextCommands
 
         if (CompanionAppLauncher.IsConfigured(shortcut))
         {
+            var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
             items.Add(new CommandContextItem(new OpenCompanionAppCommand(shortcut))
             {
-                Title = Strings.Menu_OpenCompanionAppFormat(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)),
-                Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath)),
+                Title = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut)),
+                Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(primaryPath)),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
                 HoverOrder = HoverOrderCompanionApp,

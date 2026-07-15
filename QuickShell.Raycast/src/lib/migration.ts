@@ -115,12 +115,60 @@ function migrateWorkspace(raw: unknown): Workspace | null {
     openCompanionAppOnLaunch: parseStrictBoolean(record.openCompanionAppOnLaunch),
     companionAppPath: typeof record.companionAppPath === "string" ? record.companionAppPath : null,
     companionAppArguments: typeof record.companionAppArguments === "string" ? record.companionAppArguments : null,
+    companionApps: Array.isArray(record.companionApps)
+      ? record.companionApps
+          .map((entry) => migrateCompanionEntry(entry))
+          .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      : Array.isArray(record.CompanionApps)
+        ? record.CompanionApps
+            .map((entry) => migrateCompanionEntry(entry))
+            .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+        : undefined,
   };
 
   return normalizeWorkspace({
     ...workspace,
     launches: normalizeLaunches(workspace.launches, workspace),
   });
+}
+
+function migrateCompanionEntry(raw: unknown) {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const record = raw as UnknownRecord;
+  const path =
+    (typeof record.path === "string" && record.path.trim()) ||
+    (typeof record.Path === "string" && record.Path.trim()) ||
+    "";
+  if (!path) {
+    return null;
+  }
+
+  return {
+    id: ensureStableId(
+      typeof record.id === "string"
+        ? record.id
+        : typeof record.Id === "string"
+          ? record.Id
+          : undefined,
+    ),
+    path,
+    arguments:
+      typeof record.arguments === "string"
+        ? record.arguments
+        : typeof record.Arguments === "string"
+          ? record.Arguments
+          : null,
+    openOnLaunch:
+      typeof record.openOnLaunch === "boolean"
+        ? record.openOnLaunch
+        : typeof record.OpenOnLaunch === "boolean"
+          ? record.OpenOnLaunch
+          : false,
+    order: typeof record.order === "number" ? record.order : typeof record.Order === "number" ? record.Order : 0,
+  };
 }
 
 function migrateLaunchEntry(raw: unknown): LaunchEntry | null {

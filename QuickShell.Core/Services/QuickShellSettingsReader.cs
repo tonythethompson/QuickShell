@@ -58,6 +58,11 @@ internal sealed class QuickShellSettingsReader
         WriteSettings(settings =>
             settings[QuickShellRecentSettings.SettingKey] = QuickShellRecentSettings.FormatCount(count));
 
+    public string? ReadRawSetting(string key) => ReadSetting(key);
+
+    public void SaveSetting(string key, string value) =>
+        WriteSettings(settings => settings[key] = value);
+
     public int ReadRecentWorkspaceCount() => ReadRecentWorkspaceCountFromFile(SettingsPath);
 
     public string ConfigDirectory =>

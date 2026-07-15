@@ -5,16 +5,25 @@ using System.Text.Json.Nodes;
 
 namespace QuickShell.Pages;
 
+/// <summary>
+/// Combined settings card: terminal defaults, Home / Multi / Git toggles, and Backup & Transfer.
+/// One Adaptive Card so vertical spacing is controlled (no host gap between separate forms).
+/// </summary>
 internal sealed partial class BehaviorSettingsForm : FormContent
 {
     private const string SingleWindowTabsField = "singleWindowTabs";
     private const string ShowRecentsField = "showRecents";
+    private const string BlockDirtyBranchSwitchField = "blockDirtyBranchSwitch";
 
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly Action? _onReload;
     private readonly Action? _onSettingsChanged;
+    private readonly TerminalDefaultsSettingsForm _terminalForm;
+    private readonly ShortcutTransferSettingsForm _transferForm;
     private bool _pendingSingleWindowTabs;
     private bool _pendingShowRecents;
+    private bool _pendingBlockDirtyBranchSwitch;
+    private bool _rebuilding;
 
     public BehaviorSettingsForm(
         QuickShellSettingsManager settingsManager,
@@ -24,20 +33,46 @@ internal sealed partial class BehaviorSettingsForm : FormContent
         _settingsManager = settingsManager;
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
+        _terminalForm = new TerminalDefaultsSettingsForm(
+            settingsManager,
+            onReload,
+            onSettingsChanged,
+            RebuildTemplate);
+        _transferForm = new ShortcutTransferSettingsForm(onReload, onSettingsChanged, RebuildTemplate);
         SyncPendingFromSettings();
         RebuildTemplate();
     }
 
     internal void SyncFromSettings()
     {
-        SyncPendingFromSettings();
+        var nextTabs = !_settingsManager.SeparateWindowsForMultiLaunch;
+        var nextRecents = QuickShellRecentSettings.IsEnabled(_settingsManager.RecentWorkspaceCount);
+        var nextGit = _settingsManager.BlockDirtyBranchSwitch;
+        var nextApp = _settingsManager.TerminalApplicationId;
+        var nextProfile = _settingsManager.DefaultProfileId;
+
+        // Avoid rebuilding the large settings Adaptive Card when nothing changed.
+        if (nextTabs == _pendingSingleWindowTabs
+            && nextRecents == _pendingShowRecents
+            && nextGit == _pendingBlockDirtyBranchSwitch
+            && _terminalForm.MatchesPending(nextApp, nextProfile)
+            && !string.IsNullOrEmpty(TemplateJson))
+        {
+            return;
+        }
+
+        _terminalForm.SyncFromSettings(notifyParent: false);
+        _pendingSingleWindowTabs = nextTabs;
+        _pendingShowRecents = nextRecents;
+        _pendingBlockDirtyBranchSwitch = nextGit;
+        RebuildTemplate();
     }
 
     private void SyncPendingFromSettings()
     {
         _pendingSingleWindowTabs = !_settingsManager.SeparateWindowsForMultiLaunch;
         _pendingShowRecents = QuickShellRecentSettings.IsEnabled(_settingsManager.RecentWorkspaceCount);
-        RebuildTemplate();
+        _pendingBlockDirtyBranchSwitch = _settingsManager.BlockDirtyBranchSwitch;
     }
 
     public override CommandResult SubmitForm(string payload) => SubmitForm(payload, string.Empty);
@@ -45,74 +80,155 @@ internal sealed partial class BehaviorSettingsForm : FormContent
     public override CommandResult SubmitForm(string inputs, string data)
     {
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
+        if (_terminalForm.TryHandleAction(action, inputs, data, out var terminalResult))
+        {
+            return terminalResult;
+        }
+
+        if (_transferForm.TryHandleAction(action, inputs, data, out var transferResult))
+        {
+            return transferResult;
+        }
+
         return action switch
         {
-            "saveMultiLaunch" => SaveMultiLaunch(inputs, data),
-            "saveRecents" => SaveRecents(inputs, data),
+            "previewSettings" => PreviewSettings(inputs, data),
+            "saveAndCloseSettings" => SaveAndClose(inputs, data),
+            "cancelSettings" => CancelSettings(),
+            // Legacy action names (if any host caches old templates).
+            "saveMultiLaunch" or "saveRecents" or "saveGitLaunch" => PreviewSettings(inputs, data),
             _ => CommandResult.KeepOpen(),
         };
     }
 
-    private CommandResult SaveMultiLaunch(string inputs, string data)
+    private CommandResult PreviewSettings(string inputs, string data)
     {
         var values = ParseValues(inputs, data);
-        var singleWindowTabs = ParseToggleBool(
-            values?[SingleWindowTabsField]?.ToString(),
-            _pendingSingleWindowTabs);
-
-        if (singleWindowTabs != !_settingsManager.SeparateWindowsForMultiLaunch)
-        {
-            _settingsManager.UpdateMultiLaunchPresentation(singleWindowTabs);
-            SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
-            SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
-            QuickShellStatus.ShowToast(Strings.Saved_Toast);
-        }
-
-        _pendingSingleWindowTabs = singleWindowTabs;
+        ApplyAllPendingFromValues(values);
         RebuildTemplate();
         return CommandResult.KeepOpen();
     }
 
-    private CommandResult SaveRecents(string inputs, string data)
+    private CommandResult SaveAndClose(string inputs, string data)
     {
         var values = ParseValues(inputs, data);
-        var showRecents = ParseToggleBool(values?[ShowRecentsField]?.ToString(), _pendingShowRecents);
-        var nextCount = QuickShellRecentSettings.FromEnabled(showRecents);
+        ApplyAllPendingFromValues(values);
 
-        if (nextCount != _settingsManager.RecentWorkspaceCount)
+        if (!_terminalForm.TryCommitPending(values, out var error))
         {
-            _settingsManager.UpdateRecentWorkspaceCount(nextCount);
-            SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
-            SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
-            QuickShellStatus.ShowToast(Strings.Saved_Toast);
+            RebuildTemplate();
+            return QuickShellNavigation.StayOnSettings(error);
         }
 
-        _pendingShowRecents = showRecents;
+        CommitToggleSettings();
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
+        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        return QuickShellNavigation.GoBack(Strings.Saved_Toast);
+    }
+
+    private CommandResult CancelSettings()
+    {
+        // Discard in-memory pending; nothing written for toggles/terminal until Save & close.
+        _terminalForm.SyncFromSettings(notifyParent: false);
+        SyncPendingFromSettings();
         RebuildTemplate();
-        return CommandResult.KeepOpen();
+        return QuickShellNavigation.GoBack();
+    }
+
+    private void ApplyAllPendingFromValues(JsonObject? values)
+    {
+        _terminalForm.ApplyPendingFromValues(values);
+        _pendingSingleWindowTabs = ParseToggleBool(
+            values?[SingleWindowTabsField]?.ToString(),
+            _pendingSingleWindowTabs);
+        _pendingShowRecents = ParseToggleBool(
+            values?[ShowRecentsField]?.ToString(),
+            _pendingShowRecents);
+        _pendingBlockDirtyBranchSwitch = ParseToggleBool(
+            values?[BlockDirtyBranchSwitchField]?.ToString(),
+            _pendingBlockDirtyBranchSwitch);
+    }
+
+    private void CommitToggleSettings()
+    {
+        var nextRecents = QuickShellRecentSettings.FromEnabled(_pendingShowRecents);
+        if (nextRecents != _settingsManager.RecentWorkspaceCount)
+        {
+            _settingsManager.UpdateRecentWorkspaceCount(nextRecents);
+        }
+
+        if (_pendingSingleWindowTabs != !_settingsManager.SeparateWindowsForMultiLaunch)
+        {
+            _settingsManager.UpdateMultiLaunchPresentation(_pendingSingleWindowTabs);
+        }
+
+        if (_pendingBlockDirtyBranchSwitch != _settingsManager.BlockDirtyBranchSwitch)
+        {
+            _settingsManager.UpdateBlockDirtyBranchSwitch(_pendingBlockDirtyBranchSwitch);
+        }
     }
 
     private void RebuildTemplate()
     {
-        var usesWt = TerminalHostIds.UsesWindowsTerminalProfiles(_settingsManager.TerminalApplicationId);
-        var multiLaunchColumn = $$"""
-            {{SettingsCardJson.SectionHeader(Strings.MultiLaunch_SectionHeader)}},
-            {{SettingsCardJson.MultiLaunchTabsToggle(_pendingSingleWindowTabs, usesWt)}}
-            """;
-        var homeDisplayColumn = $$"""
-            {{SettingsCardJson.SectionHeader(Strings.HomeDisplay_SectionHeader)}},
-            {{SettingsCardJson.RecentEnabledToggle(_pendingShowRecents)}}
-            """;
+        if (_rebuilding)
+        {
+            return;
+        }
 
-        TemplateJson = $$"""
-            {
-              "type": "AdaptiveCard",
-              "version": "1.6",
-              "body": [
-                {{SettingsCardJson.TwoColumnSection(multiLaunchColumn, homeDisplayColumn)}}
-              ]
-            }
-            """;
+        _rebuilding = true;
+        try
+        {
+            // Prefer pending terminal app (while editing) for multi-launch WT hint.
+            var usesWt = TerminalHostIds.UsesWindowsTerminalProfiles(
+                ExtractPendingTerminalApp() ?? _settingsManager.TerminalApplicationId);
+
+            var homeDisplayColumn = $$"""
+                {{SettingsCardJson.SectionHeader(Strings.HomeDisplay_SectionHeader)}},
+                {{SettingsCardJson.RecentEnabledToggle(_pendingShowRecents)}}
+                """;
+            var multiLaunchColumn = $$"""
+                {{SettingsCardJson.SectionHeader(Strings.MultiLaunch_SectionHeader)}},
+                {{SettingsCardJson.MultiLaunchTabsToggle(_pendingSingleWindowTabs, usesWt)}}
+                """;
+            var gitLaunchColumn = $$"""
+                {{SettingsCardJson.SectionHeader(Strings.GitLaunch_SectionHeader)}},
+                {{SettingsCardJson.BlockDirtyBranchToggle(_pendingBlockDirtyBranchSwitch)}}
+                """;
+
+            TemplateJson = $$"""
+                {
+                  "type": "AdaptiveCard",
+                  "version": "1.6",
+                  "body": [
+                    {{_terminalForm.BodyElementsJson}},
+                    {{SettingsCardJson.ThreeColumnSection(
+                        homeDisplayColumn,
+                        multiLaunchColumn,
+                        gitLaunchColumn,
+                        spacing: "Medium")}},
+                    {{_transferForm.BodyElementsJson}},
+                    {{SettingsCardJson.SettingsFooterActions()}}
+                  ]
+                }
+                """;
+            DataJson = _terminalForm.BoundDataJson;
+        }
+        finally
+        {
+            _rebuilding = false;
+        }
+    }
+
+    private string? ExtractPendingTerminalApp()
+    {
+        try
+        {
+            return JsonNode.Parse(_terminalForm.BoundDataJson)?["terminalApplication"]?.GetValue<string>();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string? TryGetAction(string? data) =>
