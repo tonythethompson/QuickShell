@@ -16,7 +16,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly object _refreshSync = new();
     /// <summary>
     /// Unpinned rows are expensive to rebuild (full context menus). Reuse them across
-    /// favorite move / pin toggles so only favorites (~few rows) are recreated.
+    /// favorite moves so only favorites (~few rows) are recreated.
     /// </summary>
     private readonly Dictionary<string, ListItem> _unpinnedItemCache =
         new(StringComparer.OrdinalIgnoreCase);
@@ -125,14 +125,23 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     }
 
     /// <summary>
-    /// Rebuild the home list now so CmdPal repaints immediately. Unpinned rows are reused
-    /// from cache (favorite moves only recreate pinned rows + headers).
+    /// Rebuild the home list now so CmdPal repaints immediately.
     /// </summary>
     public void Reload()
+    {
+        Reload(preserveUnpinnedItemCache: false);
+    }
+
+    private void Reload(bool preserveUnpinnedItemCache)
     {
         if (_disposed)
         {
             return;
+        }
+
+        if (!preserveUnpinnedItemCache)
+        {
+            _unpinnedItemCache.Clear();
         }
 
         _searchDebouncer.FlushNow();
@@ -492,7 +501,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         IReadOnlyList<TerminalShortcut> pinnedInOrder)
     {
         // Favorites always rebuild (move visibility depends on pin order among favorites).
-        // Unpinned rows reuse cached ListItems so reordering 3 favorites does not rebuild ~40 menus.
+        // Unpinned rows reuse cached ListItems when reordering favorites, avoiding ~40 menu rebuilds.
         if (!shortcut.IsPinned
             && !string.IsNullOrWhiteSpace(shortcut.Id)
             && _unpinnedItemCache.TryGetValue(shortcut.Id, out var cached))
@@ -505,7 +514,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _settings,
             Reload,
             _createShortcutCommand,
-            PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder));
+            PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
+            onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true));
 
         if (!string.IsNullOrWhiteSpace(shortcut.Id))
         {

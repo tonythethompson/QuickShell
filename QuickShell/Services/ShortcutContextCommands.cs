@@ -41,7 +41,8 @@ internal static class ShortcutContextCommands
         QuickShellSettingsManager settings,
         CreateShortcutCommand? createShortcutCommand = null,
         bool includeEdit = true,
-        PinnedMoveVisibility moveVisibility = default)
+        PinnedMoveVisibility moveVisibility = default,
+        Action? onFavoritesReordered = null)
     {
         // Skip DirectoryExists here — list open already uses requireDirectoryExists:false
         // for primary rows; disk checks on every context menu make leave/reload laggy.
@@ -102,7 +103,7 @@ internal static class ShortcutContextCommands
 
         if (shortcut.IsPinned)
         {
-            AddPinnedMoveCommands(items, shortcut, onChanged, moveVisibility);
+            AddPinnedMoveCommands(items, shortcut, onFavoritesReordered ?? onChanged, moveVisibility);
         }
 
         var duplicateCommand = new DuplicateShortcutCommand(shortcut, onChanged);

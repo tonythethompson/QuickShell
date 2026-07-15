@@ -85,6 +85,27 @@ public sealed class QuickShellPageSearchTests : IDisposable
         Assert.Equal(string.Empty, GetPrivateField<string>(page, "_query"));
     }
 
+    [Fact]
+    public void Reload_AfterUnpinnedWorkspaceRename_RebuildsCachedRow()
+    {
+        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }));
+        _ = page.GetItems();
+
+        _repository.Upsert(new TerminalShortcut
+        {
+            Id = "alpha",
+            Name = "Renamed Alpha",
+            Directory = _configDirectory,
+            Command = "echo alpha",
+        }, originalName: "Alpha");
+
+        page.Reload();
+
+        var titles = page.GetItems().OfType<ListItem>().Select(item => item.Title).ToList();
+        Assert.Contains("Renamed Alpha", titles);
+        Assert.DoesNotContain("Alpha", titles);
+    }
+
     public void Dispose()
     {
         QuickShellServices.Unbind();

@@ -14,7 +14,8 @@ internal static class ShortcutListItems
         Action? onChanged = null,
         CreateShortcutCommand? createShortcutCommand = null,
         PinnedMoveVisibility moveVisibility = default,
-        bool includeEdit = true)
+        bool includeEdit = true,
+        Action? onFavoritesReordered = null)
     {
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
@@ -48,7 +49,8 @@ internal static class ShortcutListItems
                     settings,
                     createShortcutCommand,
                     includeEdit,
-                    moveVisibility);
+                    moveVisibility,
+                    onFavoritesReordered);
         }
 
         return item;
