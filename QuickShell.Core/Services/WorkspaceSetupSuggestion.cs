@@ -413,7 +413,9 @@ internal static class WorkspaceSetupSuggestion
 
             try
             {
-                return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+                // Bolt: Use ReadLines instead of ReadAllText to avoid large single allocations
+                // and exit early once the target is found.
+                return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
