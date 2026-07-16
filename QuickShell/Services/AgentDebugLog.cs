@@ -32,7 +32,8 @@ internal static class AgentDebugLog
                 payload["hypothesisId"] = hypothesisId;
             }
 
-            var line = JsonSerializer.Serialize(payload) + Environment.NewLine;
+            var line = JsonSerializer.Serialize(payload, QuickShellJsonContext.Default.DictionaryStringObject)
+                + Environment.NewLine;
 
             lock (Sync)
             {

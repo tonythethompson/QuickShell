@@ -859,7 +859,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    private static void RenumberPinned(IReadOnlyList<TerminalShortcut> pinned)
+    private static void RenumberPinned(List<TerminalShortcut> pinned)
     {
         for (var i = 0; i < pinned.Count; i++)
         {

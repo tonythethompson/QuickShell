@@ -17,18 +17,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      issues: read
+      pull-requests: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 1
           persist-credentials: false
       - name: Run OpenCode
-        # Pin the reviewed dev branch commit before exposing ANTHROPIC_API_KEY.
+        # Pin the reviewed dev branch commit before exposing credentials.
+        # Use the OpenCode-provided key, not a third-party Anthropic secret.
         uses: anomalyco/opencode/github@4a760b5743496942fd821eeafaa7d648a5630973
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: anthropic/claude-sonnet-4-5
           agent: github-scan
+          use_github_token: true

@@ -17,7 +17,7 @@ internal static class ProjectAnalysisAccessor
 
     internal static void Reset() => _instance = DefaultLazy.Value;
 
-    private static IProjectAnalysisService CreateDefault() =>
+    private static ProjectAnalysisService CreateDefault() =>
         new ProjectAnalysisService(
             ProjectClassificationPipeline.CreateDefaultClassifiers(),
             ProjectLayoutAnalyzer.Default,

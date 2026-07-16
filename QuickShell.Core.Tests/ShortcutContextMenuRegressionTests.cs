@@ -88,7 +88,7 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     }
 
     [Fact]
-    public void BuildForHomePin_MatchesFullBuildInventory()
+    public void BuildForHomePin_ExcludesPageAndPinnedMoveCommands()
     {
         var shortcut = CreateHealthyShortcut("HomePin");
         var full = GetTitles(ShortcutContextCommands.Build(
@@ -102,7 +102,12 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
             _settings,
             _createCommand));
 
-        Assert.Equal(full, home);
+        Assert.Contains(Strings.Menu_Undo, full);
+        Assert.Contains(Strings.Menu_Redo, full);
+        Assert.Contains(Strings.Menu_CreateWorkspace, full);
+        Assert.DoesNotContain(Strings.Menu_Undo, home);
+        Assert.DoesNotContain(Strings.Menu_Redo, home);
+        Assert.Contains(Strings.Menu_CreateWorkspace, home);
     }
 
     [Fact]

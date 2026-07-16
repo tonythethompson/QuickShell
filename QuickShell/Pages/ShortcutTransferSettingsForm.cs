@@ -329,7 +329,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private static string Escape(string value)
     {
-        var serialized = JsonSerializer.Serialize(value);
+        var serialized = JsonSerializer.Serialize(value, QuickShellJsonContext.Default.String);
         return serialized.Substring(1, serialized.Length - 2);
     }
 

@@ -124,7 +124,7 @@ internal static class LaunchRowListEditor
         rows.Select(row => row.Clone()).ToList();
 
     private static string ResolveEffectiveLaunchTarget(
-        IReadOnlyList<LaunchRowDraft> rows,
+        List<LaunchRowDraft> rows,
         int index,
         string fallbackLaunchTarget)
     {
