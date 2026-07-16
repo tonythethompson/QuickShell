@@ -47,4 +47,25 @@ public sealed class CommandDescriptorTests
         Assert.False(CommandDescriptor.IsStableId("abc"));
         Assert.False(CommandDescriptor.IsStableId(new string('g', 32)));
     }
+
+    [Fact]
+    public void TryDecodeLegacyNameKey_RoundTripsNameAndRejectsStableId()
+    {
+        var name = "legacy shortcut name";
+        var encoded = CommandDescriptor.EncodeNameKey(name);
+
+        Assert.True(CommandDescriptor.TryDecodeLegacyNameKey(encoded, out var decoded));
+        Assert.Equal(name, decoded);
+
+        var stableId = Guid.NewGuid().ToString("N");
+        Assert.False(CommandDescriptor.TryDecodeLegacyNameKey(stableId, out _));
+    }
+
+    [Fact]
+    public void OpenWorkspace_BothVariantFlagsSet_PrefersAdminSuffix()
+    {
+        var shortcutId = Guid.NewGuid().ToString("N");
+        var commandId = CommandDescriptor.OpenWorkspace(shortcutId, runAsAdmin: true, runAsStandard: true).Id;
+        Assert.EndsWith(".admin", commandId);
+    }
 }

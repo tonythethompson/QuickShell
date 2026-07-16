@@ -110,6 +110,7 @@ public sealed class CommandIdParserTests
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
+    [InlineData(true, true)]
     public void TryParse_open_launch_strips_variant_suffixes(bool runAsAdmin, bool runAsStandard)
     {
         var shortcutId = Guid.NewGuid().ToString("N");
@@ -125,6 +126,7 @@ public sealed class CommandIdParserTests
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
+    [InlineData(true, true)]
     public void TryParse_open_strips_variant_suffixes(bool runAsAdmin, bool runAsStandard)
     {
         var shortcutId = Guid.NewGuid().ToString("N");
@@ -147,5 +149,14 @@ public sealed class CommandIdParserTests
     {
         Assert.False(_parser.TryParse("com.other.extension.foo", out _));
         Assert.False(_parser.TryParse(string.Empty, out _));
+    }
+
+    [Fact]
+    public void TryParse_favorite_ids_are_not_parsed_as_deep_links()
+    {
+        Assert.False(_parser.TryParse(CommandDescriptor.FavoriteToggle("my-shortcut").Id, out _));
+
+        var shortcutId = Guid.NewGuid().ToString("N");
+        Assert.False(_parser.TryParse(CommandDescriptor.FavoriteMove(shortcutId, "up").Id, out _));
     }
 }

@@ -19,19 +19,21 @@ IDs below are built from stable prefixes followed by arguments. Stable workspace
 | Kind | Format | Example |
 |---|---|---|
 | `OpenWorkspace` | `com.quickshell.shortcut.open.<workspaceId>` | `com.quickshell.shortcut.open.a1b2...` |
-| `OpenWorkspace` (admin) | `com.quickshell.shortcut.open.<workspaceId>.admin` | `com.quickshell.shortcut.open.a1b2....admin` |
-| `OpenWorkspace` (standard) | `com.quickshell.shortcut.open.<workspaceId>.standard` | `com.quickshell.shortcut.open.a1b2....standard` |
-| `OpenLaunch` | `com.quickshell.shortcut.open.<workspaceId>.launch.<launchId>` | `com.quickshell.shortcut.open.a1b2....launch.c3d4...` |
-| `OpenLaunch` (admin/standard) | append `.admin` or `.standard` to the launch ID segment | `...launch.c3d4....admin` |
+| `OpenWorkspace` (admin) | `com.quickshell.shortcut.open.<workspaceId>.admin` | `com.quickshell.shortcut.open.a1b2...admin` |
+| `OpenWorkspace` (standard) | `com.quickshell.shortcut.open.<workspaceId>.standard` | `com.quickshell.shortcut.open.a1b2...standard` |
+| `OpenLaunch` | `com.quickshell.shortcut.open.<workspaceId>.launch.<launchId>` | `com.quickshell.shortcut.open.a1b2...launch.c3d4...` |
+| `OpenLaunch` (admin/standard) | append `.admin` or `.standard` to the launch ID segment | `com.quickshell.shortcut.open.a1b2...launch.c3d4...admin` |
 | `DiscoverCreateWorkspace` | `com.quickshell.discover.create.<hexUtf8Directory>` | directory is hex-UTF8 encoded and normalized via `Path.GetFullPath` |
 | `WorkspaceStatus` | `com.quickshell.workspace-status.<workspaceId>` | |
 | `WorktreeBranchPicker` | `com.quickshell.worktree-branch.picker.page.<workspaceId>` | |
 | `WorktreeBranchSelect` | `com.quickshell.worktree-branch.select.<workspaceId>.<branch>` | branch may contain additional dots |
 | `WorktreeBranchClear` | `com.quickshell.worktree-branch.clear.<workspaceId>` | |
 
+The `...` segments in the examples are illustrative placeholders for the 32-character stable IDs; they are not part of the real ID.
+
 ### Variant suffixes
 
-`.admin` and `.standard` are stripped during parsing and recorded via command-specific constructors, not the `CommandDescriptor` payload fields.
+`.admin` and `.standard` are stripped during parsing and recorded via command-specific constructors, not the `CommandDescriptor` payload fields. When both `runAsAdmin` and `runAsStandard` are supplied, the suffix resolves to `.admin`; callers should not pass both flags as `true`, and `CommandDescriptor` treats it as a programming error in debug builds.
 
 ## In-page command IDs
 

@@ -17,6 +17,9 @@ internal enum CommandKind
     WorktreeBranchPicker,
     WorktreeBranchSelect,
     WorktreeBranchClear,
+
+    // In-page command IDs used only inside CmdPal context menus.
+    // These are intentionally not parsed as external deep-links by CommandIdParser.
     FavoriteToggle,
     FavoriteMove,
 }

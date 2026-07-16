@@ -156,6 +156,14 @@ internal sealed record CommandDescriptor(
         }
     }
 
-    private static string VariantSuffix(bool runAsAdmin, bool runAsStandard) =>
-        runAsAdmin ? AdminSuffix : runAsStandard ? StandardSuffix : string.Empty;
+    private static string VariantSuffix(bool runAsAdmin, bool runAsStandard)
+    {
+        if (runAsAdmin && runAsStandard)
+        {
+            System.Diagnostics.Debug.Fail("VariantSuffix called with both runAsAdmin and runAsStandard true; preferring admin suffix.");
+            runAsStandard = false;
+        }
+
+        return runAsAdmin ? AdminSuffix : runAsStandard ? StandardSuffix : string.Empty;
+    }
 }
