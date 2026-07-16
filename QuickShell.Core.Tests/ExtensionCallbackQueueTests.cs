@@ -48,11 +48,11 @@ public sealed class ExtensionCallbackQueueTests
     [Fact]
     public void Drain_continues_past_non_com_exceptions()
     {
-        // A non-ObjectDisposed/COM exception (e.g. NullReference) must not abort the
+        // A non-ObjectDisposed/COM exception must not abort the
         // drain, mirroring RunOnExtensionThread's swallow-and-continue policy.
         var ran = new List<int>();
         ExtensionCallbackQueue.Enqueue(() => ran.Add(1));
-        ExtensionCallbackQueue.Enqueue(() => throw new NullReferenceException());
+        ExtensionCallbackQueue.Enqueue(() => throw new InvalidOperationException());
         ExtensionCallbackQueue.Enqueue(() => ran.Add(2));
 
         var exception = Record.Exception(() => ExtensionCallbackQueue.Drain());

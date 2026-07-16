@@ -177,7 +177,7 @@ internal static class ShortcutContextCommands
                 createShortcutCommand,
                 includeEdit: true,
                 moveVisibility,
-                includePageCommands: createShortcutCommand is not null,
+                includePageCommands: false,
                 includePinnedMoveCommands: false);
 
     public static CommandContextItem[] BuildRepairOnly(

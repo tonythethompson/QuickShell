@@ -106,6 +106,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public override IListItem[] GetItems()
     {
+        ExtensionCallbackQueue.Drain();
+
         // Host FetchItems awaits this return. Build on this COM/fetch thread so the
         // first result is the real workspace list. ThreadPool + RaiseItemsChanged left
         // the UI stuck on "Loading workspaces" (ItemsChanged from ThreadPool is dropped).
@@ -500,7 +502,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     private ListItem BuildShortcutItem(
         TerminalShortcut shortcut,
-        IReadOnlyList<TerminalShortcut> pinnedInOrder)
+        List<TerminalShortcut> pinnedInOrder)
     {
         // Favorites always rebuild (move visibility depends on pin order among favorites).
         // Unpinned rows reuse cached ListItems when reordering favorites, avoiding ~40 menu rebuilds.
@@ -517,7 +519,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             Reload,
             _createShortcutCommand,
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
-            onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true));
+            onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true),
+            useHomePinContextMenu: true);
 
         ScheduleProfileIconUpgrade(shortcut, item);
 
@@ -560,14 +563,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 }
 
                 item.Icon = new IconInfo(icon);
-                try
-                {
-                    RaiseItemsChanged();
-                }
-                catch
-                {
-                    // Best effort; the host may be between navigation states.
-                }
             });
         });
     }
@@ -577,6 +572,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         IReadOnlyList<TerminalShortcut> allShortcuts,
         IReadOnlyList<TerminalShortcut> pinnedInOrder)
     {
+        var pinnedList = pinnedInOrder.ToList();
         var recents = ShortcutRecents.GetRecentWorkspaces(allShortcuts, _settings.RecentWorkspaceCount);
         var recentIds = recents.Count == 0
             ? null
@@ -584,8 +580,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         foreach (var item in ShortcutLayoutDisplay.BuildFavoriteItems(
                      layout,
-                     shortcut => BuildShortcutItem(shortcut, pinnedInOrder),
-                     pinnedInOrder))
+                     shortcut => BuildShortcutItem(shortcut, pinnedList),
+                     pinnedList))
         {
             yield return item;
         }
@@ -594,7 +590,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         {
             foreach (var item in SectionListItems.InSection(
                          ShortcutRecents.SectionTitle,
-                         recents.Select(shortcut => BuildShortcutItem(shortcut, pinnedInOrder))))
+                         recents.Select(shortcut => BuildShortcutItem(shortcut, pinnedList))))
             {
                 yield return item;
             }
@@ -602,9 +598,9 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         foreach (var item in ShortcutLayoutDisplay.BuildWorkspaceItems(
                      layout,
-                     shortcut => BuildShortcutItem(shortcut, pinnedInOrder),
+                     shortcut => BuildShortcutItem(shortcut, pinnedList),
                      recentIds,
-                     showDefaultWorkspacesHeader: pinnedInOrder.Count > 0))
+                     showDefaultWorkspacesHeader: pinnedList.Count > 0))
         {
             yield return item;
         }

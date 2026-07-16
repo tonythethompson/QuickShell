@@ -260,7 +260,9 @@ internal static class DiscoverGitRepoListItems
         Action onChanged)
     {
         var items = new List<CommandContextItem>(BuildDirectoryCommands(directory));
+#if CMDPAL_HOVER_ACTIONS
         var hoverOrder = 20;
+#endif
         foreach (var shortcut in matchingShortcuts)
         {
             const bool requireDirectoryExists = false;

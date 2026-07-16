@@ -301,7 +301,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
     private static string EscapeJson(string value)
     {
-        var serialized = JsonSerializer.Serialize(value);
+        var serialized = JsonSerializer.Serialize(value, QuickShellJsonContext.Default.String);
         return serialized.Substring(1, serialized.Length - 2);
     }
 }

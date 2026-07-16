@@ -9,7 +9,7 @@ namespace QuickShell.Services;
 /// when the process has a window; otherwise it force-kills and buckets HANG_QUIESCE.
 /// This watcher owns a message-only HWND on a dedicated pump thread and signals exit.
 /// </summary>
-internal sealed class PackageServicingShutdownWatcher : IDisposable
+internal sealed partial class PackageServicingShutdownWatcher : IDisposable
 {
     private const int WmDestroy = 0x0002;
     private const int WmClose = 0x0010;
@@ -147,10 +147,27 @@ internal sealed class PackageServicingShutdownWatcher : IDisposable
 
             _started.Set();
 
-            while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+            while (true)
             {
-                TranslateMessage(ref msg);
-                DispatchMessage(ref msg);
+                var result = GetMessage(out var msg, IntPtr.Zero, 0, 0);
+                if (result > 0)
+                {
+                    TranslateMessage(ref msg);
+                    DispatchMessage(ref msg);
+                }
+                else if (result == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    AgentDebugLog.Write(
+                        "PackageServicingShutdownWatcher",
+                        "getmessage-failed",
+                        new { hwnd = _hwnd.ToInt64(), errorCode = Marshal.GetLastWin32Error() },
+                        hypothesisId: "S");
+                    break;
+                }
             }
         }
         catch (Exception ex)
@@ -318,7 +335,7 @@ internal sealed class PackageServicingShutdownWatcher : IDisposable
     [DllImport("user32.dll")]
     private static extern void PostQuitMessage(int nExitCode);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern int GetMessage(out Msg lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
 
     [DllImport("user32.dll")]

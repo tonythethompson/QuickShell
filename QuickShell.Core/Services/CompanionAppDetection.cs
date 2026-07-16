@@ -5,7 +5,7 @@ namespace QuickShell.Services;
 
 internal static class CompanionAppDetection
 {
-    private static readonly ICompanionAppDetector Default = new CompanionAppDetector();
+    private static readonly CompanionAppDetector Default = new();
 
     public static CompanionAppSuggestion? TrySuggestFromDirectory(string directory) =>
         Default.TrySuggest(directory);

@@ -52,6 +52,8 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
 
     public override IListItem[] GetItems()
     {
+        ExtensionCallbackQueue.Drain();
+
         // Never call RaiseItemsChanged from GetItems — CmdPal may be mid-fetch and a nested
         // ItemsChanged defers a second fetch that rebuilds the list and drops keyboard selection.
         if (_awaitingGitRefresh && !GitRepoIndex.IsRefreshInFlight)
