@@ -22,7 +22,7 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _blockDirtyBranchSwitchSetting;
     private readonly TextSetting _multiLaunchPresentationSetting;
     private Pages.QuickShellExtensionSettingsPage? _settingsPage;
-    private Action? _onReload;
+    private readonly Action? _onReload;
 
     internal IQuickShellServices? Services { get; set; }
 
