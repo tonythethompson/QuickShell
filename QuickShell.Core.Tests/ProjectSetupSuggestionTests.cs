@@ -292,7 +292,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
 
     private static string ReadCoreSource(params string[] relativePath)
     {
-        var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        var repositoryRoot = Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "../../../../../"));
         return File.ReadAllText(Path.Combine([repositoryRoot, "QuickShell.Core", .. relativePath]));
     }
 
