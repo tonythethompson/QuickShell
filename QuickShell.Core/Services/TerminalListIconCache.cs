@@ -55,7 +55,16 @@ internal static class TerminalListIconCache
             return trimmed;
         }
 
-        return Cache.GetOrAdd(trimmed, path => CreateOrGetResizedPath(path, ListIconPixels));
+        try
+        {
+            var version = $"{File.GetLastWriteTimeUtc(trimmed).Ticks}:{new FileInfo(trimmed).Length}";
+            var cacheKey = $"{trimmed}|{version}";
+            return Cache.GetOrAdd(cacheKey, _ => CreateOrGetResizedPath(trimmed, ListIconPixels));
+        }
+        catch
+        {
+            return trimmed;
+        }
     }
 
     public static void PrewarmProfiles()

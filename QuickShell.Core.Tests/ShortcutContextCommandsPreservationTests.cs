@@ -15,6 +15,7 @@ namespace QuickShell.Core.Tests;
 ///
 /// **Validates: Requirements 2.5, 2.6, 3.1, 3.2, 3.3, 3.4, 3.5**
 /// </summary>
+[Collection(QuickShellServicesIsolation.Name)]
 public sealed class ShortcutContextCommandsPreservationTests : IDisposable
 {
     private readonly string _configDirectory;

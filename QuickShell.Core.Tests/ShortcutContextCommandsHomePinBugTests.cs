@@ -17,6 +17,7 @@ namespace QuickShell.Core.Tests;
 ///
 /// Validates: Requirements 1.1, 1.2, 1.3, 1.4
 /// </summary>
+[Collection(QuickShellServicesIsolation.Name)]
 public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
 {
     private readonly string _configDirectory;
