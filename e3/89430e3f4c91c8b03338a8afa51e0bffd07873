@@ -1,0 +1,74 @@
+QuickShell.Core.Tests/ProjectAnalysisAccessorTests.cs
+  s_a319543187b812::t_060e59e450a93f 8-10
+  s_a319543187b812::t_d97aabc5f9a16b 13
+  s_a319543187b812::t_0c2b1ce787b69f 14
+  s_a319543187b812::t_4dbe0c28f5c4d7 11-12
+  s_a319543187b812::t_0047afccc9cfbd 22,31,61,82
+QuickShell/Services/QuickShellServices.cs
+  s_a319543187b812::t_cbfe265750c500 1
+  s_a319543187b812::t_747c9aa41396b2 53
+QuickShell.Core/Classification/ProjectLayoutAnalyzer.cs
+  s_a319543187b812::t_1e94d13618c237 18
+  s_a319543187b812::t_889a3e9ac93b83 25,30-35,38-43,45-48,51,88,97
+QuickShell.Core/Classification/ProjectClassificationContributor.cs
+  s_a319543187b812::t_d61b88c7f311e3 1
+  s_a319543187b812::t_3263f586a5d10a 18
+QuickShell.Core.Tests/AtomicFileWriterTests.cs
+  s_ed48411fbae681::t_7633417e8acfbd 13,20,34,48,59
+QuickShell.Core.Tests/ResetTransferTests.cs
+  s_ed48411fbae681::t_21f2d893cdc5c9 26,36-37,59
+QuickShell.Core.Tests/ProjectAnalysisServiceTests.cs
+  s_a319543187b812::t_f084a88742ecea 16,25,46,67-68,80,93,106,119-120,132,148,175
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_a319543187b812::t_89a4a9353e1d98 108
+QuickShell.Core.Tests/ShortcutLayoutEnvelopeTests.cs
+  s_a319543187b812::t_205ce268cc9cac 58,62,80,90,94,118,122,136,159,174,176-177
+QuickShell.Core.Tests/ShortcutRepositoryWorkspacesChangedTests.cs
+  s_a319543187b812::t_31140eb855dd69 13,29,45,66,84,109,124,126-127
+QuickShell.Core/Classification/Detectors/CompanionAppDetector.cs
+  s_a319543187b812::t_a8e8521a9e4816 28,31,34,62-64
+QuickShell.Core/Classification/Detectors/DevServerDetector.cs
+  s_a319543187b812::t_52f82a05d4c1d3 17,45,58,76,89,116,165,170-171,176
+QuickShell.Core/Classification/ProjectClassificationBuilder.cs
+  s_a319543187b812::t_d843bc4045f9ae 73,88-89,106,143,151-153,161-164,172,179-180,188,194,210,218,227-228,257,266-268,273,282,291-293,298,342-344,350-352,373,393,405,529,550
+QuickShell.Core/Services/AtomicFileWriter.cs
+  s_a319543187b812::t_563bff2f8925ce 56
+QuickShell.Core/Services/CommandIdEncoding.cs
+  s_a319543187b812::t_6fa0c590297238 20,37
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_a319543187b812::t_366e799943e636 270,284,305,335,352,525
+QuickShell/Commands/WorkspaceUtilityCommands.cs
+  s_a319543187b812::t_98982d26883220 176-177
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_a319543187b812::t_7368a381759721 174
+QuickShell/Pages/QuickShellPage.cs
+  s_a319543187b812::t_7c085340a84565 294
+QuickShell/QuickShellCommandsProvider.cs
+  s_ed48411fbae681::t_7e2db56fca8239 16
+QuickShell/Services/AgentDebugLog.cs
+  s_a319543187b812::t_1dedf72f576cab 51,58,88,92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e389430e3f4c91c8b03338a8afa51e0bffd07873",
+  "prompts": {},
+  "sessions": {
+    "s_a319543187b812": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f682f-b4f6-7bd1-9d0d-86adffff6b0c",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
