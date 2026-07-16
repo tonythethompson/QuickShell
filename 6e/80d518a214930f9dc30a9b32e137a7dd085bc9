@@ -1,0 +1,38 @@
+QuickShell/Pages/QuickShellPage.cs
+  s_1a0816bb1fee55::t_087aff6865fe8d 7
+  s_e8a7a2830aa368::t_7e3052b5228810 522-523,539-574
+.github/workflows/opencode.yml
+  s_e8a7a2830aa368::t_572894c00999e4 12,28-29
+QuickShell.Core.Tests/ShortcutContextCommandsHomePinBugTests.cs
+  s_e8a7a2830aa368::t_317257531e9d5c 20
+QuickShell.Core.Tests/ShortcutContextCommandsPreservationTests.cs
+  s_e8a7a2830aa368::t_7c73436a342fed 18
+QuickShell.Core/Services/TerminalListIconCache.cs
+  s_e8a7a2830aa368::t_afe354a7db7fc0 58-67
+QuickShell/Services/SettingsFormHelpers.cs
+  s_e8a7a2830aa368::t_261081966f1ea6 29-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6e80d518a214930f9dc30a9b32e137a7dd085bc9",
+  "prompts": {},
+  "sessions": {
+    "s_1a0816bb1fee55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f685c-827d-79e3-8f6b-4744afda18d5",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_e8a7a2830aa368": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6853-898b-7cc1-83e4-ebbeb719d867",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
