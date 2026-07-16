@@ -14,7 +14,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             return null;
         }
 
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return null;
@@ -42,7 +42,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             var port = InferDefaultPort(root, script);
             return port is null ? null : ToLocalhostUrl(port.Value);
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -55,7 +55,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             return null;
         }
 
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return null;
@@ -73,7 +73,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             var script = ReadScript(root, "dev") ?? ReadScript(root, "start");
             return HasFrontendFrameworkSignal(root, script) ? TaskTypeCatalog.Frontend : null;
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -86,7 +86,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             return null;
         }
 
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return null;
@@ -113,7 +113,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
 
             return FormatPackageScriptCommand(directory, scriptName);
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -162,18 +162,18 @@ internal sealed partial class DevServerDetector : IDevServerDetector
 
     private static PackageManagerKind DetectPackageManager(string directory)
     {
-        if (File.Exists(Path.Combine(directory, "pnpm-lock.yaml")))
+        if (File.Exists(Path.Join(directory, "pnpm-lock.yaml")))
         {
             return PackageManagerKind.Pnpm;
         }
 
-        if (File.Exists(Path.Combine(directory, "bun.lockb"))
-            || File.Exists(Path.Combine(directory, "bun.lock")))
+        if (File.Exists(Path.Join(directory, "bun.lockb"))
+            || File.Exists(Path.Join(directory, "bun.lock")))
         {
             return PackageManagerKind.Bun;
         }
 
-        if (File.Exists(Path.Combine(directory, "yarn.lock")))
+        if (File.Exists(Path.Join(directory, "yarn.lock")))
         {
             return PackageManagerKind.Yarn;
         }

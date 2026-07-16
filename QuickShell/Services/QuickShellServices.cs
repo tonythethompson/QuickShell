@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Threading.Tasks;
 using QuickShell.Abstractions.Classification;
 
@@ -49,7 +50,7 @@ internal sealed class QuickShellServices
         {
             await Shortcuts.PreloadAsync().ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
         {
             // Best effort warm-up; synchronous access still loads on demand.
         }
