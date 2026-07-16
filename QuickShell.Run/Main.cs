@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using ManagedCommon;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PowerToys.Settings.UI.Library;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Composition;
@@ -40,7 +41,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private PluginInitContext? _context;
     private string _iconPath = string.Empty;
     private ServiceProvider? _services;
-    private QuickShellLifetime? _lifetime;
+    private IQuickShellLifetime? _lifetime;
     private IShortcutRepository? _shortcuts;
     private QuickShellSettingsReader? _settings;
     private QuickShellRunSettingsPanel? _settingsPanel;
@@ -61,9 +62,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         using (StartupPerformanceTrace.Measure("Run services setup"))
         {
             var collection = new ServiceCollection();
-            _lifetime = new QuickShellLifetime();
-            collection.AddQuickShellCore(lifetime: _lifetime);
+            collection.AddQuickShellCore(lifetime: new QuickShellLifetime());
             _services = collection.BuildServiceProvider();
+            _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
             _shortcuts = _services.GetRequiredService<IShortcutRepository>();
             ProjectAnalysisAccessor.Instance = _services.GetRequiredService<IProjectAnalysisService>();
             _settings = new QuickShellSettingsReader();
@@ -81,10 +82,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         }
     }
 
-    private static void BeginShortcutPreload(ShortcutRepository shortcuts, QuickShellLifetime lifetime) =>
+    private static void BeginShortcutPreload(ShortcutRepository shortcuts, IQuickShellLifetime lifetime) =>
         _ = PreloadShortcutsAsync(shortcuts, lifetime);
 
-    private static async Task PreloadShortcutsAsync(ShortcutRepository shortcuts, QuickShellLifetime lifetime)
+    private static async Task PreloadShortcutsAsync(ShortcutRepository shortcuts, IQuickShellLifetime lifetime)
     {
         try
         {
@@ -103,6 +104,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             return;
         }
 
+        _disposed = true;
+        _lifetime?.Cancel();
+
         if (_context?.API is not null)
         {
             _context.API.ThemeChanged -= OnThemeChanged;
@@ -110,8 +114,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
         _services?.Dispose();
         _services = null;
+        _lifetime = null;
         _shortcuts = null;
-        _disposed = true;
         GC.SuppressFinalize(this);
     }
 

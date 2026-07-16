@@ -1,8 +1,6 @@
-using System.Threading;
-
 namespace QuickShell.Abstractions;
 
-internal interface IQuickShellLifetime
+internal interface IQuickShellLifetime : IDisposable
 {
     CancellationToken CancellationToken { get; }
 
