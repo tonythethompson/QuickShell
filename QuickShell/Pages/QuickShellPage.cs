@@ -106,6 +106,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public override IListItem[] GetItems()
     {
+        ExtensionCallbackQueue.Drain();
+
         // Host FetchItems awaits this return. Build on this COM/fetch thread so the
         // first result is the real workspace list. ThreadPool + RaiseItemsChanged left
         // the UI stuck on "Loading workspaces" (ItemsChanged from ThreadPool is dropped).
