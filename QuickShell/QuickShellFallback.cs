@@ -32,6 +32,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
     private readonly QuickShellSettingsManager _settings;
 
+    private readonly IQuickShellServices _services;
+
     private string _lastQuery = string.Empty;
 
 
@@ -39,7 +41,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
     public QuickShellFallback(
         Lazy<QuickShellFallbackPage> listPage,
         OpenDiscoverGitReposCommand discoverGitReposCommand,
-        QuickShellSettingsManager settings)
+        QuickShellSettingsManager settings,
+        IQuickShellServices? services = null)
 
         : base(BaseCommand, "Saved workspace", CommandId)
 
@@ -50,6 +53,9 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
         _discoverGitReposCommand = discoverGitReposCommand;
 
         _settings = settings;
+
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _settings.Services = _services;
 
         Title = string.Empty;
 
@@ -81,7 +87,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var taskActions = QuickShellServices.Current.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
+        var taskActions = _services.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
 
         if (taskActions.Length > 0)
 
@@ -111,7 +117,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var shortcuts = QuickShellServices.Current.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
+        var shortcuts = _services.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
 
         if (shortcuts.Length > 0)
 
@@ -143,7 +149,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
 
 
-        var allShortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
+        var allShortcuts = _services.Shortcuts.GetShortcuts();
 
         var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts);
 
@@ -217,7 +223,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem
 
     {
 
-        var item = ShortcutTaskActionListItems.Create(action, _settings, ReloadCurrentQuery);
+        var item = ShortcutTaskActionListItems.Create(action, _settings, ReloadCurrentQuery, services: _services);
 
         Title = item.Title;
 

@@ -13,13 +13,19 @@ namespace QuickShell.Pages;
 
 internal partial class ShortcutFormPage : ContentPage
 {
+    private readonly QuickShell.Services.IQuickShellServices _services;
     private readonly TerminalShortcut? _existing;
     private readonly TerminalShortcut? _createSeed;
     private readonly Action? _onSaved;
     private readonly object _formSync = new();
 
-    public ShortcutFormPage(TerminalShortcut? existing = null, Action? onSaved = null, TerminalShortcut? createSeed = null)
+    public ShortcutFormPage(
+        QuickShell.Services.IQuickShellServices services,
+        TerminalShortcut? existing = null,
+        Action? onSaved = null,
+        TerminalShortcut? createSeed = null)
     {
+        _services = services;
         _existing = existing is null ? null : CloneShortcut(existing);
         _createSeed = existing is null ? createSeed ?? ShortcutCreateNavigationState.TryTakeSeed() : null;
         _onSaved = onSaved;
@@ -44,7 +50,8 @@ internal partial class ShortcutFormPage : ContentPage
                     EnsureFormBuilt();
                     return _form!.TryRedoEdit();
                 },
-                onSaved);
+                onSaved,
+                _services);
         }
     }
 
@@ -63,7 +70,7 @@ internal partial class ShortcutFormPage : ContentPage
         {
             if (_form is null)
             {
-                _form = new ShortcutForm(_existing, _createSeed, _onSaved, MarkFormNeedsReset);
+                _form = new ShortcutForm(_services, _existing, _createSeed, _onSaved, MarkFormNeedsReset);
                 _formNeedsReset = false;
                 return;
             }
@@ -115,6 +122,7 @@ internal partial class ShortcutFormPage : ContentPage
 
 internal sealed partial class ShortcutForm : FormContent
 {
+    private readonly QuickShell.Services.IQuickShellServices _services;
     private string? _originalName;
     private readonly Action? _onSaved;
     private readonly Action? _releaseForm;
@@ -136,11 +144,13 @@ internal sealed partial class ShortcutForm : FormContent
     private int _suggestionScanGeneration;
 
     public ShortcutForm(
+        QuickShell.Services.IQuickShellServices services,
         TerminalShortcut? existing,
         TerminalShortcut? createSeed,
         Action? onSaved,
         Action? releaseForm = null)
     {
+        _services = services;
         _onSaved = onSaved;
         _releaseForm = releaseForm;
         InitializeDraft(existing, createSeed);
@@ -214,11 +224,11 @@ internal sealed partial class ShortcutForm : FormContent
                 }
                 else
                 {
-                    QuickShellServices.Current.Drafts.Cleared -= handler;
+                    _services.Drafts.Cleared -= handler;
                 }
             };
             _draftClearedHandler = handler;
-            QuickShellServices.Current.Drafts.Cleared += handler;
+            _services.Drafts.Cleared += handler;
             _subscribedToDraftCleared = true;
         }
     }
@@ -236,7 +246,7 @@ internal sealed partial class ShortcutForm : FormContent
 
     private void ResetToSavedBaseline()
     {
-        var saved = QuickShellServices.Current.Shortcuts.GetByName(_originalName!);
+        var saved = _services.Shortcuts.GetByName(_originalName!);
         if (saved is null)
         {
             return;
@@ -281,7 +291,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (_draftClearedHandler is not null)
         {
-            QuickShellServices.Current.Drafts.Cleared -= _draftClearedHandler;
+            _services.Drafts.Cleared -= _draftClearedHandler;
         }
 
         _subscribedToDraftCleared = false;
@@ -312,7 +322,7 @@ internal sealed partial class ShortcutForm : FormContent
             return;
         }
 
-        if (!QuickShellServices.Current.Drafts.TryGetForRestore(_originalName, out var persisted))
+        if (!_services.Drafts.TryGetForRestore(_originalName, out var persisted))
         {
             return;
         }
@@ -642,7 +652,7 @@ internal sealed partial class ShortcutForm : FormContent
     private void RebuildTemplate(List<LaunchRowDraft> commands, int companionCount)
     {
         var terminalApplicationId =
-            QuickShellServices.Current.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
+            _services.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal;
         var commandCount = Math.Max(1, commands.Count);
         companionCount = Math.Max(1, companionCount);
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
@@ -797,7 +807,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (string.IsNullOrWhiteSpace(_draft.DevServerUrl))
         {
-            _draft.DevServerUrl = QuickShellServices.Current.ProjectAnalysis.TryDetectDevServerUrl(normalized) ?? string.Empty;
+            _draft.DevServerUrl = _services.ProjectAnalysis.TryDetectDevServerUrl(normalized) ?? string.Empty;
         }
 
         // Commands and companions are not auto-seeded on Browse/Paste.
@@ -898,7 +908,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (!HasUnsavedChanges())
         {
-            QuickShellServices.Current.Drafts.Clear();
+            _services.Drafts.Clear();
             return LeaveShortcutForm(showToast: false);
         }
 
@@ -913,7 +923,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         if (action == "discard")
         {
-            QuickShellServices.Current.Drafts.Clear();
+            _services.Drafts.Clear();
             return LeaveShortcutForm(showToast: false);
         }
 
@@ -1009,7 +1019,7 @@ internal sealed partial class ShortcutForm : FormContent
                 draft.Commands,
                 draft.Name,
                 draft.LaunchTarget),
-            QuickShellServices.Current.Shortcuts,
+            _services.Shortcuts,
             onSaved: null,
             draft.DevServerUrl,
             draft.RepoUrl,
@@ -1026,7 +1036,7 @@ internal sealed partial class ShortcutForm : FormContent
         }
 
         ClearSaveError();
-        QuickShellServices.Current.Drafts.Clear();
+        _services.Drafts.Clear();
         // Mark home list stale only — never rebuild rows here. SubmitForm runs on a
         // host Task.Run; a full RefreshItems blocked GoBack for ~1–2s with ~45 workspaces.
         // QuickShellPage.Reload raises ItemsChanged (or relies on GetItems after nav).
@@ -1225,7 +1235,7 @@ internal sealed partial class ShortcutForm : FormContent
             return;
         }
 
-        QuickShellServices.Current.Drafts.SaveIfDirty(
+        _services.Drafts.SaveIfDirty(
             _originalName,
             ToDraftData(_draft),
             ToDraftData(_baselineDraft),
@@ -1796,10 +1806,10 @@ internal sealed partial class ShortcutForm : FormContent
             };
     }
 
-    private static string FormTerminalChoicesJson() =>
+    private string FormTerminalChoicesJson() =>
         TerminalCatalog.BuildFormChoicesJson(
             includeDefaultChoice: true,
-            QuickShellServices.Current.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal);
+            _services.Settings?.TerminalApplicationId ?? TerminalHostIds.WindowsTerminal);
 
     private static bool ParseToggleBool(string? value, bool fallback) =>
         value switch

@@ -24,6 +24,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     private readonly ServiceProvider _serviceProvider;
     private readonly ShortcutRepository _repository;
     private readonly QuickShellSettingsManager _settings;
+    private readonly IQuickShellServices _quickShellServices;
 
     public QuickShellPageSearchTests()
     {
@@ -38,7 +39,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
         var analysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
         _settings = new QuickShellSettingsManager();
         var lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
-        QuickShellServices.Bind(new QuickShellServices(_repository, drafts, _settings, analysis, lifetime));
+        _quickShellServices = new QuickShellServices(_repository, drafts, _settings, analysis, lifetime);
 
         _repository.Upsert(new TerminalShortcut
         {
@@ -59,7 +60,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void UpdateSearchText_ReopenedWithRestoredQuery_RebuildsFilteredItems()
     {
-        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }));
+        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }, _quickShellServices), _quickShellServices);
         _ = page.GetItems();
 
         SetPrivateField(page, "_query", "Alpha");
@@ -75,7 +76,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void DiscoverSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
     {
-        using var page = new TestDiscoverGitReposPage(() => { });
+        using var page = new TestDiscoverGitReposPage(() => { }, _quickShellServices);
         SetPrivateField(page, "_hasShownInitialList", true);
 
         page.UpdateSearchText(string.Empty, "alpha");
@@ -89,7 +90,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void HomeSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
     {
-        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }));
+        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }, _quickShellServices), _quickShellServices);
         _ = page.GetItems();
         SetPrivateField(page, "_query", "a");
 
@@ -123,7 +124,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
             }
             """;
 
-        var form = new BehaviorSettingsForm(_settings);
+        var form = new BehaviorSettingsForm(_settings, services: _quickShellServices);
         _ = form.SubmitForm(inputs, "{\"action\":\"refreshTerminals\"}");
 
         var terminalForm = GetPrivateField<TerminalDefaultsSettingsForm>(form, "_terminalForm");
@@ -137,7 +138,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void Reload_AfterUnpinnedWorkspaceRename_RebuildsCachedRow()
     {
-        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }));
+        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }, _quickShellServices), _quickShellServices);
         _ = page.GetItems();
 
         _repository.Upsert(new TerminalShortcut
@@ -157,7 +158,6 @@ public sealed class QuickShellPageSearchTests : IDisposable
 
     public void Dispose()
     {
-        QuickShellServices.Unbind();
         _serviceProvider.Dispose();
 
         try
@@ -182,7 +182,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     private static T GetPrivateField<T>(DiscoverGitReposPage page, string name) =>
         (T)typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
 
-    private sealed class TestDiscoverGitReposPage(Action onReload) : DiscoverGitReposPage(onReload)
+    private sealed class TestDiscoverGitReposPage(Action onReload, IQuickShellServices? services = null) : DiscoverGitReposPage(onReload, services)
     {
     }
 

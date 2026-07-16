@@ -20,6 +20,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
     /// </summary>
     private const int KeepSelectionRefresh = -2;
 
+    private readonly IQuickShellServices _services;
     private readonly Action _onReload;
     private readonly SynchronizationContext? _extensionSynchronizationContext;
     private readonly object _refreshSync = new();
@@ -33,8 +34,9 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
     private bool _hasPublishedResults;
     private bool _disposed;
 
-    protected DiscoverGitReposPage(Action onReload)
+    protected DiscoverGitReposPage(Action onReload, IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _extensionSynchronizationContext = SynchronizationContext.Current ?? GitRepoIndex.ExtensionSynchronizationContext;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
@@ -179,7 +181,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
     {
         try
         {
-            var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
+            var shortcuts = _services.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
             var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
             if (discovered.Count == 0
@@ -199,7 +201,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
             _awaitingGitRefresh = false;
 
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
-            var settings = QuickShellServices.Current.Settings;
+            var settings = _services.Settings;
 
             if (!string.IsNullOrWhiteSpace(query))
             {
@@ -213,7 +215,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
             }
 
             var items = DiscoverGitRepoListItems
-                .BuildSectionedItems(discovered, _onReload, shortcutsByDirectory, settings, _itemCache)
+                .BuildSectionedItems(discovered, _onReload, shortcutsByDirectory, settings, _itemCache, _services)
                 .ToList();
 
             if (items.Count == 0)
