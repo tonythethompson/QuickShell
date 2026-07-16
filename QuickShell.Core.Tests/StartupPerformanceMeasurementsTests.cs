@@ -152,12 +152,13 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
 
         var services = new ServiceCollection();
         services.AddQuickShellCore(configDir);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var repository = (ShortcutRepository)provider.GetRequiredService<IShortcutRepository>();
         var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
         var settings = new QuickShellSettingsManager();
-        QuickShellServices.Bind(new QuickShellServices(repository, drafts, settings, analysis));
+        var lifetime = provider.GetRequiredService<IQuickShellLifetime>();
+        var qsServices = new QuickShellServices(repository, drafts, settings, analysis, lifetime);
 
         workspaceCount = repository.GetShortcuts().Count;
         if (workspaceCount == 0)
@@ -177,7 +178,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             workspaceCount = repository.GetShortcuts().Count;
         }
 
-        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }));
+        using var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
         try
         {
             var reload = Time(() => page.Reload());
@@ -186,9 +187,8 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         }
         finally
         {
-            page.Dispose();
-            QuickShellServices.Unbind();
-            provider.Dispose();
+            // static locator removed; pages receive services via constructor
+
             if (copied)
             {
                 try
@@ -210,12 +210,13 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
 
         var services = new ServiceCollection();
         services.AddQuickShellCore(configDir);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var repository = (ShortcutRepository)provider.GetRequiredService<IShortcutRepository>();
         var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
         var settings = new QuickShellSettingsManager();
-        QuickShellServices.Bind(new QuickShellServices(repository, drafts, settings, analysis));
+        var lifetime = provider.GetRequiredService<IQuickShellLifetime>();
+        var qsServices = new QuickShellServices(repository, drafts, settings, analysis, lifetime);
 
         for (var i = 0; i < workspaceCount; i++)
         {
@@ -229,19 +230,12 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         }
 
         // Reproduce exactly how the provider builds its home page.
-        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }));
-        try
-        {
-            var reload = Time(() => page.Reload());
-            getItemsMs = Time(() => page.GetItems());
-            return reload;
-        }
-        finally
-        {
-            page.Dispose();
-            QuickShellServices.Unbind();
-            provider.Dispose();
-        }
+        using var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
+        var reload = Time(() => page.Reload());
+        getItemsMs = Time(() => page.GetItems());
+        // static locator removed; pages receive services via constructor
+
+        return reload;
     }
 
     private static TimeSpan Time(Action action)

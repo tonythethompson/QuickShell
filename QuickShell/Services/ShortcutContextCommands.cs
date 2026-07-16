@@ -28,12 +28,15 @@ internal static class ShortcutContextCommands
     private const int HoverOrderDuplicate = 30;
     private const int HoverOrderDelete = 50;
 
-    public static CommandContextItem CreateSettingsItem(QuickShellSettingsManager settings) =>
-        new(settings.SettingsPage)
+    public static CommandContextItem CreateSettingsItem(QuickShellSettingsManager settings, IQuickShellServices? services = null)
+    {
+        settings.Services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        return new(settings.SettingsPage)
         {
             Title = QuickShellBrand.SettingsTitle,
             Icon = new IconInfo(""),
         };
+    }
 
     public static CommandContextItem[] Build(
         TerminalShortcut shortcut,
@@ -44,8 +47,14 @@ internal static class ShortcutContextCommands
         PinnedMoveVisibility moveVisibility = default,
         Action? onFavoritesReordered = null,
         bool? includePageCommands = null,
-        bool includePinnedMoveCommands = true)
+        bool includePinnedMoveCommands = true,
+        IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         // Page-level history belongs alongside the page's other global commands.
         // Existing list callers that provide a create command opt into that group;
         // the workspace-only command inventory stays free of Undo/Redo.
@@ -54,7 +63,7 @@ internal static class ShortcutContextCommands
         // Context menus should expose the repair actions for missing workspace folders.
         if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
-            return BuildRepairOnly(shortcut, onChanged, settings);
+            return BuildRepairOnly(shortcut, onChanged, settings, services);
         }
 
         var items = new List<CommandContextItem>();
@@ -65,7 +74,7 @@ internal static class ShortcutContextCommands
         {
             foreach (var launch in enabledLaunches)
             {
-                items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(shortcut, launch, settings))
+                items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(shortcut, launch, settings, services: services))
                 {
                     Title = ShortcutDisplay.GetLaunchContextMenuTitle(launch, enabledLaunches),
                     Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(launch)),
@@ -73,20 +82,20 @@ internal static class ShortcutContextCommands
             }
         }
 
-        AddElevationContextCommand(items, shortcut, settings);
+        AddElevationContextCommand(items, shortcut, settings, services: services);
 
         // Workspace
-        AddFolderAndLinkCommands(items, shortcut);
+        AddFolderAndLinkCommands(items, shortcut, services);
 
         // Status…
-        AddStatusCommand(items, shortcut, settings, onChanged);
+        AddStatusCommand(items, shortcut, settings, onChanged, services);
         AddLaunchDiagnosticsCommand(items);
 
         // Manage
         if (includeEdit)
         {
             items.Add(WithShortcut(
-                new ShortcutFormPage(shortcut, onChanged),
+                new ShortcutFormPage(services, shortcut, onChanged),
                 ctrl: true,
                 alt: false,
                 shift: false,
@@ -96,7 +105,7 @@ internal static class ShortcutContextCommands
                 hoverOrder: HoverOrderEdit));
         }
 
-        var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned);
+        var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned, services);
         items.Add(WithShortcut(
             favoriteCommand,
             ctrl: true,
@@ -109,10 +118,10 @@ internal static class ShortcutContextCommands
 
         if (shortcut.IsPinned && includePinnedMoveCommands)
         {
-            AddPinnedMoveCommands(items, shortcut, onFavoritesReordered ?? onChanged, moveVisibility);
+            AddPinnedMoveCommands(items, shortcut, onFavoritesReordered ?? onChanged, moveVisibility, services);
         }
 
-        var duplicateCommand = new DuplicateShortcutCommand(shortcut, onChanged);
+        var duplicateCommand = new DuplicateShortcutCommand(shortcut, onChanged, services);
         items.Add(WithShortcut(
             duplicateCommand,
             ctrl: true,
@@ -125,7 +134,7 @@ internal static class ShortcutContextCommands
 
         if (includePageCommands == true)
         {
-            AddPreSettingsCommands(items, createShortcutCommand, onChanged);
+            AddPreSettingsCommands(items, createShortcutCommand, onChanged, services);
         }
         else if (createShortcutCommand is not null)
         {
@@ -140,10 +149,10 @@ internal static class ShortcutContextCommands
 #endif
             });
         }
-        items.Add(CreateSettingsItem(settings));
+        items.Add(CreateSettingsItem(settings, services));
 
         // Delete
-        var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged);
+        var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged, services);
         items.Add(WithShortcut(
             deleteCommand,
             ctrl: true,
@@ -167,9 +176,10 @@ internal static class ShortcutContextCommands
         QuickShellSettingsManager settings,
         CreateShortcutCommand? createShortcutCommand = null,
         bool? needsRepair = null,
-        PinnedMoveVisibility moveVisibility = default) =>
+        PinnedMoveVisibility moveVisibility = default,
+        IQuickShellServices? services = null) =>
         needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut)
-            ? BuildRepairOnly(shortcut, onChanged, settings)
+            ? BuildRepairOnly(shortcut, onChanged, settings, services)
             : Build(
                 shortcut,
                 onChanged,
@@ -178,23 +188,30 @@ internal static class ShortcutContextCommands
                 includeEdit: true,
                 moveVisibility,
                 includePageCommands: false,
-                includePinnedMoveCommands: false);
+                includePinnedMoveCommands: false,
+                services: services);
 
     public static CommandContextItem[] BuildRepairOnly(
         TerminalShortcut shortcut,
         Action onChanged,
-        QuickShellSettingsManager? settings = null)
+        QuickShellSettingsManager? settings = null,
+        IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         var items = new List<CommandContextItem>();
 
         if (settings is not null)
         {
-            AddStatusCommand(items, shortcut, settings, onChanged);
+            AddStatusCommand(items, shortcut, settings, onChanged, services);
             AddLaunchDiagnosticsCommand(items);
         }
 
         items.Add(WithShortcut(
-            new ShortcutFormPage(shortcut, onChanged),
+            new ShortcutFormPage(services, shortcut, onChanged),
             ctrl: true,
             alt: false,
             shift: false,
@@ -205,7 +222,7 @@ internal static class ShortcutContextCommands
 
         if (shortcut.IsPinned)
         {
-            var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned);
+            var favoriteCommand = new ToggleFavoriteShortcutCommand(shortcut.Name, onChanged, shortcut.IsPinned, services);
             items.Add(WithShortcut(
                 favoriteCommand,
                 ctrl: true,
@@ -217,7 +234,7 @@ internal static class ShortcutContextCommands
                 hoverOrder: HoverOrderFavorite));
         }
 
-        var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged);
+        var deleteCommand = new DeleteShortcutCommand(shortcut.Name, onChanged, services);
         items.Add(WithShortcut(
             deleteCommand,
             ctrl: true,
@@ -232,16 +249,16 @@ internal static class ShortcutContextCommands
         return items.ToArray();
     }
 
-    public static CommandContextItem[] BuildUndoRedoCommands(Action onChanged) =>
+    public static CommandContextItem[] BuildUndoRedoCommands(Action onChanged, IQuickShellServices? services = null) =>
     [
         WithShortcut(
-            new UndoShortcutCommand(onChanged),
+            new UndoShortcutCommand(onChanged, services),
             QuickShellKeyboardShortcuts.Undo,
             title: Strings.Menu_Undo,
             showInHoverActions: true,
             hoverOrder: HoverOrderUndo),
         WithShortcut(
-            new RedoShortcutCommand(onChanged),
+            new RedoShortcutCommand(onChanged, services),
             QuickShellKeyboardShortcuts.Redo,
             title: Strings.Menu_Redo,
             showInHoverActions: true,
@@ -251,16 +268,17 @@ internal static class ShortcutContextCommands
     public static CommandContextItem[] BuildFormUndoRedoCommands(
         Func<bool> tryFormUndo,
         Func<bool> tryFormRedo,
-        Action onRepositoryChanged) =>
+        Action onRepositoryChanged,
+        IQuickShellServices? services = null) =>
     [
         WithShortcut(
-            new WorkspaceFormUndoCommand(tryFormUndo, onRepositoryChanged),
+            new WorkspaceFormUndoCommand(tryFormUndo, onRepositoryChanged, services),
             QuickShellKeyboardShortcuts.Undo,
             title: Strings.Menu_Undo,
             showInHoverActions: true,
             hoverOrder: HoverOrderUndo),
         WithShortcut(
-            new WorkspaceFormRedoCommand(tryFormRedo, onRepositoryChanged),
+            new WorkspaceFormRedoCommand(tryFormRedo, onRepositoryChanged, services),
             QuickShellKeyboardShortcuts.Redo,
             title: Strings.Menu_Redo,
             showInHoverActions: true,
@@ -270,9 +288,10 @@ internal static class ShortcutContextCommands
     private static void AddPreSettingsCommands(
         List<CommandContextItem> items,
         CreateShortcutCommand? createShortcutCommand,
-        Action onChanged)
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
-        items.AddRange(BuildUndoRedoCommands(onChanged));
+        items.AddRange(BuildUndoRedoCommands(onChanged, services));
 
         if (createShortcutCommand is null)
         {
@@ -295,12 +314,13 @@ internal static class ShortcutContextCommands
         List<CommandContextItem> items,
         TerminalShortcut shortcut,
         Action onChanged,
-        PinnedMoveVisibility moveVisibility)
+        PinnedMoveVisibility moveVisibility,
+        IQuickShellServices? services = null)
     {
         if (moveVisibility.ShowToTop)
         {
             var moveToTopCommand = new MoveFavoriteShortcutCommand(
-                shortcut.Id, shortcut.Name, FavoriteMoveKind.ToTop, onChanged);
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.ToTop, onChanged, services);
             items.Add(WithShortcut(
                 moveToTopCommand,
                 ctrl: true,
@@ -314,7 +334,7 @@ internal static class ShortcutContextCommands
         if (moveVisibility.ShowUp)
         {
             var moveUpCommand = new MoveFavoriteShortcutCommand(
-                shortcut.Id, shortcut.Name, FavoriteMoveKind.Up, onChanged);
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.Up, onChanged, services);
             items.Add(WithShortcut(
                 moveUpCommand,
                 ctrl: true,
@@ -329,7 +349,7 @@ internal static class ShortcutContextCommands
         if (moveVisibility.ShowDown)
         {
             var moveDownCommand = new MoveFavoriteShortcutCommand(
-                shortcut.Id, shortcut.Name, FavoriteMoveKind.Down, onChanged);
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.Down, onChanged, services);
             items.Add(WithShortcut(
                 moveDownCommand,
                 ctrl: true,
@@ -344,7 +364,7 @@ internal static class ShortcutContextCommands
         if (moveVisibility.ShowToBottom)
         {
             var moveToBottomCommand = new MoveFavoriteShortcutCommand(
-                shortcut.Id, shortcut.Name, FavoriteMoveKind.ToBottom, onChanged);
+                shortcut.Id, shortcut.Name, FavoriteMoveKind.ToBottom, onChanged, services);
             items.Add(WithShortcut(
                 moveToBottomCommand,
                 ctrl: true,
@@ -356,9 +376,9 @@ internal static class ShortcutContextCommands
         }
     }
 
-    private static void AddFolderAndLinkCommands(List<CommandContextItem> items, TerminalShortcut shortcut)
+    private static void AddFolderAndLinkCommands(List<CommandContextItem> items, TerminalShortcut shortcut, IQuickShellServices? services = null)
     {
-        items.Add(new CommandContextItem(new OpenShortcutFolderInExplorerCommand(shortcut.Id))
+        items.Add(new CommandContextItem(new OpenShortcutFolderInExplorerCommand(shortcut.Id, services))
         {
             Title = Strings.Menu_OpenInFileExplorer,
             Icon = new IconInfo(""),
@@ -368,7 +388,7 @@ internal static class ShortcutContextCommands
 #endif
         });
 
-        items.Add(new CommandContextItem(new CopyShortcutPathCommand(shortcut.Id))
+        items.Add(new CommandContextItem(new CopyShortcutPathCommand(shortcut.Id, services))
         {
             Title = Strings.Menu_CopyPath,
             Icon = new IconInfo(ShortcutGlyphs.CopyPath),
@@ -380,7 +400,7 @@ internal static class ShortcutContextCommands
 
         if (!string.IsNullOrWhiteSpace(shortcut.DevServerUrl))
         {
-            items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.DevServer))
+            items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.DevServer, services))
             {
                 Title = Strings.Menu_OpenDevServer,
                 Icon = new IconInfo(""),
@@ -393,7 +413,7 @@ internal static class ShortcutContextCommands
 
         if (!string.IsNullOrWhiteSpace(shortcut.RepoUrl))
         {
-            items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.Repo))
+            items.Add(new CommandContextItem(new OpenWorkspaceLinkCommand(shortcut.Id, WorkspaceLinkKind.Repo, services))
             {
                 Title = Strings.Menu_OpenRepository,
                 Icon = new IconInfo(ShortcutGlyphs.OpenRepository),
@@ -407,7 +427,7 @@ internal static class ShortcutContextCommands
         if (CompanionAppLauncher.IsConfigured(shortcut))
         {
             var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
-            items.Add(new CommandContextItem(new OpenCompanionAppCommand(shortcut))
+            items.Add(new CommandContextItem(new OpenCompanionAppCommand(shortcut, services))
             {
                 Title = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut)),
                 Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(primaryPath)),
@@ -423,9 +443,10 @@ internal static class ShortcutContextCommands
         List<CommandContextItem> items,
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action onChanged)
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
-        items.Add(new CommandContextItem(new WorkspaceStatusPage(shortcut, settings, onChanged))
+        items.Add(new CommandContextItem(new WorkspaceStatusPage(shortcut, settings, onChanged, services))
         {
             Title = "Workspace status…",
             Icon = new IconInfo(""),
@@ -458,17 +479,18 @@ internal static class ShortcutContextCommands
         List<CommandContextItem> items,
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        bool insertAtStart = true)
+        bool insertAtStart = true,
+        IQuickShellServices? services = null)
     {
         CommandContextItem contextItem;
         if (shortcut.RunAsAdmin)
         {
-            var standardCommand = new OpenTerminalShortcutCommand(shortcut, settings, runAsStandard: true);
+            var standardCommand = new OpenTerminalShortcutCommand(shortcut, settings, runAsStandard: true, services: services);
             contextItem = CreateOpenWithoutAdminContextItem(standardCommand, showInHoverActions: true);
         }
         else
         {
-            var adminCommand = new OpenTerminalShortcutCommand(shortcut, settings, runAsAdmin: true);
+            var adminCommand = new OpenTerminalShortcutCommand(shortcut, settings, runAsAdmin: true, services: services);
             contextItem = CreateOpenAsAdminContextItem(adminCommand, showInHoverActions: true);
         }
 

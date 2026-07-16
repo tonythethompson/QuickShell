@@ -31,3 +31,9 @@
 # import-style
 - Collapse multi-line import destructuring into single-line when the import names are short (e.g., `import { deriveAbbreviationFromName, deriveNameFromDirectory }` over a multi-line spread). Confidence: 0.70
 
+# graphql-api
+- Use `gh api graphql --input <jsonfile>` (query/mutation stored in a separate JSON file) instead of inline `-f query=` to avoid shell quote-stripping issues with nested quotes. Confidence: 0.75
+
+# skills-directory
+- Store reusable skills globally at `C:\Users\tonyt\.agents\skills` for cross-repo availability, not inside a repo's `.github/skills/`. Confidence: 0.75
+

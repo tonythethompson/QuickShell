@@ -6,8 +6,9 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 {
-    public const string PageId = QuickShellDeepLinkIds.Settings;
+    public const string PageId = CommandDescriptor.SettingsId;
 
+    private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly Action _onReload;
     private readonly object _contentSync = new();
@@ -16,8 +17,10 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
     public QuickShellExtensionSettingsPage(
         QuickShellSettingsManager settingsManager,
-        Action? onReload = null)
+        Action? onReload = null,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _settingsManager = settingsManager;
         _onReload = onReload ?? (() => { });
 
@@ -25,7 +28,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         Name = "Settings";
         Title = QuickShellBrand.SettingsTitle;
         Icon = new IconInfo("\uE713");
-        Commands = ShortcutContextCommands.BuildUndoRedoCommands(_onReload);
+        Commands = ShortcutContextCommands.BuildUndoRedoCommands(_onReload, _services);
     }
 
     public void RefreshContent()
@@ -49,9 +52,9 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         var refreshSettings = (Action)RefreshContent;
         var content = new List<IContent>();
 
-        if (QuickShellServices.Current.Drafts.HasPending)
+        if (_services.Drafts.HasPending)
         {
-            content.Add(new PendingShortcutEditForm(_onReload, refreshSettings));
+            content.Add(new PendingShortcutEditForm(_onReload, _services, refreshSettings));
         }
 
         // Single card: terminal + Home/Multi/Git + Backup & Transfer (controlled spacing).
@@ -64,7 +67,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         lock (_contentSync)
         {
             var refreshSettings = (Action)RefreshContent;
-            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _onReload, refreshSettings);
+            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _onReload, refreshSettings, _services);
         }
     }
 }

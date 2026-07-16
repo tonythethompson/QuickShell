@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+
 namespace QuickShell.Services;
 
 internal static class CommandSuggestionService
@@ -36,7 +38,10 @@ internal static class CommandSuggestionService
     /// True when at least one usable pill exists. Exits on the first match — does not
     /// rank or materialize the full candidate set (unlike <see cref="GetPills"/> with maxCount: 1).
     /// </summary>
-    public static bool HasSuggestions(string? directory, IEnumerable<string?> usedCommands)
+    public static bool HasSuggestions(
+        string? directory,
+        IEnumerable<string?> usedCommands,
+        IProjectAnalysisService projectAnalysis)
     {
         if (!TryNormalizeDirectory(directory, out var normalizedDir))
         {
@@ -51,7 +56,7 @@ internal static class CommandSuggestionService
             return cached.Count > 0;
         }
 
-        if (AnyUsableSuggestion(normalizedDir, pickContext))
+        if (AnyUsableSuggestion(normalizedDir, pickContext, projectAnalysis))
         {
             return true;
         }
@@ -64,6 +69,7 @@ internal static class CommandSuggestionService
     public static IReadOnlyList<CommandSuggestionPill> GetPills(
         string? directory,
         IEnumerable<string?> usedCommands,
+        IProjectAnalysisService projectAnalysis,
         int maxCount = MaxPills)
     {
         if (maxCount <= 0)
@@ -86,7 +92,7 @@ internal static class CommandSuggestionService
             return Slice(cached, maxCount);
         }
 
-        var ranked = BuildRankedPills(normalizedDir, pickContext);
+        var ranked = BuildRankedPills(normalizedDir, pickContext, projectAnalysis);
         StoreCache(normalizedDir, usedKey, ranked);
         return Slice(ranked, maxCount);
     }
@@ -138,7 +144,10 @@ internal static class CommandSuggestionService
         return true;
     }
 
-    private static bool AnyUsableSuggestion(string directory, TaskTypePickContext pickContext)
+    private static bool AnyUsableSuggestion(
+        string directory,
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
         foreach (var agentPill in AgentCliSuggestion.BuildPills(directory, pickContext))
         {
@@ -148,10 +157,13 @@ internal static class CommandSuggestionService
             }
         }
 
-        return AnyUsableTaskTypeSuggestion(directory, pickContext);
+        return AnyUsableTaskTypeSuggestion(directory, pickContext, projectAnalysis);
     }
 
-    private static bool AnyUsableTaskTypeSuggestion(string directory, TaskTypePickContext pickContext)
+    private static bool AnyUsableTaskTypeSuggestion(
+        string directory,
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
         var classification = ProjectClassificationCache.Classify(directory);
         if (classification.Stacks == ProjectStack.None)
@@ -159,8 +171,8 @@ internal static class CommandSuggestionService
             return false;
         }
 
-        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification);
-        var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification);
+        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
+        var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, projectAnalysis);
         var preDedupeCount = 0;
 
         foreach (var definition in TaskTypeCatalog.GetChoices())
@@ -190,7 +202,8 @@ internal static class CommandSuggestionService
 
     private static List<CommandSuggestionPill> BuildRankedPills(
         string directory,
-        TaskTypePickContext pickContext)
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
         // Dedup by command (keep highest score). Sanity-filter once on insert.
         var merged = new Dictionary<string, CommandSuggestionPill>(StringComparer.OrdinalIgnoreCase);
@@ -208,8 +221,8 @@ internal static class CommandSuggestionService
         var classification = ProjectClassificationCache.Classify(directory);
         if (classification.Stacks != ProjectStack.None)
         {
-            var suggestions = WorkspaceSetupSuggestion.Build(directory, classification);
-            var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification);
+            var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
+            var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, projectAnalysis);
             var preDedupeCount = 0;
 
             foreach (var definition in TaskTypeCatalog.GetChoices())

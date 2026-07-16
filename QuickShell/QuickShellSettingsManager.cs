@@ -21,10 +21,17 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _recentWorkspaceCountSetting;
     private readonly TextSetting _blockDirtyBranchSwitchSetting;
     private readonly TextSetting _multiLaunchPresentationSetting;
-    private readonly Pages.QuickShellExtensionSettingsPage _settingsPage;
+    private Pages.QuickShellExtensionSettingsPage? _settingsPage;
+    private readonly Action? _onReload;
+
+    internal IQuickShellServices? Services { get; set; }
+
+    private IQuickShellServices RequiredServices =>
+        Services ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
 
     public QuickShellSettingsManager(Action? onReload = null)
     {
+        _onReload = onReload;
         // #region agent log
         SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
         // #endregion
@@ -116,8 +123,6 @@ internal sealed class QuickShellSettingsManager
             _settingsStore.SaveSettings();
         }
 
-        _settingsPage = new Pages.QuickShellExtensionSettingsPage(this, onReload);
-
         // #region agent log
         SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
         // #endregion
@@ -125,15 +130,17 @@ internal sealed class QuickShellSettingsManager
 
     public event EventHandler? SettingsChanged;
 
-    public ICommandSettings Settings => new QuickShellCommandSettings(_settings, _settingsPage);
+    public ICommandSettings Settings => new QuickShellCommandSettings(_settings, SettingsPage);
 
     internal Settings SettingsModel => _settings;
 
-    internal void RefreshSettingsContent() => _settingsPage.RefreshContent();
+    internal Pages.QuickShellExtensionSettingsPage TypedSettingsPage => _settingsPage ??= new Pages.QuickShellExtensionSettingsPage(this, _onReload, RequiredServices);
 
-    internal void PrewarmSettingsContent() => _settingsPage.PrewarmContent();
+    public IContentPage SettingsPage => TypedSettingsPage;
 
-    public IContentPage SettingsPage => _settingsPage;
+    internal void RefreshSettingsContent() => TypedSettingsPage.RefreshContent();
+
+    internal void PrewarmSettingsContent() => TypedSettingsPage.PrewarmContent();
 
     public string TerminalApplicationId =>
         EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));

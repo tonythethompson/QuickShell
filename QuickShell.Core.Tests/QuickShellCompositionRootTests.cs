@@ -70,12 +70,12 @@ public sealed class QuickShellCompositionRootTests : IDisposable
     [Fact]
     public void AddQuickShellCore_resolves_core_service_abstractions()
     {
-        Assert.IsType<TerminalLauncherService>(_services.GetRequiredService<ITerminalLauncher>());
-        Assert.IsType<TerminalProfileResolverService>(_services.GetRequiredService<ITerminalProfileResolver>());
-        Assert.IsType<WorkspaceMapperService>(_services.GetRequiredService<IWorkspaceMapper>());
-        Assert.IsType<GitRepoIndexService>(_services.GetRequiredService<IGitRepoIndex>());
-        Assert.IsType<WorkspaceGitOperationsService>(_services.GetRequiredService<IWorkspaceGitOperations>());
-        Assert.IsType<WorkspaceHealthCheckerService>(_services.GetRequiredService<IWorkspaceHealthChecker>());
+        Assert.IsType<TerminalLauncher>(_services.GetRequiredService<ITerminalLauncher>());
+        Assert.IsType<TerminalProfileResolver>(_services.GetRequiredService<ITerminalProfileResolver>());
+        Assert.IsType<WorkspaceMapper>(_services.GetRequiredService<IWorkspaceMapper>());
+        Assert.IsType<GitRepoIndex>(_services.GetRequiredService<IGitRepoIndex>());
+        Assert.IsType<WorkspaceGitOperations>(_services.GetRequiredService<IWorkspaceGitOperations>());
+        Assert.IsType<WorkspaceHealthCheck>(_services.GetRequiredService<IWorkspaceHealthChecker>());
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -12,7 +13,7 @@ internal sealed record GitCommandResult(int ExitCode, string StandardOutput, str
 
 internal sealed record WorkspaceGitStatus(string Branch, bool IsDirty, bool IsDetached);
 
-internal static class WorkspaceGitOperations
+internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
 {
     private const int GitTimeoutMs = 3000;
 
@@ -44,6 +45,15 @@ internal static class WorkspaceGitOperations
 
         return TryNormalizeWorktreeKey(topLevel.StandardOutput.Trim(), out worktreeKey);
     }
+
+    bool IWorkspaceGitOperations.TryGetStatus(string directory, out WorkspaceGitStatus status) =>
+        TryGetStatus(directory, out status);
+
+    IReadOnlyList<string> IWorkspaceGitOperations.ListLocalBranches(string directory) =>
+        ListLocalBranches(directory);
+
+    bool IWorkspaceGitOperations.TrySwitchBranch(string directory, string branch, out string? error) =>
+        TrySwitchBranch(directory, branch, out error);
 
     public static bool TryGetStatus(string directory, out WorkspaceGitStatus status)
     {

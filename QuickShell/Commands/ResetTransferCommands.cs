@@ -5,11 +5,13 @@ namespace QuickShell.Commands;
 
 internal sealed partial class ResetProjectsCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly Action _onReload;
     private readonly Action? _onSettingsRefresh;
 
-    public ResetProjectsCommand(Action onReload, Action? onSettingsRefresh = null)
+    public ResetProjectsCommand(Action onReload, Action? onSettingsRefresh = null, IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _onSettingsRefresh = onSettingsRefresh;
         Name = "Reset all workspaces";
@@ -23,8 +25,8 @@ internal sealed partial class ResetProjectsCommand : InvokableCommand
             ImportConflictState.Clear();
         }
 
-        QuickShellServices.Current.Drafts.Clear();
-        var result = QuickShellServices.Current.Shortcuts.ResetAll();
+        _services.Drafts.Clear();
+        var result = _services.Shortcuts.ResetAll();
         if (result.Success)
         {
             _onReload();

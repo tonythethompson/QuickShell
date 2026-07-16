@@ -5,11 +5,16 @@ namespace QuickShell.Commands;
 
 internal sealed partial class WorkspaceFormUndoCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly Func<bool> _tryFormUndo;
     private readonly Action? _onRepositoryChanged;
 
-    public WorkspaceFormUndoCommand(Func<bool> tryFormUndo, Action? onRepositoryChanged = null)
+    public WorkspaceFormUndoCommand(
+        Func<bool> tryFormUndo,
+        Action? onRepositoryChanged = null,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _tryFormUndo = tryFormUndo;
         _onRepositoryChanged = onRepositoryChanged;
         Name = Strings.Command_Undo_Name;
@@ -28,7 +33,7 @@ internal sealed partial class WorkspaceFormUndoCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(Strings.Undo_NothingToUndo);
         }
 
-        if (!QuickShellServices.Current.Shortcuts.Undo())
+        if (!_services.Shortcuts.Undo())
         {
             return QuickShellNavigation.StayOpen(Strings.Undo_NothingToUndo);
         }
@@ -40,11 +45,16 @@ internal sealed partial class WorkspaceFormUndoCommand : InvokableCommand
 
 internal sealed partial class WorkspaceFormRedoCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly Func<bool> _tryFormRedo;
     private readonly Action? _onRepositoryChanged;
 
-    public WorkspaceFormRedoCommand(Func<bool> tryFormRedo, Action? onRepositoryChanged = null)
+    public WorkspaceFormRedoCommand(
+        Func<bool> tryFormRedo,
+        Action? onRepositoryChanged = null,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _tryFormRedo = tryFormRedo;
         _onRepositoryChanged = onRepositoryChanged;
         Name = Strings.Command_Redo_Name;
@@ -63,7 +73,7 @@ internal sealed partial class WorkspaceFormRedoCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }
 
-        if (!QuickShellServices.Current.Shortcuts.Redo())
+        if (!_services.Shortcuts.Redo())
         {
             return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }
