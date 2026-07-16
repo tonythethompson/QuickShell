@@ -231,19 +231,12 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         }
 
         // Reproduce exactly how the provider builds its home page.
-        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
-        try
-        {
-            var reload = Time(() => page.Reload());
-            getItemsMs = Time(() => page.GetItems());
-            return reload;
-        }
-        finally
-        {
-            page.Dispose();
-            // static locator removed; pages receive services via constructor
-            provider.Dispose();
-        }
+        using var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
+        var reload = Time(() => page.Reload());
+        getItemsMs = Time(() => page.GetItems());
+        // static locator removed; pages receive services via constructor
+        provider.Dispose();
+        return reload;
     }
 
     private static TimeSpan Time(Action action)
