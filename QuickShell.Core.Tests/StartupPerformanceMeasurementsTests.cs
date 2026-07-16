@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 using QuickShell.Abstractions;
+using QuickShell.Classification;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Commands;
 using QuickShell.Composition;
@@ -72,7 +73,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         // --- Home list reload (cold build + warm read) ------------------------
         var listReloadMs = MeasureListReload(out var listGetItemsMs, workspaceCount: 50);
 
-        _output.WriteLine("=== QuickShell startup measurements ===");
+        _output.WriteLine("=== QuickShell startup measurements (synthetic) ===");
         _output.WriteLine($"Discover scan cold : {discoverCold.TotalMilliseconds:0.###} ms");
         _output.WriteLine($"Discover scan warm : {discoverWarm.TotalMilliseconds:0.###} ms");
         _output.WriteLine($"Provider ctor      : {ctorMs:0.###} ms");
@@ -87,6 +88,119 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Assert.True(discoverCold.TotalMilliseconds >= 0);
         Assert.True(ctorMs >= 0);
         Assert.True(listReloadMs.TotalMilliseconds >= 0);
+    }
+
+    /// <summary>
+    /// Representative numbers for this machine: scans the real user profile / drives for git
+    /// repos and loads the actual saved workspaces from a read-only copy of shortcuts.json.
+    /// Nothing on disk is mutated.
+    /// </summary>
+    [Fact]
+    public void Measure_RealMachine_DiscoverScan_And_ListReload()
+    {
+        // Use the real search roots (user profile common folders + all drives).
+        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
+        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
+        ProjectAnalysisAccessor.Reset();
+        GitRepoIndex.ResetForTests();
+
+        var discoverCold = Time(() => GitRepoDiscovery.Discover());
+        var discoverWarm = Time(() => GitRepoDiscovery.Discover());
+
+        // Provider ctor against an isolated settings store (real git roots still prewarm).
+        GitRepoIndex.ResetForTests();
+        var ctorMs = Time(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
+        var ctorTrace = _trace.Builder.ToString();
+
+        // List reload against a read-only copy of the real shortcuts.json.
+        var listReloadMs = MeasureListReloadFromRealShortcuts(out var listGetItemsMs, out var workspaceCount);
+
+        _output.WriteLine("=== QuickShell startup measurements (real machine) ===");
+        _output.WriteLine($"Discover scan cold : {discoverCold.TotalMilliseconds:0.###} ms (real profile)");
+        _output.WriteLine($"Discover scan warm : {discoverWarm.TotalMilliseconds:0.###} ms (real profile)");
+        _output.WriteLine($"Provider ctor      : {ctorMs:0.###} ms");
+        _output.WriteLine($"List reload (cold) : {listReloadMs.TotalMilliseconds:0.###} ms ({workspaceCount} workspaces)");
+        _output.WriteLine($"List GetItems warm : {listGetItemsMs.TotalMilliseconds:0.###} ms");
+        if (!string.IsNullOrWhiteSpace(ctorTrace))
+        {
+            _output.WriteLine("Provider ctor breakdown (QUICKSHELL_STARTUP_TRACE):");
+            _output.WriteLine(ctorTrace.TrimEnd());
+        }
+
+        Assert.True(discoverCold.TotalMilliseconds >= 0);
+        Assert.True(ctorMs >= 0);
+        Assert.True(listReloadMs.TotalMilliseconds >= 0);
+    }
+
+    private TimeSpan MeasureListReloadFromRealShortcuts(out TimeSpan getItemsMs, out int workspaceCount)
+    {
+        var configDir = Path.Combine(_tempRoot, "real-list-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(configDir);
+
+        // Copy the real shortcuts.json read-only into the temp config dir so the list is
+        // built from the user's actual saved workspaces without mutating the real file.
+        var realShortcuts = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "QuickShell",
+            "shortcuts.json");
+        var copied = false;
+        if (File.Exists(realShortcuts))
+        {
+            File.Copy(realShortcuts, Path.Combine(configDir, "shortcuts.json"), overwrite: true);
+            copied = true;
+        }
+
+        var services = new ServiceCollection();
+        services.AddQuickShellCore(configDir);
+        var provider = services.BuildServiceProvider();
+        var repository = (ShortcutRepository)provider.GetRequiredService<IShortcutRepository>();
+        var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
+        var analysis = provider.GetRequiredService<IProjectAnalysisService>();
+        var settings = new QuickShellSettingsManager();
+        QuickShellServices.Bind(new QuickShellServices(repository, drafts, settings, analysis));
+
+        workspaceCount = repository.GetShortcuts().Count;
+        if (workspaceCount == 0)
+        {
+            // No real workspaces saved; fall back to a synthetic 50 so the reload path is exercised.
+            for (var i = 0; i < 50; i++)
+            {
+                repository.Upsert(new TerminalShortcut
+                {
+                    Id = "ws-" + i,
+                    Name = "Workspace " + i,
+                    Directory = configDir,
+                    Command = "echo " + i,
+                });
+            }
+
+            workspaceCount = repository.GetShortcuts().Count;
+        }
+
+        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }));
+        try
+        {
+            var reload = Time(() => page.Reload());
+            getItemsMs = Time(() => page.GetItems());
+            return reload;
+        }
+        finally
+        {
+            page.Dispose();
+            QuickShellServices.Unbind();
+            provider.Dispose();
+            if (copied)
+            {
+                try
+                {
+                    File.Delete(Path.Combine(configDir, "shortcuts.json"));
+                }
+                catch
+                {
+                    // Best effort.
+                }
+            }
+        }
     }
 
     private TimeSpan MeasureListReload(out TimeSpan getItemsMs, int workspaceCount)
