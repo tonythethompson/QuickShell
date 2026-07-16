@@ -12,7 +12,8 @@ internal static class QuickShellPageActions
         CreateShortcutCommand createShortcutCommand,
         OpenDiscoverGitReposCommand discoverGitReposCommand,
         QuickShellSettingsManager settings,
-        Action onReload)
+        Action onReload,
+        IQuickShellServices? services = null)
     {
         yield return new ListItem(createShortcutCommand)
         {
@@ -21,8 +22,8 @@ internal static class QuickShellPageActions
             Icon = new IconInfo("\uE710"),
             MoreCommands =
             [
-                ..ShortcutContextCommands.BuildUndoRedoCommands(onReload),
-                ShortcutContextCommands.CreateSettingsItem(settings),
+                ..ShortcutContextCommands.BuildUndoRedoCommands(onReload, services),
+                ShortcutContextCommands.CreateSettingsItem(settings, services),
             ],
         };
 
@@ -33,21 +34,22 @@ internal static class QuickShellPageActions
             Icon = new IconInfo(ShortcutGlyphs.Discover),
             MoreCommands =
             [
-                ..ShortcutContextCommands.BuildUndoRedoCommands(onReload),
-                ShortcutContextCommands.CreateSettingsItem(settings),
+                ..ShortcutContextCommands.BuildUndoRedoCommands(onReload, services),
+                ShortcutContextCommands.CreateSettingsItem(settings, services),
             ],
         };
 
-        yield return CreateSettingsRow(settings, onReload);
+        yield return CreateSettingsRow(settings, onReload, services);
     }
 
     public static ListItem CreateSettingsRow(
         QuickShellSettingsManager settings,
-        Action onReload) =>
+        Action onReload,
+        IQuickShellServices? services = null) =>
         new(settings.SettingsPage)
         {
             Title = QuickShellBrand.SettingsTitle,
             Icon = new IconInfo("\uE713"),
-            MoreCommands = ShortcutContextCommands.BuildUndoRedoCommands(onReload),
+            MoreCommands = ShortcutContextCommands.BuildUndoRedoCommands(onReload, services),
         };
 }

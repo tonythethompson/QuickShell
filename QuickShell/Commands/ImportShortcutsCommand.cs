@@ -8,6 +8,7 @@ namespace QuickShell.Commands;
 internal sealed partial class ImportShortcutsCommand : InvokableCommand
 {
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
+    private readonly IQuickShellServices _services;
     private readonly Action _onReload;
     private readonly Action? _onSettingsRefresh;
     private readonly bool _stayOnSettings;
@@ -15,8 +16,10 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
     public ImportShortcutsCommand(
         Action onReload,
         bool stayOnSettings = true,
-        Action? onSettingsRefresh = null)
+        Action? onSettingsRefresh = null,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _stayOnSettings = stayOnSettings;
         _onSettingsRefresh = onSettingsRefresh;
@@ -26,21 +29,21 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var path = ShortcutFilePickerService.PickImportFile();
+        var path = ShortcutFilePickerService.PickImportFile(_services);
         if (path is null)
         {
             return Finish(Strings.Import_Cancelled);
         }
 
         using var readCancellation = new CancellationTokenSource(IoTimeout);
-        var readResult = QuickShellServices.Current.Shortcuts.TryReadImportFileAsync(path, readCancellation.Token).GetAwaiter().GetResult();
+        var readResult = _services.Shortcuts.TryReadImportFileAsync(path, readCancellation.Token).GetAwaiter().GetResult();
         if (!readResult.Success)
         {
             return Finish(readResult.Error, isError: true);
         }
 
         var imported = readResult.Shortcuts;
-        var conflicts = QuickShellServices.Current.Shortcuts.CountImportNameConflicts(imported);
+        var conflicts = _services.Shortcuts.CountImportNameConflicts(imported);
         if (conflicts > 0)
         {
             ImportConflictState.Set(ImportTransferKind.Projects, path, conflicts, imported.Length, _onReload);
@@ -51,7 +54,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         }
 
         using var mergeCancellation = new CancellationTokenSource(IoTimeout);
-        var result = QuickShellServices.Current.Shortcuts.ImportMergeAsync(path, mergeCancellation.Token).GetAwaiter().GetResult();
+        var result = _services.Shortcuts.ImportMergeAsync(path, mergeCancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
             return Finish(result.Message, isError: true);

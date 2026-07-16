@@ -13,6 +13,7 @@ internal enum FavoriteMoveKind
 
 internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _id;
     private readonly string _name;
     private readonly FavoriteMoveKind _move;
@@ -22,8 +23,10 @@ internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
         string id,
         string name,
         FavoriteMoveKind move,
-        Action onChanged)
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _id = id ?? string.Empty;
         _name = name;
         _move = move;
@@ -80,7 +83,7 @@ internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
 
     private bool TryMove()
     {
-        var repo = QuickShellServices.Current.Shortcuts;
+        var repo = _services.Shortcuts;
         if (!string.IsNullOrWhiteSpace(_id))
         {
             return _move switch

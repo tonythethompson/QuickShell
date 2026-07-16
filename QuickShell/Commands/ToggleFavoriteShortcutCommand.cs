@@ -5,11 +5,17 @@ namespace QuickShell.Commands;
 
 internal sealed partial class ToggleFavoriteShortcutCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _name;
     private readonly Action _onChanged;
 
-    public ToggleFavoriteShortcutCommand(string name, Action onChanged, bool isFavorite)
+    public ToggleFavoriteShortcutCommand(
+        string name,
+        Action onChanged,
+        bool isFavorite,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _name = name;
         _onChanged = onChanged;
         Id = CommandDescriptor.FavoriteToggle(name).Id;
@@ -19,7 +25,7 @@ internal sealed partial class ToggleFavoriteShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var favorited = QuickShellServices.Current.Shortcuts.TogglePinned(_name);
+        var favorited = _services.Shortcuts.TogglePinned(_name);
         _onChanged();
         return QuickShellNavigation.StayOpen(
             favorited ? $"Favorited '{_name}'." : $"Removed '{_name}' from favorites.");

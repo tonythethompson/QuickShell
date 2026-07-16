@@ -23,6 +23,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         "cancel",
     };
 
+    private readonly IQuickShellServices _services;
     private readonly Action? _onReload;
     private readonly Action? _onSettingsChanged;
     private readonly Action? _onBodyChanged;
@@ -32,9 +33,11 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     public ShortcutTransferSettingsForm(
         Action? onReload,
+        IQuickShellServices? services = null,
         Action? onSettingsChanged = null,
         Action? onBodyChanged = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
         _onBodyChanged = onBodyChanged;
@@ -76,7 +79,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private CommandResult RunWorkspaceExport()
     {
-        var result = new ExportShortcutsCommand(stayOnSettings: true).Invoke();
+        var result = new ExportShortcutsCommand(stayOnSettings: true, _services).Invoke();
         RebuildTemplate();
         return result;
     }
@@ -86,19 +89,20 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var result = new ImportShortcutsCommand(
             _onReload ?? (() => { }),
             stayOnSettings: true,
-            onSettingsRefresh: _onSettingsChanged).Invoke();
+            onSettingsRefresh: _onSettingsChanged,
+            services: _services).Invoke();
         RebuildTemplate();
         return result;
     }
 
     private CommandResult ConfirmResetWorkspaces()
     {
-        var count = QuickShellServices.Current.Shortcuts.GetShortcuts().Count;
+        var count = _services.Shortcuts.GetShortcuts().Count;
         return CommandResult.Confirm(new ConfirmationArgs
         {
             Title = Strings.ResetProjects_Title,
-            Description = BuildResetDescription(count, QuickShellServices.Current.Shortcuts.ConfigPath),
-            PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged),
+            Description = BuildResetDescription(count, _services.Shortcuts.ConfigPath),
+            PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged, _services),
         });
     }
 
@@ -125,8 +129,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var transferResult = pending.Kind switch
         {
             ImportTransferKind.Projects => ExecuteProjectImportAction(token => merge
-                ? QuickShellServices.Current.Shortcuts.ImportMergeAsync(pending.Path, token)
-                : QuickShellServices.Current.Shortcuts.ImportReplaceAsync(pending.Path, token)),
+                ? _services.Shortcuts.ImportMergeAsync(pending.Path, token)
+                : _services.Shortcuts.ImportReplaceAsync(pending.Path, token)),
             _ => new ImportTransferResult(false, "Unknown import type."),
         };
 

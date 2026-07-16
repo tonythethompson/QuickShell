@@ -8,6 +8,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposable
 {
+    private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settings;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly Action _onReload;
@@ -19,11 +20,16 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private IReadOnlyList<GitRepoCandidate> _gitRepos = [];
     private bool _showDiscoverEntry;
 
-    public QuickShellFallbackPage(QuickShellSettingsManager settings, Action onReload)
+    public QuickShellFallbackPage(
+        QuickShellSettingsManager settings,
+        Action onReload,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _settings = settings;
+        _settings.Services = _services;
         _onReload = onReload;
-        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(onReload);
+        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(onReload, _services);
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Icon = QuickShellBrandIcons.App;
         Title = "Saved workspace";
@@ -136,10 +142,10 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         RaiseItemsChanged();
     }
 
-    private static List<GitRepoCandidate> GetDiscoverPreviewRepos()
+    private List<GitRepoCandidate> GetDiscoverPreviewRepos()
     {
-        var extraRoots = GitRepoSearchRoots.FromShortcuts(QuickShellServices.Current.Shortcuts.GetShortcuts());
-        var savedDirectories = QuickShellServices.Current.Shortcuts.GetShortcuts()
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(_services.Shortcuts.GetShortcuts());
+        var savedDirectories = _services.Shortcuts.GetShortcuts()
             .Select(shortcut => shortcut.Directory)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -153,7 +159,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     {
         foreach (var candidate in gitRepos)
         {
-            yield return DiscoverGitRepoListItems.CreateNew(candidate, OnGitRepoAdded, title: $"Add {candidate.Name}");
+            yield return DiscoverGitRepoListItems.CreateNew(candidate, OnGitRepoAdded, title: $"Add {candidate.Name}", services: _services);
         }
     }
 
@@ -171,7 +177,8 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
             _onReload,
             createShortcutCommand: null,
             moveVisibility: default,
-            includeEdit: false);
+            includeEdit: false,
+            services: _services);
         if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return item;
@@ -182,5 +189,5 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     }
 
     private ListItem BuildTaskActionItem(WorkspaceTaskAction action) =>
-        ShortcutTaskActionListItems.Create(action, _settings, _onReload);
+        ShortcutTaskActionListItems.Create(action, _settings, _onReload, services: _services);
 }

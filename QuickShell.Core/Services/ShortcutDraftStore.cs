@@ -30,7 +30,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
     private int _writeGeneration;
     private Task _fileIoQueue = Task.CompletedTask;
 
-    internal event Action<string>? Cleared;
+    public event Action<string>? Cleared;
 
     public string DraftPath => Path.Combine(_shortcuts.ConfigDirectory, "shortcut-edit-draft.json");
 

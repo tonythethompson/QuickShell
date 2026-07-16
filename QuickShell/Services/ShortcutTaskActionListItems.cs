@@ -10,14 +10,15 @@ internal static class ShortcutTaskActionListItems
         WorkspaceTaskAction action,
         QuickShellSettingsManager settings,
         Action onChanged,
-        CreateShortcutCommand? createShortcutCommand = null)
+        CreateShortcutCommand? createShortcutCommand = null,
+        IQuickShellServices? services = null)
     {
-        var item = new ListItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings))
+        var item = new ListItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, services: services))
         {
             Title = BuildTitle(action),
             Subtitle = BuildSubtitle(action),
             Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(action.Launch)),
-            MoreCommands = BuildMoreCommands(action, settings, onChanged, createShortcutCommand),
+            MoreCommands = BuildMoreCommands(action, settings, onChanged, createShortcutCommand, services),
         };
 
         return item;
@@ -51,11 +52,12 @@ internal static class ShortcutTaskActionListItems
         WorkspaceTaskAction action,
         QuickShellSettingsManager settings,
         Action onChanged,
-        CreateShortcutCommand? createShortcutCommand)
+        CreateShortcutCommand? createShortcutCommand,
+        IQuickShellServices? services = null)
     {
         var items = new List<CommandContextItem>
         {
-            new(new OpenTerminalShortcutCommand(action.Workspace, settings))
+            new(new OpenTerminalShortcutCommand(action.Workspace, settings, services: services))
             {
                 Title = Strings.TaskActions_OpenWorkspace,
                 Icon = new IconInfo(ShortcutHealth.GetListGlyph(action.Workspace)),
@@ -64,7 +66,7 @@ internal static class ShortcutTaskActionListItems
 
         if (action.Launch.RunAsAdmin)
         {
-            items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, runAsStandard: true))
+            items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, runAsStandard: true, services: services))
             {
                 Title = Strings.TaskActions_RunTaskNormally,
                 Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(action.Launch)),
@@ -72,7 +74,7 @@ internal static class ShortcutTaskActionListItems
         }
         else
         {
-            items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, runAsAdmin: true))
+            items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, settings, runAsAdmin: true, services: services))
             {
                 Title = Strings.TaskActions_RunTaskAsAdmin,
                 Icon = new IconInfo(ShortcutGlyphs.AdminLaunch),
@@ -83,7 +85,8 @@ internal static class ShortcutTaskActionListItems
             action.Workspace,
             onChanged,
             settings,
-            createShortcutCommand));
+            createShortcutCommand,
+            services: services));
 
         return items.ToArray();
     }

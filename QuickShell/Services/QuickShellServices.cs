@@ -7,24 +7,13 @@ namespace QuickShell.Services;
 
 /// <summary>
 /// CmdPal host facade seeded from the composition root at provider startup.
-/// Pages and commands resolve shared singletons through <see cref="Current"/>.
+/// Pages and commands receive this instance through constructor injection.
 /// </summary>
-internal sealed class QuickShellServices
+internal sealed class QuickShellServices : IQuickShellServices
 {
-    private static QuickShellServices? _current;
+    public IShortcutRepository Shortcuts { get; }
 
-    public static QuickShellServices Current =>
-        _current ?? throw new InvalidOperationException(
-            $"{nameof(QuickShellServices)} has not been initialized by the CmdPal provider.");
-
-    internal static void Bind(QuickShellServices instance) =>
-        _current = instance ?? throw new ArgumentNullException(nameof(instance));
-
-    internal static void Unbind() => _current = null;
-
-    public ShortcutRepository Shortcuts { get; }
-
-    public ShortcutDraftStore Drafts { get; }
+    public IDraftStore Drafts { get; }
 
     public QuickShellSettingsManager Settings { get; }
 
@@ -33,8 +22,8 @@ internal sealed class QuickShellServices
     public IQuickShellLifetime Lifetime { get; }
 
     public QuickShellServices(
-        ShortcutRepository shortcuts,
-        ShortcutDraftStore drafts,
+        IShortcutRepository shortcuts,
+        IDraftStore drafts,
         QuickShellSettingsManager settings,
         IProjectAnalysisService projectAnalysis,
         IQuickShellLifetime lifetime)
@@ -44,6 +33,7 @@ internal sealed class QuickShellServices
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
         Lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+        settings.Services = this;
         BeginShortcutPreload();
     }
 

@@ -10,10 +10,12 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
 {
     public const string PageId = CommandDescriptor.PendingShortcutEditId;
 
+    private readonly IQuickShellServices _services;
     private readonly Action _onReload;
 
-    public PendingShortcutEditPage(Action onReload)
+    public PendingShortcutEditPage(Action onReload, IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
@@ -21,16 +23,18 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
         Name = Strings.PendingEdit_ResumeName;
     }
 
-    public override IContent[] GetContent() => [new PendingShortcutEditForm(_onReload)];
+    public override IContent[] GetContent() => [new PendingShortcutEditForm(_onReload, _services)];
 }
 
 internal sealed partial class PendingShortcutEditForm : FormContent
 {
+    private readonly IQuickShellServices _services;
     private readonly Action _onReload;
     private readonly Action? _onSettingsChanged;
 
-    public PendingShortcutEditForm(Action onReload, Action? onSettingsChanged = null)
+    public PendingShortcutEditForm(Action onReload, IQuickShellServices? services = null, Action? onSettingsChanged = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
 
@@ -95,7 +99,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
     {
         if (action == "discard")
         {
-            QuickShellServices.Current.Drafts.Clear();
+            _services.Drafts.Clear();
             _onReload();
             _onSettingsChanged?.Invoke();
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_Discarded);
@@ -106,7 +110,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_UnableToReadForm);
         }
 
-        var pending = QuickShellServices.Current.Drafts.Pending;
+        var pending = _services.Drafts.Pending;
         if (pending is null)
         {
             _onReload();
@@ -114,7 +118,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_NonePending);
         }
 
-        var result = QuickShellServices.Current.Drafts.TryCommitPending(onSaved: null);
+        var result = _services.Drafts.TryCommitPending(onSaved: null);
         if (!result.Success)
         {
             return QuickShellNavigation.StayOnSettings(result.Message);
@@ -127,7 +131,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
 
     private void ApplyPendingState()
     {
-        var pending = QuickShellServices.Current.Drafts.Pending;
+        var pending = _services.Drafts.Pending;
         if (pending is null)
         {
             DataJson = $$"""
