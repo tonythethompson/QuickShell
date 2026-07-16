@@ -1,0 +1,175 @@
+{
+  "pbtResults": {
+    "1. Write bug condition exploration test": {
+      "status": "passed",
+      "failingExample": "BuildForHomePin() on unfixed code returns CommandContextItem[] containing only: [elevation toggle (Run as Admin/Run Normally), Open in File Explorer, Copy path, Workspace status..., Edit (Ctrl+E)] — completely missing Favorite/Unfavorite, Duplicate, Delete, and individual launch entries. The method body (lines 132-165) never creates ToggleFavoriteShortcutCommand, DuplicateShortcutCommand, DeleteShortcutCommand, or OpenShortcutLaunchCommand. All four test assertions will fail because these titles don't exist in the returned array.",
+      "lastRunTimestamp": 1784035182036
+    },
+    "3.5 Verify bug condition exploration test now passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1784035675773
+    }
+  },
+  "executionHistory": {
+    "1. Write bug condition exploration test": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580100
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034588272
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035197132
+      }
+    ],
+    "2. Write preservation property tests (BEFORE implementing fix)": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580527
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035201470
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035418601
+      }
+    ],
+    "3.1 Add multi-launch entries to BuildForHomePin() before elevation": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580564
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035427320
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035496818
+      }
+    ],
+    "3.2 Add Favorite/Unfavorite command after Edit entry": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580612
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035500955
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035561635
+      }
+    ],
+    "3.3 Add Duplicate command after Favorite": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580677
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035565852
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035569701
+      }
+    ],
+    "3.4 Add Delete command after Duplicate": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580714
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035574658
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035578602
+      }
+    ],
+    "3.5 Verify bug condition exploration test now passes": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580759
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035583079
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035701151
+      }
+    ],
+    "3.6 Verify preservation tests still pass": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580815
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035705122
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035788561
+      }
+    ],
+    "4. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784034580877
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035798154
+      },
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035860947
+      }
+    ],
+    "3. Fix for context menu missing Favorite, Duplicate, Delete, and multi-launch entries in BuildForHomePin()": [
+      {
+        "executionId": "0bcdbe44-69d8-40a4-adb1-defbb367613a",
+        "chatSessionId": "sess_1a63aecd-481d-49b8-b1e3-f254bf3aefc1",
+        "timestamp": 1784035788597
+      }
+    ]
+  }
+}

@@ -4,6 +4,7 @@ using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuickShell.Pages;
 
@@ -518,6 +519,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
             onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true));
 
+        ScheduleProfileIconUpgrade(shortcut, item);
+
         if (!string.IsNullOrWhiteSpace(shortcut.Id))
         {
             if (shortcut.IsPinned)
@@ -531,6 +534,42 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         return item;
+    }
+
+    private void ScheduleProfileIconUpgrade(TerminalShortcut shortcut, ListItem item)
+    {
+        if (shortcut.RunAsAdmin || ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            TerminalListIconCache.PrewarmProfiles();
+            var icon = TerminalListIconCache.TryResolveUpgradedListIcon(shortcut);
+            if (string.IsNullOrWhiteSpace(icon))
+            {
+                return;
+            }
+
+            ExtensionCallbackQueue.Enqueue(() =>
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                item.Icon = new IconInfo(icon);
+                try
+                {
+                    RaiseItemsChanged();
+                }
+                catch
+                {
+                    // Best effort; the host may be between navigation states.
+                }
+            });
+        });
     }
 
     private IEnumerable<IListItem> BuildHomeLayoutItems(

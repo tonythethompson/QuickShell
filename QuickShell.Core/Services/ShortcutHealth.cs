@@ -41,7 +41,7 @@ internal static class ShortcutHealth
             return ShortcutGlyphs.AdminLaunch;
         }
 
-        return TerminalLaunchGlyphs.GetForShortcut(shortcut);
+        return TerminalLaunchGlyphs.GetForList(shortcut);
     }
 
     public static string BuildListSubtitle(TerminalShortcut shortcut, bool requireDirectoryExists = true)
