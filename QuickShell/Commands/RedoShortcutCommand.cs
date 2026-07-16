@@ -5,10 +5,12 @@ namespace QuickShell.Commands;
 
 internal sealed partial class RedoShortcutCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly Action _onChanged;
 
-    public RedoShortcutCommand(Action onChanged)
+    public RedoShortcutCommand(Action onChanged, IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onChanged = onChanged;
         Name = Strings.Command_Redo_Name;
         Icon = new IconInfo("\uE7A6");
@@ -16,7 +18,7 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        if (!QuickShellServices.Current.Shortcuts.Redo())
+        if (!_services.Shortcuts.Redo())
         {
             return QuickShellNavigation.StayOpen(Strings.Redo_NothingToRedo);
         }

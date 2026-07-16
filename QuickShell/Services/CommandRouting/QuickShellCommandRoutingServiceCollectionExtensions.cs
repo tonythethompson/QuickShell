@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Commands;
 using QuickShell.Composition;
 
@@ -12,21 +14,26 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
     public static IServiceCollection AddQuickShellCommandRouting(
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager,
-        CreateShortcutCommand createShortcutCommand,
         Action reloadPages)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(settingsManager);
-        ArgumentNullException.ThrowIfNull(createShortcutCommand);
         ArgumentNullException.ThrowIfNull(reloadPages);
 
         services.AddSingleton(settingsManager);
-        services.AddSingleton(createShortcutCommand);
+        services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
+            sp.GetRequiredService<IShortcutRepository>(),
+            sp.GetRequiredService<IDraftStore>(),
+            sp.GetRequiredService<QuickShellSettingsManager>(),
+            sp.GetRequiredService<IProjectAnalysisService>(),
+            sp.GetRequiredService<IQuickShellLifetime>()));
+        services.AddSingleton(sp => new CreateShortcutCommand(reloadPages, sp.GetRequiredService<IQuickShellServices>()));
         services.AddSingleton(sp => new CommandItemFactoryContext
         {
+            Services = sp.GetRequiredService<IQuickShellServices>(),
             Shortcuts = sp.GetRequiredService<IShortcutRepository>(),
             Settings = settingsManager,
-            CreateShortcut = createShortcutCommand,
+            CreateShortcut = sp.GetRequiredService<CreateShortcutCommand>(),
             ReloadPages = reloadPages,
         });
 
@@ -50,12 +57,12 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
     public static IServiceCollection AddQuickShellHost(
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager,
-        CreateShortcutCommand createShortcutCommand,
         Action reloadPages,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        QuickShell.Abstractions.IQuickShellLifetime? lifetime = null)
     {
-        services.AddQuickShellCore(configDirectory);
-        services.AddQuickShellCommandRouting(settingsManager, createShortcutCommand, reloadPages);
+        services.AddQuickShellCore(configDirectory, lifetime);
+        services.AddQuickShellCommandRouting(settingsManager, reloadPages);
         return services;
     }
 }

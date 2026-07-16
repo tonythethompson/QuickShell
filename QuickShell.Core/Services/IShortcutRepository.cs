@@ -12,6 +12,8 @@ internal interface IShortcutRepository
 
     string ConfigPath { get; }
 
+    Task PreloadAsync(CancellationToken cancellationToken = default);
+
     IReadOnlyList<TerminalShortcut> GetShortcuts();
 
     IReadOnlyList<ShortcutLayoutEntry> GetLayout();

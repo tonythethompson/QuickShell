@@ -10,10 +10,14 @@ namespace QuickShell.Pages;
 
 internal sealed partial class ImportConflictPage : ContentPage
 {
-    public const string PageId = QuickShellDeepLinkIds.ImportConflict;
+    public const string PageId = CommandDescriptor.ImportConflictId;
 
-    public ImportConflictPage(Action onReload)
+    private readonly IQuickShellServices _services;
+    private readonly Action _onReload;
+
+    public ImportConflictPage(Action onReload, IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
         Title = Strings.ImportConflictPage_Title;
@@ -21,20 +25,20 @@ internal sealed partial class ImportConflictPage : ContentPage
         _onReload = onReload;
     }
 
-    private readonly Action _onReload;
-
-    public override IContent[] GetContent() => [new ImportConflictForm(_onReload)];
+    public override IContent[] GetContent() => [new ImportConflictForm(_onReload, _services)];
 }
 
 internal sealed partial class ImportConflictForm : FormContent
 {
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
 
+    private readonly IQuickShellServices _services;
     private readonly Action _onReload;
     private readonly Action? _onSettingsChanged;
 
-    public ImportConflictForm(Action onReload, Action? onSettingsChanged = null)
+    public ImportConflictForm(Action onReload, IQuickShellServices? services = null, Action? onSettingsChanged = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
 
@@ -187,14 +191,14 @@ internal sealed partial class ImportConflictForm : FormContent
         """;
     }
 
-    private static ShortcutTransferResult ExecuteImportAction(ImportConflictState.PendingImport pending, bool merge)
+    private ShortcutTransferResult ExecuteImportAction(ImportConflictState.PendingImport pending, bool merge)
     {
         using var cancellation = new CancellationTokenSource(IoTimeout);
         return pending.Kind switch
         {
             ImportTransferKind.Projects => merge
-                ? QuickShellServices.Current.Shortcuts.ImportMergeAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult()
-                : QuickShellServices.Current.Shortcuts.ImportReplaceAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult(),
+                ? _services.Shortcuts.ImportMergeAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult()
+                : _services.Shortcuts.ImportReplaceAsync(pending.Path, cancellation.Token).GetAwaiter().GetResult(),
             _ => new ShortcutTransferResult { Success = false, Message = Strings.ImportConflictPage_UnknownImportType },
         };
     }

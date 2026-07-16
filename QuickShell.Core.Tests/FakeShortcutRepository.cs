@@ -1,5 +1,7 @@
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuickShell.Core.Tests;
 
@@ -26,6 +28,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public string ConfigDirectory { get; }
 
     public string ConfigPath => string.Empty;
+
+    public Task PreloadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public IReadOnlyList<TerminalShortcut> GetShortcuts() => _byId.Values.ToList();
 

@@ -5,11 +5,16 @@ namespace QuickShell.Commands;
 
 internal sealed partial class DeleteShortcutCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _name;
     private readonly Action _onDeleted;
 
-    public DeleteShortcutCommand(string name, Action onDeleted)
+    public DeleteShortcutCommand(
+        string name,
+        Action onDeleted,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _name = name;
         _onDeleted = onDeleted;
         Name = Strings.Command_Delete_Name;
@@ -18,7 +23,7 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var deleted = QuickShellServices.Current.Shortcuts.Delete(_name);
+        var deleted = _services.Shortcuts.Delete(_name);
         if (deleted)
         {
             _onDeleted();

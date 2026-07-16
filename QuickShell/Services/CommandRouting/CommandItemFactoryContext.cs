@@ -8,6 +8,8 @@ namespace QuickShell.Services.CommandRouting;
 /// </summary>
 internal sealed class CommandItemFactoryContext
 {
+    public required IQuickShellServices Services { get; init; }
+
     public required IShortcutRepository Shortcuts { get; init; }
 
     public required QuickShellSettingsManager Settings { get; init; }

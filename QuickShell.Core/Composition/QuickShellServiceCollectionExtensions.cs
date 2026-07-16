@@ -22,12 +22,17 @@ internal static class QuickShellServiceCollectionExtensions
     /// Optional override for the shortcuts store directory (tests).
     /// When null, uses the default <c>%LOCALAPPDATA%\QuickShell</c> path.
     /// </param>
+    /// <param name="lifetime">
+    /// Optional shared process lifetime. When null, a default <see cref="QuickShellLifetime"/> is registered.
+    /// </param>
     public static IServiceCollection AddQuickShellCore(
         this IServiceCollection services,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        IQuickShellLifetime? lifetime = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<IQuickShellLifetime>(_ => lifetime ?? new QuickShellLifetime());
         services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
         services.AddSingleton<IShortcutRepository>(sp =>
             new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));
@@ -37,12 +42,12 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
 
-        services.AddSingleton<ITerminalLauncher, TerminalLauncherService>();
-        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolverService>();
-        services.AddSingleton<IWorkspaceMapper, WorkspaceMapperService>();
-        services.AddSingleton<IGitRepoIndex, GitRepoIndexService>();
-        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperationsService>();
-        services.AddTransient<IWorkspaceHealthChecker, WorkspaceHealthCheckerService>();
+        services.AddSingleton<ITerminalLauncher, TerminalLauncher>();
+        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolver>();
+        services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
+        services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
+        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperations>();
+        services.AddSingleton<IWorkspaceHealthChecker>(_ => WorkspaceHealthCheck.Default);
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();

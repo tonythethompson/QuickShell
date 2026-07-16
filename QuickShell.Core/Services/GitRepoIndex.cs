@@ -1,6 +1,10 @@
+using System.Threading;
+
+using QuickShell.Abstractions;
+
 namespace QuickShell.Services;
 
-internal static class GitRepoIndex
+internal sealed class GitRepoIndex : IGitRepoIndex
 {
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(10);
     private static readonly object Sync = new();
@@ -22,6 +26,27 @@ internal static class GitRepoIndex
     internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
 
     internal static Action<Action>? ExtensionThreadPoster { get; set; }
+
+    bool IGitRepoIndex.IsRefreshInFlight => IsRefreshInFlight;
+
+    void IGitRepoIndex.Invalidate() => Invalidate();
+
+    void IGitRepoIndex.Prewarm(IReadOnlyList<string> searchRoots, CancellationToken cancellationToken) =>
+        Prewarm(searchRoots, cancellationToken);
+
+    IReadOnlyList<GitRepoCandidate> IGitRepoIndex.Search(
+        string query,
+        IReadOnlyList<string> searchRoots,
+        CancellationToken cancellationToken) =>
+        Search(query, searchRoots, cancellationToken: cancellationToken);
+
+    IReadOnlyList<GitRepoCandidate> IGitRepoIndex.GetAll(
+        IReadOnlyList<string>? extraRoots,
+        CancellationToken cancellationToken) =>
+        GetAll(extraRoots, cancellationToken);
+
+    void IGitRepoIndex.RunAfterNextRefresh(Action callback) =>
+        RunAfterNextRefresh(callback);
 
     public static bool IsRefreshInFlight
     {
@@ -68,7 +93,8 @@ internal static class GitRepoIndex
         string query,
         IEnumerable<string>? extraRoots = null,
         IReadOnlySet<string>? savedDirectories = null,
-        int maxResults = 8)
+        int maxResults = 8,
+        CancellationToken cancellationToken = default)
     {
         var trimmed = query.Trim();
         if (string.IsNullOrWhiteSpace(trimmed))
@@ -77,7 +103,7 @@ internal static class GitRepoIndex
         }
 
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots);
+        EnsureFresh(extraRoots, cancellationToken);
         savedDirectories ??= EmptySet.Instance;
 
         // Single linear pass with early exit — index size is bounded by discovery, not workspaces.
@@ -112,14 +138,17 @@ internal static class GitRepoIndex
         return results is null ? [] : results;
     }
 
-    public static IReadOnlyList<GitRepoCandidate> GetAll(IEnumerable<string>? extraRoots = null)
+    public static IReadOnlyList<GitRepoCandidate> GetAll(
+        IEnumerable<string>? extraRoots = null,
+        CancellationToken cancellationToken = default)
     {
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots);
+        EnsureFresh(extraRoots, cancellationToken);
         return GetCacheForRootKey(rootKey);
     }
 
-    public static void Prewarm(IEnumerable<string>? extraRoots = null) => EnsureFresh(extraRoots);
+    public static void Prewarm(IEnumerable<string>? extraRoots = null, CancellationToken cancellationToken = default) =>
+        EnsureFresh(extraRoots, cancellationToken);
 
     public static void Invalidate() =>
         WithLock(() =>
@@ -244,7 +273,7 @@ internal static class GitRepoIndex
         || (candidate.RemoteUrl?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
         || candidate.Classification.Labels.Any(label => label.Contains(query, StringComparison.OrdinalIgnoreCase));
 
-    private static void EnsureFresh(IEnumerable<string>? extraRoots)
+    private static void EnsureFresh(IEnumerable<string>? extraRoots, CancellationToken cancellationToken = default)
     {
         var rootSnapshot = SnapshotRoots(extraRoots);
         var rootKey = BuildRootKey(rootSnapshot);
@@ -256,7 +285,7 @@ internal static class GitRepoIndex
                 return;
             }
 
-            StartRefreshLocked(rootKey, rootSnapshot);
+            StartRefreshLocked(rootKey, rootSnapshot, cancellationToken);
         }
     }
 
@@ -265,7 +294,7 @@ internal static class GitRepoIndex
         && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
 
-    private static void StartRefreshLocked(string rootKey, string[] rootSnapshot)
+    private static void StartRefreshLocked(string rootKey, string[] rootSnapshot, CancellationToken cancellationToken)
     {
         if (_refreshInFlight is not null
             && string.Equals(_refreshInFlight.RootKey, rootKey, StringComparison.Ordinal))
@@ -275,10 +304,10 @@ internal static class GitRepoIndex
 
         var inFlight = new RefreshInFlight(
             rootKey,
-            Task.Run(() => DiscoverForRefresh(rootSnapshot)));
+            Task.Run(() => DiscoverForRefresh(rootSnapshot, cancellationToken), cancellationToken));
 
         _ = inFlight.Task.ContinueWith(
-            task => CompleteRefresh(inFlight, task),
+            task => CompleteRefresh(inFlight, task, cancellationToken),
             CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
@@ -286,10 +315,10 @@ internal static class GitRepoIndex
         _refreshInFlight = inFlight;
     }
 
-    private static IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(IReadOnlyList<string> rootSnapshot) =>
-        DiscoverOverride?.Invoke(rootSnapshot) ?? GitRepoDiscovery.Discover(rootSnapshot);
+    private static IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(IReadOnlyList<string> rootSnapshot, CancellationToken cancellationToken) =>
+        DiscoverOverride?.Invoke(rootSnapshot) ?? GitRepoDiscovery.Discover(rootSnapshot, cancellationToken: cancellationToken);
 
-    private static void CompleteRefresh(RefreshInFlight inFlight, Task<IReadOnlyList<GitRepoCandidate>> task)
+    private static void CompleteRefresh(RefreshInFlight inFlight, Task<IReadOnlyList<GitRepoCandidate>> task, CancellationToken cancellationToken)
     {
         var shouldNotify = false;
         lock (Sync)
@@ -301,7 +330,7 @@ internal static class GitRepoIndex
 
             shouldNotify = true;
 
-            if (!task.IsFaulted && !task.IsCanceled)
+            if (!task.IsFaulted && !task.IsCanceled && !cancellationToken.IsCancellationRequested)
             {
                 _cache = task.Result;
                 _cacheRootKey = inFlight.RootKey;

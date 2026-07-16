@@ -7,6 +7,7 @@ namespace QuickShell.Commands;
 
 internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly string _branch;
     private readonly QuickShellSettingsManager _settings;
@@ -16,20 +17,22 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
         string shortcutId,
         string branch,
         QuickShellSettingsManager settings,
-        Action onChanged)
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcutId;
         _branch = branch;
         _settings = settings;
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorktreeBranchSelect(shortcutId, branch);
+        Id = CommandDescriptor.WorktreeBranchSelect(shortcutId, branch).Id;
         Name = branch;
         Icon = new IconInfo("\uE8AB");
     }
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen("That workspace was not found.");
@@ -53,21 +56,26 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
 
 internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly Action _onChanged;
 
-    public UseCurrentWorktreeBranchCommand(string shortcutId, Action onChanged)
+    public UseCurrentWorktreeBranchCommand(
+        string shortcutId,
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcutId;
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorktreeBranchClear(shortcutId);
+        Id = CommandDescriptor.WorktreeBranchClear(shortcutId).Id;
         Name = "Use current branch";
         Icon = new IconInfo("\uE894");
     }
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen("That workspace was not found.");
