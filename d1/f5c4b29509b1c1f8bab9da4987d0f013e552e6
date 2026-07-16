@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/WorkspaceUtilityTests.cs
+  s_7bc3bc40239ad3::t_7cda32f8e3f312 650-651,668-669
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "d1f5c4b29509b1c1f8bab9da4987d0f013e552e6",
+  "prompts": {},
+  "sessions": {
+    "s_7bc3bc40239ad3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a69-bb00-7ec3-80c1-9735dafdd054",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
