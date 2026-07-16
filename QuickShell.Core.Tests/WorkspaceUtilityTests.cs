@@ -647,7 +647,8 @@ public sealed class CompanionAppTests : IDisposable
                 ? @"C:\fake\Trae.exe"
                 : null;
 
-        var suggestion = QuickShell.Services.CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = new QuickShell.Classification.Detectors.CompanionAppDetector()
+            .TrySuggest(_root);
 
         Assert.NotNull(suggestion);
         Assert.Equal(CompanionAppCatalog.PresetTrae, suggestion!.PresetId);
@@ -664,7 +665,8 @@ public sealed class CompanionAppTests : IDisposable
                 ? $@"C:\fake\{preset}.exe"
                 : null;
 
-        var suggestion = QuickShell.Services.CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = new QuickShell.Classification.Detectors.CompanionAppDetector()
+            .TrySuggest(_root);
 
         Assert.NotNull(suggestion);
         Assert.Equal(CompanionAppCatalog.PresetCursor, suggestion!.PresetId);
