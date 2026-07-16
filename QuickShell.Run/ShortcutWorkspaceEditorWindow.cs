@@ -674,7 +674,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         var target = _launchRows.FirstOrDefault(row =>
 
-            string.IsNullOrWhiteSpace(row.CommandText));
+            row.IsEditorPlaceholder
+
+            && string.IsNullOrWhiteSpace(row.CommandText));
 
         if (target is null)
 
