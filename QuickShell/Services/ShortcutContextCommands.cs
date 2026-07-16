@@ -50,6 +50,11 @@ internal static class ShortcutContextCommands
         bool includePinnedMoveCommands = true,
         IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         // Page-level history belongs alongside the page's other global commands.
         // Existing list callers that provide a create command opt into that group;
         // the workspace-only command inventory stays free of Undo/Redo.
@@ -192,6 +197,11 @@ internal static class ShortcutContextCommands
         QuickShellSettingsManager? settings = null,
         IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         var items = new List<CommandContextItem>();
 
         if (settings is not null)

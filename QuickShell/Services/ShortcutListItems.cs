@@ -19,6 +19,11 @@ internal static class ShortcutListItems
         bool useHomePinContextMenu = false,
         IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair

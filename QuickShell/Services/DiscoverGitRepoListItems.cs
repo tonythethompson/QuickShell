@@ -266,6 +266,11 @@ internal static class DiscoverGitRepoListItems
         Action onChanged,
         IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         var items = new List<CommandContextItem>(BuildDirectoryCommands(directory));
 #if CMDPAL_HOVER_ACTIONS
         var hoverOrder = 20;
