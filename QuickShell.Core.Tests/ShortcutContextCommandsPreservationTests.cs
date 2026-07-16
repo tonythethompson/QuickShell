@@ -22,6 +22,7 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
     private readonly ShortcutRepository _repository;
     private readonly ShortcutDraftStore _drafts;
     private readonly QuickShellSettingsManager _settings;
+    private readonly QuickShellLifetime _lifetime = new();
 
     public ShortcutContextCommandsPreservationTests()
     {
@@ -36,12 +37,13 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         _drafts = new ShortcutDraftStore(_repository);
         _settings = new QuickShellSettingsManager();
 
-        QuickShellServices.Bind(new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService()));
+        QuickShellServices.Bind(new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService(), _lifetime));
     }
 
     public void Dispose()
     {
         QuickShellServices.Unbind();
+        _lifetime.Dispose();
         _drafts.Dispose();
         _repository.Dispose();
         LaunchExecutorTestEnvironment.Reset();

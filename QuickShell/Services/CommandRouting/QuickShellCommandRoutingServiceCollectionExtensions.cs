@@ -52,9 +52,10 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
         QuickShellSettingsManager settingsManager,
         CreateShortcutCommand createShortcutCommand,
         Action reloadPages,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        QuickShell.Abstractions.IQuickShellLifetime? lifetime = null)
     {
-        services.AddQuickShellCore(configDirectory);
+        services.AddQuickShellCore(configDirectory, lifetime);
         services.AddQuickShellCommandRouting(settingsManager, createShortcutCommand, reloadPages);
         return services;
     }

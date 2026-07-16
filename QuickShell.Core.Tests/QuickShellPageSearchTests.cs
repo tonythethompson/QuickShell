@@ -37,7 +37,8 @@ public sealed class QuickShellPageSearchTests : IDisposable
         var drafts = (ShortcutDraftStore)_serviceProvider.GetRequiredService<IDraftStore>();
         var analysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
         _settings = new QuickShellSettingsManager();
-        QuickShellServices.Bind(new QuickShellServices(_repository, drafts, _settings, analysis));
+        var lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
+        QuickShellServices.Bind(new QuickShellServices(_repository, drafts, _settings, analysis, lifetime));
 
         _repository.Upsert(new TerminalShortcut
         {
