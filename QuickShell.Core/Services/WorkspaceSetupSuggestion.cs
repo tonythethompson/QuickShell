@@ -413,7 +413,8 @@ internal static class WorkspaceSetupSuggestion
 
             try
             {
-                return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+                // Bolt: Optimize file scanning by avoiding loading entire file into a single string allocation
+                return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
