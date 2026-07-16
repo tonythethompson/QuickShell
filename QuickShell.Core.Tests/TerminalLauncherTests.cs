@@ -12,7 +12,7 @@ namespace QuickShell.Core.Tests;
 /// field can capture (or fail to reset) each other's override.
 /// </summary>
 [CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class TerminalLauncherOverrideCollection
+public sealed class TerminalLauncherOverrideIsolation
 {
     public const string Name = "TerminalLauncher.StartProcessOverride";
 }
@@ -37,7 +37,7 @@ public sealed class TerminalLauncherOverrideCollection
 /// level instead, since resolving those end-to-end depends on what's actually
 /// installed on the CI runner.
 /// </summary>
-[Collection(TerminalLauncherOverrideCollection.Name)]
+[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class TerminalLauncherTests
 {
     [Fact]

@@ -2,15 +2,111 @@ namespace QuickShell.Services;
 
 internal static class JetBrainsInstallDiscovery
 {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string?> ProductCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    public static void InvalidateCache() => ProductCache.Clear();
+
     public static string? TryResolveRider() =>
-        TryResolveProduct(["Rider"], "rider64.exe", directoryName => directoryName.Contains("Rider", StringComparison.OrdinalIgnoreCase));
+        ResolveCached(
+            "Rider",
+            () => TryResolveProduct(
+                ["Rider"],
+                "rider64.exe",
+                directoryName => directoryName.Contains("Rider", StringComparison.OrdinalIgnoreCase)));
 
     public static string? TryResolveIntelliJIdea() =>
-        TryResolveProduct(
-            ["IDEA-U", "IDEA-C", "IntelliJ IDEA"],
-            "idea64.exe",
-            directoryName => directoryName.Contains("IntelliJ", StringComparison.OrdinalIgnoreCase)
-                || directoryName.StartsWith("IDEA", StringComparison.OrdinalIgnoreCase));
+        ResolveCached(
+            "IntelliJ",
+            () => TryResolveProduct(
+                ["IDEA-U", "IDEA-C", "IntelliJ IDEA"],
+                "idea64.exe",
+                directoryName => directoryName.Contains("IntelliJ", StringComparison.OrdinalIgnoreCase)
+                    || directoryName.StartsWith("IDEA", StringComparison.OrdinalIgnoreCase)));
+
+    public static string? TryResolveWebStorm() =>
+        ResolveCached(
+            "WebStorm",
+            () => TryResolveProduct(
+                ["WebStorm"],
+                "webstorm64.exe",
+                directoryName => directoryName.Contains("WebStorm", StringComparison.OrdinalIgnoreCase)));
+
+    public static string? TryResolvePyCharm() =>
+        ResolveCached(
+            "PyCharm",
+            () => TryResolveProduct(
+                ["PyCharm-P", "PyCharm-C", "PyCharm"],
+                "pycharm64.exe",
+                directoryName => directoryName.Contains("PyCharm", StringComparison.OrdinalIgnoreCase)));
+
+    public static string? TryResolveGoLand() =>
+        ResolveCached(
+            "GoLand",
+            () => TryResolveProduct(
+                ["Goland", "GoLand"],
+                "goland64.exe",
+                directoryName => directoryName.Contains("GoLand", StringComparison.OrdinalIgnoreCase)
+                    || directoryName.Contains("Goland", StringComparison.OrdinalIgnoreCase)));
+
+    public static string? TryResolveCLion() =>
+        ResolveCached(
+            "CLion",
+            () => TryResolveProduct(
+                ["CLion"],
+                "clion64.exe",
+                directoryName => directoryName.Contains("CLion", StringComparison.OrdinalIgnoreCase)));
+
+    public static string? TryResolveAndroidStudio() =>
+        ResolveCached(
+            "AndroidStudio",
+            () => TryResolveProduct(
+                    ["AndroidStudio", "AndroidStudioPreview"],
+                    "studio64.exe",
+                    directoryName => directoryName.Contains("Android Studio", StringComparison.OrdinalIgnoreCase))
+                ?? TryResolveAndroidStudioProgramFiles());
+
+    private static string? ResolveCached(string key, Func<string?> resolve)
+    {
+        if (ProductCache.TryGetValue(key, out var cached)
+            && cached is not null
+            && File.Exists(cached))
+        {
+            return cached;
+        }
+
+        var resolved = resolve();
+        if (resolved is not null)
+        {
+            ProductCache[key] = resolved;
+        }
+        else
+        {
+            ProductCache.TryRemove(key, out _);
+        }
+
+        return resolved;
+    }
+
+    private static string? TryResolveAndroidStudioProgramFiles()
+    {
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        foreach (var root in new[]
+                 {
+                     Path.Combine(programFiles, "Android", "Android Studio", "bin", "studio64.exe"),
+                     Path.Combine(programFilesX86, "Android", "Android Studio", "bin", "studio64.exe"),
+                     Path.Combine(programFiles, "Google", "Android Studio", "bin", "studio64.exe"),
+                 })
+        {
+            if (File.Exists(root))
+            {
+                return Path.GetFullPath(root);
+            }
+        }
+
+        return null;
+    }
 
     private static string? TryResolveProduct(
         IReadOnlyList<string> toolboxAppFolders,

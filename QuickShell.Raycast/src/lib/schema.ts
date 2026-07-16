@@ -16,6 +16,15 @@ export type LaunchEntry = {
   taskType?: string;
 };
 
+/** One GUI companion app; mirrors Core CompanionAppEntry. */
+export type CompanionAppEntry = {
+  id: string;
+  path: string;
+  arguments?: string | null;
+  openOnLaunch: boolean;
+  order: number;
+};
+
 export type Workspace = {
   id: string;
   name: string;
@@ -29,9 +38,12 @@ export type Workspace = {
   command?: string | null;
   runAsAdmin: boolean;
   launches: LaunchEntry[];
+  /** Ordered companion apps. When empty, synthesized from scalar companion fields. */
+  companionApps?: CompanionAppEntry[];
   devServerUrl?: string | null;
   openDevServerOnLaunch?: boolean;
   repoUrl?: string | null;
+  /** Mirrored from the primary (first) companion entry. */
   openCompanionAppOnLaunch?: boolean;
   companionAppPath?: string | null;
   companionAppArguments?: string | null;

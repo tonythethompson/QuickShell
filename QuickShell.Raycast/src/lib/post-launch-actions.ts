@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import type { Workspace } from "./schema";
+import type { CompanionAppEntry, Workspace } from "./schema";
+import { getOpenOnLaunchCompanions } from "./validation";
 import { escapeWindowsArgument } from "./windows-launch";
 
 export type PostLaunchResult = {
@@ -25,13 +26,16 @@ export async function runPostLaunchActions(
   let companionOpened = false;
   let devServerOpened = false;
 
-  if (includeCompanion && workspace.openCompanionAppOnLaunch && workspace.companionAppPath?.trim()) {
-    try {
-      await launchCompanionApp(workspace);
-      companionOpened = true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Companion app launch failed.";
-      warnings.push(message);
+  if (includeCompanion) {
+    const companions = getOpenOnLaunchCompanions(workspace);
+    for (const companion of companions) {
+      try {
+        await launchCompanionEntry(companion, workspace.directory);
+        companionOpened = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Companion app launch failed.";
+        warnings.push(message);
+      }
     }
   }
 
@@ -48,13 +52,13 @@ export async function runPostLaunchActions(
   return { companionOpened, devServerOpened, warnings };
 }
 
-async function launchCompanionApp(workspace: Workspace): Promise<void> {
-  const executable = workspace.companionAppPath?.trim();
+async function launchCompanionEntry(entry: CompanionAppEntry, directory: string): Promise<void> {
+  const executable = entry.path?.trim();
   if (!executable) {
     throw new Error("Companion app path is empty.");
   }
 
-  const args = buildCompanionArguments(workspace.companionAppArguments, workspace.directory);
+  const args = buildCompanionArguments(entry.arguments, directory);
   await spawnDetached(executable, args);
 }
 

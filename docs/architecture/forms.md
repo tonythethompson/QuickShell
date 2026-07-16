@@ -21,7 +21,9 @@ ShortcutFormPage
         TemplateJson / DataJson (Adaptive Card)
 ```
 
-Templates: `ShortcutFormTemplateJson` (+ cache). Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding).
+Templates: `ShortcutFormTemplateJson` (+ cache). Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding). Each command row is **Command + terminal profile + Admin** (`LaunchRunAsAdmin_{i}`). Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
+
+Browse/Paste folder on the form fills name (if unset), repo URL, and Dev Server URL when empty. It does **not** auto-seed launch commands or companion apps. Suggestion pills add commands; companion presets stay user-chosen. Discover create seeds via `WorkspaceSeedFactory` (see [intelligence.md](./intelligence.md), [companions.md](./companions.md)).
 
 Suggestion pills on the form call into [intelligence.md](./intelligence.md); companion fields into [companions.md](./companions.md).
 

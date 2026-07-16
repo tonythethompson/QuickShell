@@ -24,6 +24,7 @@ internal static class ShortcutFormLaunchSection
                     {
                         Command = shortcut.Command ?? string.Empty,
                         LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
+                        RunAsAdmin = shortcut.RunAsAdmin,
                     },
                 ];
             }
@@ -40,8 +41,7 @@ internal static class ShortcutFormLaunchSection
     public static List<ShortcutFormLaunchInput> ToLaunchInputs(
         IReadOnlyList<LaunchRowDraft> commands,
         string workspaceName,
-        string fallbackLaunchTarget,
-        bool runAsAdmin)
+        string fallbackLaunchTarget)
     {
         var rows = LaunchRowListEditor.TrimForSave(commands);
 
@@ -56,7 +56,7 @@ internal static class ShortcutFormLaunchSection
                     ? fallbackLaunchTarget
                     : TerminalCatalog.SameAsPreviousLaunchTargetId
                 : row.LaunchTarget,
-            RunAsAdmin = runAsAdmin,
+            RunAsAdmin = row.RunAsAdmin,
             IsEnabled = true,
             TaskType = TaskTypeCatalog.Normalize(row.TaskType),
         }).ToList();
@@ -66,7 +66,7 @@ internal static class ShortcutFormLaunchSection
         IReadOnlyList<LaunchRowDraft> commands,
         string terminalChoices) =>
         ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget)).ToList(),
+            commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin)).ToList(),
             terminalChoices);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(

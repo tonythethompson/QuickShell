@@ -87,10 +87,10 @@ High user-visible ROI, constrained scope.
 
 | Priority | Item | Notes |
 |----------|------|--------|
-| **P1** | **Agent CLI pills (PATH only)** | Fits intelligence registry; no auto-seed of 3 agents on every create unless opt-in |
-| **P1** | **Companion: JetBrains routing** | `.idea` → product-aware (Rider / PyCharm / WebStorm / IDEA), not all IDEA |
-| **P2** | **VS Code Insiders + one AI IDE (e.g. Windsurf)** | Catalog + path candidates; cheap |
-| **P2** | **Notepad++ default args or drop from “IDE-like”** | Consistency with “open folder” story |
+| **P1** | **Agent CLI pills (PATH + markers)** | Landed in Core; `AgentCliSuggestion` — PATH primary, project markers as fallback. Not auto-seeded on create. |
+| **P1** | **Companion: JetBrains routing** | Landed: `.idea` + stack signals → Rider / Android Studio / WebStorm / PyCharm / GoLand / CLion / IDEA; first installed match (+ last-used) |
+| **P2** | **VS Code Insiders + AI IDEs** | Landed: Insiders, Devin (Windsurf paths), Antigravity, Kiro; GitKraken / Sourcetree |
+| **P2** | **Notepad++ default args** | Landed: `{folder}` |
 | **P2** | **Health: expand `same-as-previous` on multi-row Check** | Gap noted in [launch.md](./launch.md) |
 | **P3** | **Raycast: document intentional gaps**; close only high-value items | Don’t promise full health/git targets unless committed |
 
@@ -133,7 +133,7 @@ Saying no is a strategy.
 | **A** | Audit reconciliation + parity matrix + mark 000x status | Shared truth |
 | **B** | DI: launch + health injectable/test seams expanded | Safer changes |
 | **C** | Suggestion provider registry + **agent PATH pills** | Feature + architecture win |
-| **D** | Companion JetBrains + Insiders (+ optional Windsurf) | Catalog quality |
+| **D** | Companion JetBrains + Insiders (+ Devin/Antigravity/Kiro) | Landed (see [companions.md](./companions.md)) |
 | **E** | Health same-as-previous resolve on full Check | Correctness |
 | **F** | Raycast gap list + only high-value closes | Controlled parity |
 

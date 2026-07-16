@@ -147,8 +147,9 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
     public OpenCompanionAppCommand(TerminalShortcut shortcut)
     {
         _shortcutId = shortcut.Id;
-        Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath));
-        Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath));
+        var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
+        Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut));
+        Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(primaryPath));
     }
 
     public override CommandResult Invoke()

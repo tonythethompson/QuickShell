@@ -63,13 +63,22 @@ export function assessWorkspaceHealth(
     }
   }
 
-  if (workspace.openCompanionAppOnLaunch && workspace.companionAppPath?.trim()) {
-    if (process.platform === "win32" && !existsSync(workspace.companionAppPath.trim())) {
-      issues.push({
-        code: "companion_missing",
-        message: `Companion app not found: ${workspace.companionAppPath.trim()}`,
-        severity: "warning",
-      });
+  if (process.platform === "win32") {
+    let openCompanionPaths = (workspace.companionApps ?? [])
+      .filter((entry) => entry.openOnLaunch && entry.path?.trim())
+      .map((entry) => entry.path.trim());
+    if (openCompanionPaths.length === 0 && workspace.openCompanionAppOnLaunch && workspace.companionAppPath?.trim()) {
+      openCompanionPaths = [workspace.companionAppPath.trim()];
+    }
+
+    for (const path of openCompanionPaths) {
+      if (!existsSync(path)) {
+        issues.push({
+          code: "companion_missing",
+          message: `Companion app not found: ${path}`,
+          severity: "warning",
+        });
+      }
     }
   }
 

@@ -6,22 +6,40 @@ Optional **GUI** applications opened for a workspace folder (editors, IDEs, git 
 
 ```
 Persisted on TerminalShortcut
+  CompanionApps[]            // source of truth (max 5)
+    Id, Path, Arguments, OpenOnLaunch, Order
+  // Legacy scalars (mirrored from primary = first by Order)
   OpenCompanionAppOnLaunch
   CompanionAppPath
-  CompanionAppArguments   // ".", "{folder}", "{solution}", free text
+  CompanionAppArguments
 
-Form
-  CompanionAppPreset: none | catalog id | custom
-  Reconcile path/args for dropdown + browse
+Form (multi-row)
+  Each row: CompanionAppPreset_i + Browse + (last row) "+" + (if >1) "−"
+  "+" tooltip: "Add another companion app" (inline with picker)
+  Cap 5; save writes full CompanionApps list
 
 Detection (create)
-  folder signals → installed preset (if exe found)
+  folder signals → installed preset (if exe found) → primary only
 
 Launch
+  Auto: all entries with OpenOnLaunch
+  On-demand: all configured entries
   Process.Start(exe, expanded args, WorkingDirectory = workspace)
 ```
 
-Not part of tab grouping. At most one companion process on full workspace open (or on-demand).
+Not part of tab grouping. Multiple companion processes may start on full workspace open (or on-demand). Soft-fail per app on auto launch (terminals still start).
+
+## Schema dual-read / dual-write
+
+| On disk | Behavior |
+|---------|----------|
+| Only legacy scalars | `EnsureCompanionsFromLegacy` builds a one-entry list |
+| `CompanionApps` present | Normalize order, drop empty paths, mirror primary → scalars |
+| Save from single-row form | Updates primary; **preserves** companions after index 0 |
+
+Cap: `CompanionAppNormalization.MaxCompanionCount` = **5**.
+
+Same pattern as launch rows (`Launches` + legacy `Command`/`Terminal`).
 
 ## Catalog (`CompanionAppCatalog`)
 
@@ -39,9 +57,11 @@ Resolution: candidate paths, `VisualStudioInstallDiscovery`, `JetBrainsInstallDi
 
 Form helpers: `ReconcileStoredShortcut`, `ReconcileForForm`, `ReconcileForSave`, `GetInstalledFormChoices`, browse → `ResolvePresetAfterBrowse`.
 
-Disk stores **path** (and flag/args); form **infers** preset when reopening.
+Disk stores **path** (and flag/args) per entry. Forms edit the full list (CmdPal Adaptive Card + Run WPF).
 
 ## Detection (`CompanionAppDetection`)
+
+Used to **seed** a primary companion on **Discover create** (`WorkspaceSeedFactory.ApplyCompanionHints`). Plain add/edit Browse–Paste does **not** auto-fill companion presets (user picks).
 
 First match, only if executable resolves:
 
@@ -59,18 +79,18 @@ First match, only if executable resolves:
 
 Signals: `WorkspaceCompanionSignals`. Suggestion sets `EnableOnLaunch = true`.
 
-Known product gaps (not blocking): JetBrains beyond Rider/IDEA (all `.idea` → IDEA), VS Code Insiders, other AI IDEs, Notepad++ empty args.
+Raycast form is still weaker on companion presets (path/args oriented); desktop Detect seeds on Discover only.
 
 ## Launch (`CompanionAppLauncher`)
 
 | Mode | When |
 |------|------|
-| Auto (`onDemand: false`) | Full `ShortcutLaunchExecutor.Launch` if open-on-launch + path set |
-| On demand (`onDemand: true`) | ⋯ Open companion — ignores auto flag |
+| Auto (`onDemand: false`) | Full `ShortcutLaunchExecutor.Launch` — all `OpenOnLaunch` entries |
+| On demand (`onDemand: true`) | ⋯ Open companions — **all** configured entries |
 
 Single-row `LaunchEntry` sets **IncludeCompanionApp: false**.
 
-Steps: resolve exe → directory exists → expand args → `Process.Start` (`UseShellExecute`). Auto failure is **soft** (terminals still start; warning in post-launch). On-demand surfaces StayOpen errors.
+Steps per entry: resolve exe → directory exists → expand args → `Process.Start` (`UseShellExecute`). Auto failure is **soft** (terminals still start; warning in post-launch). On-demand surfaces StayOpen errors (combined if multiple fail).
 
 ### Argument expansion
 
@@ -85,14 +105,15 @@ Working directory = workspace folder.
 
 ## Form validation (`CompanionAppArgumentValidation`)
 
-- Args field visibility depends on preset/path.  
+- Args field visibility depends on preset/path (primary).  
 - Save: max length, no newlines, only `{folder}` / `{solution}` brace placeholders.  
-- Soft warnings for mismatched tokens (e.g. VS without `{solution}`).
+- Soft warnings for mismatched tokens (e.g. VS without `{solution}`).  
+- `ShortcutValidation.TryValidateCompanionApp` validates **every** list entry.
 
 ## List / context
 
-- `ShortcutHealth`: missing companion path subtitle when open-on-launch.  
-- Context menu: open companion when path configured.  
+- `ShortcutHealth`: missing companion path subtitle when any open-on-launch entry is missing.  
+- Context menu: open companions when any path configured (summary label for multi).  
 - Full `WorkspaceHealthCheck` does not dedicate a companion finding kind.
 
 ## Agent CLIs vs companions
@@ -100,7 +121,7 @@ Working directory = workspace folder.
 | | Companion | Terminal agent CLI |
 |--|-----------|-------------------|
 | Process | GUI `.exe` | Command in terminal |
-| Config | Path + args + flag | Launch row command |
+| Config | Path + args + per-entry open-on-launch | Launch row command |
 | Detection | Folder → IDE | PATH (if added later as pills) |
 
 Keep agent CLIs on launch rows / [intelligence.md](./intelligence.md) pills — not this catalog.
@@ -109,17 +130,19 @@ Keep agent CLIs on launch rows / [intelligence.md](./intelligence.md) pills — 
 
 | File | Role |
 |------|------|
+| `CompanionAppEntry.cs` | List entry model |
+| `CompanionAppNormalization.cs` | Dual-read, primary mirror, cap |
 | `CompanionAppCatalog.cs` | Presets, paths, form reconcile |
 | `CompanionAppDetection.cs` | Folder suggest |
 | `WorkspaceCompanionSignals.cs` | Markers |
-| `CompanionAppLauncher.cs` | Expand + start |
+| `CompanionAppLauncher.cs` | Expand + multi start |
 | `CompanionAppArgumentValidation.cs` | Form rules |
-| `OpenCompanionAppCommand` / context menu | On-demand |
-| `ShortcutFormPage` | Reconcile on load |
+| `OpenCompanionAppCommand` / context menu | On-demand (all) |
+| `ShortcutFormPage` / Run editor | Primary form; preserve extras on save |
 
 ## Tests
 
-`CompanionAppLauncherTests` (expansion + validation paths; success start avoids real process), `CompanionAppArgumentValidationTests`, related catalog tests.
+`CompanionAppLauncherTests` (expansion, multi auto/on-demand with `StartProcessOverride`), `CompanionAppNormalizationTests`, `CompanionAppArgumentValidationTests`, related catalog tests.
 
 ## Related
 
