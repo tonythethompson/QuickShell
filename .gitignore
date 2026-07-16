@@ -36,6 +36,12 @@ _msix_inspect/
 _upload_inspect/
 _upload.zip
 *.graphql
+
+# Generated artifacts and local backup archives (not source).
+# NOTE: QuickShell.Raycast/package-lock.json is intentionally tracked (npm ci in CI).
+/package-lock.json
+*.tar.gz
+*.tgz
 pr5-threads.json
 pr6-threads.json
 pr7-threads.json
