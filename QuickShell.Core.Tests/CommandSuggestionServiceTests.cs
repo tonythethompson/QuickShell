@@ -12,14 +12,14 @@ public sealed class CommandSuggestionServiceTests : IDisposable
 
     public CommandSuggestionServiceTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-pills-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-pills-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
     }
 
     [Fact]
     public void GetPills_DockerProject_IncludesLogsAndServices()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
         var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
@@ -37,7 +37,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void HasSuggestions_TrueForDockerProject_FalseForEmptyDir()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
         Assert.True(CommandSuggestionService.HasSuggestions(_root, [], ProjectAnalysisAccessor.Instance));
@@ -48,7 +48,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void GetPills_MaxCountOne_MatchesFullListHead()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
         var full = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
@@ -64,7 +64,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void GetPills_RepeatedDirectory_UsesCacheWithoutChangingResults()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
         var first = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
@@ -79,10 +79,10 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void GetPills_FiltersVsCodeVariablesAndTempProjects()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
-        Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        Directory.CreateDirectory(Path.Join(_root, ".vscode"));
         File.WriteAllText(
-            Path.Combine(_root, ".vscode", "tasks.json"),
+            Path.Join(_root, ".vscode", "tasks.json"),
             """
             {
               "version": "2.0.0",
@@ -101,7 +101,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
               ]
             }
             """);
-        File.WriteAllText(Path.Combine(_root, "tmp_serilog_probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        File.WriteAllText(Path.Join(_root, "tmp_serilog_probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
 
         var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
 
@@ -112,7 +112,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void GetPills_ExcludesUsedCommands()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
         var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"], ProjectAnalysisAccessor.Instance);
 
@@ -129,7 +129,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         }
 
         var json = System.Text.Json.JsonSerializer.Serialize(new { scripts });
-        File.WriteAllText(Path.Combine(_root, "package.json"), json);
+        File.WriteAllText(Path.Join(_root, "package.json"), json);
 
         var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
 
@@ -139,7 +139,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void ApplyPill_FillThenAppend_UsesThreeRowsBeforeAddingFourth()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         var rows = new List<LaunchRowDraft>
         {
             new() { LaunchTarget = "default", IsEditorPlaceholder = true },
