@@ -34,11 +34,14 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
 
         // First installed match among ordered signals (not a ranked multi-choice UI).
         return TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".cursor")),
+                Directory.Exists(Path.Join(directory, ".cursor")),
                 CompanionAppCatalog.PresetCursor)
-            ?? (Directory.Exists(Path.Combine(directory, ".vscode"))
+            ?? (Directory.Exists(Path.Join(directory, ".vscode"))
                 ? BuildFirstSuggestion(VsCodeFamilyPriority)
                 : null)
+            ?? TrySuggestFromPreset(
+                Directory.Exists(Path.Join(directory, ".vscode")),
+                CompanionAppCatalog.PresetVsCode)
             ?? TrySuggestFromPreset(
                 WorkspaceCompanionSignals.HasKiroProject(directory),
                 CompanionAppCatalog.PresetKiro)
@@ -49,7 +52,7 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
                 WorkspaceCompanionSignals.HasAntigravityProject(directory),
                 CompanionAppCatalog.PresetAntigravity)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".obsidian")),
+                Directory.Exists(Path.Join(directory, ".obsidian")),
                 CompanionAppCatalog.PresetObsidian)
             ?? TrySuggestFromPreset(
                 WorkspaceCompanionSignals.HasZedProject(directory),

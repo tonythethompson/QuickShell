@@ -10,14 +10,14 @@ public sealed class AtomicFileWriterTests : IDisposable
 
     public AtomicFileWriterTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), "quickshell-atomic-" + Guid.NewGuid().ToString("N"));
+        _directory = Path.Join(Path.GetTempPath(), "quickshell-atomic-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
     }
 
     [Fact]
     public void WriteAllBytesAtomic_first_create_uses_move_without_bak()
     {
-        var path = Path.Combine(_directory, "store.json");
+        var path = Path.Join(_directory, "store.json");
         var payload = Encoding.UTF8.GetBytes("""{"ok":true}""");
 
         _writer.WriteAllBytesAtomic(path, payload);
@@ -31,7 +31,7 @@ public sealed class AtomicFileWriterTests : IDisposable
     [Fact]
     public void WriteAllBytesAtomic_replace_creates_bak_and_cleans_tmp()
     {
-        var path = Path.Combine(_directory, "store.json");
+        var path = Path.Join(_directory, "store.json");
         File.WriteAllText(path, "v1");
 
         _writer.WriteAllBytesAtomic(path, Encoding.UTF8.GetBytes("v2"));
@@ -45,7 +45,7 @@ public sealed class AtomicFileWriterTests : IDisposable
     [Fact]
     public void WriteAllTextAtomic_creates_parent_directory()
     {
-        var nested = Path.Combine(_directory, "nested", "leaf.json");
+        var nested = Path.Join(_directory, "nested", "leaf.json");
 
         _writer.WriteAllTextAtomic(nested, """{"n":1}""");
 
@@ -56,7 +56,7 @@ public sealed class AtomicFileWriterTests : IDisposable
     [Fact]
     public void WriteAllBytesAtomic_cleans_preexisting_tmp_after_success()
     {
-        var path = Path.Combine(_directory, "store.json");
+        var path = Path.Join(_directory, "store.json");
         var tmpPath = path + ".tmp";
         File.WriteAllText(tmpPath, "stale");
 

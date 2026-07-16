@@ -5,7 +5,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[CollectionDefinition(Name, DisableParallelization = true)]
+[CollectionDefinition(ProjectAnalysisStaticStateIsolation.Name, DisableParallelization = true)]
 public sealed class ProjectAnalysisStaticStateIsolation
 {
     public const string Name = "ProjectAnalysisStaticState";
@@ -19,7 +19,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
 
     public ProjectAnalysisAccessorTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-accessor-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-accessor-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _original = ProjectAnalysisAccessor.Instance;
     }
@@ -28,7 +28,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
     public void WorkspaceSeedFactory_uses_accessor_for_dev_server_detection()
     {
         File.WriteAllText(
-            Path.Combine(_root, "package.json"),
+            Path.Join(_root, "package.json"),
             """
             {
               "scripts": { "dev": "vite --port 4321" }
@@ -58,7 +58,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
 
         ProjectAnalysisAccessor.Instance = fake;
 
-        var seed = WorkspaceSeedFactory.FromGitRepo(new GitRepoCandidate
+        WorkspaceSeedFactory.FromGitRepo(new GitRepoCandidate
         {
             Directory = _root,
             Name = "demo",
@@ -79,7 +79,7 @@ public sealed class ProjectAnalysisAccessorTests : IDisposable
                 Directory.Delete(_root, recursive: true);
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup.
         }
