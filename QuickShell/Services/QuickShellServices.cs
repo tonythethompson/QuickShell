@@ -37,13 +37,13 @@ internal sealed class QuickShellServices
         ShortcutDraftStore drafts,
         QuickShellSettingsManager settings,
         IProjectAnalysisService projectAnalysis,
-        IQuickShellLifetime? lifetime = null)
+        IQuickShellLifetime lifetime)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
-        Lifetime = lifetime ?? new QuickShellLifetime();
+        Lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
         BeginShortcutPreload();
     }
 

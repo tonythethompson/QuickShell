@@ -32,7 +32,7 @@ internal static class QuickShellServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IQuickShellLifetime>(lifetime ?? new QuickShellLifetime());
+        services.AddSingleton<IQuickShellLifetime>(_ => lifetime ?? new QuickShellLifetime());
         services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
         services.AddSingleton<IShortcutRepository>(sp =>
             new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));

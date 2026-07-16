@@ -21,7 +21,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
 #endif
     private readonly ServiceProvider _services;
-    private readonly QuickShellLifetime _lifetime;
+    private readonly IQuickShellLifetime _lifetime;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private readonly CreateShortcutCommand _createShortcutCommand;
@@ -31,6 +31,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
     private readonly EventHandler _settingsChangedHandler;
+    private volatile bool _disposed;
 
     public QuickShellCommandsProvider()
     {
@@ -61,9 +62,10 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
             // #endregion
             var collection = new ServiceCollection();
-            _lifetime = new QuickShellLifetime();
-            collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages, lifetime: _lifetime);
+            var lifetime = new QuickShellLifetime();
+            collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages, lifetime: lifetime);
             _services = collection.BuildServiceProvider();
+            _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
             var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
             var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
@@ -199,12 +201,24 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     private void KickoffGitRepoIndexPrewarm()
     {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
         _ = Task.Run(() =>
         {
             try
             {
-                var shortcuts = _services.GetRequiredService<IShortcutRepository>().GetShortcuts();
-                _services.GetRequiredService<IGitRepoIndex>().Prewarm(
+                if (_disposed || _lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
+                var shortcuts = shortcutRepository.GetShortcuts();
+                var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
+                gitRepoIndex.Prewarm(
                     GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
                     _lifetime.CancellationToken);
             }
@@ -217,11 +231,21 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     private void KickoffFormCatalogPrewarm()
     {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
         var terminalApplicationId = _settingsManager.TerminalApplicationId;
         _ = Task.Run(() =>
         {
             try
             {
+                if (_disposed || _lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 FormCatalogPrewarm.Warm(terminalApplicationId);
             }
             catch
@@ -243,6 +267,13 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     public override void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _lifetime.Cancel();
         _settingsManager.SettingsChanged -= _settingsChangedHandler;
         _page.Dispose();
         if (_fallbackPage.IsValueCreated)
@@ -253,8 +284,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         QuickShellServices.Unbind();
         GitRepoIndex.ExtensionThreadPoster = null;
         _services.Dispose();
-        ProjectClassificationCache.Invalidate();
-        GitRepoIndex.Invalidate();
         base.Dispose();
         GC.SuppressFinalize(this);
     }
