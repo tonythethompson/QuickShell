@@ -228,7 +228,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
             RaiseItemsChanged(resetSelection || !_hasPublishedResults ? -1 : KeepSelectionRefresh);
             _hasPublishedResults = true;
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
             _items =
             [
