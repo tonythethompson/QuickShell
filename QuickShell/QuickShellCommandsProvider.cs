@@ -32,7 +32,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     public QuickShellCommandsProvider()
     {
         // #region agent log
-        AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
+        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
         // #endregion
 
         GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
@@ -42,12 +42,12 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
             // #endregion
             // Settings + create/edit forms leave via SubmitForm — invalidate only (no list rebuild).
             _settingsManager = new QuickShellSettingsManager(InvalidatePagesAfterNavigation);
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
             // #endregion
             _createShortcutCommand = new CreateShortcutCommand(InvalidatePagesAfterNavigation);
         }
@@ -55,7 +55,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
         {
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
             // #endregion
             var collection = new ServiceCollection();
             collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages);
@@ -68,7 +68,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis));
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
             // #region agent log
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "QuickShellCommandsProvider.cs:ctor",
                 "after composition root",
                 new { shortcutCount = shortcuts.GetShortcuts().Count },
@@ -86,14 +86,14 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
         {
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
             // #endregion
             _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
             _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after page setup", hypothesisId: "D");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after page setup", hypothesisId: "D");
             // #endregion
         }
 
@@ -158,7 +158,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand, _settingsManager)];
 
         // #region agent log
-        AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
+        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
         // #endregion
     }
 

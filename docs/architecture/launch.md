@@ -45,7 +45,7 @@ Primary types:
 
 Volatile checks (ports/processes) can be toggled off via flags. List UI uses cheaper `ShortcutHealth` + cached `WorkspaceStatusService` (attention badges); full check runs on open.
 
-**Note:** multi-row `same-as-previous` rows are weakly validated on full Check; `CheckEntry` resolves them first.
+Full `Check` and `CheckEntry` both resolve every enabled `same-as-previous` row before validation. Resolution walks prior enabled rows; an all-inherited chain falls back to the configured default target without mutating persisted launch rows.
 
 ### Git gate (`WorkspaceGitLaunchGate`)
 
@@ -116,7 +116,8 @@ Quick Shell does **not** wait for command exit codes (handoff only).
 - Optional **dev server URL** open (soft).
 - Companion soft failure folded into StayOpen message.
 - Clean success → dismiss palette; partial multi-launch → StayOpen with counts.
-- Diagnostics → `LaunchDiagnosticsReport` / CmdPal “copy launch diagnostics”.
+- Detailed diagnostics → `LaunchDiagnosticsReport` / CmdPal “Copy launch diagnostics”.
+- Support diagnostics → redacted, bounded JSONL under `%LOCALAPPDATA%\QuickShell\logs`; “Copy support bundle” contains app/OS metadata, log location, and aggregate diagnostic counts only. It never includes workspace names, commands, paths, titles, details, exception messages, or arbitrary host data.
 
 ## Mental model: when do you get tabs?
 

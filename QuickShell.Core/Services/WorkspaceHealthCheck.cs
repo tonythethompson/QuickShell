@@ -226,10 +226,13 @@ internal static partial class WorkspaceHealthCheck
             return;
         }
 
-        foreach (var launch in ShortcutLaunchNormalization.GetEnabledLaunches(shortcut))
+        var enabledLaunches = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
+        for (var index = 0; index < enabledLaunches.Count; index++)
         {
-            CheckLaunchTarget(launch, terminalApplicationId, defaultProfileId, findings);
-            CheckCommandExecutable(launch, findings);
+            var launch = enabledLaunches[index];
+            var resolved = TerminalCatalog.ResolveLaunchEntry(launch, enabledLaunches, index);
+            CheckLaunchTarget(resolved, terminalApplicationId, defaultProfileId, findings);
+            CheckCommandExecutable(resolved, findings);
         }
     }
 

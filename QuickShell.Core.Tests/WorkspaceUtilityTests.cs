@@ -639,6 +639,36 @@ public sealed class CompanionAppTests : IDisposable
     }
 
     [Fact]
+    public void TrySuggestFromDirectory_PrefersTraeWhenTraeMarkerExists()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".trae"));
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            string.Equals(preset, "trae", StringComparison.OrdinalIgnoreCase)
+                ? @"C:\fake\Trae.exe"
+                : null;
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+
+        Assert.NotNull(suggestion);
+        Assert.Equal("trae", suggestion!.PresetId);
+        Assert.Equal(".", suggestion.Arguments);
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersCursorOverTrae()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".cursor"));
+        Directory.CreateDirectory(Path.Combine(_root, ".trae"));
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            preset is "cursor" or "trae" ? $@"C:\fake\{preset}.exe" : null;
+
+        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+
+        Assert.NotNull(suggestion);
+        Assert.Equal("cursor", suggestion!.PresetId);
+    }
+
+    [Fact]
     public void TrySuggestFromDirectory_FallsThroughWhenHigherPriorityCompanionMissing()
     {
         Directory.CreateDirectory(Path.Combine(_root, ".cursor"));
