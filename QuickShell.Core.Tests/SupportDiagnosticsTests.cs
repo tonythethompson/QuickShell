@@ -3,6 +3,13 @@ using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class SupportDiagnosticsIsolation
+{
+    public const string Name = nameof(SupportDiagnosticsIsolation);
+}
+
+[Collection(SupportDiagnosticsIsolation.Name)]
 public sealed class SupportDiagnosticsTests : IDisposable
 {
     private readonly string _root;
@@ -30,6 +37,32 @@ public sealed class SupportDiagnosticsTests : IDisposable
         Assert.Equal("InvalidOperationException", document.RootElement.GetProperty("exceptionType").GetString());
         Assert.DoesNotContain(secret, line, StringComparison.Ordinal);
         Assert.DoesNotContain("message", line, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Write_RedactsCompatibilityParametersAsBoundedTags()
+    {
+        const string secret = @"C:\private\secret-project\npm.cmd";
+
+        SupportDiagnostics.Write(
+            "Program.cs:Main",
+            secret,
+            new { command = secret },
+            hypothesisId: "A",
+            runId: secret);
+
+        var logPath = Assert.Single(Directory.GetFiles(_root, "*.jsonl"));
+        var line = Assert.Single(File.ReadAllLines(logPath));
+        using var document = JsonDocument.Parse(line);
+        var tags = document.RootElement.GetProperty("tags").EnumerateArray()
+            .Select(element => element.GetString())
+            .ToArray();
+
+        Assert.Contains("data:present", tags);
+        Assert.Contains("hypothesis:a", tags);
+        Assert.Contains(tags, tag => tag is not null && tag.StartsWith("message:sha256:", StringComparison.Ordinal));
+        Assert.Contains(tags, tag => tag is not null && tag.StartsWith("run:sha256:", StringComparison.Ordinal));
+        Assert.DoesNotContain(secret, line, StringComparison.Ordinal);
     }
 
     [Fact]

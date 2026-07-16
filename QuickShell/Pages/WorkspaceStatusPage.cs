@@ -4,6 +4,7 @@ using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace QuickShell.Pages;
@@ -216,11 +217,17 @@ internal sealed partial class WorkspaceStatusForm : FormContent
       ],
       "actions": [
         { "type": "Action.Submit", "title": "Refresh", "data": { "action": "refresh" } },
-        { "$when": "${HasDiagnostics}", "type": "Action.Submit", "title": "{{Strings.Diagnostics_CopyLaunch_Title}}", "data": { "action": "copyDiagnostics" } },
-        { "type": "Action.Submit", "title": "{{Strings.Diagnostics_CopySupportBundle_Title}}", "data": { "action": "copySupportBundle" } },
-        { "type": "Action.Submit", "title": "{{Strings.Diagnostics_OpenLogFolder_Title}}", "data": { "action": "openSupportLogs" } },
+        { "$when": "${HasDiagnostics}", "type": "Action.Submit", "title": "{{Escape(Strings.Diagnostics_CopyLaunch_Title)}}", "data": { "action": "copyDiagnostics" } },
+        { "type": "Action.Submit", "title": "{{Escape(Strings.Diagnostics_CopySupportBundle_Title)}}", "data": { "action": "copySupportBundle" } },
+        { "type": "Action.Submit", "title": "{{Escape(Strings.Diagnostics_OpenLogFolder_Title)}}", "data": { "action": "openSupportLogs" } },
         { "type": "Action.Submit", "title": "Close", "data": { "action": "close" } }
       ]
     }
     """;
+
+    private static string Escape(string value)
+    {
+        var serialized = JsonSerializer.Serialize(value, QuickShellJsonContext.Default.String);
+        return serialized.Substring(1, serialized.Length - 2);
+    }
 }
