@@ -74,7 +74,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void DiscoverSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
     {
-        using var page = new DiscoverGitReposPage(() => { });
+        using var page = new TestDiscoverGitReposPage(() => { });
         SetPrivateField(page, "_hasShownInitialList", true);
 
         page.UpdateSearchText(string.Empty, "alpha");
@@ -180,6 +180,10 @@ public sealed class QuickShellPageSearchTests : IDisposable
 
     private static T GetPrivateField<T>(DiscoverGitReposPage page, string name) =>
         (T)typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
+
+    private sealed class TestDiscoverGitReposPage(Action onReload) : DiscoverGitReposPage(onReload)
+    {
+    }
 
     private static T GetPrivateField<T>(BehaviorSettingsForm form, string name) =>
         (T)typeof(BehaviorSettingsForm).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
