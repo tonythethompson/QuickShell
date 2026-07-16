@@ -150,8 +150,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
     public void BuildForHomePin_AlwaysContainsElevationToggle(bool runAsAdmin)
     {
         var shortcut = CreateHealthyShortcut(isPinned: false, launchCount: 1);
-        shortcut.RunAsAdmin = runAsAdmin;
         _repository.Upsert(shortcut);
+        shortcut.RunAsAdmin = runAsAdmin;
 
         var items = ShortcutContextCommands.BuildForHomePin(
             shortcut,
