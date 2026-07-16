@@ -68,7 +68,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
             var shortcuts = _services.GetRequiredService<IShortcutRepository>();
-            var drafts = _services.GetRequiredService<IDraftStore>();
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
             ProjectAnalysisAccessor.Instance = projectAnalysis;
             _quickShellServices = _services.GetRequiredService<IQuickShellServices>();
