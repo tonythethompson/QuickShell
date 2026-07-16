@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/ProjectSetupSuggestionTests.cs
+  s_e8b85e6dcec5fd::t_493e1f4d15b2ed 296-302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "97b36f395bcc19229936271c935d54812ba8e84a",
+  "prompts": {},
+  "sessions": {
+    "s_e8b85e6dcec5fd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f685b-41c7-7da1-bede-d13df4437bb3",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
