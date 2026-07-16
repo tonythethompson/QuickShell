@@ -267,7 +267,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             using var stream = File.OpenRead(DraftPath);
             _cached = JsonSerializer.Deserialize(stream, ShortcutFormDraftJsonContext.Default.PersistedShortcutEditDraft);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or NotSupportedException)
         {
             _cached = null;
         }
@@ -281,7 +281,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             var generation = _writeGeneration;
             EnqueueFileIoLocked(() => PersistDraftAsync(json, generation));
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
         {
             // Best-effort autosave; ignore serialization failures.
         }
@@ -302,7 +302,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         {
             _fileIoQueue.GetAwaiter().GetResult();
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Best effort.
         }
@@ -332,7 +332,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 DeleteDraftFileSync();
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort autosave; ignore IO failures.
         }
@@ -349,7 +349,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 File.Delete(DraftPath);
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best-effort cleanup.
         }
@@ -522,7 +522,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         {
             WithLock(DrainFileIoQueueLocked);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Best effort drain during shutdown.
         }

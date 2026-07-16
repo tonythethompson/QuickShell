@@ -48,14 +48,14 @@ internal static class AgentDebugLog
 
                         File.AppendAllText(path, line);
                     }
-                    catch
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     {
                         // Best effort; try next path.
                     }
                 }
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException or InvalidOperationException)
         {
             // Never let debug logging crash the app.
         }
@@ -85,11 +85,11 @@ internal static class AgentDebugLog
         var workspaceRoot = Environment.GetEnvironmentVariable("QUICKSHELL_WORKSPACE_ROOT");
         if (!string.IsNullOrWhiteSpace(workspaceRoot))
         {
-            paths.Add(Path.Combine(workspaceRoot, "debug-a49e01.log"));
+            paths.Add(Path.Join(workspaceRoot, "debug-a49e01.log"));
         }
 
         paths.Add(@"A:\QuickShell\debug-a49e01.log");
-        paths.Add(Path.Combine(
+        paths.Add(Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "QuickShell",
             "debug-a49e01.log"));

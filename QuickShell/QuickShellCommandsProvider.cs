@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace QuickShell;
 
-public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
+public sealed partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 {
 #if CMDPAL_HOVER_ACTIONS
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;

@@ -23,7 +23,7 @@ public sealed class ResetTransferTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
 
         repository.Upsert(CreateShortcut("Alpha", workspaceDirectory));
@@ -33,8 +33,8 @@ public sealed class ResetTransferTests
 
         Assert.True(result.Success);
         Assert.Empty(repository.GetShortcuts());
-        Assert.True(File.Exists(Path.Combine(directory.Path, "shortcuts.json")));
-        var saved = File.ReadAllText(Path.Combine(directory.Path, "shortcuts.json"));
+        Assert.True(File.Exists(Path.Join(directory.Path, "shortcuts.json")));
+        var saved = File.ReadAllText(Path.Join(directory.Path, "shortcuts.json"));
         Assert.Contains("\"version\": 1", saved);
         Assert.Contains("\"entries\"", saved);
         Assert.DoesNotContain("\"Name\"", saved);
@@ -56,7 +56,7 @@ public sealed class ResetTransferTests
     {
         public TempDataDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quickshell-tests", Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Join(System.IO.Path.GetTempPath(), "quickshell-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
 

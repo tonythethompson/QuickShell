@@ -25,13 +25,13 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
         }
 
         return TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".cursor")),
+                Directory.Exists(Path.Join(directory, ".cursor")),
                 CompanionAppCatalog.PresetCursor)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".vscode")),
+                Directory.Exists(Path.Join(directory, ".vscode")),
                 CompanionAppCatalog.PresetVsCode)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".obsidian")),
+                Directory.Exists(Path.Join(directory, ".obsidian")),
                 CompanionAppCatalog.PresetObsidian)
             ?? TrySuggestFromPreset(
                 WorkspaceCompanionSignals.HasZedProject(directory),
@@ -59,16 +59,9 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
 
     private static CompanionAppSuggestion? BuildFirstSuggestion(IEnumerable<string> presetIds)
     {
-        foreach (var presetId in presetIds)
-        {
-            var suggestion = BuildSuggestion(presetId);
-            if (suggestion is not null)
-            {
-                return suggestion;
-            }
-        }
-
-        return null;
+        return presetIds
+            .Select(BuildSuggestion)
+            .FirstOrDefault(suggestion => suggestion is not null);
     }
 
     private static CompanionAppSuggestion? BuildSuggestion(string presetId)

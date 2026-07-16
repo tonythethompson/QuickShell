@@ -20,8 +20,6 @@ internal partial class DiscoverGitReposPage : DynamicListPage
     public DiscoverGitReposPage(Action onReload)
     {
         _onReload = onReload;
-        Id = PageId;
-        Icon = new IconInfo(ShortcutGlyphs.Discover);
         SetOpeningItems();
     }
 
@@ -173,7 +171,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage
                 hypothesisId: "H");
             // #endregion
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             // #region agent log
             AgentDebugLog.WriteException(

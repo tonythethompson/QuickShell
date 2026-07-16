@@ -281,7 +281,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         finally
         {
             string? queuedQuery = null;
-            var shouldRefreshAgain = false;
             lock (_refreshSync)
             {
                 _refreshInProgress = false;
@@ -289,11 +288,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 {
                     _refreshQueued = false;
                     queuedQuery = _query;
-                    shouldRefreshAgain = true;
                 }
             }
 
-            if (shouldRefreshAgain && queuedQuery is not null)
+            if (queuedQuery is not null)
             {
                 RefreshItems(queuedQuery);
             }

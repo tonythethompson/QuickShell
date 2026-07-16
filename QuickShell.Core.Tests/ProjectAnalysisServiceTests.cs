@@ -13,7 +13,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
     public ProjectAnalysisServiceTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-analysis-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-analysis-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _services = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
     }
@@ -22,7 +22,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     public void Classify_matches_legacy_project_classifier_for_node_layout()
     {
         File.WriteAllText(
-            Path.Combine(_root, "package.json"),
+            Path.Join(_root, "package.json"),
             """
             {
               "name": "demo",
@@ -43,7 +43,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     public void Classify_matches_legacy_project_classifier_for_dotnet_layout()
     {
         File.WriteAllText(
-            Path.Combine(_root, "App.csproj"),
+            Path.Join(_root, "App.csproj"),
             """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -64,8 +64,8 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     [Fact]
     public void Layout_analyzer_detects_docker_and_taskfile_signals()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
-        File.WriteAllText(Path.Combine(_root, "Taskfile.yml"), "version: '3'\n");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "Taskfile.yml"), "version: '3'\n");
 
         var analyzer = _services.GetRequiredService<IProjectLayoutAnalyzer>();
         var layout = analyzer.Analyze(_root);
@@ -77,7 +77,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     [Fact]
     public void Classify_matches_legacy_project_classifier_for_rust_layout()
     {
-        File.WriteAllText(Path.Combine(_root, "Cargo.toml"), "[package]\nname = \"demo\"\n");
+        File.WriteAllText(Path.Join(_root, "Cargo.toml"), "[package]\nname = \"demo\"\n");
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
@@ -90,7 +90,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     [Fact]
     public void Classify_matches_legacy_project_classifier_for_python_layout()
     {
-        File.WriteAllText(Path.Combine(_root, "pyproject.toml"), "[project]\nname = \"demo\"\n");
+        File.WriteAllText(Path.Join(_root, "pyproject.toml"), "[project]\nname = \"demo\"\n");
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
@@ -103,7 +103,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     [Fact]
     public void Classify_matches_legacy_project_classifier_for_go_layout()
     {
-        File.WriteAllText(Path.Combine(_root, "go.mod"), "module example.com/demo\n\ngo 1.22\n");
+        File.WriteAllText(Path.Join(_root, "go.mod"), "module example.com/demo\n\ngo 1.22\n");
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
@@ -116,8 +116,8 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     [Fact]
     public void Layout_analyzer_detects_rust_and_companion_signals()
     {
-        File.WriteAllText(Path.Combine(_root, "Cargo.toml"), "[package]\nname = \"demo\"\n");
-        Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+        File.WriteAllText(Path.Join(_root, "Cargo.toml"), "[package]\nname = \"demo\"\n");
+        Directory.CreateDirectory(Path.Join(_root, ".vscode"));
 
         var layout = _services.GetRequiredService<IProjectLayoutAnalyzer>().Analyze(_root);
 
@@ -129,7 +129,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     public void TryDetectDevServerUrl_matches_static_detector()
     {
         File.WriteAllText(
-            Path.Combine(_root, "package.json"),
+            Path.Join(_root, "package.json"),
             """
             {
               "scripts": { "dev": "vite --port 4321" }
@@ -145,7 +145,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
     [Fact]
     public void TrySuggestCompanionApp_matches_static_detector()
     {
-        Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+        Directory.CreateDirectory(Path.Join(_root, ".vscode"));
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.TrySuggestCompanionApp(_root);
@@ -172,7 +172,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
                 Directory.Delete(_root, recursive: true);
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup.
         }
