@@ -17,8 +17,11 @@ internal static class GitRepoIndex
 
     /// <summary>
     /// CmdPal extension thread captured at provider startup; refresh waiters must run there.
+    /// When null (MTA host), <see cref="ExtensionThreadPoster"/> queues work for list pages to drain.
     /// </summary>
     internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
+
+    internal static Action<Action>? ExtensionThreadPoster { get; set; }
 
     public static bool IsRefreshInFlight
     {
@@ -351,7 +354,19 @@ internal static class GitRepoIndex
     private static void RunOnExtensionThread(Action action)
     {
         var extensionContext = ExtensionSynchronizationContext;
-        if (extensionContext is null || ReferenceEquals(SynchronizationContext.Current, extensionContext))
+        if (extensionContext is null)
+        {
+            if (ExtensionThreadPoster is not null)
+            {
+                ExtensionThreadPoster(action);
+                return;
+            }
+
+            action();
+            return;
+        }
+
+        if (ReferenceEquals(SynchronizationContext.Current, extensionContext))
         {
             action();
             return;
