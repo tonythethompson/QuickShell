@@ -5,7 +5,7 @@ namespace QuickShell.Services;
 
 internal static class DevServerUrlDetection
 {
-    private static readonly IDevServerDetector Default = new DevServerDetector();
+    private static readonly DevServerDetector Default = new();
 
     public static string? TryDetectDevServerUrl(string directory) =>
         Default.TryDetectDevServerUrl(directory);

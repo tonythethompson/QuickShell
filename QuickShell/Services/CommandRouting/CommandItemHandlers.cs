@@ -218,7 +218,7 @@ internal sealed class WorktreeBranchSelectCommandHandler : ICommandItemHandler
             context.Settings,
             context.ReloadPages))
         {
-            Title = descriptor.Branch,
+            Title = descriptor.Branch!,
             Icon = new IconInfo("\uE8AB"),
         };
     }

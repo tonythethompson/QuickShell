@@ -15,7 +15,8 @@ internal static class ShortcutListItems
         CreateShortcutCommand? createShortcutCommand = null,
         PinnedMoveVisibility moveVisibility = default,
         bool includeEdit = true,
-        Action? onFavoritesReordered = null)
+        Action? onFavoritesReordered = null,
+        bool useHomePinContextMenu = false)
     {
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
@@ -43,14 +44,22 @@ internal static class ShortcutListItems
         {
             item.MoreCommands = needsRepair
                 ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings)
-                : ShortcutContextCommands.Build(
-                    shortcut,
-                    onChanged,
-                    settings,
-                    createShortcutCommand,
-                    includeEdit,
-                    moveVisibility,
-                    onFavoritesReordered);
+                : useHomePinContextMenu
+                    ? ShortcutContextCommands.BuildForHomePin(
+                        shortcut,
+                        onChanged,
+                        settings,
+                        createShortcutCommand,
+                        needsRepair,
+                        moveVisibility)
+                    : ShortcutContextCommands.Build(
+                        shortcut,
+                        onChanged,
+                        settings,
+                        createShortcutCommand,
+                        includeEdit,
+                        moveVisibility,
+                        onFavoritesReordered);
         }
 
         return item;

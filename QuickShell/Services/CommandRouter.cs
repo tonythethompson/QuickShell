@@ -10,7 +10,7 @@ internal sealed class CommandRouter : ICommandRouter
 {
     private readonly ICommandIdParser _parser;
     private readonly CommandItemFactoryContext _context;
-    private readonly IReadOnlyDictionary<CommandKind, ICommandItemHandler> _handlers;
+    private readonly Dictionary<CommandKind, ICommandItemHandler> _handlers;
 
     public CommandRouter(
         ICommandIdParser parser,

@@ -166,7 +166,7 @@ internal static class CompanionAppCatalog
         JsonSerializer.Serialize(
             choices.Select(choice => new { title = choice.Title, value = choice.Id }));
 
-    private static IReadOnlyList<(string Id, string Title)> BuildInstalledFormChoicesUncached()
+    private static List<(string Id, string Title)> BuildInstalledFormChoicesUncached()
     {
         var choices = new List<(string Id, string Title)>
         {
