@@ -1,0 +1,273 @@
+.gitignore
+  s_ed48411fbae681::t_f735475781c112 65-72
+AGENTS.md
+  s_a319543187b812::t_b4dcfb215e8c08 1,3,5,7,9,11,13,15,17,19,21,23-28,30,32,34,36,38-48,50,52,54-56,58-59,61-66,68-69,71-145
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_a319543187b812::t_2ae78e6ad7a528 1-201
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_a319543187b812::t_61b1342d84c9c8 2,6,21,27-107,167-168,177-190,193
+QuickShell.Core.Tests/CompanionAppArgumentValidationTests.cs
+  s_a319543187b812::t_a2957d2f087942 37-40
+QuickShell.Core.Tests/CompanionAppFormJsonTests.cs
+  s_a319543187b812::t_0a4bdcacd15f18 1-24
+QuickShell.Core.Tests/CompanionAppLauncherTests.cs
+  s_a319543187b812::t_af7bdd1555cbef 9-12,14-15,17-31,151-289
+QuickShell.Core.Tests/CompanionAppNormalizationTests.cs
+  s_a319543187b812::t_1e14037590077f 1-181
+QuickShell.Core.Tests/DiscoverGitRepoListItemsTests.cs
+  s_a319543187b812::t_e6165836eb0265 1-67
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_a319543187b812::t_b74c3d89a085a6 8-13,97-105,116-119
+QuickShell.Core.Tests/FavoriteMoveTests.cs
+  s_a319543187b812::t_b5e543fc691fd4 1-128
+QuickShell.Core.Tests/LaunchCommandSanityTests.cs
+  s_a319543187b812::t_9e33ffa451727c 1-43
+QuickShell.Core.Tests/LaunchExecutorTestEnvironment.cs
+  s_a319543187b812::t_8b8559d7a856f9 58-62,76-83
+QuickShell.Core.Tests/LaunchRowListEditorTests.cs
+  s_a319543187b812::t_d57df4f25f6eaa 8,12-14,17,19-56,103,108,117,123,125-151,155-179
+QuickShell.Core.Tests/ListSearchQueryTests.cs
+  s_a319543187b812::t_beacc1bb5c2017 1-62
+QuickShell.Core.Tests/ProjectAnalysisAccessorTests.cs
+  s_a319543187b812::t_5d5acb9c901087 8-14
+QuickShell.Core.Tests/ProjectAnalysisServiceTests.cs
+  s_a319543187b812::t_aa94553b840928 9
+QuickShell.Core.Tests/ProjectClassificationCacheTests.cs
+  s_a319543187b812::t_707934ca18a212 27-39,53-71,85-184
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_a319543187b812::t_8d962d7600dbc8 1-189
+QuickShell.Core.Tests/SearchDebouncerTests.cs
+  s_a319543187b812::t_239719c7bd1e0b 1-58
+QuickShell.Core.Tests/SettingsCardJsonTests.cs
+  s_a319543187b812::t_fe945f1939225f 1-16
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_a319543187b812::t_13ddcfd74fae70 1-229
+QuickShell.Core.Tests/ShortcutDraftStoreTests.cs
+  s_a319543187b812::t_52beb8286683f7 132-180,202-221
+QuickShell.Core.Tests/ShortcutFormLaunchSectionTests.cs
+  s_a319543187b812::t_046f0aa8fc3e45 17,33,49,75,82-125
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_a319543187b812::t_6427cf5c2d6deb 18-19,21,25-60,111,211,213-222,233,236-245,249-251,261-268,275-276,284-287,291,294-295,303,324-327,336-337,401
+QuickShell.Core.Tests/ShortcutLaunchExecutorTests.cs
+  s_a319543187b812::t_1858e4ab87be09 7,10,273-274,276-287,335-340,350-351,356
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_a319543187b812::t_fbdbeeee0a8a61 15,25-26,29-30,37,45
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_a319543187b812::t_f702fa58838800 1-37
+QuickShell.Core.Tests/TaskTypeCandidatePickTests.cs
+  s_a319543187b812::t_504cd4a7249c4f 5,90
+QuickShell.Core.Tests/TaskTypeCatalogTests.cs
+  s_a319543187b812::t_d64bd8fecf827b 66-71,88-89,109,129
+QuickShell.Core.Tests/TaskTypeCommandSuggestionTests.cs
+  s_a319543187b812::t_0b798b5479374d 6
+QuickShell.Core.Tests/TerminalLauncherTests.cs
+  s_a319543187b812::t_e82338ef2e81e7 15,40
+QuickShell.Core.Tests/WorkspaceHealthCheckTests.cs
+  s_a319543187b812::t_9b3e02237c430b 7
+QuickShell.Core.Tests/WorkspaceStatusSnapshotTests.cs
+  s_a319543187b812::t_cb30b8ef25af24 6,211-379
+QuickShell.Core.Tests/WorkspaceUtilityTests.cs
+  s_a319543187b812::t_1a3d9a8d3d3fb9 230,593,602-604,611,613,615-632,635-638,646,648,650-653,655-667,669-681,683,866-868,872-877,884-898,914-1066,1092-1093,1099-1102,1257-1259
+QuickShell.Core.Tests/WorktreeBranchTests.cs
+  s_a319543187b812::t_9c6a6e031d2157 8,21-22,24,460
+QuickShell.Core/Classification/Detectors/CompanionAppDetector.cs
+  s_a319543187b812::t_00026ee85ee34f 11-12,22-27,35,39-44,46-50,57,69-113,119
+QuickShell.Core/Models/CompanionAppEntry.cs
+  s_a319543187b812::t_71035fd056949f 1-22
+QuickShell.Core/Models/TerminalShortcut.cs
+  s_a319543187b812::t_f9e39a4f242851 82-92,95-98,101-104,109
+QuickShell.Core/QuickShellJsonContext.cs
+  s_a319543187b812::t_01b73202ff401c 21-22
+QuickShell.Core/Services/AdaptiveCardFormJson.cs
+  s_ed48411fbae681::t_7d825b9816528f 15-23,27-28,31,79,85-86,100,109,159-179,182,187-188,193-215,217,219-260,264-266,448,453-456
+QuickShell.Core/Services/AgentCliCatalog.cs
+  s_a319543187b812::t_670aa153de9db9 1-207
+QuickShell.Core/Services/AgentCliSuggestion.cs
+  s_a319543187b812::t_6fc9accd3d18a2 1-59
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_a319543187b812::t_a3db93d471ba18 11-13,16-27,29-38,41-61,69-76,82-155,159,181,183,188,191-193,195-198,200-205,208-213,215-252,255-385
+QuickShell.Core/Services/CompanionAppArgumentValidation.cs
+  s_a319543187b812::t_e0f5045cbe41f2 177-178,182-188,196,198-200
+QuickShell.Core/Services/CompanionAppCatalog.cs
+  s_a319543187b812::t_299ae91e13e03f 21-25,29,31-35,44-45,53-57,59,61,63-65,69-89,119-122,125-131,135-169,188-201,258-278,280-283,285,287-288,290,292,294-296,298,359-390,412-436,625-629,633,635-639,732-753,858-869,880-918
+QuickShell.Core/Services/CompanionAppFormEditor.cs
+  s_a319543187b812::t_2ae2b9c46535c6 1,3,5-9,11,13-15,17-25,27-55,58,60-63,66-67,69,71,73-77,80,82,84,87-89,92,94-103,105,108,110-115,118,121-129
+QuickShell.Core/Services/CompanionAppFormJson.cs
+  s_a319543187b812::t_a6e700a84f475b 1-211
+QuickShell.Core/Services/CompanionAppFormRow.cs
+  s_a319543187b812::t_9b0d8848ac69d7 1-42
+QuickShell.Core/Services/CompanionAppLauncher.cs
+  s_a319543187b812::t_ffb01bf888c560 9,12,14-17,22-24,28-29,31,35-42,44,47-54,59,61,65,67,71-73,75-115,121-132,137,175-207
+QuickShell.Core/Services/CompanionAppNormalization.cs
+  s_a319543187b812::t_a3d8bbacf56d9b 1-197
+QuickShell.Core/Services/CompanionAppPreference.cs
+  s_a319543187b812::t_35a3b646b7b1e5 1-96
+QuickShell.Core/Services/FormActionGlyphs.cs
+  s_a319543187b812::t_9dfa47d1a06bcb 12-15,18-22,53
+QuickShell.Core/Services/FormCatalogPrewarm.cs
+  s_a319543187b812::t_d79515fa1e888f 1-48
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_a319543187b812::t_7e29924caef713 83-112
+QuickShell.Core/Services/IShortcutRepository.cs
+  s_a319543187b812::t_b505e75ed84e05 71-75
+QuickShell.Core/Services/JetBrainsInstallDiscovery.cs
+  s_a319543187b812::t_ebf63a86b09ba6 5-9,11-16,19-109
+QuickShell.Core/Services/LaunchCommandSanity.cs
+  s_a319543187b812::t_08877aeef18e98 1-90
+QuickShell.Core/Services/LaunchRowDraft.cs
+  s_a319543187b812::t_a02ffb65f95215 13-14,24
+QuickShell.Core/Services/LaunchRowListEditor.cs
+  s_a319543187b812::t_56a53b7fd3b8b8 18,54-58,65-72,90-93,125-142
+QuickShell.Core/Services/ListSearchQuery.cs
+  s_a319543187b812::t_fed1488812309b 1-17
+QuickShell.Core/Services/PinnedMoveVisibility.cs
+  s_a319543187b812::t_474c9c54b0f894 36-40
+QuickShell.Core/Services/ProjectClassificationCache.cs
+  s_a319543187b812::t_ec47ff9a212f22 24-26,28,34,126,128,131-157,159-161,164,167,169,172,174-188,191,194-201,203-204,206-221,223-234,237,239,241-253,255-259,261-280,283
+QuickShell.Core/Services/QuickShellSettingsReader.cs
+  s_a319543187b812::t_7ac04a001b0359 61-65
+QuickShell.Core/Services/ShortcutCommandIds.cs
+  s_a319543187b812::t_6d2a5419771bac 21-23
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_a319543187b812::t_c672e9bf10b9a8 116-125,197-236,386,393-398,429-433,455-479,535-559
+QuickShell.Core/Services/ShortcutFormDraftStore.cs
+  s_a319543187b812::t_93bd2f2fe459f4 34-35,76-89,94-106,158-159,163-175,426-427,487-504,613,641-642
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_a319543187b812::t_e88ec42d7d5fef 31,33,36-43,49-51,64-67,89-111,119-147,169-171,201-202,224,234,240-252,264-266,273,281,289-290
+QuickShell.Core/Services/ShortcutGlyphs.cs
+  s_a319543187b812::t_3293ac7e9d7573 65-67
+QuickShell.Core/Services/ShortcutHealth.cs
+  s_a319543187b812::t_db9fdb836a723c 71,73-80
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_a319543187b812::t_83afd07cb17685 46
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_a319543187b812::t_c495842ebf62d8 11-13,45,55,63-64,94-109,150-152,159
+QuickShell.Core/Services/ShortcutLaunchNormalization.cs
+  s_a319543187b812::t_28f098603faf49 96
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_a319543187b812::t_ddbe0c515c7d15 766-784,786,797-799,812-814,822,830-832,847,855-870,964-965,967,970,972-973,983,986-993,1021,1035-1037,1039,1047-1066,1969-1970,1972,1974-1975,2002-2027,2041-2042
+QuickShell.Core/Services/ShortcutValidation.cs
+  s_a319543187b812::t_605800c8b9a47b 289-295,301-302,304,308-310,315,317,319-325,329,331,335-357,360
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_a319543187b812::t_e603e4ba606522 9-10,12-33,35,37,40
+QuickShell.Core/Services/TaskTypeCatalog.cs
+  s_a319543187b812::t_29d49b21f92632 14,26,78,91,104
+QuickShell.Core/Services/VisualStudioInstallDiscovery.cs
+  s_a319543187b812::t_2aa19c81a35a24 7-8,11-16,18-19,21-25,28-29,32-33
+QuickShell.Core/Services/WorkspaceCompanionSignals.cs
+  s_a319543187b812::t_c18e2c6dd023ee 56-100
+QuickShell.Core/Services/WorkspaceFormTooltips.cs
+  s_a319543187b812::t_6437dd381898d9 35,37
+QuickShell.Core/Services/WorkspaceHealthCheck.cs
+  s_a319543187b812::t_5272e64f7a3489 95-99
+QuickShell.Core/Services/WorkspaceSeedFactory.cs
+  s_a319543187b812::t_35666ac2b07243 102-106
+QuickShell.Core/Services/WorkspaceSetupSuggestion.cs
+  s_a319543187b812::t_9090547a1e4fe1 134-138,140,144,350-355,370-372
+QuickShell.Core/Services/WorkspaceStatusSnapshot.cs
+  s_a319543187b812::t_e7a5bb294c7e9b 76-81,83-98,100-107,152,155,171,177-194,199-208,213-218,220-221,229-310
+QuickShell.Core/Services/WtProfilesService.cs
+  s_a319543187b812::t_ced97e1922288c 34-39,44,60,189-201
+QuickShell.Raycast/src/lib/migration.ts
+  s_a319543187b812::t_9b97fbe2bef2e2 118-126,135-169
+QuickShell.Raycast/src/lib/post-launch-actions.ts
+  s_a319543187b812::t_632139d0082063 2-3,29-38,55-56,61
+QuickShell.Raycast/src/lib/schema.ts
+  s_a319543187b812::t_80f8190c71f577 19-27,41-42,46
+QuickShell.Raycast/src/lib/validation.ts
+  s_a319543187b812::t_81b8826e38fb8e 1-2,10,172-173,184-187,191-228,265
+QuickShell.Raycast/src/lib/workspace-form-state.ts
+  s_a319543187b812::t_d5d7618cbcdc14 3-4,74-94,106,111
+QuickShell.Raycast/src/lib/workspace-health.ts
+  s_a319543187b812::t_3a80478f0820f3 66-81
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_a319543187b812::t_20cd5177db4e2f 157,160,163,173-188,223-253
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_a319543187b812::t_95ec2948061ff2 21,47,49,58,270-271,323-324,349-354,465,467-471,473,477,479-482,484-487,489,491,493-495,497,500-502,504-506,508,511-514,516-520,675-677,793,899-903,1105-1106,1173-1326,1328-1332,1510
+QuickShell/Commands/MoveFavoriteShortcutCommand.cs
+  s_a319543187b812::t_ad075400d1e73b 16,21-25,27,31,54-57,59-64,80-105
+QuickShell/Commands/WorkspaceUtilityCommands.cs
+  s_a319543187b812::t_32460b5ef3feff 150-152
+QuickShell/Pages/BehaviorSettingsForm.cs
+  s_ed48411fbae681::t_be157f301619ed 8-11,16,21-22,25-26,36-41,48-68,75,83-99,102-106,111,114-122,124,126-127,130-140,142,145,147-157,159-162,164,167-175,180-205,207-217,220-238
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_ed48411fbae681::t_a645adf5a5c0c7 5,9,13-18,20,22-23,29-30,35-36,39-44,46-48,53-55,57,71-77,83-84,88-125,130-134,152-157,167,174,182,185-191,212,228-231,233,247-259
+QuickShell/Pages/QuickShellExtensionSettingsPage.cs
+  s_a319543187b812::t_f4bd5246227078 57
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_a319543187b812::t_d3ab8de997839e 168-174
+QuickShell/Pages/QuickShellPage.cs
+  s_ed48411fbae681::t_cccf697083f311 17-22,26-27,30,65-66,72,77-78,80-88,94-95,97-99,108-113,115-124,130-132,135,138,140-148,151,154-159,166-169,171,173,175-176,180,182-192,197-207,212-215,218,220-221,223,225,227,229-231,234,236-242,244-250,252,261-304,315,322-325,328-341,343,348,356-362,369-379,381,384,386-390,392,394-397,399-405,407-411,413-426,428-432,434-450,455,457-476,491-492,497,502-504,506-534,540-541,544-546,550-551,570
+QuickShell/Pages/ShortcutDetailsFormPage.cs
+  s_a319543187b812::t_9c12db9c36f38a 243-245
+QuickShell/Pages/ShortcutFormLaunchSection.cs
+  s_a319543187b812::t_7d8363ae174384 27,44,59,69
+QuickShell/Pages/ShortcutFormPage.cs
+  s_ed48411fbae681::t_c3a35fb18ffddb 7-8,56,62-78,82,86,104,116,131-140,144-166,171-172,174-175,185-189,192-193,197,199,250-251,261-265,268,329,338,341-356,367-371,374,400-405,407-412,472,474-484,549,557-558,560-562,564-569,615-617,639,644,646-647,656-658,661,664-674,677,679-705,712,714-715,738,748,758,764,768,772,800-801,803,888,899,914,936,953-954,957,960,963,966-970,972-998,1008,1016-1017,1022,1025,1027-1041,1044-1074,1077-1103,1108,1111-1114,1116,1118,1123-1126,1133-1137,1151,1155-1156,1158-1215,1250-1258,1263-1264,1290-1291,1310,1312,1314-1315,1318-1320,1325-1327,1329-1349,1354,1358-1374,1376,1378-1410,1413-1459,1488,1493-1494,1519-1523,1677-1678,1684,1705-1706,1719-1732,1759-1760,1782-1783,1790
+QuickShell/Pages/ShortcutTransferSettingsForm.cs
+  s_a319543187b812::t_13c46661f1a7de 15-24,28-31,33-36,40-41,49-63,74,158-160,163,166-169,174,178,180-182,198,200,210-214,249,254
+QuickShell/Pages/TerminalDefaultsSettingsForm.cs
+  s_a319543187b812::t_2dda25ca04b39c 14-18,23,27-28,30-31,33-35,37,40-41,46,48,51,54,63-69,71-73,82,94-95,99-106,108-112,114-115,118,120-122,128-131,160,162,164-167,169,172,230,237-243,254,256-259
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_ed48411fbae681::t_d367c8efd6299b 16-17,26,31-33,40,45,50-51,57,59,64,67,74,96,102,169
+QuickShell/QuickShellCommandsProvider.cs
+  s_a319543187b812::t_f4811fa593d322 47-48,52,78,101-112,169,180-195,212-227
+QuickShell/Resources/Strings.cs
+  s_a319543187b812::t_dbb1f7d08992a7 130
+QuickShell/Resources/Strings.resx
+  s_a319543187b812::t_61a55c2cc55372 390-392,406
+QuickShell/Services/DiscoverGitRepoListItems.cs
+  s_a319543187b812::t_643e6161a1f064 6,20-21,39-40,47,63-65,70-77,83-85,87-94,103-107,116-118,120-131,137,140-143,198-226,249-252,263,275-278,288-291,298-301
+QuickShell/Services/SettingsCardJson.cs
+  s_ed48411fbae681::t_a6b8aa08f6e227 15-20,26,29,70-82,87-92,94-122,124-126,129-146,148-168,181,188-219,251-276,325-326
+QuickShell/Services/ShortcutContextCommands.cs
+  s_ed48411fbae681::t_eb154cd596b57c 26,44-45,47-49,65,106,120-122,139-141,147-151,240-263,272-273,286-287,301-302,316-317,379,382-383
+QuickShell/Services/ShortcutLayoutDisplay.cs
+  s_a319543187b812::t_ca422f7dbc3ae3 17-19,28,36-37,39
+QuickShell/Services/ShortcutListItems.cs
+  s_a319543187b812::t_641c8a06cbab10 15-18,46-53
+QuickShell/Services/TerminalCatalogChoices.cs
+  s_a319543187b812::t_55ce1cd3e3bc70 8-14,16-101,118
+README.md
+  s_a319543187b812::t_c1fb2c778e1a43 77,284-287
+docs/architecture/companions.md
+  s_a319543187b812::t_34b023ebdb51ca 9-11,14,16-19,22,25-26,30-42,60,64-65,82,88-89,93,108,110-111,115-116,124,133-134,138,140-141,145
+docs/architecture/forms.md
+  s_a319543187b812::t_7d4f4d897b2320 24-26
+docs/architecture/git-and-discover.md
+  s_a319543187b812::t_b61a8b51f47f66 69
+docs/architecture/intelligence.md
+  s_a319543187b812::t_2389594b66d398 40,64,85,87-92,103
+docs/architecture/launch.md
+  s_a319543187b812::t_a0f1d77a9bd205 13
+docs/architecture/roadmap-next-steps.md
+  s_a319543187b812::t_cb40281c0fde5b 90-93,136
+scripts/RaycastLifecycle.ps1
+  s_a319543187b812::t_da7f8736ea70a6 114-136,145-148,162,167,171
+scripts/deploy-all.ps1
+  s_a319543187b812::t_1cebee153fd288 1-306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6747ede02ade09c29b21bcac258ee7195f937f8e",
+  "prompts": {},
+  "sessions": {
+    "s_a319543187b812": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f682f-b4f6-7bd1-9d0d-86adffff6b0c",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
