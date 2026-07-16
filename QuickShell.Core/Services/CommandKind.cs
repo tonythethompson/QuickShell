@@ -17,4 +17,6 @@ internal enum CommandKind
     WorktreeBranchPicker,
     WorktreeBranchSelect,
     WorktreeBranchClear,
+    FavoriteToggle,
+    FavoriteMove,
 }
