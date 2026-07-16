@@ -1,0 +1,25 @@
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_a13be3e2c91ac4::t_b870e4b3df9f57 191,237
+QuickShell/Commands/CreateShortcutCommand.cs
+  s_a13be3e2c91ac4::t_c272a11aef157c 13,23
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_a13be3e2c91ac4::t_1bf6490bc5e54e 51,67
+QuickShell/Services/DiscoverGitRepoListItems.cs
+  s_a13be3e2c91ac4::t_5e8924ed42aee6 90,99,125,138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "2428fbb388d65023ec201788813c1a85b038facd",
+  "prompts": {},
+  "sessions": {
+    "s_a13be3e2c91ac4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a26-4d01-7e51-9041-59c675e7055f",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
