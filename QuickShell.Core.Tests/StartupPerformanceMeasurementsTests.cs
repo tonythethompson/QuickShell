@@ -152,7 +152,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
 
         var services = new ServiceCollection();
         services.AddQuickShellCore(configDir);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var repository = (ShortcutRepository)provider.GetRequiredService<IShortcutRepository>();
         var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
@@ -188,7 +188,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         finally
         {
             // static locator removed; pages receive services via constructor
-            provider.Dispose();
+            
             if (copied)
             {
                 try
@@ -210,7 +210,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
 
         var services = new ServiceCollection();
         services.AddQuickShellCore(configDir);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var repository = (ShortcutRepository)provider.GetRequiredService<IShortcutRepository>();
         var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
@@ -234,7 +234,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var reload = Time(() => page.Reload());
         getItemsMs = Time(() => page.GetItems());
         // static locator removed; pages receive services via constructor
-        provider.Dispose();
+        
         return reload;
     }
 

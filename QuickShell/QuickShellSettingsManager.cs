@@ -26,6 +26,9 @@ internal sealed class QuickShellSettingsManager
 
     internal IQuickShellServices? Services { get; set; }
 
+    private IQuickShellServices RequiredServices =>
+        Services ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
+
     public QuickShellSettingsManager(Action? onReload = null)
     {
         _onReload = onReload;
@@ -131,7 +134,7 @@ internal sealed class QuickShellSettingsManager
 
     internal Settings SettingsModel => _settings;
 
-    internal Pages.QuickShellExtensionSettingsPage TypedSettingsPage => _settingsPage ??= new Pages.QuickShellExtensionSettingsPage(this, _onReload, Services);
+    internal Pages.QuickShellExtensionSettingsPage TypedSettingsPage => _settingsPage ??= new Pages.QuickShellExtensionSettingsPage(this, _onReload, RequiredServices);
 
     public IContentPage SettingsPage => TypedSettingsPage;
 
