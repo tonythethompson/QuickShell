@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Diagnostics;
 using System.Net;
@@ -58,7 +59,7 @@ internal sealed class WorkspaceHealthResult
         Findings.Where(finding => finding.Severity == WorkspaceHealthSeverity.Warning).ToList();
 }
 
-internal static partial class WorkspaceHealthCheck
+internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
 {
     private static readonly string[] ShellBuiltins =
     [
@@ -91,6 +92,22 @@ internal static partial class WorkspaceHealthCheck
     internal static Func<string, WorkspaceGitStatus?>? GitStatusOverride { get; set; }
 
     internal static Func<string, string, string?>? GitCommandOverride { get; set; }
+
+    WorkspaceHealthResult IWorkspaceHealthChecker.Check(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId,
+        bool includeVolatile,
+        bool includeGit) =>
+        Check(shortcut, terminalApplicationId, defaultProfileId, includeVolatile, includeGit);
+
+    WorkspaceHealthResult IWorkspaceHealthChecker.CheckEntry(
+        TerminalShortcut shortcut,
+        WorkspaceEntry entry,
+        string terminalApplicationId,
+        string defaultProfileId,
+        bool includeVolatile) =>
+        CheckEntry(shortcut, entry, terminalApplicationId, defaultProfileId, includeVolatile);
 
     /// <summary>
     /// Launch-safety / status snapshot path. Can fan into directory, launch, git, ports, and
