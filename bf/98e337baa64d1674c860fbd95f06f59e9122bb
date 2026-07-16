@@ -1,0 +1,19 @@
+QuickShell/Services/AgentDebugLog.cs
+  s_a319543187b812::t_6714a55698dbfc 10,39,51,58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bf98e337baa64d1674c860fbd95f06f59e9122bb",
+  "prompts": {},
+  "sessions": {
+    "s_a319543187b812": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f682f-b4f6-7bd1-9d0d-86adffff6b0c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
