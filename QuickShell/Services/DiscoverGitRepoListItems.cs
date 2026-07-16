@@ -276,7 +276,7 @@ internal static class DiscoverGitRepoListItems
             var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
             if (needsRepair)
             {
-                items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged, services: services))
+                items.Add(new CommandContextItem(new ShortcutFormPage(services, shortcut, onChanged))
                 {
                     Title = shortcut.Name,
                     Subtitle = Strings.RepairWorkspace,
@@ -300,7 +300,7 @@ internal static class DiscoverGitRepoListItems
 #endif
             });
 
-            items.Add(new CommandContextItem(new ShortcutFormPage(shortcut, onChanged, services: services))
+            items.Add(new CommandContextItem(new ShortcutFormPage(services, shortcut, onChanged))
             {
                 Title = Strings.EditNamedFormat(shortcut.Name),
                 Icon = new IconInfo("\uE70F"),

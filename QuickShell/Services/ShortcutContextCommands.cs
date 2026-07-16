@@ -90,7 +90,7 @@ internal static class ShortcutContextCommands
         if (includeEdit)
         {
             items.Add(WithShortcut(
-                new ShortcutFormPage(shortcut, onChanged, services: services),
+                new ShortcutFormPage(services, shortcut, onChanged),
                 ctrl: true,
                 alt: false,
                 shift: false,
@@ -201,7 +201,7 @@ internal static class ShortcutContextCommands
         }
 
         items.Add(WithShortcut(
-            new ShortcutFormPage(shortcut, onChanged, services: services),
+            new ShortcutFormPage(services, shortcut, onChanged),
             ctrl: true,
             alt: false,
             shift: false,

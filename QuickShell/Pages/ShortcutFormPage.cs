@@ -18,12 +18,12 @@ internal partial class ShortcutFormPage : ContentPage
     private readonly object _formSync = new();
 
     public ShortcutFormPage(
+        QuickShell.Services.IQuickShellServices services,
         TerminalShortcut? existing = null,
         Action? onSaved = null,
-        TerminalShortcut? createSeed = null,
-        QuickShell.Services.IQuickShellServices? services = null)
+        TerminalShortcut? createSeed = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services;
         _existing = existing is null ? null : CloneShortcut(existing);
         _createSeed = existing is null ? createSeed ?? ShortcutCreateNavigationState.TryTakeSeed() : null;
         _onSaved = onSaved;
@@ -68,7 +68,7 @@ internal partial class ShortcutFormPage : ContentPage
         {
             if (_form is null)
             {
-                _form = new ShortcutForm(_existing, _createSeed, _onSaved, MarkFormNeedsReset, _services);
+                _form = new ShortcutForm(_services, _existing, _createSeed, _onSaved, MarkFormNeedsReset);
                 _formNeedsReset = false;
                 return;
             }
@@ -142,13 +142,13 @@ internal sealed partial class ShortcutForm : FormContent
     private int _suggestionScanGeneration;
 
     public ShortcutForm(
+        QuickShell.Services.IQuickShellServices services,
         TerminalShortcut? existing,
         TerminalShortcut? createSeed,
         Action? onSaved,
-        Action? releaseForm = null,
-        QuickShell.Services.IQuickShellServices? services = null)
+        Action? releaseForm = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services;
         _onSaved = onSaved;
         _releaseForm = releaseForm;
         InitializeDraft(existing, createSeed);

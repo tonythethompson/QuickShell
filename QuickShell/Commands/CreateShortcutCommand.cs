@@ -11,7 +11,7 @@ namespace QuickShell.Commands;
 internal sealed partial class CreateShortcutCommand : ShortcutFormPage
 {
     public CreateShortcutCommand(Action onSaved, IQuickShellServices services)
-        : base(existing: null, onSaved, services: services)
+        : base(services, existing: null, onSaved)
     {
         Id = CommandDescriptor.CreateWorkspace().Id;
     }
@@ -21,7 +21,7 @@ internal sealed partial class CreateShortcutCommand : ShortcutFormPage
     /// derived from the repo directory so CmdPal Pin to home can resolve the command later.
     /// </summary>
     public CreateShortcutCommand(Action onSaved, TerminalShortcut createSeed, IQuickShellServices services)
-        : base(existing: null, onSaved, createSeed, services)
+        : base(services, existing: null, onSaved, createSeed)
     {
         if (!string.IsNullOrWhiteSpace(createSeed.Directory))
         {
