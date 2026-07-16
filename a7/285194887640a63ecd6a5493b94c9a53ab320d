@@ -1,0 +1,29 @@
+QuickShell/Services/ShortcutContextCommands.cs
+  s_1a0816bb1fee55::t_5262d722dd41ed 45-47,49-50,52
+  s_1a0816bb1fee55::t_b67a5978be1452 51
+  s_e8a7a2830aa368::t_52a9034aefb3f6 53-55,110,126-142,162,173-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a7285194887640a63ecd6a5493b94c9a53ab320d",
+  "prompts": {},
+  "sessions": {
+    "s_1a0816bb1fee55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f685c-827d-79e3-8f6b-4744afda18d5",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_e8a7a2830aa368": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6853-898b-7cc1-83e4-ebbeb719d867",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
