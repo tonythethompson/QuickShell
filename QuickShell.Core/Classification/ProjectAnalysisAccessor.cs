@@ -22,5 +22,6 @@ internal static class ProjectAnalysisAccessor
             ProjectClassificationPipeline.CreateDefaultClassifiers(),
             ProjectLayoutAnalyzer.Default,
             new CompanionAppDetector(),
-            new DevServerDetector());
+            new DevServerDetector(),
+            ProjectClassificationPipeline.CreateDefaultTaskSuggestionProviders());
 }

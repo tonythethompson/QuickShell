@@ -2,6 +2,8 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Models;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Services;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -590,7 +592,8 @@ internal sealed partial class ShortcutForm : FormContent
 
         var pills = CommandSuggestionService.GetPills(
             _draft.Directory,
-            _draft.Commands.Select(command => command.Command));
+            _draft.Commands.Select(command => command.Command),
+            ProjectAnalysisAccessor.Instance);
 
         var pill = CommandSuggestionService.TryFindPill(pills, pillCommand, pillTaskType);
         if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
@@ -1165,6 +1168,7 @@ internal sealed partial class ShortcutForm : FormContent
                 SuggestionScanning = scanSuggestions,
                 SaveError = _saveError,
             },
+            ProjectAnalysisAccessor.Instance,
             draft.Commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin)).ToList());
     }
 
@@ -1188,7 +1192,7 @@ internal sealed partial class ShortcutForm : FormContent
         {
             try
             {
-                _ = CommandSuggestionService.GetPills(directory, usedCommands);
+                _ = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
             }
             catch
             {

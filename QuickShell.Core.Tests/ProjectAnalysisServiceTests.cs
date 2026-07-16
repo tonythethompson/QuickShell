@@ -149,17 +149,18 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
         Directory.CreateDirectory(Path.Join(_root, ".vscode"));
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
+        var detector = _services.GetRequiredService<ICompanionAppDetector>();
         var viaService = service.TrySuggestCompanionApp(_root);
-        var viaStatic = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var viaDetector = detector.TrySuggest(_root);
 
-        if (viaStatic is null)
+        if (viaDetector is null)
         {
             Assert.Null(viaService);
             return;
         }
 
         Assert.NotNull(viaService);
-        Assert.Equal(viaStatic.PresetId, viaService.PresetId);
+        Assert.Equal(viaDetector.PresetId, viaService.PresetId);
     }
 
     public void Dispose()

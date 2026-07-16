@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Services;
 using System.IO;
 using System.Windows;
@@ -200,7 +202,7 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
                     return;
                 }
 
-                var pills = CommandSuggestionService.GetPills(directory, usedCommands);
+                var pills = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
                 if (token.IsCancellationRequested)
                 {
                     return;
