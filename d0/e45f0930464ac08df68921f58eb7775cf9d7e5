@@ -1,0 +1,37 @@
+QuickShell/Services/SupportDiagnostics.cs
+  s_a13be3e2c91ac4::t_c57fc8653665cf 198
+  s_a13be3e2c91ac4::t_18e41765c8ce45 4,42-45,52-56,58-62,81-82,199-250,258-259
+QuickShell.Core.Tests/SupportDiagnosticsTests.cs
+  s_a13be3e2c91ac4::t_b4571a2281b41e 43-67
+  s_a13be3e2c91ac4::t_1efd266e504833 6-12
+  s_7bc3bc40239ad3::t_233bde4b276c4f 42
+QuickShell.Core.Tests/WorkspaceStatusPageTests.cs
+  s_a13be3e2c91ac4::t_47170da822f154 1-28,30-40
+  s_a13be3e2c91ac4::t_043f3515bb5917 29
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_a13be3e2c91ac4::t_e4c2d03332a213 7,220-222,227-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "d0e45f0930464ac08df68921f58eb7775cf9d7e5",
+  "prompts": {},
+  "sessions": {
+    "s_7bc3bc40239ad3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a69-bb00-7ec3-80c1-9735dafdd054",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_a13be3e2c91ac4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a26-4d01-7e51-9041-59c675e7055f",
+        "model": "gpt-5.5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
