@@ -1,0 +1,25 @@
+QuickShell.Core.Tests/ProjectSetupSuggestionTests.cs
+  s_1a0816bb1fee55::t_809d58eb28898a 161-194,293-298
+QuickShell.Core/Classification/ProjectClassificationBuilder.cs
+  s_1a0816bb1fee55::t_92635656d04ec8 396-398,534
+QuickShell.Core/Services/WorkspaceLegacyMigration.cs
+  s_1a0816bb1fee55::t_c540976467b908 32-33
+QuickShell.Core/Services/WorkspaceSetupSuggestion.cs
+  s_1a0816bb1fee55::t_b64b2ff37c5772 428
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "647ca8fb4003046abb3aa11c7a7cd6c6debe500a",
+  "prompts": {},
+  "sessions": {
+    "s_1a0816bb1fee55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f685c-827d-79e3-8f6b-4744afda18d5",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
