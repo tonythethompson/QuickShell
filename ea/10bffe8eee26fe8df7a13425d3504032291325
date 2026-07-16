@@ -1,0 +1,30 @@
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_a319543187b812::t_507a995ccc079d 5
+  s_e8a7a2830aa368::t_95338958a06cfc 10-13,36,235,246-253
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_e8a7a2830aa368::t_e1f56a55606b89 77,184-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ea10bffe8eee26fe8df7a13425d3504032291325",
+  "prompts": {},
+  "sessions": {
+    "s_a319543187b812": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f682f-b4f6-7bd1-9d0d-86adffff6b0c",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_e8a7a2830aa368": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6853-898b-7cc1-83e4-ebbeb719d867",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
