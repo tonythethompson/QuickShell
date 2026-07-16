@@ -393,9 +393,9 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
         try
         {
-            var contents = File.ReadAllText(path);
-            return contents.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
-                || contents.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase);
+            return File.ReadLines(path).Any(line =>
+                line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
+                || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase));
         }
         catch
         {
@@ -531,7 +531,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
         try
         {
-            return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+            return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
         catch
         {
