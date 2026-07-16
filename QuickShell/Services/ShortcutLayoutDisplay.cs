@@ -14,7 +14,9 @@ internal static class ShortcutLayoutDisplay
         Func<TerminalShortcut, IListItem> buildShortcutItem,
         IReadOnlySet<string>? excludeShortcutIds = null)
     {
-        foreach (var item in BuildFavoriteItems(layout, buildShortcutItem))
+        // One pin sort for the whole list build (favorites + workspace header flag).
+        var pinned = GetPinnedShortcuts(layout);
+        foreach (var item in BuildFavoriteItems(layout, buildShortcutItem, pinned))
         {
             yield return item;
         }
@@ -23,7 +25,7 @@ internal static class ShortcutLayoutDisplay
                      layout,
                      buildShortcutItem,
                      excludeShortcutIds,
-                     showDefaultWorkspacesHeader: GetPinnedShortcuts(layout).Count > 0))
+                     showDefaultWorkspacesHeader: pinned.Count > 0))
         {
             yield return item;
         }
@@ -31,9 +33,10 @@ internal static class ShortcutLayoutDisplay
 
     public static IEnumerable<IListItem> BuildFavoriteItems(
         IReadOnlyList<ShortcutLayoutEntry> layout,
-        Func<TerminalShortcut, IListItem> buildShortcutItem)
+        Func<TerminalShortcut, IListItem> buildShortcutItem,
+        IReadOnlyList<TerminalShortcut>? pinnedInOrder = null)
     {
-        var pinned = GetPinnedShortcuts(layout);
+        var pinned = pinnedInOrder ?? GetPinnedShortcuts(layout);
         if (pinned.Count == 0)
         {
             yield break;

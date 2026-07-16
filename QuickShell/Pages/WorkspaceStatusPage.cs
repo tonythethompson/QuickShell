@@ -12,6 +12,9 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
 {
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
+    private readonly Action _onChanged;
+    private bool _gitCommandsLoaded;
+    private WorkspaceStatusForm? _form;
 
     public WorkspaceStatusPage(
         TerminalShortcut shortcut,
@@ -20,17 +23,33 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     {
         _shortcut = shortcut;
         _settings = settings;
+        _onChanged = onChanged;
         Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");
-        Commands = BuildGitCommands(shortcut, settings, onChanged);
+        // Do not run git here. Every home-list row builds this page for the
+        // "Workspace status…" context command; eager TryGetStatus made open
+        // take tens of seconds with ~45 workspaces (and worse for WSL paths).
+        Commands = [];
     }
 
-    public override IContent[] GetContent() =>
-        [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
+    public override IContent[] GetContent()
+    {
+        EnsureGitCommands();
+        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
+    }
 
-    private WorkspaceStatusForm? _form;
+    private void EnsureGitCommands()
+    {
+        if (_gitCommandsLoaded)
+        {
+            return;
+        }
+
+        _gitCommandsLoaded = true;
+        Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
+    }
 
     private static CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
@@ -147,7 +166,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
         var count = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut).Count;
         var companion = CompanionAppLauncher.IsConfigured(shortcut)
-            ? $" · Companion: {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}"
+            ? $" · Companion: {CompanionAppLauncher.BuildDisplaySummary(shortcut)}"
             : string.Empty;
         return count == 1
             ? $"1 enabled launch{companion}"

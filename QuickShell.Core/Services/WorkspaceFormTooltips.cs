@@ -32,8 +32,7 @@ internal static class WorkspaceFormTooltips
         "Optionally open an editor or other app with this workspace folder when you run the workspace.";
 
     public const string RunAsAdmin =
-        "Launch elevated. Windows may show a UAC prompt each time.";
+        "Elevate this terminal. Works with a blank command (elevated folder shell). Windows may show a UAC prompt. Mixed Admin rows open in separate windows, not shared tabs.";
 
-    public const string SuggestedCommands =
-        "Click to add a launch row. Based on files in this folder.";
+    public const string SuggestedCommands = "Click a pill to add.";
 }

@@ -10,6 +10,8 @@ internal sealed class LaunchRowDraft
 
     public string LaunchTarget { get; set; } = "default";
 
+    public bool RunAsAdmin { get; set; }
+
     public bool IsEditorPlaceholder { get; set; }
 
     public LaunchRowDraft Clone() =>
@@ -19,6 +21,7 @@ internal sealed class LaunchRowDraft
             Command = Command,
             TaskType = TaskType,
             LaunchTarget = LaunchTarget,
+            RunAsAdmin = RunAsAdmin,
             IsEditorPlaceholder = IsEditorPlaceholder,
         };
 }

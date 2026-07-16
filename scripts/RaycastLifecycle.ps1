@@ -111,6 +111,29 @@ function Start-RaycastApp {
     return $false
 }
 
+function Invoke-NpmCommand {
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Arguments,
+        [Parameter(Mandatory)]
+        [string]$FailureMessage
+    )
+
+    # npm writes progress/notices to stderr. With $ErrorActionPreference Stop that can
+    # become a terminating error even when the exit code is 0 (especially under 2>&1).
+    $previousEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & npm @Arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "$FailureMessage (exit code $LASTEXITCODE)"
+        }
+    }
+    finally {
+        $ErrorActionPreference = $previousEap
+    }
+}
+
 function Deploy-RaycastExtension {
     param(
         [string]$ProjectRoot,
@@ -118,6 +141,10 @@ function Deploy-RaycastExtension {
         [switch]$BuildOnly,
         [switch]$StartDevServer
     )
+
+    if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+        throw 'Deploy-RaycastExtension requires -ProjectRoot (got empty). Check deploy-all.ps1 line endings if backtick argument continuations are failing.'
+    }
 
     $raycastRoot = Get-RaycastRoot -ProjectRoot $ProjectRoot
     if (-not (Test-Path $raycastRoot)) {
@@ -132,25 +159,16 @@ function Deploy-RaycastExtension {
     try {
         if (-not (Test-Path 'node_modules/@raycast/api')) {
             Write-Host 'Installing Raycast extension dependencies...'
-            npm install
-            if ($LASTEXITCODE -ne 0) {
-                throw "npm install failed with exit code $LASTEXITCODE"
-            }
+            Invoke-NpmCommand -Arguments @('install') -FailureMessage 'npm install failed'
         }
 
         if (-not $SkipTests) {
             Write-Host 'Running Raycast extension tests...'
-            npm test
-            if ($LASTEXITCODE -ne 0) {
-                throw "npm test failed with exit code $LASTEXITCODE"
-            }
+            Invoke-NpmCommand -Arguments @('test') -FailureMessage 'npm test failed'
         }
 
         Write-Host 'Building Raycast extension...'
-        npm run build
-        if ($LASTEXITCODE -ne 0) {
-            throw "npm run build failed with exit code $LASTEXITCODE"
-        }
+        Invoke-NpmCommand -Arguments @('run', 'build') -FailureMessage 'npm run build failed'
 
         if ($BuildOnly) {
             Write-Host 'Raycast build complete (-BuildOnly; skipping ray develop).'

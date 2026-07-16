@@ -8,7 +8,9 @@ internal static partial class ShortcutLaunchFormJson
 
     private const string CommandColumnWidth = "2";
 
-    private const string ProfileColumnWidth = "3";
+    private const string ProfileColumnWidth = "2";
+
+    private const string AdminColumnWidth = "auto";
 
 
 
@@ -40,7 +42,7 @@ internal static partial class ShortcutLaunchFormJson
 
     public static string BuildCommandRowsJson(
 
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)> rows,
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> rows,
 
         string terminalChoices)
 
@@ -50,13 +52,15 @@ internal static partial class ShortcutLaunchFormJson
 
         {
 
-            rows = [(string.Empty, TaskTypeCatalog.None, "default")];
+            rows = [(string.Empty, TaskTypeCatalog.None, "default", false)];
 
         }
 
 
 
         var blocks = new List<string>();
+
+        var tipAdmin = Escape(WorkspaceFormTooltips.RunAsAdmin);
 
         for (var i = 0; i < rows.Count; i++)
         {
@@ -85,6 +89,22 @@ internal static partial class ShortcutLaunchFormJson
                       "value": "${LaunchTarget_{{i}}}",
                       "tooltip": "{{Escape(FormActionGlyphs.TerminalProfileTooltip)}}",
                       "choices": {{terminalChoices}}
+                    }
+                  ]
+                },
+                {
+                  "type": "Column",
+                  "width": "{{AdminColumnWidth}}",
+                  "verticalContentAlignment": "Center",
+                  "items": [
+                    {
+                      "type": "Input.Toggle",
+                      "id": "LaunchRunAsAdmin_{{i}}",
+                      "title": "Admin",
+                      "tooltip": "{{tipAdmin}}",
+                      "value": "${LaunchRunAsAdmin_{{i}}}",
+                      "valueOn": "true",
+                      "valueOff": "false"
                     }
                   ]
                 }
@@ -127,14 +147,16 @@ internal static partial class ShortcutLaunchFormJson
 
 
 
+    public const string CommandsSectionTooltip =
+        "Blank = folder only · Admin elevates that row.";
+
     public static string BuildCommandsSectionHeaderJson() =>
         $$"""
         {
           "type": "Container",
           "spacing": "None",
           "items": [
-            {{AdaptiveCardFormJson.FieldLabel("Commands")}},
-            {{AdaptiveCardFormJson.FieldHelp("Each command opens in its terminal profile. Leave command blank to open the folder only.")}}
+            {{AdaptiveCardFormJson.FieldLabel("Commands", CommandsSectionTooltip)}}
           ]
         }
         """;
