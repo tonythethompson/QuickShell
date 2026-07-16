@@ -2,6 +2,13 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class AgentCliCatalogIsolation
+{
+    public const string Name = "AgentCliCatalog";
+}
+
+[Collection(AgentCliCatalogIsolation.Name)]
 public sealed class AgentCliSuggestionTests : IDisposable
 {
     private readonly string _root;

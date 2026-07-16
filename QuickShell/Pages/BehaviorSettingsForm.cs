@@ -80,6 +80,13 @@ internal sealed partial class BehaviorSettingsForm : FormContent
     public override CommandResult SubmitForm(string inputs, string data)
     {
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
+        if (string.Equals(action, "refreshTerminals", StringComparison.OrdinalIgnoreCase))
+        {
+            // Terminal refresh lives inside the combined settings card, whose
+            // unsaved toggles must survive the embedded action as well.
+            ApplyAllPendingFromValues(ParseValues(inputs, data));
+        }
+
         if (_terminalForm.TryHandleAction(action, inputs, data, out var terminalResult))
         {
             return terminalResult;

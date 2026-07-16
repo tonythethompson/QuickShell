@@ -94,6 +94,9 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         // Compare against the query we last applied, not host oldSearch.
         if (!ListSearchQuery.HasChanged(_query, normalized))
         {
+            // Replace a queued different query when the host text returns to the
+            // query already applied; otherwise the stale debounce wins later.
+            _searchDebouncer.Schedule(normalized);
             return;
         }
 

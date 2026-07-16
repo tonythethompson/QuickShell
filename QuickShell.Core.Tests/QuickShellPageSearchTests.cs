@@ -86,6 +86,54 @@ public sealed class QuickShellPageSearchTests : IDisposable
     }
 
     [Fact]
+    public void HomeSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
+    {
+        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }));
+        _ = page.GetItems();
+        SetPrivateField(page, "_query", "a");
+
+        page.UpdateSearchText("a", "ab");
+        page.UpdateSearchText("ab", "a");
+
+        GetPrivateField<SearchDebouncer>(page, "_searchDebouncer").FlushNow();
+
+        Assert.Equal("a", GetPrivateField<string>(page, "_query"));
+    }
+
+    [Fact]
+    public void RefreshTerminals_PreservesPendingCombinedSettings()
+    {
+        var pendingApp = string.Equals(
+            _settings.TerminalApplicationId,
+            TerminalHostIds.WindowsConsoleHost,
+            StringComparison.OrdinalIgnoreCase)
+            ? TerminalHostIds.WindowsTerminal
+            : TerminalHostIds.WindowsConsoleHost;
+        var pendingSingleWindowTabs = _settings.SeparateWindowsForMultiLaunch;
+        var pendingShowRecents = !QuickShellRecentSettings.IsEnabled(_settings.RecentWorkspaceCount);
+        var pendingBlockDirtyBranchSwitch = !_settings.BlockDirtyBranchSwitch;
+        var inputs = $$"""
+            {
+              "terminalApplication": "{{pendingApp}}",
+              "defaultProfile": "{{TerminalHostIds.DefaultProfile}}",
+              "singleWindowTabs": {{pendingSingleWindowTabs.ToString().ToLowerInvariant()}},
+              "showRecents": {{pendingShowRecents.ToString().ToLowerInvariant()}},
+              "blockDirtyBranchSwitch": {{pendingBlockDirtyBranchSwitch.ToString().ToLowerInvariant()}}
+            }
+            """;
+
+        var form = new BehaviorSettingsForm(_settings);
+        _ = form.SubmitForm(inputs, "{\"action\":\"refreshTerminals\"}");
+
+        var terminalForm = GetPrivateField<TerminalDefaultsSettingsForm>(form, "_terminalForm");
+        Assert.Equal(pendingApp, GetPrivateField<string>(terminalForm, "_pendingApp"));
+        Assert.Equal(TerminalHostIds.DefaultProfile, GetPrivateField<string>(terminalForm, "_pendingProfile"));
+        Assert.Equal(pendingSingleWindowTabs, GetPrivateField<bool>(form, "_pendingSingleWindowTabs"));
+        Assert.Equal(pendingShowRecents, GetPrivateField<bool>(form, "_pendingShowRecents"));
+        Assert.Equal(pendingBlockDirtyBranchSwitch, GetPrivateField<bool>(form, "_pendingBlockDirtyBranchSwitch"));
+    }
+
+    [Fact]
     public void Reload_AfterUnpinnedWorkspaceRename_RebuildsCachedRow()
     {
         using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }));
@@ -127,6 +175,15 @@ public sealed class QuickShellPageSearchTests : IDisposable
     private static void SetPrivateField<T>(DiscoverGitReposPage page, string name, T value) =>
         typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, value);
 
+    private static T GetPrivateField<T>(QuickShellPage page, string name) =>
+        (T)typeof(QuickShellPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
+
     private static T GetPrivateField<T>(DiscoverGitReposPage page, string name) =>
         (T)typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
+
+    private static T GetPrivateField<T>(BehaviorSettingsForm form, string name) =>
+        (T)typeof(BehaviorSettingsForm).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
+
+    private static T GetPrivateField<T>(TerminalDefaultsSettingsForm form, string name) =>
+        (T)typeof(TerminalDefaultsSettingsForm).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 }

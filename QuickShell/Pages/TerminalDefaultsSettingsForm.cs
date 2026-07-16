@@ -79,6 +79,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
         if (action == "refreshTerminals")
         {
+            ApplyPendingFromValues(values);
             return RefreshTerminals();
         }
 
@@ -125,7 +126,9 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
     {
         TerminalDiscovery.Refresh(_settingsManager);
         TerminalCatalogChoices.InvalidateCache();
-        SyncPendingFromSettings();
+        // Keep unsaved form state while reconciling its profile against the
+        // refreshed terminal choices.
+        ApplyPendingFromValues(values: null);
         RebuildTemplate();
         SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
         SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
@@ -166,7 +169,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
             FormActionGlyphs.RefreshActionTitle,
             FormActionGlyphs.RefreshProfileListTooltip,
             "refreshTerminals",
-            "none");
+            "auto");
 
         var bodyParts = new List<string>
         {

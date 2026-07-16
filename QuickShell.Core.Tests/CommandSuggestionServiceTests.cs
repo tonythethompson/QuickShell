@@ -3,6 +3,7 @@ using System.Reflection;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(AgentCliCatalogIsolation.Name)]
 public sealed class CommandSuggestionServiceTests : IDisposable
 {
     private readonly string _root;
