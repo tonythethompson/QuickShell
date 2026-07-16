@@ -1,6 +1,8 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Commands;
@@ -19,6 +21,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
 #endif
     private readonly ServiceProvider _services;
+    private readonly QuickShellLifetime _lifetime;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private readonly CreateShortcutCommand _createShortcutCommand;
@@ -58,14 +61,15 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
             // #endregion
             var collection = new ServiceCollection();
-            collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages);
+            _lifetime = new QuickShellLifetime();
+            collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages, lifetime: _lifetime);
             _services = collection.BuildServiceProvider();
 
             var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
             var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
             ProjectAnalysisAccessor.Instance = projectAnalysis;
-            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis));
+            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis, _lifetime));
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
             // #region agent log
             AgentDebugLog.Write(
@@ -193,20 +197,22 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         }
     }
 
-    private static void KickoffGitRepoIndexPrewarm()
+    private void KickoffGitRepoIndexPrewarm()
     {
         _ = Task.Run(() =>
         {
             try
             {
-                var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
-                GitRepoIndex.Prewarm(GitRepoSearchRoots.FromShortcuts(shortcuts));
+                var shortcuts = _services.GetRequiredService<IShortcutRepository>().GetShortcuts();
+                _services.GetRequiredService<IGitRepoIndex>().Prewarm(
+                    GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
+                    _lifetime.CancellationToken);
             }
             catch
             {
                 // Best effort; discover/create still work without the warm cache.
             }
-        });
+        }, _lifetime.CancellationToken);
     }
 
     private void KickoffFormCatalogPrewarm()
@@ -222,7 +228,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             {
                 // Best effort; first form open pays cold cost instead.
             }
-        });
+        }, _lifetime.CancellationToken);
     }
 
     public override ICommandItem? GetCommandItem(string id)
@@ -247,6 +253,8 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         QuickShellServices.Unbind();
         GitRepoIndex.ExtensionThreadPoster = null;
         _services.Dispose();
+        ProjectClassificationCache.Invalidate();
+        GitRepoIndex.Invalidate();
         base.Dispose();
         GC.SuppressFinalize(this);
     }

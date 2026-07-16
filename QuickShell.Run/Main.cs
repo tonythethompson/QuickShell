@@ -40,6 +40,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private PluginInitContext? _context;
     private string _iconPath = string.Empty;
     private ServiceProvider? _services;
+    private QuickShellLifetime? _lifetime;
     private IShortcutRepository? _shortcuts;
     private QuickShellSettingsReader? _settings;
     private QuickShellRunSettingsPanel? _settingsPanel;
@@ -60,7 +61,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         using (StartupPerformanceTrace.Measure("Run services setup"))
         {
             var collection = new ServiceCollection();
-            collection.AddQuickShellCore();
+            _lifetime = new QuickShellLifetime();
+            collection.AddQuickShellCore(lifetime: _lifetime);
             _services = collection.BuildServiceProvider();
             _shortcuts = _services.GetRequiredService<IShortcutRepository>();
             ProjectAnalysisAccessor.Instance = _services.GetRequiredService<IProjectAnalysisService>();
@@ -72,20 +74,21 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
         using (StartupPerformanceTrace.Measure("Run shortcut preload kickoff"))
         {
-            if (_shortcuts is ShortcutRepository repository)
+            if (_shortcuts is ShortcutRepository repository && _lifetime is not null)
             {
-                BeginShortcutPreload(repository);
+                BeginShortcutPreload(repository, _lifetime);
             }
         }
     }
 
-    private static void BeginShortcutPreload(ShortcutRepository shortcuts) => _ = PreloadShortcutsAsync(shortcuts);
+    private static void BeginShortcutPreload(ShortcutRepository shortcuts, QuickShellLifetime lifetime) =>
+        _ = PreloadShortcutsAsync(shortcuts, lifetime);
 
-    private static async Task PreloadShortcutsAsync(ShortcutRepository shortcuts)
+    private static async Task PreloadShortcutsAsync(ShortcutRepository shortcuts, QuickShellLifetime lifetime)
     {
         try
         {
-            await shortcuts.PreloadAsync().ConfigureAwait(false);
+            await shortcuts.PreloadAsync(lifetime.CancellationToken).ConfigureAwait(false);
         }
         catch
         {

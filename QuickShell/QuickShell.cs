@@ -22,5 +22,9 @@ public sealed partial class QuickShellExtension : IExtension, IDisposable
         _ => null,
     };
 
-    public void Dispose() => _extensionDisposedEvent.Set();
+    public void Dispose()
+    {
+        _provider.Dispose();
+        _extensionDisposedEvent.Set();
+    }
 }
