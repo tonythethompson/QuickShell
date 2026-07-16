@@ -1,6 +1,8 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Commands;
@@ -19,7 +21,8 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
 #endif
     private readonly ServiceProvider _services;
-    private readonly QuickShellServices _quickShellServices;
+    private readonly IQuickShellLifetime _lifetime;
+    private readonly IQuickShellServices _quickShellServices;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private CreateShortcutCommand _createShortcutCommand;
@@ -29,6 +32,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
     private readonly EventHandler _settingsChangedHandler;
+    private volatile bool _disposed;
 
     public QuickShellCommandsProvider()
     {
@@ -58,14 +62,16 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
             // #endregion
             var collection = new ServiceCollection();
-            collection.AddQuickShellHost(_settingsManager, ReloadPages);
+            var lifetime = new QuickShellLifetime();
+            collection.AddQuickShellHost(_settingsManager, ReloadPages, lifetime: lifetime);
             _services = collection.BuildServiceProvider();
+            _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
             var shortcuts = _services.GetRequiredService<IShortcutRepository>();
             var drafts = _services.GetRequiredService<IDraftStore>();
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
             ProjectAnalysisAccessor.Instance = projectAnalysis;
-            _quickShellServices = (QuickShellServices)_services.GetRequiredService<IQuickShellServices>();
+            _quickShellServices = _services.GetRequiredService<IQuickShellServices>();
             _settingsManager.Services = _quickShellServices;
             _createShortcutCommand = _services.GetRequiredService<CreateShortcutCommand>();
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
@@ -197,34 +203,58 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     private void KickoffGitRepoIndexPrewarm()
     {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
         _ = Task.Run(() =>
         {
             try
             {
-                var shortcuts = _quickShellServices.Shortcuts.GetShortcuts();
-                GitRepoIndex.Prewarm(GitRepoSearchRoots.FromShortcuts(shortcuts));
+                if (_disposed || _lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
+                var shortcuts = shortcutRepository.GetShortcuts();
+                var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
+                gitRepoIndex.Prewarm(
+                    GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
+                    _lifetime.CancellationToken);
             }
             catch
             {
                 // Best effort; discover/create still work without the warm cache.
             }
-        });
+        }, _lifetime.CancellationToken);
     }
 
     private void KickoffFormCatalogPrewarm()
     {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
         var terminalApplicationId = _settingsManager.TerminalApplicationId;
         _ = Task.Run(() =>
         {
             try
             {
+                if (_disposed || _lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 FormCatalogPrewarm.Warm(terminalApplicationId);
             }
             catch
             {
                 // Best effort; first form open pays cold cost instead.
             }
-        });
+        }, _lifetime.CancellationToken);
     }
 
     public override ICommandItem? GetCommandItem(string id)
@@ -239,6 +269,13 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     public override void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _lifetime.Cancel();
         _settingsManager.SettingsChanged -= _settingsChangedHandler;
         _page.Dispose();
         if (_fallbackPage.IsValueCreated)

@@ -22,12 +22,17 @@ internal static class QuickShellServiceCollectionExtensions
     /// Optional override for the shortcuts store directory (tests).
     /// When null, uses the default <c>%LOCALAPPDATA%\QuickShell</c> path.
     /// </param>
+    /// <param name="lifetime">
+    /// Optional shared process lifetime. When null, a default <see cref="QuickShellLifetime"/> is registered.
+    /// </param>
     public static IServiceCollection AddQuickShellCore(
         this IServiceCollection services,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        IQuickShellLifetime? lifetime = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<IQuickShellLifetime>(_ => lifetime ?? new QuickShellLifetime());
         services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
         services.AddSingleton<IShortcutRepository>(sp =>
             new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));

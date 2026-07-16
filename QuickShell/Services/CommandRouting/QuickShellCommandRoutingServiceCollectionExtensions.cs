@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Commands;
 using QuickShell.Composition;
@@ -24,7 +25,8 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<IShortcutRepository>(),
             sp.GetRequiredService<IDraftStore>(),
             sp.GetRequiredService<QuickShellSettingsManager>(),
-            sp.GetRequiredService<IProjectAnalysisService>()));
+            sp.GetRequiredService<IProjectAnalysisService>(),
+            sp.GetRequiredService<IQuickShellLifetime>()));
         services.AddSingleton(sp => new CreateShortcutCommand(reloadPages, sp.GetRequiredService<IQuickShellServices>()));
         services.AddSingleton(sp => new CommandItemFactoryContext
         {
@@ -56,9 +58,10 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager,
         Action reloadPages,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        QuickShell.Abstractions.IQuickShellLifetime? lifetime = null)
     {
-        services.AddQuickShellCore(configDirectory);
+        services.AddQuickShellCore(configDirectory, lifetime);
         services.AddQuickShellCommandRouting(settingsManager, reloadPages);
         return services;
     }

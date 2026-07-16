@@ -24,6 +24,7 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
     private readonly ShortcutRepository _repository;
     private readonly ShortcutDraftStore _drafts;
     private readonly QuickShellSettingsManager _settings;
+    private readonly QuickShellLifetime _lifetime;
     private readonly IQuickShellServices _quickShellServices;
     public ShortcutContextCommandsHomePinBugTests()
     {
@@ -37,11 +38,13 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _repository = new ShortcutRepository(_configDirectory);
         _drafts = new ShortcutDraftStore(_repository);
         _settings = new QuickShellSettingsManager();
-        _quickShellServices = new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService());
+        _lifetime = new QuickShellLifetime();
+        _quickShellServices = new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService(), _lifetime);
     }
 
     public void Dispose()
     {
+        _lifetime.Dispose();
         _drafts.Dispose();
         _repository.Dispose();
         LaunchExecutorTestEnvironment.Reset();

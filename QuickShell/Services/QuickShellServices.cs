@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Threading.Tasks;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
@@ -18,16 +19,20 @@ internal sealed class QuickShellServices : IQuickShellServices
 
     public IProjectAnalysisService ProjectAnalysis { get; }
 
+    public IQuickShellLifetime Lifetime { get; }
+
     public QuickShellServices(
         IShortcutRepository shortcuts,
         IDraftStore drafts,
         QuickShellSettingsManager settings,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IQuickShellLifetime lifetime)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+        Lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
         BeginShortcutPreload();
     }
 
@@ -37,9 +42,9 @@ internal sealed class QuickShellServices : IQuickShellServices
     {
         try
         {
-            await Shortcuts.PreloadAsync().ConfigureAwait(false);
+            await Shortcuts.PreloadAsync(Lifetime.CancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or OperationCanceledException)
         {
             // Best effort warm-up; synchronous access still loads on demand.
         }

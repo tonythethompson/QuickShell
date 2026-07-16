@@ -18,7 +18,8 @@ public sealed class DiscoverGitRepoListItemsTests : IDisposable
             repository,
             new ShortcutDraftStore(repository),
             new QuickShellSettingsManager(),
-            new FakeProjectAnalysisService());
+            new FakeProjectAnalysisService(),
+            new QuickShellLifetime());
     }
 
     [Fact]
