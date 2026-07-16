@@ -24,7 +24,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         _shortcut = shortcut;
         _settings = settings;
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
+        Id = CommandDescriptor.WorkspaceStatus(shortcut.Id).Id;
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");

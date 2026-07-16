@@ -13,7 +13,7 @@ internal sealed partial class CreateShortcutCommand : ShortcutFormPage
     public CreateShortcutCommand(Action onSaved)
         : base(existing: null, onSaved)
     {
-        Id = ShortcutCommandIds.CreateShortcut;
+        Id = CommandDescriptor.CreateWorkspace().Id;
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ internal sealed partial class CreateShortcutCommand : ShortcutFormPage
     {
         if (!string.IsNullOrWhiteSpace(createSeed.Directory))
         {
-            Id = ShortcutCommandIds.DiscoverCreate(createSeed.Directory);
+            Id = CommandDescriptor.DiscoverCreate(createSeed.Directory).Id;
         }
     }
 }
