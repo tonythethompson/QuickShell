@@ -8,8 +8,6 @@ namespace QuickShell.Abstractions.Classification;
 /// </summary>
 internal interface ITaskSuggestionProvider
 {
-    string Name { get; }
-
     /// <summary>
     /// Higher priority providers are evaluated first. Providers with duplicate suggestions
     /// are de-duplicated by command during aggregation.
@@ -22,10 +20,8 @@ internal interface ITaskSuggestionProvider
     /// <param name="directory">The workspace directory to inspect.</param>
     /// <param name="classification">The already-computed project classification for the directory.</param>
     /// <param name="projectAnalysis">The active project analysis service, used for formatting helper commands.</param>
-    /// <param name="cancellationToken">Cancellation token for long-running suggestion work.</param>
     IReadOnlyList<WorkspaceSetupTask> GetSuggestions(
         string directory,
         ProjectClassification classification,
-        IProjectAnalysisService projectAnalysis,
-        CancellationToken cancellationToken = default);
+        IProjectAnalysisService projectAnalysis);
 }

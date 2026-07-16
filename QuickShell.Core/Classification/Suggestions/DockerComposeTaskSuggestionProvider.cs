@@ -8,15 +8,12 @@ namespace QuickShell.Classification.Suggestions;
 /// </summary>
 internal sealed class DockerComposeTaskSuggestionProvider : ITaskSuggestionProvider
 {
-    public string Name => "Docker compose";
-
     public int Priority => 50;
 
     public IReadOnlyList<WorkspaceSetupTask> GetSuggestions(
         string directory,
         ProjectClassification classification,
-        IProjectAnalysisService projectAnalysis,
-        CancellationToken cancellationToken = default)
+        IProjectAnalysisService projectAnalysis)
     {
         if (!classification.Has(ProjectStack.Docker))
         {

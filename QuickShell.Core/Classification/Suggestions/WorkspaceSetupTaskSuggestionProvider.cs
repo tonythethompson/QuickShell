@@ -9,14 +9,11 @@ namespace QuickShell.Classification.Suggestions;
 /// </summary>
 internal sealed class WorkspaceSetupTaskSuggestionProvider : ITaskSuggestionProvider
 {
-    public string Name => "Workspace setup";
-
     public int Priority => 100;
 
     public IReadOnlyList<WorkspaceSetupTask> GetSuggestions(
         string directory,
         ProjectClassification classification,
-        IProjectAnalysisService projectAnalysis,
-        CancellationToken cancellationToken = default) =>
+        IProjectAnalysisService projectAnalysis) =>
         WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
 }
