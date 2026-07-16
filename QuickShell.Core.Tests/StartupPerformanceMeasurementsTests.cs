@@ -178,7 +178,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             workspaceCount = repository.GetShortcuts().Count;
         }
 
-        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
+        using var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
         try
         {
             var reload = Time(() => page.Reload());
@@ -187,7 +187,6 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         }
         finally
         {
-            page.Dispose();
             // static locator removed; pages receive services via constructor
             provider.Dispose();
             if (copied)
