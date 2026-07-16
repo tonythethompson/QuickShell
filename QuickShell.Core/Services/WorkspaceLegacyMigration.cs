@@ -29,8 +29,8 @@ internal static class WorkspaceLegacyMigration
                 return false;
             }
 
-            var bytes = File.ReadAllBytes(workspacesPath);
-            var records = JsonSerializer.Deserialize(bytes, QuickShellJsonContext.Default.ListWorkspaceDiskRecord) ?? [];
+            using var stream = File.OpenRead(workspacesPath);
+            var records = JsonSerializer.Deserialize(stream, QuickShellJsonContext.Default.ListWorkspaceDiskRecord) ?? [];
 
             var seenWorkspaceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var record in records)
