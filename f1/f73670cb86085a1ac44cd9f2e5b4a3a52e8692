@@ -1,0 +1,21 @@
+QuickShell.Core.Tests/ProjectAnalysisAccessorTests.cs
+  s_ed48411fbae681::t_52dcd5c8d89c7a 8-9,11,14
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_ed48411fbae681::t_2df6d48c7b40f1 231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f1f73670cb86085a1ac44cd9f2e5b4a3a52e8692",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
