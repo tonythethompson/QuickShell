@@ -1,0 +1,22 @@
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_ed48411fbae681::t_c355b8f662e4c2 21
+  s_ed48411fbae681::t_6205a853956089 58,323-324,349-354,793,1510
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_ed48411fbae681::t_93fafdf40020c7 157,160,163,173-188,223-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "95018c1c9f06c32f7788ebb1b9723a9a1fc8b807",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
