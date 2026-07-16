@@ -1,9 +1,12 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
 
-internal static class TerminalProfileResolver
+internal sealed class TerminalProfileResolver : ITerminalProfileResolver
 {
+    WtProfileInfo? ITerminalProfileResolver.ResolveForLaunch(WorkspaceEntry launch) => ResolveForLaunch(launch);
+
     public static WtProfileInfo? ResolveForLaunch(WorkspaceEntry launch)
     {
         var terminal = (launch.Terminal ?? "default").Trim().ToLowerInvariant();

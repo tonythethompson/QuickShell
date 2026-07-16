@@ -108,7 +108,7 @@ npm run dev     # ray develop
 - **Entry / COM:** `QuickShell/Program.cs`, `QuickShell/QuickShell.cs`.
 - **CmdPal provider:** `QuickShell/QuickShellCommandsProvider.cs`.
 - **DI:** `QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs`, `QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs`.
-- **Routing:** `QuickShell/Services/CommandRouting/{CommandRouter,CommandItemHandlers,ICommandItemHandler,CommandItemFactoryContext}.cs`; `QuickShell.Core/Services/{CommandDescriptor,CommandKind,CommandIdParser,CommandIdEncoding}.cs`.
+- **Routing:** `QuickShell/Services/CommandRouting/{CommandRouter,CommandItemHandlers,ICommandItemHandler,CommandItemFactoryContext}.cs`; `QuickShell.Core/Services/{CommandDescriptor,CommandKind,CommandIdParser}.cs`.
 - **State / persistence:** `QuickShell.Core/Services/{ShortcutRepository,IShortcutRepository,ShortcutDraftStore,AtomicFileWriter,PersistenceVersion}.cs`.
 - **Launch:** `QuickShell.Core/Services/{TerminalLauncher,ShortcutLaunchExecutor,WorkspaceSeedFactory,WorkspaceHealthCheck,WorkspaceGitLaunchGate,CompanionAppLauncher}.cs`.
 - **Intelligence:** `QuickShell.Core/Classification/{ProjectAnalysisService,ProjectLayoutAnalyzer,ProjectClassificationPipeline}.cs`, `QuickShell.Core/Classification/Classifiers/*`, `QuickShell.Core/Services/CommandSuggestionService.cs`.

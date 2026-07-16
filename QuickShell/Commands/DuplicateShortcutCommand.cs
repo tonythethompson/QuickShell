@@ -11,8 +11,8 @@ namespace QuickShell.Commands;
 /// </summary>
 internal sealed partial class DuplicateShortcutCommand : ShortcutFormPage
 {
-    public DuplicateShortcutCommand(TerminalShortcut source, Action onSaved)
-        : base(existing: null, onSaved, createSeed: QuickShellServices.Current.Shortcuts.BuildDuplicateFrom(source))
+    public DuplicateShortcutCommand(TerminalShortcut source, Action onSaved, IQuickShellServices services)
+        : base(services, existing: null, onSaved, services.Shortcuts.BuildDuplicateFrom(source))
     {
         Id = $"com.quickshell.shortcut-form.duplicate.{Guid.NewGuid():N}";
         Name = Strings.Command_Duplicate_Name;

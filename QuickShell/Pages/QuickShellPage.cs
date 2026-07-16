@@ -10,6 +10,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 {
+    private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settings;
     private readonly CreateShortcutCommand _createShortcutCommand;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
@@ -33,11 +34,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public QuickShellPage(
         QuickShellSettingsManager settings,
-        CreateShortcutCommand createShortcutCommand)
+        CreateShortcutCommand createShortcutCommand,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _settings = settings;
+        _settings.Services = _services;
         _createShortcutCommand = createShortcutCommand;
-        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(Reload);
+        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(Reload, _services);
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Id = QuickShellNavigation.HomePageId;
         Icon = QuickShellBrandIcons.App;
@@ -258,7 +262,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private void SetOpeningItems()
     {
         var items = new List<IListItem>();
-        items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload));
+        items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload, _services));
         items.Add(CreateStatusItem("Loading workspaces", "Workspace list will appear in a moment."));
         _items = items.ToArray();
         _hasLoadedWorkspaces = false;
@@ -370,7 +374,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         try
         {
             // One repository snapshot for the whole refresh — helpers must not re-query.
-            var allShortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
+            var allShortcuts = _services.Shortcuts.GetShortcuts();
             PruneUnpinnedItemCache(allShortcuts);
             var pinnedInOrder = BuildPinnedInOrder(allShortcuts);
 
@@ -379,14 +383,15 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                          _createShortcutCommand,
                          _discoverGitReposCommand,
                          _settings,
-                         Reload))
+                         Reload,
+                         _services))
             {
                 items.Add(action);
             }
 
             if (string.IsNullOrWhiteSpace(normalizedQuery))
             {
-                var layout = QuickShellServices.Current.Shortcuts.GetLayout();
+                var layout = _services.Shortcuts.GetLayout();
                 foreach (var item in BuildHomeLayoutItems(layout, allShortcuts, pinnedInOrder))
                 {
                     items.Add(item);
@@ -397,17 +402,18 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 // Search results: do not reuse home-cache rows (different ordering / set).
                 _unpinnedItemCache.Clear();
                 var anyMatch = false;
-                foreach (var taskAction in QuickShellServices.Current.Shortcuts.SearchTaskActions(normalizedQuery))
+                foreach (var taskAction in _services.Shortcuts.SearchTaskActions(normalizedQuery))
                 {
                     anyMatch = true;
                     items.Add(ShortcutTaskActionListItems.Create(
                         taskAction,
                         _settings,
                         Reload,
-                        _createShortcutCommand));
+                        _createShortcutCommand,
+                        services: _services));
                 }
 
-                foreach (var shortcut in QuickShellServices.Current.Shortcuts.Search(normalizedQuery))
+                foreach (var shortcut in _services.Shortcuts.Search(normalizedQuery))
                 {
                     anyMatch = true;
                     items.Add(BuildShortcutItem(shortcut, pinnedInOrder));
@@ -421,8 +427,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                         Subtitle = Strings.NoMatch_Subtitle,
                         MoreCommands =
                         [
-                            ..ShortcutContextCommands.BuildUndoRedoCommands(Reload),
-                            ShortcutContextCommands.CreateSettingsItem(_settings),
+                            ..ShortcutContextCommands.BuildUndoRedoCommands(Reload, _services),
+                            ShortcutContextCommands.CreateSettingsItem(_settings, _services),
                         ],
                     });
                 }
@@ -459,7 +465,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             // #endregion
 
             var items = new List<IListItem>();
-            items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload));
+            items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload, _services));
             items.Add(CreateStatusItem(
                 "Could not load workspaces",
                 string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message));
@@ -520,7 +526,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _createShortcutCommand,
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
             onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true),
-            useHomePinContextMenu: true);
+            useHomePinContextMenu: true,
+            services: _services);
 
         ScheduleProfileIconUpgrade(shortcut, item);
 

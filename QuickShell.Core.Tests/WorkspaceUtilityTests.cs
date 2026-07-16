@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification.Detectors;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Text.Json;
@@ -594,6 +596,7 @@ public sealed class GitRepoSearchRootsTests
 public sealed class CompanionAppTests : IDisposable
 {
     private readonly string _root;
+    private readonly CompanionAppDetector _companionAppDetector = new();
 
     public CompanionAppTests()
     {
@@ -612,7 +615,7 @@ public sealed class CompanionAppTests : IDisposable
 
         try
         {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
 
             if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is not null)
             {
@@ -682,7 +685,7 @@ public sealed class CompanionAppTests : IDisposable
             var cursorInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetCursor) is not null;
             var vsCodeInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is not null;
             var insidersInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCodeInsiders) is not null;
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
 
             if (!cursorInstalled && vsCodeInstalled)
             {
@@ -985,7 +988,7 @@ public sealed class CompanionAppTests : IDisposable
 
         try
         {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
             Assert.NotNull(suggestion);
             Assert.Equal(CompanionAppCatalog.PresetWebStorm, suggestion!.PresetId);
             Assert.Equal("{folder}", suggestion.Arguments);
@@ -1010,7 +1013,7 @@ public sealed class CompanionAppTests : IDisposable
 
         try
         {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
             Assert.NotNull(suggestion);
             Assert.Equal(CompanionAppCatalog.PresetIntelliJIdea, suggestion!.PresetId);
         }
@@ -1034,7 +1037,7 @@ public sealed class CompanionAppTests : IDisposable
 
         try
         {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
             Assert.NotNull(suggestion);
             Assert.Equal(CompanionAppCatalog.PresetAndroidStudio, suggestion!.PresetId);
         }
@@ -1058,7 +1061,7 @@ public sealed class CompanionAppTests : IDisposable
 
         try
         {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
             Assert.NotNull(suggestion);
             Assert.Equal(CompanionAppCatalog.PresetPyCharm, suggestion!.PresetId);
         }
@@ -1085,7 +1088,7 @@ public sealed class CompanionAppTests : IDisposable
 
         try
         {
-            var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+            var suggestion = _companionAppDetector.TrySuggest(_root);
             Assert.NotNull(suggestion);
             Assert.Equal(CompanionAppCatalog.PresetIntelliJIdea, suggestion!.PresetId);
         }
@@ -1101,7 +1104,7 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".obsidian"));
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
 
         if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetObsidian) is null)
         {
@@ -1117,7 +1120,7 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".git"));
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetFork)
@@ -1139,7 +1142,7 @@ public sealed class CompanionAppTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "App.sln"), string.Empty);
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVs2022)
@@ -1158,7 +1161,7 @@ public sealed class CompanionAppTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, ".idea"));
         File.WriteAllText(Path.Combine(_root, "App.csproj"), "<Project />");
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetRider));
@@ -1174,7 +1177,7 @@ public sealed class CompanionAppTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, ".idea"));
         File.WriteAllText(Path.Combine(_root, "pom.xml"), "<project />");
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetIntelliJIdea));
@@ -1189,7 +1192,7 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".zed"));
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetZed));

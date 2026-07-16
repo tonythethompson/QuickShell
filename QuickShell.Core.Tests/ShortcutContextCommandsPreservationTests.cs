@@ -22,6 +22,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
     private readonly ShortcutRepository _repository;
     private readonly ShortcutDraftStore _drafts;
     private readonly QuickShellSettingsManager _settings;
+    private readonly QuickShellLifetime _lifetime;
+    private readonly IQuickShellServices _quickShellServices;
 
     public ShortcutContextCommandsPreservationTests()
     {
@@ -35,13 +37,13 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         _repository = new ShortcutRepository(_configDirectory);
         _drafts = new ShortcutDraftStore(_repository);
         _settings = new QuickShellSettingsManager();
-
-        QuickShellServices.Bind(new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService()));
+        _lifetime = new QuickShellLifetime();
+        _quickShellServices = new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService(), _lifetime);
     }
 
     public void Dispose()
     {
-        QuickShellServices.Unbind();
+        _lifetime.Dispose();
         _drafts.Dispose();
         _repository.Dispose();
         LaunchExecutorTestEnvironment.Reset();
@@ -84,7 +86,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: false);
+            needsRepair: false,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -119,7 +122,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: false);
+            needsRepair: false,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -157,7 +161,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: false);
+            needsRepair: false,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -192,7 +197,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: false);
+            needsRepair: false,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -217,7 +223,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: false);
+            needsRepair: false,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -242,7 +249,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: false);
+            needsRepair: false,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -270,7 +278,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var items = ShortcutContextCommands.Build(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -328,7 +337,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var items = ShortcutContextCommands.Build(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -356,7 +366,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var items = ShortcutContextCommands.Build(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -389,7 +400,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            moveVisibility: moveVisibility);
+            moveVisibility: moveVisibility,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -422,7 +434,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var items = ShortcutContextCommands.BuildRepairOnly(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -464,7 +477,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var items = ShortcutContextCommands.BuildRepairOnly(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -485,7 +499,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var items = ShortcutContextCommands.BuildRepairOnly(
             shortcut,
             OnChanged,
-            settings: null);
+            settings: null,
+            services: _quickShellServices);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -513,12 +528,14 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         var buildItems = ShortcutContextCommands.Build(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var repairItems = ShortcutContextCommands.BuildRepairOnly(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         // Both should produce the same titles in the same order
         var buildTitles = buildItems.Select(i => i.Title).ToList();
@@ -545,12 +562,14 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
             shortcut,
             OnChanged,
             _settings,
-            needsRepair: true);
+            needsRepair: true,
+            services: _quickShellServices);
 
         var repairItems = ShortcutContextCommands.BuildRepairOnly(
             shortcut,
             OnChanged,
-            _settings);
+            _settings,
+            services: _quickShellServices);
 
         var homePinTitles = homePinItems.Select(i => i.Title).ToList();
         var repairTitles = repairItems.Select(i => i.Title).ToList();

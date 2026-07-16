@@ -2,6 +2,8 @@ namespace QuickShell.Services;
 
 internal interface IDraftStore
 {
+    event Action<string>? Cleared;
+
     string DraftPath { get; }
 
     bool HasPending { get; }

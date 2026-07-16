@@ -13,6 +13,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
 {
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
+    private readonly IQuickShellServices _services;
     private readonly Action _onChanged;
     private bool _gitCommandsLoaded;
     private WorkspaceStatusForm? _form;
@@ -20,12 +21,14 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     public WorkspaceStatusPage(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action onChanged)
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
         _shortcut = shortcut;
         _settings = settings;
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
+        Id = CommandDescriptor.WorkspaceStatus(shortcut.Id).Id;
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");
@@ -52,7 +55,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
     }
 
-    private static CommandContextItem[] BuildGitCommands(
+    private CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
         Action onChanged)
@@ -65,7 +68,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
         var items = new List<CommandContextItem>
         {
-            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target))
+            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target, _services))
             {
                 Title = "Switch branch…",
                 Icon = new IconInfo(""),
@@ -74,7 +77,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(target))
         {
-            items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged))
+            items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged, _services))
             {
                 Title = "Use current branch",
                 Icon = new IconInfo(""),

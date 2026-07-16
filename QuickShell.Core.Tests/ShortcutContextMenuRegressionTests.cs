@@ -23,6 +23,7 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     private readonly ShortcutRepository _repository;
     private readonly QuickShellSettingsManager _settings;
     private readonly CreateShortcutCommand _createCommand;
+    private readonly IQuickShellServices _quickShellServices;
 
     public ShortcutContextMenuRegressionTests()
     {
@@ -39,14 +40,13 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         var drafts = (ShortcutDraftStore)_serviceProvider.GetRequiredService<IDraftStore>();
         var analysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
         _settings = new QuickShellSettingsManager();
-        _createCommand = new CreateShortcutCommand(() => { });
-
-        QuickShellServices.Bind(new QuickShellServices(_repository, drafts, _settings, analysis));
+        var lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
+        _quickShellServices = new QuickShellServices(_repository, drafts, _settings, analysis, lifetime);
+        _createCommand = new CreateShortcutCommand(() => { }, _quickShellServices);
     }
 
     public void Dispose()
     {
-        QuickShellServices.Unbind();
         _serviceProvider.Dispose();
 
         try
@@ -70,7 +70,8 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
             shortcut,
             onChanged: () => { },
             _settings,
-            _createCommand));
+            _createCommand,
+            services: _quickShellServices));
 
         AssertContainsAll(
             titles,
@@ -95,12 +96,14 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
             shortcut,
             onChanged: () => { },
             _settings,
-            _createCommand));
+            _createCommand,
+            services: _quickShellServices));
         var home = GetTitles(ShortcutContextCommands.BuildForHomePin(
             shortcut,
             onChanged: () => { },
             _settings,
-            _createCommand));
+            _createCommand,
+            services: _quickShellServices));
 
         Assert.Contains(Strings.Menu_Undo, full);
         Assert.Contains(Strings.Menu_Redo, full);
@@ -118,7 +121,8 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
             shortcut,
             _settings,
             onChanged: () => { },
-            _createCommand);
+            _createCommand,
+            services: _quickShellServices);
 
         Assert.NotNull(item.MoreCommands);
         var titles = GetTitles(item.MoreCommands!);
@@ -138,7 +142,7 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     public void CreateOpen_WithoutOnChanged_LeavesMoreCommandsEmpty()
     {
         var shortcut = CreateHealthyShortcut("NoContext");
-        var item = ShortcutListItems.CreateOpen(shortcut, _settings);
+        var item = ShortcutListItems.CreateOpen(shortcut, _settings, services: _quickShellServices);
 
         Assert.True(item.MoreCommands is null || item.MoreCommands.Length == 0);
     }
@@ -161,7 +165,8 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
             second,
             onChanged: () => { },
             _settings,
-            moveVisibility: visibility));
+            moveVisibility: visibility,
+            services: _quickShellServices));
 
         Assert.Contains("Move up", titles);
         Assert.Contains("Move to top", titles);
@@ -194,7 +199,8 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         var titles = GetTitles(ShortcutContextCommands.Build(
             shortcut,
             onChanged: () => { },
-            _settings));
+            _settings,
+            services: _quickShellServices));
 
         Assert.Contains("npm run dev", titles);
         Assert.Contains("dotnet watch", titles);
