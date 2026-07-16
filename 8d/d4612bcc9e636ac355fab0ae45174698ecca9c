@@ -1,0 +1,31 @@
+QuickShell/Pages/BehaviorSettingsForm.cs
+  s_ed48411fbae681::t_27e7209f98c945 83-89
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_ed48411fbae681::t_09f549d62f7dfe 128-130,186-188
+  s_ed48411fbae681::t_e700cd453575d0 88-127,131-135,178-180,183-185
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_ed48411fbae681::t_a10786d66fa909 6
+QuickShell/Pages/TerminalDefaultsSettingsForm.cs
+  s_ed48411fbae681::t_27e7209f98c945 82,129-131,172
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_ed48411fbae681::t_a10786d66fa909 5-10
+  s_ed48411fbae681::t_7324c0ec39fc3e 11
+QuickShell/Pages/QuickShellPage.cs
+  s_ed48411fbae681::t_d2d3d7039010bf 97-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "8dd4612bcc9e636ac355fab0ae45174698ecca9c",
+  "prompts": {},
+  "sessions": {
+    "s_ed48411fbae681": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f67bc-04e6-7651-9842-53f6d2d6421f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
