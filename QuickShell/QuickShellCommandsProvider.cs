@@ -207,27 +207,31 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             return;
         }
 
+        // Resolve the required services before starting the background task so we
+        // do not access the root ServiceProvider after it has been disposed.
+        var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
+        var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
+        var cancellationToken = _lifetime.CancellationToken;
+
         _ = Task.Run(() =>
         {
             try
             {
-                if (_disposed || _lifetime.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
 
-                var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
                 var shortcuts = shortcutRepository.GetShortcuts();
-                var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
                 gitRepoIndex.Prewarm(
                     GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
-                    _lifetime.CancellationToken);
+                    cancellationToken);
             }
             catch
             {
                 // Best effort; discover/create still work without the warm cache.
             }
-        }, _lifetime.CancellationToken);
+        }, cancellationToken);
     }
 
     private void KickoffFormCatalogPrewarm()

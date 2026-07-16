@@ -24,11 +24,7 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         _settings = settings;
         _runAsAdmin = runAsAdmin;
         _runAsStandard = runAsStandard;
-        Id = runAsAdmin
-            ? $"{ShortcutCommandIds.Open(shortcut.Id)}.admin"
-            : runAsStandard
-                ? $"{ShortcutCommandIds.Open(shortcut.Id)}.standard"
-                : ShortcutCommandIds.Open(shortcut.Id);
+        Id = CommandDescriptor.OpenWorkspace(shortcut.Id, runAsAdmin, runAsStandard).Id;
         Name = runAsAdmin
             ? Strings.Menu_RunAsAdmin
             : runAsStandard

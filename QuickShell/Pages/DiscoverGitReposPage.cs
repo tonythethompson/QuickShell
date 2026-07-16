@@ -12,7 +12,7 @@ namespace QuickShell.Pages;
 /// </summary>
 internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 {
-    public const string PageId = QuickShellDeepLinkIds.DiscoverGitRepos;
+    public const string PageId = CommandDescriptor.DiscoverGitReposId;
 
     /// <summary>
     /// CmdPal host sentinel (<c>ListViewModel.IncrementalRefresh</c>): keep list selection

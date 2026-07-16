@@ -155,7 +155,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 return Clone(shortcut);
             }
 
-            if (ShortcutCommandIds.TryDecodeLegacyNameKey(key, out var legacyName) &&
+            if (CommandDescriptor.TryDecodeLegacyNameKey(key, out var legacyName) &&
                 _shortcutsByName.TryGetValue(legacyName, out shortcut))
             {
                 return Clone(shortcut);

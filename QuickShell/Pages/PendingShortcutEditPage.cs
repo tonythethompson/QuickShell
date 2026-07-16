@@ -8,7 +8,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class PendingShortcutEditPage : ContentPage
 {
-    public const string PageId = QuickShellDeepLinkIds.PendingShortcutEdit;
+    public const string PageId = CommandDescriptor.PendingShortcutEditId;
 
     private readonly IQuickShellServices _services;
     private readonly Action _onReload;

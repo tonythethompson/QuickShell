@@ -27,7 +27,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         _settings = settings;
         _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
+        Id = CommandDescriptor.WorkspaceStatus(shortcut.Id).Id;
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");

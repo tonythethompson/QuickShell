@@ -6,7 +6,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 {
-    public const string PageId = QuickShellDeepLinkIds.Settings;
+    public const string PageId = CommandDescriptor.SettingsId;
 
     private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settingsManager;

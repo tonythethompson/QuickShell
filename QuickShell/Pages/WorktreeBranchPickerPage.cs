@@ -29,7 +29,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         _onChanged = onChanged;
         _knownStatus = knownStatus;
         _knownTargetBranch = knownTargetBranch;
-        Id = ShortcutCommandIds.WorktreeBranchPicker(shortcutId);
+        Id = CommandDescriptor.WorktreeBranchPicker(shortcutId).Id;
         Title = "Switch branch";
         Name = "Switch branch";
         Icon = new IconInfo("\uE8AB");
