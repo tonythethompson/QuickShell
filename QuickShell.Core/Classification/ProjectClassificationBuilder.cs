@@ -70,7 +70,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyNode()
     {
-        var packageJsonPath = Path.Combine(directory, "package.json");
+        var packageJsonPath = Path.Join(directory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return;
@@ -85,8 +85,8 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
         _nodeScripts = ReadStringObject(document.RootElement, "scripts");
         if (document.RootElement.TryGetProperty("workspaces", out _)
-            || File.Exists(Path.Combine(directory, "pnpm-workspace.yaml"))
-            || File.Exists(Path.Combine(directory, "pnpm-workspace.yml")))
+            || File.Exists(Path.Join(directory, "pnpm-workspace.yaml"))
+            || File.Exists(Path.Join(directory, "pnpm-workspace.yml")))
         {
             Add(ProjectStack.Monorepo, "monorepo");
         }
@@ -103,7 +103,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
             Add(ProjectStack.Monorepo, "monorepo");
         }
 
-        if (File.Exists(Path.Combine(directory, "bun.lockb")) || File.Exists(Path.Combine(directory, "bun.lock")))
+        if (File.Exists(Path.Join(directory, "bun.lockb")) || File.Exists(Path.Join(directory, "bun.lock")))
         {
             Add(ProjectStack.Bun, "Bun");
         }
@@ -140,7 +140,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyRust()
     {
-        if (File.Exists(Path.Combine(directory, "Cargo.toml")))
+        if (File.Exists(Path.Join(directory, "Cargo.toml")))
         {
             Add(ProjectStack.Rust, "Rust");
         }
@@ -148,9 +148,9 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyPython()
     {
-        if (File.Exists(Path.Combine(directory, "pyproject.toml"))
-            || File.Exists(Path.Combine(directory, "requirements.txt"))
-            || File.Exists(Path.Combine(directory, "setup.py")))
+        if (File.Exists(Path.Join(directory, "pyproject.toml"))
+            || File.Exists(Path.Join(directory, "requirements.txt"))
+            || File.Exists(Path.Join(directory, "setup.py")))
         {
             Add(ProjectStack.Python, "Python");
         }
@@ -158,10 +158,10 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyDocker()
     {
-        if (File.Exists(Path.Combine(directory, "docker-compose.yml"))
-            || File.Exists(Path.Combine(directory, "docker-compose.yaml"))
-            || File.Exists(Path.Combine(directory, "compose.yml"))
-            || File.Exists(Path.Combine(directory, "compose.yaml")))
+        if (File.Exists(Path.Join(directory, "docker-compose.yml"))
+            || File.Exists(Path.Join(directory, "docker-compose.yaml"))
+            || File.Exists(Path.Join(directory, "compose.yml"))
+            || File.Exists(Path.Join(directory, "compose.yaml")))
         {
             Add(ProjectStack.Docker, "Docker");
         }
@@ -169,15 +169,15 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyEditors()
     {
-        if (Directory.Exists(Path.Combine(directory, ".vscode"))
+        if (Directory.Exists(Path.Join(directory, ".vscode"))
             || Directory.EnumerateFiles(directory, "*.code-workspace", SearchOption.TopDirectoryOnly).Any())
         {
             Add(ProjectStack.VsCodeWorkspace, "VS Code");
             _vsCodeTasks.AddRange(ReadVsCodeTasks());
         }
 
-        if (Directory.Exists(Path.Combine(directory, ".devcontainer"))
-            || File.Exists(Path.Combine(directory, "devcontainer.json")))
+        if (Directory.Exists(Path.Join(directory, ".devcontainer"))
+            || File.Exists(Path.Join(directory, "devcontainer.json")))
         {
             Add(ProjectStack.DevContainer, "dev container");
         }
@@ -185,13 +185,13 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyTaskRunners()
     {
-        if (File.Exists(Path.Combine(directory, "Makefile")) || File.Exists(Path.Combine(directory, "makefile")))
+        if (File.Exists(Path.Join(directory, "Makefile")) || File.Exists(Path.Join(directory, "makefile")))
         {
             Add(ProjectStack.Make, "Make");
             _makeTargets.AddRange(ReadMakeTargets());
         }
 
-        if (File.Exists(Path.Combine(directory, "justfile")) || File.Exists(Path.Combine(directory, "Justfile")))
+        if (File.Exists(Path.Join(directory, "justfile")) || File.Exists(Path.Join(directory, "Justfile")))
         {
             Add(ProjectStack.Just, "just");
             _justRecipes.AddRange(ReadJustRecipes());
@@ -207,7 +207,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyGo()
     {
-        if (File.Exists(Path.Combine(directory, "go.mod")))
+        if (File.Exists(Path.Join(directory, "go.mod")))
         {
             Add(ProjectStack.Go, "Go");
         }
@@ -215,7 +215,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyJava()
     {
-        var pom = Path.Combine(directory, "pom.xml");
+        var pom = Path.Join(directory, "pom.xml");
         if (File.Exists(pom))
         {
             Add(ProjectStack.Maven, "Maven");
@@ -224,8 +224,8 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
         var gradleFiles = new[]
         {
-            Path.Combine(directory, "build.gradle"),
-            Path.Combine(directory, "build.gradle.kts"),
+            Path.Join(directory, "build.gradle"),
+            Path.Join(directory, "build.gradle.kts"),
         }.Where(File.Exists).ToList();
 
         if (gradleFiles.Count > 0)
@@ -254,7 +254,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyProcfile()
     {
-        var procfile = Path.Combine(directory, "Procfile");
+        var procfile = Path.Join(directory, "Procfile");
         if (!File.Exists(procfile))
         {
             return;
@@ -263,14 +263,14 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         Add(ProjectStack.Procfile, "Procfile");
         _hasForemanRunner = FileContains(procfile, "foreman")
             || FileContains(procfile, "overmind")
-            || FileContains(Path.Combine(directory, "Gemfile"), "foreman")
-            || FileContains(Path.Combine(directory, "package.json"), "foreman")
-            || FileContains(Path.Combine(directory, "package.json"), "overmind");
+            || FileContains(Path.Join(directory, "Gemfile"), "foreman")
+            || FileContains(Path.Join(directory, "package.json"), "foreman")
+            || FileContains(Path.Join(directory, "package.json"), "overmind");
     }
 
     private void ClassifyRuby()
     {
-        var gemfile = Path.Combine(directory, "Gemfile");
+        var gemfile = Path.Join(directory, "Gemfile");
         if (File.Exists(gemfile) && FileContains(gemfile, "rails"))
         {
             Add(ProjectStack.Rails, "Rails");
@@ -279,7 +279,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private void ClassifyElixir()
     {
-        var mixExs = Path.Combine(directory, "mix.exs");
+        var mixExs = Path.Join(directory, "mix.exs");
         if (File.Exists(mixExs))
         {
             Add(ProjectStack.Elixir, "Elixir");
@@ -288,21 +288,14 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private string? FindFirst(params string[] names)
     {
-        foreach (var name in names)
-        {
-            var path = Path.Combine(directory, name);
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return null;
+        return names
+            .Select(name => Path.Join(directory, name))
+            .FirstOrDefault(File.Exists);
     }
 
     private List<VsCodeTaskSuggestion> ReadVsCodeTasks()
     {
-        var tasksPath = Path.Combine(directory, ".vscode", "tasks.json");
+        var tasksPath = Path.Join(directory, ".vscode", "tasks.json");
         if (!File.Exists(tasksPath))
         {
             return [];
@@ -346,17 +339,17 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private List<string> ReadMakeTargets()
     {
-        var path = File.Exists(Path.Combine(directory, "Makefile"))
-            ? Path.Combine(directory, "Makefile")
-            : Path.Combine(directory, "makefile");
+        var path = File.Exists(Path.Join(directory, "Makefile"))
+            ? Path.Join(directory, "Makefile")
+            : Path.Join(directory, "makefile");
         return ReadRegexMatches(path, MakeTargetRegex());
     }
 
     private List<string> ReadJustRecipes()
     {
-        var path = File.Exists(Path.Combine(directory, "justfile"))
-            ? Path.Combine(directory, "justfile")
-            : Path.Combine(directory, "Justfile");
+        var path = File.Exists(Path.Join(directory, "justfile"))
+            ? Path.Join(directory, "justfile")
+            : Path.Join(directory, "Justfile");
         return ReadRegexMatches(path, JustRecipeRegex());
     }
 
@@ -377,7 +370,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
                 .Take(25)
                 .ToList();
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return [];
         }
@@ -397,7 +390,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
             return contents.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
                 || contents.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return false;
         }
@@ -409,7 +402,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         {
             return JsonFileDocument.Parse(path, JsonOptions);
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -533,7 +526,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         {
             return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return false;
         }
@@ -554,7 +547,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         {
             action();
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or InvalidOperationException)
         {
             // Repository discovery should degrade to fewer suggestions, not fail.
         }

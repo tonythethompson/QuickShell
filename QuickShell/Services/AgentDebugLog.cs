@@ -7,7 +7,7 @@ internal static class AgentDebugLog
 {
     private const string SessionId = "a49e01";
     private static readonly object Sync = new();
-    private static readonly string[] LogPaths = BuildLogPaths();
+    private static readonly Lazy<string[]> LogPaths = new(BuildLogPaths);
 
     internal static void Write(string location, string message, object? data = null, string? hypothesisId = null, string runId = "pre-fix")
     {
@@ -36,7 +36,7 @@ internal static class AgentDebugLog
 
             lock (Sync)
             {
-                foreach (var path in LogPaths)
+                foreach (var path in LogPaths.Value)
                 {
                     try
                     {
@@ -48,14 +48,14 @@ internal static class AgentDebugLog
 
                         File.AppendAllText(path, line);
                     }
-                    catch
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
                     {
                         // Best effort; try next path.
                     }
                 }
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or JsonException or ArgumentException or InvalidOperationException)
         {
             // Never let debug logging crash the app.
         }
@@ -85,11 +85,11 @@ internal static class AgentDebugLog
         var workspaceRoot = Environment.GetEnvironmentVariable("QUICKSHELL_WORKSPACE_ROOT");
         if (!string.IsNullOrWhiteSpace(workspaceRoot))
         {
-            paths.Add(Path.Combine(workspaceRoot, "debug-a49e01.log"));
+            paths.Add(Path.Join(workspaceRoot, "debug-a49e01.log"));
         }
 
         paths.Add(@"A:\QuickShell\debug-a49e01.log");
-        paths.Add(Path.Combine(
+        paths.Add(Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "QuickShell",
             "debug-a49e01.log"));

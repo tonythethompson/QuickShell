@@ -55,11 +55,11 @@ public sealed class ShortcutLayoutEnvelopeTests
     public async Task LegacyArray_OnSave_RewritesAsVersionedEnvelope()
     {
         using var directory = new TempDataDirectory();
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
 
         File.WriteAllText(
-            Path.Combine(directory.Path, "shortcuts.json"),
+            Path.Join(directory.Path, "shortcuts.json"),
             $$"""
             [
               { "Name": "Alpha", "Directory": "{{workspaceDirectory.Replace("\\", "\\\\")}}" }
@@ -77,7 +77,7 @@ public sealed class ShortcutLayoutEnvelopeTests
             }, originalName: "Alpha");
         }
 
-        var saved = File.ReadAllText(Path.Combine(directory.Path, "shortcuts.json"));
+        var saved = File.ReadAllText(Path.Join(directory.Path, "shortcuts.json"));
         Assert.Contains("\"version\": 1", saved);
         Assert.Contains("\"entries\"", saved);
         Assert.DoesNotContain("\"version\": 1\n[", saved);
@@ -87,11 +87,11 @@ public sealed class ShortcutLayoutEnvelopeTests
     public async Task VersionedEnvelope_RoundTripsThroughReload()
     {
         using var directory = new TempDataDirectory();
-        var workspaceDirectory = Path.Combine(directory.Path, "Beta");
+        var workspaceDirectory = Path.Join(directory.Path, "Beta");
         Directory.CreateDirectory(workspaceDirectory);
 
         File.WriteAllBytes(
-            Path.Combine(directory.Path, "shortcuts.json"),
+            Path.Join(directory.Path, "shortcuts.json"),
             ShortcutLayoutJson.Serialize(
             [
                 ShortcutLayoutEntry.FromShortcut(new TerminalShortcut
@@ -115,11 +115,11 @@ public sealed class ShortcutLayoutEnvelopeTests
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
-        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        var workspaceDirectory = Path.Join(directory.Path, "Alpha");
         Directory.CreateDirectory(workspaceDirectory);
         repository.Upsert(new TerminalShortcut { Name = "Alpha", Directory = workspaceDirectory });
 
-        var exportPath = Path.Combine(directory.Path, "export.json");
+        var exportPath = Path.Join(directory.Path, "export.json");
         Assert.True(repository.TryExportToFile(exportPath, out _));
 
         var exported = File.ReadAllText(exportPath);
@@ -133,7 +133,7 @@ public sealed class ShortcutLayoutEnvelopeTests
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
 
-        var importPath = Path.Combine(directory.Path, "incoming.json");
+        var importPath = Path.Join(directory.Path, "incoming.json");
         File.WriteAllBytes(
             importPath,
             ShortcutLayoutJson.Serialize(
@@ -156,7 +156,7 @@ public sealed class ShortcutLayoutEnvelopeTests
     {
         public TempDataDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quickshell-tests", Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Join(System.IO.Path.GetTempPath(), "quickshell-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
 
@@ -171,8 +171,10 @@ public sealed class ShortcutLayoutEnvelopeTests
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
+                // Best-effort test cleanup.
+                GC.KeepAlive(ex);
             }
         }
     }

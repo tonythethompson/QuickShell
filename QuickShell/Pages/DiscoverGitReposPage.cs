@@ -2,11 +2,15 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Services;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace QuickShell.Pages;
 
-internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
+/// <summary>
+/// Shared discover-page behavior. Concrete commands must provide their own CmdPal metadata.
+/// </summary>
+internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 {
     public const string PageId = QuickShellDeepLinkIds.DiscoverGitRepos;
 
@@ -29,13 +33,11 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
     private bool _hasPublishedResults;
     private bool _disposed;
 
-    public DiscoverGitReposPage(Action onReload)
+    protected DiscoverGitReposPage(Action onReload)
     {
         _onReload = onReload;
         _extensionSynchronizationContext = SynchronizationContext.Current ?? GitRepoIndex.ExtensionSynchronizationContext;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
-        Id = PageId;
-        Icon = new IconInfo(ShortcutGlyphs.Discover);
 #if CMDPAL_HOVER_ACTIONS
         // Match home list so Tab/hover keyboard can reach secondary actions (open folder, etc.).
         HoverActionsMode = HoverActionsMode.Explicit;
@@ -230,7 +232,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
             RaiseItemsChanged(resetSelection || !_hasPublishedResults ? -1 : KeepSelectionRefresh);
             _hasPublishedResults = true;
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is InvalidOperationException or COMException)
         {
             _items =
             [
@@ -241,7 +243,14 @@ internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
                     Icon = new IconInfo(ShortcutGlyphs.IncidentTriangle),
                 },
             ];
-            RaiseItemsChanged();
+            try
+            {
+                RaiseItemsChanged();
+            }
+            catch (Exception refreshException) when (refreshException is InvalidOperationException or COMException)
+            {
+                // CmdPal may reject notifications while tearing down the page.
+            }
         }
     }
 
