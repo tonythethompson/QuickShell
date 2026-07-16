@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -167,7 +169,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "CLAUDE.md"), "# Claude");
 
-        var pills = CommandSuggestionService.GetPills(_root, []);
+        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
 
         Assert.Contains(pills, pill => pill.Command == "claude" && pill.TaskType == TaskTypeCatalog.Agent);
     }
@@ -179,7 +181,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
         AgentCliCatalog.IsCommandOnPathOverride = name =>
             name.Equals("claude", StringComparison.OrdinalIgnoreCase);
 
-        var pills = CommandSuggestionService.GetPills(_root, []);
+        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
 
         Assert.Contains(pills, pill => pill.Command == "claude");
         Assert.Contains(pills, pill => pill.Command == "docker compose up");

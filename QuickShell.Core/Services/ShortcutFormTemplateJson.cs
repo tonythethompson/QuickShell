@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+
 namespace QuickShell.Services;
 
 internal static class ShortcutFormTemplateJson
@@ -221,6 +223,7 @@ internal static class ShortcutFormTemplateJson
 
     public static string BuildDataJson(
         DataPayload draft,
+        IProjectAnalysisService projectAnalysis,
         IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)>? commands = null)
     {
         commands ??= [];
@@ -235,7 +238,7 @@ internal static class ShortcutFormTemplateJson
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
-        var pillFields = BuildPillDataFields(draft, commands);
+        var pillFields = BuildPillDataFields(draft, commands, projectAnalysis);
         var pillSection = pillFields.Length > 0 ? ",\n" + pillFields : string.Empty;
         var companions = draft.Companions is { Count: > 0 }
             ? draft.Companions
@@ -270,7 +273,8 @@ internal static class ShortcutFormTemplateJson
 
     private static string BuildPillDataFields(
         DataPayload draft,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands)
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
+        IProjectAnalysisService projectAnalysis)
     {
         var launchRows = commands
             .Select(row => new LaunchRowDraft
@@ -286,6 +290,7 @@ internal static class ShortcutFormTemplateJson
         foreach (var entry in SuggestionPillPresentation.BuildDataFields(
                      draft.Directory,
                      launchRows.Select(row => row.Command),
+                     projectAnalysis,
                      draft.ExpandSuggestionPills,
                      isScanningSuggestions: draft.SuggestionScanning))
         {

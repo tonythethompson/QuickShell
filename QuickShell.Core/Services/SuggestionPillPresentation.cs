@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+
 namespace QuickShell.Services;
 
 internal static class SuggestionPillPresentation
@@ -43,6 +45,7 @@ internal static class SuggestionPillPresentation
     public static IReadOnlyDictionary<string, string> BuildDataFields(
         string? directory,
         IEnumerable<string?> usedCommands,
+        IProjectAnalysisService projectAnalysis,
         bool expandSuggestionPills,
         bool isScanningSuggestions = false)
     {
@@ -71,7 +74,7 @@ internal static class SuggestionPillPresentation
             return fields;
         }
 
-        var pills = CommandSuggestionService.GetPills(directory, usedCommands);
+        var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis);
         if (pills.Count == 0)
         {
             return fields;
