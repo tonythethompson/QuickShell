@@ -113,7 +113,6 @@ internal static class SupportDiagnostics
             SchemaVersion: 1,
             ApplicationVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown",
             OperatingSystem: RuntimeInformation.OSDescription,
-            LogDirectory: GetLogDirectory(),
             LaunchDiagnostics: aggregate);
         return JsonSerializer.Serialize(bundle, SupportDiagnosticsJsonContext.Default.SupportBundle);
     }
@@ -267,7 +266,6 @@ internal sealed record SupportBundle(
     int SchemaVersion,
     string ApplicationVersion,
     string OperatingSystem,
-    string LogDirectory,
     LaunchDiagnosticsAggregate? LaunchDiagnostics);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

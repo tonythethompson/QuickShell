@@ -117,7 +117,7 @@ Quick Shell does **not** wait for command exit codes (handoff only).
 - Companion soft failure folded into StayOpen message.
 - Clean success → dismiss palette; partial multi-launch → StayOpen with counts.
 - Detailed diagnostics → `LaunchDiagnosticsReport` / CmdPal “Copy launch diagnostics”.
-- Support diagnostics → redacted, bounded JSONL under `%LOCALAPPDATA%\QuickShell\logs`; “Copy support bundle” contains app/OS metadata, log location, and aggregate diagnostic counts only. It never includes workspace names, commands, paths, titles, details, exception messages, or arbitrary host data.
+- Support diagnostics → redacted, bounded JSONL under `%LOCALAPPDATA%\QuickShell\logs`; “Copy support bundle” contains app/OS metadata and aggregate diagnostic counts only. It never includes workspace names, commands, paths, titles, details, exception messages, arbitrary host data, or the user-specific local log folder path.
 
 ## Mental model: when do you get tabs?
 

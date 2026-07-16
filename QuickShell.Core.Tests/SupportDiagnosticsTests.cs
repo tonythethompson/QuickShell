@@ -94,6 +94,8 @@ public sealed class SupportDiagnosticsTests : IDisposable
 
         Assert.Contains("schemaVersion", bundle, StringComparison.Ordinal);
         Assert.Contains("HealthError", bundle, StringComparison.Ordinal);
+        Assert.DoesNotContain("logDirectory", bundle, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(_root, bundle, StringComparison.Ordinal);
         Assert.DoesNotContain(workspaceName, bundle, StringComparison.Ordinal);
         Assert.DoesNotContain(command, bundle, StringComparison.Ordinal);
         Assert.DoesNotContain("Could not launch", bundle, StringComparison.Ordinal);

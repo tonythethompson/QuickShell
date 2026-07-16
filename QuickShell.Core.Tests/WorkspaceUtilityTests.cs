@@ -643,14 +643,14 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".trae"));
         CompanionAppCatalog.TryResolveExecutableOverride = preset =>
-            string.Equals(preset, "trae", StringComparison.OrdinalIgnoreCase)
+            string.Equals(preset, CompanionAppCatalog.PresetTrae, StringComparison.OrdinalIgnoreCase)
                 ? @"C:\fake\Trae.exe"
                 : null;
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = QuickShell.Services.CompanionAppDetection.TrySuggestFromDirectory(_root);
 
         Assert.NotNull(suggestion);
-        Assert.Equal("trae", suggestion!.PresetId);
+        Assert.Equal(CompanionAppCatalog.PresetTrae, suggestion!.PresetId);
         Assert.Equal(".", suggestion.Arguments);
     }
 
@@ -660,12 +660,14 @@ public sealed class CompanionAppTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, ".cursor"));
         Directory.CreateDirectory(Path.Combine(_root, ".trae"));
         CompanionAppCatalog.TryResolveExecutableOverride = preset =>
-            preset is "cursor" or "trae" ? $@"C:\fake\{preset}.exe" : null;
+            preset is CompanionAppCatalog.PresetCursor or CompanionAppCatalog.PresetTrae
+                ? $@"C:\fake\{preset}.exe"
+                : null;
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = QuickShell.Services.CompanionAppDetection.TrySuggestFromDirectory(_root);
 
         Assert.NotNull(suggestion);
-        Assert.Equal("cursor", suggestion!.PresetId);
+        Assert.Equal(CompanionAppCatalog.PresetCursor, suggestion!.PresetId);
     }
 
     [Fact]
