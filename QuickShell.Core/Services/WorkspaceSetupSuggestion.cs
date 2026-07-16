@@ -425,7 +425,7 @@ internal static class WorkspaceSetupSuggestion
 
             try
             {
-                return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+                return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
             catch
             {
