@@ -18,7 +18,7 @@ namespace QuickShell.Run;
 
 
 
-internal sealed class ShortcutWorkspaceEditorWindow : Window
+internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 {
 
@@ -55,7 +55,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
     private readonly FormEditHistory<List<RunLaunchRowSnapshot>> _editHistory =
         new(snapshot => snapshot.Select(entry => entry with { }).ToList());
 
-    private RunDirectorySuggestionLoader? _suggestionLoader;
+    private readonly RunDirectorySuggestionLoader _suggestionLoader;
 
     private int _activeSuggestionGeneration;
 
@@ -320,6 +320,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
         _suggestionLoader = new RunDirectorySuggestionLoader(Dispatcher);
 
+        Closed += (_, _) => Dispose();
+
         _directoryBox.TextChanged += (_, _) => RefreshSuggestionPanel();
 
         PreviewKeyDown += OnPreviewKeyDown;
@@ -343,6 +345,12 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
             Margin = new Thickness(0, 0, 0, 8),
 
         };
+
+    public void Dispose()
+    {
+        _suggestionLoader.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
 
 
@@ -612,16 +620,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
     {
 
-        if (_suggestionLoader is null)
-
-        {
-
-            return;
-
-        }
-
-
-
         var directory = _directoryBox.Text.Trim();
 
         var usedCommands = _launchRows.Select(row => row.CommandText).ToList();
@@ -792,7 +790,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
 
 
-    private void RestoreSnapshot(IReadOnlyList<RunLaunchRowSnapshot> snapshots)
+    private void RestoreSnapshot(List<RunLaunchRowSnapshot> snapshots)
 
     {
 
@@ -1509,7 +1507,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window
 
                 _owner.PushFormEditSnapshot();
 
-                CommandBox.Text = string.Empty;
+                commandBox.Text = string.Empty;
 
                 _taskType = TaskTypeCatalog.None;
 
