@@ -110,9 +110,10 @@ internal static class TaskTypeCommandSuggestion
             return false;
         }
 
-        var classification = ProjectAnalysisAccessor.Instance.Classify(directory);
-        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification);
-        context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification);
+        var projectAnalysis = ProjectAnalysisAccessor.Instance;
+        var classification = projectAnalysis.Classify(directory);
+        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
+        context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, projectAnalysis);
         return true;
     }
 

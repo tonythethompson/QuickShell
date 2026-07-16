@@ -4,6 +4,7 @@ using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Classification.Classifiers;
 using QuickShell.Classification.Detectors;
+using QuickShell.Classification.Suggestions;
 using QuickShell.Services;
 
 namespace QuickShell.Composition;
@@ -65,6 +66,8 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IProjectClassifier, ElixirProjectClassifier>();
         services.AddSingleton<ICompanionAppDetector, CompanionAppDetector>();
         services.AddSingleton<IDevServerDetector, DevServerDetector>();
+        services.AddSingleton<ITaskSuggestionProvider, WorkspaceSetupTaskSuggestionProvider>();
+        services.AddSingleton<ITaskSuggestionProvider, DockerComposeTaskSuggestionProvider>();
         services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
 
         return services;

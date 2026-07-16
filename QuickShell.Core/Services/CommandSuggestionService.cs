@@ -1,3 +1,5 @@
+using QuickShell.Classification;
+
 namespace QuickShell.Services;
 
 internal static class CommandSuggestionService
@@ -159,8 +161,9 @@ internal static class CommandSuggestionService
             return false;
         }
 
-        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification);
-        var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification);
+        var projectAnalysis = ProjectAnalysisAccessor.Instance;
+        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
+        var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, projectAnalysis);
         var preDedupeCount = 0;
 
         foreach (var definition in TaskTypeCatalog.GetChoices())
@@ -208,8 +211,9 @@ internal static class CommandSuggestionService
         var classification = ProjectClassificationCache.Classify(directory);
         if (classification.Stacks != ProjectStack.None)
         {
-            var suggestions = WorkspaceSetupSuggestion.Build(directory, classification);
-            var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification);
+            var projectAnalysis = ProjectAnalysisAccessor.Instance;
+            var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
+            var context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, projectAnalysis);
             var preDedupeCount = 0;
 
             foreach (var definition in TaskTypeCatalog.GetChoices())
