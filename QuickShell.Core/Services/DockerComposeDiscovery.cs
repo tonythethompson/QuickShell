@@ -118,7 +118,9 @@ internal static partial class DockerComposeDiscovery
         services = [];
         try
         {
-            var lines = File.ReadAllLines(path);
+            // Bolt: Performance optimization - use ReadLines instead of ReadAllLines to iterate lazily
+            // and avoid loading the entire file content into an array in memory.
+            var lines = File.ReadLines(path);
             var inServices = false;
             var names = new List<string>();
 
