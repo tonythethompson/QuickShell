@@ -25,7 +25,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     private readonly IQuickShellServices _quickShellServices;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
-    private CreateShortcutCommand _createShortcutCommand;
+    private readonly CreateShortcutCommand _createShortcutCommand;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly ICommandRouter _commandRouter;
     private readonly Lazy<QuickShellFallbackPage> _fallbackPage;
