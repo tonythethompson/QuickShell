@@ -1,0 +1,42 @@
+QuickShell/Services/FolderPathActions.cs
+  s_34c32d99624992::t_8130278a07e62c 7-41
+QuickShell.Run/Services/FolderPickerService.cs
+  s_34c32d99624992::t_8130278a07e62c 1-2,4-41
+  s_34c32d99624992::t_bab5ff0bc67a38 3
+QuickShell.Run/Services/StaClipboard.cs
+  s_34c32d99624992::t_bab5ff0bc67a38 1-23
+QuickShell.Core/QuickShell.Core.csproj
+  s_a13be3e2c91ac4::t_8198019e593e7e 13
+QuickShell/QuickShell.csproj
+  s_a13be3e2c91ac4::t_a0ddc8cae3bd29 73
+QuickShell.Run/QuickShell.Run.csproj
+  s_34c32d99624992::t_8401e886bdc8c2 15
+QuickShell/Services/FolderPickerService.cs
+  s_34c32d99624992::t_0a3bcfff423280 57
+QuickShell/Services/StaClipboard.cs
+  s_34c32d99624992::t_b265deaf4d1f0d 12,14,22,24,32-33,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "19db9b53ad7d72b8c7c51fd91ba738157b024baa",
+  "prompts": {},
+  "sessions": {
+    "s_34c32d99624992": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a9c-b77c-7383-a127-a08c028853ed",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_a13be3e2c91ac4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a26-4d01-7e51-9041-59c675e7055f",
+        "model": "gpt-5.5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
