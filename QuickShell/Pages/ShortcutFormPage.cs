@@ -1323,7 +1323,7 @@ internal sealed partial class ShortcutForm : FormContent
     }
 
     private bool ApplyCompanionPresetChanges(
-        IReadOnlyList<CompanionAppFormRow> previous,
+        List<CompanionAppFormRow> previous,
         List<CompanionAppFormRow> current)
     {
         var changed = false;
@@ -1424,7 +1424,7 @@ internal sealed partial class ShortcutForm : FormContent
         _draft.CompanionAppPreset = preset;
     }
 
-    private List<CompanionAppFormRow> MergeCompanionsFromInputs(
+    private static List<CompanionAppFormRow> MergeCompanionsFromInputs(
         JsonObject data,
         List<CompanionAppFormRow> existing)
     {

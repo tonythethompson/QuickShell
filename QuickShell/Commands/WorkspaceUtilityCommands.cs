@@ -117,6 +117,7 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
         {
             WorkspaceLinkKind.DevServer => Strings.Menu_OpenDevServer,
             WorkspaceLinkKind.Repo => Strings.Menu_OpenRepository,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
         Icon = new IconInfo(
             kind == WorkspaceLinkKind.Repo ? ShortcutGlyphs.OpenRepository : "\uE774");

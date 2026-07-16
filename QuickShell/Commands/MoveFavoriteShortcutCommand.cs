@@ -28,7 +28,7 @@ internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
         _name = name;
         _move = move;
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.FavoriteMove(id, move.ToString());
+        Id = ShortcutCommandIds.FavoriteMove(_id, move.ToString());
 
         Name = move switch
         {
