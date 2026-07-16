@@ -118,10 +118,28 @@ export function resolveLaunchTarget(terminal: string, wtProfile?: string | null)
 }
 
 export function escapeWindowsArgument(value: string): string {
-  if (!/[ \t"]/g.test(value)) {
+  if (!/[ \t"]/.test(value)) {
     return value;
   }
-  return `"${value.replace(/"/g, '\\"')}"`;
+  // Follows CommandLineToArgvW escaping rules: backslashes only need doubling
+  // when they immediately precede a quote (embedded or the closing one).
+  let result = '"';
+  let backslashes = 0;
+  for (const ch of value) {
+    if (ch === "\\") {
+      backslashes++;
+      continue;
+    }
+    if (ch === '"') {
+      result += "\\".repeat(backslashes * 2 + 1) + '"';
+      backslashes = 0;
+      continue;
+    }
+    result += "\\".repeat(backslashes) + ch;
+    backslashes = 0;
+  }
+  result += "\\".repeat(backslashes * 2) + '"';
+  return result;
 }
 
 export function buildSetLocationCommand(directory: string): string {

@@ -240,7 +240,9 @@ internal sealed partial class ShortcutDetailsForm : FormContent
               "tooltip": "{{EscapeJsonValue(WorkspaceFormTooltips.HomeKeyword)}}",
               "value": "${Abbreviation}"
             }
-            """)}},
+            """,
+            leftWeight: "3",
+            rightWeight: "2")}},
         {
           "type": "Container",
           "spacing": "Medium",

@@ -12,7 +12,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.None, "default"), ("dotnet watch", TaskTypeCatalog.Api, "default")],
+                [("npm start", TaskTypeCatalog.None, "default", false), ("dotnet watch", TaskTypeCatalog.Api, "default", true)],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
@@ -22,14 +22,19 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("LaunchCommand_1", text);
         Assert.Contains("LaunchTarget_0", text);
         Assert.Contains("LaunchTarget_1", text);
+        Assert.Contains("LaunchRunAsAdmin_0", text);
+        Assert.Contains("LaunchRunAsAdmin_1", text);
         Assert.Contains("${LaunchCommand_0}", text);
         Assert.Contains("${LaunchCommand_1}", text);
+        Assert.Contains("${LaunchRunAsAdmin_0}", text);
+        Assert.Contains("\"title\": \"Admin\"", text);
         Assert.Contains("clearLaunch", text);
         Assert.DoesNotContain("removeLaunch", text);
         Assert.DoesNotContain("addLaunch", text);
         Assert.DoesNotContain("+ Add command", text);
         Assert.DoesNotContain("Command 1", text);
         Assert.DoesNotContain("\"title\": \"Remove command\"", text);
+        Assert.DoesNotContain("Always run as administrator", text);
     }
 
     [Fact]
@@ -37,7 +42,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.Frontend, "default"), ("dotnet watch", TaskTypeCatalog.Api, "default")],
+                [("npm start", TaskTypeCatalog.Frontend, "default", false), ("dotnet watch", TaskTypeCatalog.Api, "default", false)],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);

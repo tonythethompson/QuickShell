@@ -286,59 +286,78 @@ internal static class ShortcutValidation
 
     public static bool TryValidateCompanionApp(TerminalShortcut shortcut, out string error)
     {
-        if (shortcut.OpenCompanionAppOnLaunch && string.IsNullOrWhiteSpace(shortcut.CompanionAppPath))
+        // Capture open-on-launch without path before normalize drops empty entries / clears the flag.
+        shortcut.CompanionApps ??= [];
+
+        var hasConfiguredListEntry = shortcut.CompanionApps.Any(entry => !string.IsNullOrWhiteSpace(entry.Path));
+        if (shortcut.OpenCompanionAppOnLaunch
+            && string.IsNullOrWhiteSpace(shortcut.CompanionAppPath)
+            && !hasConfiguredListEntry)
         {
             error = "Companion app path is required when open on launch is enabled.";
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(shortcut.CompanionAppPath))
+        if (shortcut.CompanionApps.Any(entry =>
+                entry.OpenOnLaunch && string.IsNullOrWhiteSpace(entry.Path)))
         {
-            shortcut.CompanionAppPath = null;
-            shortcut.CompanionAppArguments = string.IsNullOrWhiteSpace(shortcut.CompanionAppArguments)
-                ? null
-                : shortcut.CompanionAppArguments.Trim();
-            error = string.Empty;
-            return true;
-        }
-
-        var path = shortcut.CompanionAppPath.Trim();
-        if (path.Length > MaxCompanionAppPathLength)
-        {
-            error = $"Companion app path must be {MaxCompanionAppPathLength} characters or fewer.";
+            error = "Companion app path is required when open on launch is enabled.";
             return false;
         }
 
-        if (!CompanionAppCatalog.TryResolveExecutablePath(path, out var resolvedPath))
+        CompanionAppNormalization.NormalizeCompanions(shortcut);
+
+        if (!CompanionAppNormalization.TryValidateCompanions(shortcut, out error))
         {
-            error = $"Companion app not found: {path}";
             return false;
         }
 
-        shortcut.CompanionAppPath = resolvedPath;
-
-        if (string.IsNullOrWhiteSpace(shortcut.CompanionAppArguments))
+        foreach (var entry in shortcut.CompanionApps)
         {
-            shortcut.CompanionAppArguments = null;
-        }
-        else
-        {
-            var arguments = shortcut.CompanionAppArguments.Trim();
-            if (arguments.Length > MaxCompanionAppArgumentsLength)
+            if (string.IsNullOrWhiteSpace(entry.Path))
             {
-                error = $"Companion app arguments must be {MaxCompanionAppArgumentsLength} characters or fewer.";
+                continue;
+            }
+
+            var path = entry.Path.Trim();
+            if (path.Length > MaxCompanionAppPathLength)
+            {
+                error = $"Companion app path must be {MaxCompanionAppPathLength} characters or fewer.";
                 return false;
             }
 
-            if (arguments.IndexOfAny(['\r', '\n', '\0']) >= 0)
+            if (!CompanionAppCatalog.TryResolveExecutablePath(path, out var resolvedPath))
             {
-                error = "Companion app arguments cannot contain line breaks.";
+                error = $"Companion app not found: {path}";
                 return false;
             }
 
-            shortcut.CompanionAppArguments = arguments;
+            entry.Path = resolvedPath;
+
+            if (string.IsNullOrWhiteSpace(entry.Arguments))
+            {
+                entry.Arguments = null;
+            }
+            else
+            {
+                var arguments = entry.Arguments.Trim();
+                if (arguments.Length > MaxCompanionAppArgumentsLength)
+                {
+                    error = $"Companion app arguments must be {MaxCompanionAppArgumentsLength} characters or fewer.";
+                    return false;
+                }
+
+                if (arguments.IndexOfAny(['\r', '\n', '\0']) >= 0)
+                {
+                    error = "Companion app arguments cannot contain line breaks.";
+                    return false;
+                }
+
+                entry.Arguments = arguments;
+            }
         }
 
+        CompanionAppNormalization.MirrorLegacyFieldsFromPrimary(shortcut);
         error = string.Empty;
         return true;
     }

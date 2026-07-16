@@ -12,7 +12,10 @@ internal static class ShortcutListItems
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
         Action? onChanged = null,
-        CreateShortcutCommand? createShortcutCommand = null)
+        CreateShortcutCommand? createShortcutCommand = null,
+        PinnedMoveVisibility moveVisibility = default,
+        bool includeEdit = true,
+        Action? onFavoritesReordered = null)
     {
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
         ICommand primaryCommand = needsRepair
@@ -39,13 +42,14 @@ internal static class ShortcutListItems
         {
             item.MoreCommands = needsRepair
                 ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings)
-                : createShortcutCommand is not null
-                    ? ShortcutContextCommands.BuildForHomePin(
-                        shortcut,
-                        onChanged,
-                        settings,
-                        createShortcutCommand)
-                    : item.MoreCommands;
+                : ShortcutContextCommands.Build(
+                    shortcut,
+                    onChanged,
+                    settings,
+                    createShortcutCommand,
+                    includeEdit,
+                    moveVisibility,
+                    onFavoritesReordered);
         }
 
         return item;

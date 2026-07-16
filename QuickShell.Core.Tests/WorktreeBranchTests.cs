@@ -5,7 +5,7 @@ using QuickShell;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideCollection.Name)]
+[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorktreeBranchTests : IDisposable
 {
     private readonly string _root;
@@ -18,8 +18,10 @@ public sealed class WorktreeBranchTests : IDisposable
         _root = Path.Combine(Path.GetTempPath(), "qs-worktree-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
 
-        ResetSeams();
+        // Apply launch stubs first, then install worktree-specific target overrides
+        // (Apply also clears GetTargetOverride for non-worktree launch tests).
         LaunchExecutorTestEnvironment.Apply();
+        ResetSeams();
     }
 
     public void Dispose()
@@ -455,6 +457,7 @@ public sealed class WorktreeBranchTests : IDisposable
         _repos.Clear();
         _branchTargets.Clear();
         CompanionAppLauncher.TryLaunchOverride = null;
+        CompanionAppLauncher.StartProcessOverride = null;
         WorkspaceDevServerActions.TryOpenOverride = null;
         WorkspaceHealthCheck.GitStatusOverride = null;
         WorkspaceHealthCheck.GitCommandOverride = null;

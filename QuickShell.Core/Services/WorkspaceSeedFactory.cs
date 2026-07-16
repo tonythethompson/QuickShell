@@ -1,3 +1,4 @@
+using QuickShell.Classification;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -11,7 +12,7 @@ internal static class WorkspaceSeedFactory
             Directory = candidate.Directory,
             RepoUrl = candidate.RemoteUrl,
         }, candidate.Classification.Stacks == ProjectStack.None
-            ? ProjectClassifier.Classify(candidate.Directory)
+            ? ProjectAnalysisAccessor.Instance.Classify(candidate.Directory)
             : candidate.Classification);
 
     public static TerminalShortcut FromGitRepoDirectory(string directory)
@@ -28,12 +29,12 @@ internal static class WorkspaceSeedFactory
             Directory = trimmed,
             Name = name,
             RemoteUrl = GitRepoDiscovery.TryGetRemoteUrl(trimmed),
-            Classification = ProjectClassifier.Classify(trimmed),
+            Classification = ProjectAnalysisAccessor.Instance.Classify(trimmed),
         });
     }
 
     public static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed) =>
-        ApplyDirectoryHints(seed, ProjectClassifier.Classify(seed.Directory));
+        ApplyDirectoryHints(seed, ProjectAnalysisAccessor.Instance.Classify(seed.Directory));
 
     private static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed, ProjectClassification classification)
     {
@@ -49,8 +50,10 @@ internal static class WorkspaceSeedFactory
 
         if (string.IsNullOrWhiteSpace(seed.DevServerUrl))
         {
-            seed.DevServerUrl = DevServerUrlDetection.TryDetectDevServerUrl(seed.Directory);
+            seed.DevServerUrl = ProjectAnalysisAccessor.Instance.TryDetectDevServerUrl(seed.Directory);
         }
+
+        ApplyCompanionHints(seed);
 
         if (!HasNonemptyLaunchCommand(seed))
         {
@@ -68,7 +71,7 @@ internal static class WorkspaceSeedFactory
     private static void ApplyInferredTaskTypes(TerminalShortcut seed)
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(seed);
-        var inferred = DevServerUrlDetection.TryInferTaskType(seed.Directory);
+        var inferred = ProjectAnalysisAccessor.Instance.TryInferTaskType(seed.Directory);
         if (inferred is null)
         {
             return;
@@ -81,5 +84,25 @@ internal static class WorkspaceSeedFactory
                 launch.TaskType = inferred;
             }
         }
+    }
+
+    private static void ApplyCompanionHints(TerminalShortcut seed)
+    {
+        if (!string.IsNullOrWhiteSpace(seed.CompanionAppPath))
+        {
+            return;
+        }
+
+        var suggestion = ProjectAnalysisAccessor.Instance.TrySuggestCompanionApp(seed.Directory);
+        if (suggestion is null)
+        {
+            return;
+        }
+
+        CompanionAppNormalization.ApplyPrimaryFromScalars(
+            seed,
+            openOnLaunch: suggestion.EnableOnLaunch,
+            path: suggestion.ExecutablePath,
+            arguments: suggestion.Arguments);
     }
 }

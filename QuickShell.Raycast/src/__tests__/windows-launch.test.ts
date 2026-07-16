@@ -40,6 +40,29 @@ describe("windows-launch", () => {
     expect(escapeWindowsArgument("C:\\Projects\\My App")).toBe('"C:\\Projects\\My App"');
   });
 
+  it("leaves values without spaces, tabs, or quotes unescaped", () => {
+    expect(escapeWindowsArgument("C:\\Projects\\App")).toBe("C:\\Projects\\App");
+  });
+
+  it("doubles backslashes immediately preceding an embedded quote", () => {
+    // "foo\"bar" -> backslash before the embedded quote must be tripled
+    // (2n+1 rule) so the consumer doesn't see it as an escaped quote terminator.
+    const expected = '"' + "foo" + "\\".repeat(3) + '"' + "bar" + '"';
+    expect(escapeWindowsArgument('foo\\"bar')).toBe(expected);
+  });
+
+  it("doubles a trailing backslash that lands right before the closing quote", () => {
+    // A lone trailing backslash must become two backslashes once the closing
+    // quote is appended, otherwise it would escape that quote instead.
+    const expected = '"' + "C:\\Some Path" + "\\".repeat(2) + '"';
+    expect(escapeWindowsArgument("C:\\Some Path\\")).toBe(expected);
+  });
+
+  it("handles a backslash directly followed by a quote mid-string", () => {
+    const expected = '"' + "a" + "\\".repeat(3) + '"' + "b" + '"';
+    expect(escapeWindowsArgument('a\\"b')).toBe(expected);
+  });
+
   it("resolves windows terminal targets", () => {
     const target = resolveLaunchTarget("wt", "PowerShell");
     expect(target.kind).toBe("wt");

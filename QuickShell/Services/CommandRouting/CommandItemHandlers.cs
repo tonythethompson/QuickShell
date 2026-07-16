@@ -72,7 +72,7 @@ internal sealed class DiscoverCreateWorkspaceCommandHandler : ICommandItemHandle
                 Directory = discoverDirectory,
                 Name = seed.Name,
                 RemoteUrl = seed.RepoUrl,
-                Classification = ProjectClassifier.Classify(discoverDirectory),
+                Classification = QuickShellServices.Current.ProjectAnalysis.Classify(discoverDirectory),
             }),
             Icon = new IconInfo(ShortcutGlyphs.Add),
         };

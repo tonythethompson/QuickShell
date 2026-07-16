@@ -3,6 +3,28 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 
+function getRayCliEntrypoint() {
+  const runJs = path.join(root, "node_modules", "@raycast", "api", "bin", "run.js");
+  if (fs.existsSync(runJs)) {
+    return runJs;
+  }
+
+  return null;
+}
+
+function runRayVersionCheck() {
+  const runJs = getRayCliEntrypoint();
+  if (!runJs) {
+    return { status: 1, stderr: "Missing @raycast/api Raycast CLI entrypoint." };
+  }
+
+  // Node 24 on Windows rejects spawnSync on .cmd shims (EINVAL). Invoke run.js directly.
+  return spawnSync(process.execPath, [runJs, "--version"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
 const nodeVersion = process.versions.node;
 const [major, minor, patch] = nodeVersion.split(".").map(Number);
 const meetsNodeRequirement =
@@ -14,11 +36,7 @@ if (!meetsNodeRequirement) {
   process.exit(1);
 }
 
-const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
-const result = spawnSync(npxCommand, ["--no-install", "ray", "--version"], {
-  cwd: root,
-  encoding: "utf8",
-});
+const result = runRayVersionCheck();
 
 if (result.status !== 0) {
   console.error("Raycast CLI is unavailable or incomplete.");

@@ -1,6 +1,8 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Commands;
 using QuickShell.Services.CommandRouting;
 using QuickShell.Pages;
@@ -34,8 +36,15 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
-            _settingsManager = new QuickShellSettingsManager(ReloadPages);
-            _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
+            // #endregion
+            // Settings + create/edit forms leave via SubmitForm — invalidate only (no list rebuild).
+            _settingsManager = new QuickShellSettingsManager(InvalidatePagesAfterNavigation);
+            // #region agent log
+            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
+            // #endregion
+            _createShortcutCommand = new CreateShortcutCommand(InvalidatePagesAfterNavigation);
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
@@ -46,9 +55,12 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
             var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
             var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
-            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager));
+            var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
+            ProjectAnalysisAccessor.Instance = projectAnalysis;
+            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis));
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
             KickoffGitRepoIndexPrewarm();
+            KickoffFormCatalogPrewarm();
         }
 
         DisplayName = QuickShellBrand.DisplayName;
@@ -65,7 +77,18 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         }
 
         var settingsPage = _settingsManager.SettingsPage;
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.PrewarmSettingsContent);
+        // Build settings Adaptive Card off the activation path so first open is warm.
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                _settingsManager.PrewarmSettingsContent();
+            }
+            catch
+            {
+                // Best effort.
+            }
+        });
 
         _commands =
         [
@@ -116,10 +139,27 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public override IFallbackCommandItem[] FallbackCommands() => _fallbacks;
 
+    /// <summary>Immediate home-list rebuild (favorite moves, delete, undo, …).</summary>
     private void ReloadPages()
     {
         GitRepoIndex.Invalidate();
         _page.Reload();
+        if (_fallbackPage.IsValueCreated)
+        {
+            _fallbackPage.Value.ClearResults();
+        }
+    }
+
+    /// <summary>Deferred list refresh after form/settings navigation (do not block GoBack).</summary>
+    private void InvalidatePagesAfterNavigation()
+    {
+        GitRepoIndex.Invalidate();
+        // _page may still be null while the provider ctor builds CreateShortcutCommand.
+        if (_page is not null)
+        {
+            _page.InvalidateWorkspaces();
+        }
+
         if (_fallbackPage.IsValueCreated)
         {
             _fallbackPage.Value.ClearResults();
@@ -138,6 +178,22 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             catch
             {
                 // Best effort; discover/create still work without the warm cache.
+            }
+        });
+    }
+
+    private void KickoffFormCatalogPrewarm()
+    {
+        var terminalApplicationId = _settingsManager.TerminalApplicationId;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                FormCatalogPrewarm.Warm(terminalApplicationId);
+            }
+            catch
+            {
+                // Best effort; first form open pays cold cost instead.
             }
         });
     }

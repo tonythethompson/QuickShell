@@ -12,16 +12,23 @@ internal static class AdaptiveCardFormJson
     private const string LabelInputSpacing = "Small";
     private const string SectionSpacing = "Medium";
 
-    public static string FieldLabel(string label) =>
-        $$"""
+    public static string FieldLabel(string label, string? tooltip = null, bool bold = true, bool wrap = true)
+    {
+        var tooltipLine = string.IsNullOrWhiteSpace(tooltip)
+            ? string.Empty
+            : $",\n          \"tooltip\": \"{Escape(tooltip)}\" ";
+        var weightLine = bold
+            ? ",\n          \"weight\": \"Bolder\" "
+            : string.Empty;
+        return $$"""
         {
           "type": "TextBlock",
           "text": "{{Escape(label)}}",
-          "weight": "Bolder",
-          "wrap": true,
-          "spacing": "None"
+          "wrap": {{(wrap ? "true" : "false")}},
+          "spacing": "None"{{weightLine}}{{tooltipLine}}
         }
         """;
+    }
 
     public static string InputAfterLabel(string inputJson) =>
         $$"""
@@ -69,13 +76,14 @@ internal static class AdaptiveCardFormJson
         string rightLabel,
         string rightInputJson,
         string leftWeight = "3",
-        string rightWeight = "1",
+        string rightWeight = "2",
         string? leftHelp = null,
         string? rightHelp = null)
     {
         var leftHelpBlock = OptionalFieldHelpEntry(leftHelp);
         var rightHelpBlock = OptionalFieldHelpEntry(rightHelp);
-
+        // Labels do not wrap: wrapping "Home keyword (optional)" grows the column and can
+        // force Adaptive Card hosts to stack the pair onto two rows when the window is narrow.
         return $$"""
         {
           "type": "Container",
@@ -89,7 +97,7 @@ internal static class AdaptiveCardFormJson
                   "type": "Column",
                   "width": "{{leftWeight}}",
                   "items": [
-                    {{FieldLabel(leftLabel)}},
+                    {{FieldLabel(leftLabel, wrap: false)}},
                     {{leftHelpBlock}}
                     {{InputAfterLabel(leftInputJson)}}
                   ]
@@ -98,7 +106,7 @@ internal static class AdaptiveCardFormJson
                   "type": "Column",
                   "width": "{{rightWeight}}",
                   "items": [
-                    {{FieldLabel(rightLabel)}},
+                    {{FieldLabel(rightLabel, wrap: false)}},
                     {{rightHelpBlock}}
                     {{InputAfterLabel(rightInputJson)}}
                   ]
@@ -148,37 +156,114 @@ internal static class AdaptiveCardFormJson
         """;
     }
 
-    public static string InputWithTrailingActionsRow(string inputJson, string actionsJson) =>
-        $$"""
+    /// <summary>
+    /// Input + trailing action buttons. One <see cref="ActionColumn"/> per button.
+    /// Default action alignment is <c>Top</c>: CmdPal ActionSets carry bottom chrome that
+    /// makes Center/Bottom sit under the text box. Label belongs above this row, not on the input.
+    /// </summary>
+    public static string InputWithTrailingActionsRow(
+        string inputJson,
+        string actionsJson,
+        string inputVerticalAlignment = "Center",
+        string actionVerticalAlignment = "Top")
+    {
+        var actions = SplitTopLevelJsonObjects(actionsJson);
+        if (actions.Count == 0)
+        {
+            return inputJson;
+        }
+
+        var actionColumns = string.Join(
+            ",\n",
+            actions.Select(action => ActionColumn(action, actionVerticalAlignment)));
+        return $$"""
         {
           "type": "ColumnSet",
-          "spacing": "Small",
+          "spacing": "None",
           "columns": [
             {
               "type": "Column",
               "width": "stretch",
-              "verticalContentAlignment": "Center",
+              "verticalContentAlignment": "{{Escape(inputVerticalAlignment)}}",
+              "spacing": "None",
               "items": [
                 {{inputJson}}
               ]
             },
-            {
-              "type": "Column",
-              "width": "auto",
-              "verticalContentAlignment": "Center",
-              "items": [
-                {
-                  "type": "ActionSet",
-                  "spacing": "None",
-                  "actions": [
-                    {{actionsJson}}
-                  ]
-                }
-              ]
-            }
+            {{actionColumns}}
           ]
         }
         """;
+    }
+
+    private static List<string> SplitTopLevelJsonObjects(string jsonList)
+    {
+        var results = new List<string>();
+        if (string.IsNullOrWhiteSpace(jsonList))
+        {
+            return results;
+        }
+
+        var depth = 0;
+        var start = -1;
+        var inString = false;
+        var escape = false;
+
+        for (var i = 0; i < jsonList.Length; i++)
+        {
+            var ch = jsonList[i];
+            if (inString)
+            {
+                if (escape)
+                {
+                    escape = false;
+                    continue;
+                }
+
+                if (ch == '\\')
+                {
+                    escape = true;
+                    continue;
+                }
+
+                if (ch == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (ch == '{')
+            {
+                if (depth == 0)
+                {
+                    start = i;
+                }
+
+                depth++;
+                continue;
+            }
+
+            if (ch == '}')
+            {
+                depth--;
+                if (depth == 0 && start >= 0)
+                {
+                    results.Add(jsonList[start..(i + 1)].Trim());
+                    start = -1;
+                }
+            }
+        }
+
+        return results;
+    }
 
     public static string MatchedPrimaryWidth(string elementJson) =>
         PairRow(elementJson, string.Empty, "3", "1");
@@ -360,15 +445,15 @@ internal static class AdaptiveCardFormJson
     /// Single-line companion arguments input in a narrow column.
     /// Placeholder, value, and tooltip bind from form data JSON.
     /// </summary>
-    public static string NarrowCompanionArgumentsInput() =>
+    public static string NarrowCompanionArgumentsInput(int index = 0) =>
         MediumWidthColumn(
             $$"""
             {
               "type": "Input.Text",
-              "id": "CompanionAppArguments",
-              "placeholder": "${CompanionArgumentPlaceholder}",
-              "value": "${CompanionAppArguments}",
-              "tooltip": "${CompanionArgumentTooltip}",
+              "id": "CompanionAppArguments_{{index}}",
+              "placeholder": "${CompanionArgumentPlaceholder_{{index}}}",
+              "value": "${CompanionAppArguments_{{index}}}",
+              "tooltip": "${CompanionArgumentTooltip_{{index}}}",
               "maxLength": {{ShortcutValidation.MaxCompanionAppArgumentsLength}}
             }
             """,

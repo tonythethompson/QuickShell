@@ -129,6 +129,55 @@ public sealed class ShortcutDraftStoreTests : IDisposable
         Assert.Equal(TaskTypeCatalog.Database, restored.Launches[0].TaskType);
     }
 
+    [Fact]
+    public void TryGetForRestore_SecondaryCompanionChange_RemainsPending()
+    {
+        var shortcut = CreateSavedShortcut();
+        var primaryPath = Path.Combine(_configDirectory, "Code.exe");
+        var secondaryPath = Path.Combine(_configDirectory, "Fork.exe");
+        File.WriteAllText(primaryPath, string.Empty);
+        File.WriteAllText(secondaryPath, string.Empty);
+        shortcut.CompanionApps =
+        [
+            new CompanionAppEntry { Id = "primary", Path = primaryPath, Arguments = ".", OpenOnLaunch = true, Order = 0 },
+            new CompanionAppEntry { Id = "secondary", Path = secondaryPath, Arguments = "{folder}", OpenOnLaunch = true, Order = 1 },
+        ];
+        CompanionAppNormalization.NormalizeCompanions(shortcut);
+        var repository = new FakeShortcutRepository([shortcut], _configDirectory);
+        using var store = new ShortcutDraftStore(repository);
+        var baseline = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        ApplyPrimaryCompanionScalars(baseline, shortcut.CompanionApps[0]);
+        baseline.Companions = CreateCompanions(_configDirectory, openSecondary: true);
+        var dirty = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        ApplyPrimaryCompanionScalars(dirty, shortcut.CompanionApps[0]);
+        dirty.Companions = CreateCompanions(_configDirectory, openSecondary: false);
+
+        store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        Assert.True(store.TryGetForRestore(shortcut.Name, out var restored));
+        Assert.False(restored.Companions[1].OpenOnLaunch);
+    }
+
+    [Fact]
+    public void TryCommitPending_PreservesAllCompanionRows()
+    {
+        var shortcut = CreateSavedShortcut();
+        shortcut.Directory = _configDirectory;
+        var repository = new FakeShortcutRepository([shortcut], _configDirectory);
+        using var store = new ShortcutDraftStore(repository);
+        var baseline = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        var dirty = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        dirty.Companions = CreateCompanions(_configDirectory, openSecondary: false);
+
+        store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        var result = store.TryCommitPending(onSaved: null);
+        Assert.True(result.Success, result.Message);
+        var saved = Assert.IsType<TerminalShortcut>(repository.GetByName(shortcut.Name));
+        Assert.Equal(2, saved.CompanionApps.Count);
+        Assert.False(saved.CompanionApps[1].OpenOnLaunch);
+    }
+
     private static ShortcutFormDraftData CreateLaunchBaseline(TerminalShortcut shortcut, string taskType) => new()
     {
         OriginalName = shortcut.Name,
@@ -149,6 +198,26 @@ public sealed class ShortcutDraftStoreTests : IDisposable
             },
         ],
     };
+
+    private static List<ShortcutFormCompanionDraftData> CreateCompanions(string root, bool openSecondary)
+    {
+        var primary = Path.Combine(root, "Code.exe");
+        var secondary = Path.Combine(root, "Fork.exe");
+        File.WriteAllText(primary, string.Empty);
+        File.WriteAllText(secondary, string.Empty);
+        return
+        [
+            new() { Id = "primary", Preset = CompanionAppCatalog.PresetCustom, Path = primary, Arguments = ".", OpenOnLaunch = true },
+            new() { Id = "secondary", Preset = CompanionAppCatalog.PresetCustom, Path = secondary, Arguments = "{folder}", OpenOnLaunch = openSecondary },
+        ];
+    }
+
+    private static void ApplyPrimaryCompanionScalars(ShortcutFormDraftData draft, CompanionAppEntry primary)
+    {
+        draft.OpenCompanionAppOnLaunch = primary.OpenOnLaunch;
+        draft.CompanionAppPath = primary.Path ?? string.Empty;
+        draft.CompanionAppArguments = primary.Arguments ?? string.Empty;
+    }
 
     public void Dispose()
     {

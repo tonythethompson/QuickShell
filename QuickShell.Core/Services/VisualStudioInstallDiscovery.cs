@@ -4,17 +4,32 @@ namespace QuickShell.Services;
 
 internal static class VisualStudioInstallDiscovery
 {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(int Min, int Max), string?> DevenvCache = new();
+
     public static string? TryResolveDevenv(int minVersionInclusive, int maxVersionExclusive)
     {
-        var installationPath = TryQueryInstallationPath(minVersionInclusive, maxVersionExclusive);
-        if (string.IsNullOrWhiteSpace(installationPath))
+        var key = (minVersionInclusive, maxVersionExclusive);
+        if (DevenvCache.TryGetValue(key, out var cached))
         {
-            return null;
+            return cached;
         }
 
-        var devenv = Path.Combine(installationPath, "Common7", "IDE", "devenv.exe");
-        return File.Exists(devenv) ? Path.GetFullPath(devenv) : null;
+        var installationPath = TryQueryInstallationPath(minVersionInclusive, maxVersionExclusive);
+        string? resolved = null;
+        if (!string.IsNullOrWhiteSpace(installationPath))
+        {
+            var devenv = Path.Combine(installationPath, "Common7", "IDE", "devenv.exe");
+            if (File.Exists(devenv))
+            {
+                resolved = Path.GetFullPath(devenv);
+            }
+        }
+
+        DevenvCache[key] = resolved;
+        return resolved;
     }
+
+    public static void InvalidateCache() => DevenvCache.Clear();
 
     public static string? TryInferPresetFromDevenvPath(string? executablePath)
     {

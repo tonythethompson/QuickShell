@@ -47,7 +47,6 @@ internal static class QuickShellPageActions
         new(settings.SettingsPage)
         {
             Title = QuickShellBrand.SettingsTitle,
-            Subtitle = Strings.PageActions_Settings_Subtitle,
             Icon = new IconInfo("\uE713"),
             MoreCommands = ShortcutContextCommands.BuildUndoRedoCommands(onReload),
         };

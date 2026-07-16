@@ -68,6 +68,11 @@ internal interface IShortcutRepository
 
     bool MovePinnedToEdge(string name, bool toTop);
 
+    /// <summary>Reorder favorites by stable workspace id (preferred over name).</summary>
+    bool MovePinnedById(string id, int direction);
+
+    bool MovePinnedToEdgeById(string id, bool toTop);
+
     void MarkUsed(string shortcutId);
 
     TerminalShortcut? BuildDuplicate(string name);

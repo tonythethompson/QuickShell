@@ -9,6 +9,27 @@ internal static class FormActionGlyphs
 
     public const string Save = "\uE74E";
 
+    /// <summary>
+    /// Visible button labels for CmdPal forms. Segoe MDL2 private-use glyphs (e.g. E72C)
+    /// render as missing boxes in Adaptive Card Action.Submit titles — do not use them there.
+    /// </summary>
+    public const string RefreshLabel = "Refresh";
+
+    /// <summary>
+    /// Compact refresh title for Adaptive Card actions: Unicode ↻ (not MDL2 E72C).
+    /// </summary>
+    public const string RefreshActionTitle = "\u21BB";
+
+    public const string SaveLabel = "Save";
+
+    public const string BrowseLabel = "Browse";
+
+    public const string PasteLabel = "Paste";
+
+    public const string AddLabel = "Add";
+
+    public const string RemoveLabel = "Remove";
+
     public const string Add = "\uE710";
 
     public const string Remove = "\uE74D";
@@ -29,7 +50,7 @@ internal static class FormActionGlyphs
     public const string SaveTerminalDefaultsTooltip = "Save terminal defaults";
 
     public const string TerminalDefaultsSectionTooltip =
-        "Default host and profile for workspaces set to Default. Use Save after changing values.";
+        "Default host and profile for workspaces set to Default. Use Save & close at the bottom to apply.";
 
     public const string AddCommandTooltip = "Add command";
 

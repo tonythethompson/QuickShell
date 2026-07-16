@@ -2,45 +2,136 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Services;
+using System.Threading;
 
 namespace QuickShell.Pages;
 
-internal partial class DiscoverGitReposPage : DynamicListPage
+internal partial class DiscoverGitReposPage : DynamicListPage, IDisposable
 {
     public const string PageId = QuickShellDeepLinkIds.DiscoverGitRepos;
 
+    /// <summary>
+    /// CmdPal host sentinel (<c>ListViewModel.IncrementalRefresh</c>): keep list selection
+    /// across a GetItems refetch. Default <c>RaiseItemsChanged()</c> forces first-item selection.
+    /// </summary>
+    private const int KeepSelectionRefresh = -2;
+
     private readonly Action _onReload;
+    private readonly SynchronizationContext? _extensionSynchronizationContext;
     private readonly object _refreshSync = new();
+    private readonly SearchDebouncer _searchDebouncer;
+    private readonly Dictionary<string, ListItem> _itemCache = new(StringComparer.OrdinalIgnoreCase);
     private IListItem[] _items = [];
     private string _query = string.Empty;
     private bool _refreshScheduled;
+    private bool _hasShownInitialList;
+    private bool _awaitingGitRefresh;
+    private bool _hasPublishedResults;
+    private bool _disposed;
 
     public DiscoverGitReposPage(Action onReload)
     {
         _onReload = onReload;
+        _extensionSynchronizationContext = SynchronizationContext.Current ?? GitRepoIndex.ExtensionSynchronizationContext;
+        _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);
-        GitRepoIndex.Invalidate();
+#if CMDPAL_HOVER_ACTIONS
+        // Match home list so Tab/hover keyboard can reach secondary actions (open folder, etc.).
+        HoverActionsMode = HoverActionsMode.Explicit;
+        MaxHoverActions = -1;
+        HoverActionsVisibility = HoverActionsVisibility.HoverOrSelected;
+#endif
         SetOpeningItems();
+        // Kick the first scan immediately. Waiting for UpdateSearchText alone races
+        // CmdPal hosts that never nudge search text on first open.
         ScheduleRefreshItems();
     }
 
-    public override IListItem[] GetItems() => _items;
+    public override IListItem[] GetItems()
+    {
+        // Never call RaiseItemsChanged from GetItems — CmdPal may be mid-fetch and a nested
+        // ItemsChanged defers a second fetch that rebuilds the list and drops keyboard selection.
+        if (_awaitingGitRefresh && !GitRepoIndex.IsRefreshInFlight)
+        {
+            _awaitingGitRefresh = false;
+            ScheduleRefreshItems();
+        }
+
+        return _items;
+    }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
         var normalized = newSearch ?? string.Empty;
+
+        if (!_hasShownInitialList)
+        {
+            _hasShownInitialList = true;
+            // Constructor already scheduled the first refresh; only adopt a non-empty query.
+            if (!string.Equals(_query, normalized, StringComparison.Ordinal))
+            {
+                _query = normalized;
+                ScheduleRefreshItems();
+            }
+
+            return;
+        }
+
+        if (string.Equals(_query, normalized, StringComparison.Ordinal))
+        {
+            // Replace any pending different query with the text currently in CmdPal.
+            _searchDebouncer.Schedule(normalized);
+            return;
+        }
+
+        // Debounce typing so each keystroke does not rebuild the list and snap selection
+        // back to the first row (which feels like broken keyboard navigation).
+        _searchDebouncer.Schedule(normalized);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _searchDebouncer.Dispose();
+    }
+
+    private void ApplyQueryDebounced(string normalized)
+    {
+        if (_extensionSynchronizationContext is not null
+            && !ReferenceEquals(SynchronizationContext.Current, _extensionSynchronizationContext))
+        {
+            _extensionSynchronizationContext.Post(_ => ApplyQueryDebounced(normalized), null);
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
         if (string.Equals(_query, normalized, StringComparison.Ordinal))
         {
             return;
         }
 
-        _query = normalized;
-        ScheduleRefreshItems();
+        _query = normalized ?? string.Empty;
+        // Filter changes should select the first match, not keep a now-missing row.
+        RefreshItems(_query, resetSelection: true);
     }
 
     private void ScheduleRefreshItems()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         lock (_refreshSync)
         {
             if (_refreshScheduled)
@@ -58,7 +149,12 @@ internal partial class DiscoverGitReposPage : DynamicListPage
                 _refreshScheduled = false;
             }
 
-            RefreshItems(_query);
+            if (_disposed)
+            {
+                return;
+            }
+
+            RefreshItems(_query, resetSelection: !_hasPublishedResults);
         });
     }
 
@@ -75,13 +171,29 @@ internal partial class DiscoverGitReposPage : DynamicListPage
         ];
     }
 
-    private void RefreshItems(string query)
+    private void RefreshItems(string query, bool resetSelection)
     {
         try
         {
             var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
             var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
+            if (discovered.Count == 0
+                && GitRepoIndex.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
+            {
+                _awaitingGitRefresh = true;
+                // Keep the scanning placeholder visible until the in-flight scan finishes.
+                if (_items.Length == 0)
+                {
+                    SetOpeningItems();
+                    RaiseItemsChanged();
+                }
+
+                return;
+            }
+
+            _awaitingGitRefresh = false;
+
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
             var settings = QuickShellServices.Current.Settings;
 
@@ -97,7 +209,7 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             }
 
             var items = DiscoverGitRepoListItems
-                .BuildSectionedItems(discovered, _onReload, shortcutsByDirectory, settings)
+                .BuildSectionedItems(discovered, _onReload, shortcutsByDirectory, settings, _itemCache)
                 .ToList();
 
             if (items.Count == 0)
@@ -113,9 +225,12 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             }
 
             _items = items.ToArray();
-            RaiseItemsChanged();
+            // First publish / filter changes: select first useful row.
+            // Later in-place refreshes (e.g. scan complete with stable items): keep selection.
+            RaiseItemsChanged(resetSelection || !_hasPublishedResults ? -1 : KeepSelectionRefresh);
+            _hasPublishedResults = true;
         }
-        catch
+        catch (Exception)
         {
             _items =
             [
@@ -128,5 +243,18 @@ internal partial class DiscoverGitReposPage : DynamicListPage
             ];
             RaiseItemsChanged();
         }
+    }
+
+    private void OnGitRefreshCompleted()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _awaitingGitRefresh = false;
+        // Push results as soon as the background scan finishes. Do not wait for
+        // another GetItems/UpdateSearchText cycle (that was the empty-until-revisit bug).
+        RefreshItems(_query, resetSelection: !_hasPublishedResults);
     }
 }

@@ -74,7 +74,7 @@ When editing a workspace, **Suggested commands** appear as clickable pills for f
 | **Save** | Blank rows are dropped; at least one launch row is kept |
 | **Editor padding** | New/edit forms start with three empty launch rows so the first few pill clicks avoid layout rebuilds (CmdPal) |
 
-Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. When you **create** a workspace or **discover git repos**, Quick Shell can still seed multiple launch rows automatically when the project layout is clear.
+Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. **Browse/Paste on create or edit does not auto-fill commands or companion apps** (use suggestion pills / pick a companion). **Discover git repos** still heuristically seeds launches and a companion when the project layout is clear.
 
 **Privacy:** classification reads only the workspace folder you chose. Commands may appear in tooltips; they are not logged or uploaded. Raycast uses the local `QuickShell.Suggest` helper (`QUICKSHELL_SUGGEST_EXE` overrides its path for development).
 
@@ -281,9 +281,10 @@ Preferred for multiple terminals or commands per workspace. Each entry:
 | `DevServerUrl` | No | `http://` or `https://` URL opened in your browser when the workspace runs (if **Open on launch** is enabled) |
 | `OpenDevServerOnLaunch` | No | `true` to open `DevServerUrl` whenever the full workspace runs |
 | `RepoUrl` | No | Repository URL opened from the workspace context menu |
-| `CompanionAppPath` | No | Executable path for a companion app (editor, notes app, etc.) |
-| `CompanionAppArguments` | No | Optional arguments; use `.` or `{folder}` for the workspace directory |
-| `OpenCompanionAppOnLaunch` | No | `true` to launch the companion app whenever the full workspace runs |
+| `CompanionApps` | No | Ordered list of companion apps (`Path`, `Arguments`, `OpenOnLaunch`, `Order`); max 5 |
+| `CompanionAppPath` | No | Primary companion path (mirrored from first `CompanionApps` entry; still dual-read) |
+| `CompanionAppArguments` | No | Primary arguments; use `.` or `{folder}` for the workspace directory |
+| `OpenCompanionAppOnLaunch` | No | Primary open-on-launch flag (mirrored); per-entry flags on `CompanionApps` win for multi |
 
 Mix **section headers** into the same array with workspace objects:
 
@@ -345,7 +346,12 @@ For contributors and local MSIX installs (recommended for development):
 **Prerequisites:** Windows 11, .NET 10 SDK, Visual Studio 2022 (Windows workload), PowerToys with Command Palette enabled.
 
 ```powershell
-# Default dev loop: stop CmdPal, build/install MSIX, start CmdPal
+# All surfaces (CmdPal MSIX + Run plugin + Raycast)
+.\scripts\ddeploy.ps1
+# same as:
+.\scripts\deploy-all.ps1
+
+# CmdPal only: stop CmdPal, build/install signed MSIX, start CmdPal
 .\scripts\deploy.ps1
 
 # Same, with local PowerToys CmdPal SDK (sibling PowerToys checkout)
@@ -353,11 +359,22 @@ For contributors and local MSIX installs (recommended for development):
 
 # Skip UAC entirely (trusts cert in CurrentUser\TrustedPeople)
 .\scripts\deploy.ps1 -SkipElevation
+.\scripts\ddeploy.ps1 -SkipElevation
 ```
 
 After the first successful install, `deploy.ps1` stays in your current terminal. It only elevates when the dev certificate is not trusted yet. Approve UAC once if prompted; later runs skip elevation automatically.
 
-Then run **Reload Command Palette Extension** in Command Palette.
+**Required after every CmdPal deploy:** run **Reload Command Palette Extension** in Command Palette, then search **Quick Shell**.
+
+**Dev deploy from workspaces:** install launcher shortcuts into your shared shortcuts file, then reload the extension:
+
+```powershell
+.\scripts\install-dev-deploy-shortcuts.ps1
+```
+
+This adds `ddeploy`, `dcmd`, `drun`, and `dray` workspaces that run the scripts above from PowerShell.
+
+**WinGet EXE vs dev MSIX:** `winget install tonythethompson.QuickShellforCmdPal` installs an unpackaged EXE with COM registration. The dev loop installs a signed MSIX (`tonythethompson.536944BA0D095`). Both target Command Palette but use different registration paths. For local development, uninstall the WinGet CmdPal-only package before using `deploy.ps1`, or CmdPal may load the wrong build. `deploy.ps1` warns when it detects `%LOCALAPPDATA%\Programs\QuickShell\QuickShell.exe`.
 
 ---
 

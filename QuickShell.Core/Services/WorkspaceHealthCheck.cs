@@ -92,6 +92,11 @@ internal static partial class WorkspaceHealthCheck
 
     internal static Func<string, string, string?>? GitCommandOverride { get; set; }
 
+    /// <summary>
+    /// Launch-safety / status snapshot path. Can fan into directory, launch, git, ports, and
+    /// process checks. Keep <paramref name="includeVolatile"/> and git off the typing/search
+    /// list rebuild path — CmdPal list tags use <see cref="WorkspaceStatusService.TryGetCached"/> only.
+    /// </summary>
     public static WorkspaceHealthResult Check(
         TerminalShortcut shortcut,
         string terminalApplicationId,

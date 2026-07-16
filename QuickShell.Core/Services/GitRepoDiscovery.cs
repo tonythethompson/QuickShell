@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using QuickShell.Classification;
 
 namespace QuickShell.Services;
 
@@ -165,7 +166,7 @@ internal static partial class GitRepoDiscovery
                     Directory = workItem.Directory,
                     Name = Path.GetFileName(workItem.Directory.TrimEnd('\\', '/')),
                     RemoteUrl = TryReadOriginRemoteUrl(workItem.Directory),
-                    Classification = ProjectClassifier.Classify(workItem.Directory),
+                    Classification = ProjectAnalysisAccessor.Instance.Classify(workItem.Directory),
                 };
 
                 lock (sync)

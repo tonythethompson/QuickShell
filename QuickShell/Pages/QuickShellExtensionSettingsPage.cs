@@ -12,11 +12,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
     private readonly Action _onReload;
     private readonly object _contentSync = new();
 
-    private TerminalDefaultsSettingsForm? _terminalDefaultsForm;
-    private MultiLaunchSettingsForm? _multiLaunchForm;
-    private HomeDisplaySettingsForm? _homeDisplayForm;
-    private GitLaunchSettingsForm? _gitLaunchForm;
-    private ShortcutTransferSettingsForm? _transferForm;
+    private BehaviorSettingsForm? _behaviorSettingsForm;
 
     public QuickShellExtensionSettingsPage(
         QuickShellSettingsManager settingsManager,
@@ -35,10 +31,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
     public void RefreshContent()
     {
         EnsureSettingsForms();
-        _terminalDefaultsForm?.SyncFromSettings();
-        _multiLaunchForm?.SyncFromSettings();
-        _homeDisplayForm?.SyncFromSettings();
-        _gitLaunchForm?.SyncFromSettings();
+        _behaviorSettingsForm?.SyncFromSettings();
         RaiseItemsChanged();
     }
 
@@ -61,11 +54,8 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
             content.Add(new PendingShortcutEditForm(_onReload, refreshSettings));
         }
 
-        content.Add(_terminalDefaultsForm!);
-        content.Add(_multiLaunchForm!);
-        content.Add(_homeDisplayForm!);
-        content.Add(_gitLaunchForm!);
-        content.Add(_transferForm!);
+        // Single card: terminal + Home/Multi/Git + Backup & Transfer (controlled spacing).
+        content.Add(_behaviorSettingsForm!);
         return content.ToArray();
     }
 
@@ -74,11 +64,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         lock (_contentSync)
         {
             var refreshSettings = (Action)RefreshContent;
-            _terminalDefaultsForm ??= new TerminalDefaultsSettingsForm(_settingsManager, _onReload, refreshSettings);
-            _multiLaunchForm ??= new MultiLaunchSettingsForm(_settingsManager, _onReload, refreshSettings);
-            _homeDisplayForm ??= new HomeDisplaySettingsForm(_settingsManager, _onReload, refreshSettings);
-            _gitLaunchForm ??= new GitLaunchSettingsForm(_settingsManager, _onReload, refreshSettings);
-            _transferForm ??= new ShortcutTransferSettingsForm(_onReload, refreshSettings);
+            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _onReload, refreshSettings);
         }
     }
 }
