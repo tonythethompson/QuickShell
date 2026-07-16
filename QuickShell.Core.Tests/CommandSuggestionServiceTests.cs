@@ -41,7 +41,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         CommandSuggestionService.ClearResultCache();
 
         Assert.True(CommandSuggestionService.HasSuggestions(_root, [], ProjectAnalysisAccessor.Instance));
-        Assert.False(CommandSuggestionService.HasSuggestions(Path.Combine(_root, "missing"), [], ProjectAnalysisAccessor.Instance));
+        Assert.False(CommandSuggestionService.HasSuggestions(Path.Join(_root, "missing"), [], ProjectAnalysisAccessor.Instance));
         Assert.False(CommandSuggestionService.HasSuggestions(null, [], ProjectAnalysisAccessor.Instance));
     }
 
