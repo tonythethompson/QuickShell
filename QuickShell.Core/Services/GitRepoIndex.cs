@@ -1,8 +1,10 @@
 using System.Threading;
 
+using QuickShell.Abstractions;
+
 namespace QuickShell.Services;
 
-internal static class GitRepoIndex
+internal sealed class GitRepoIndex : IGitRepoIndex
 {
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(10);
     private static readonly object Sync = new();
@@ -24,6 +26,27 @@ internal static class GitRepoIndex
     internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
 
     internal static Action<Action>? ExtensionThreadPoster { get; set; }
+
+    bool IGitRepoIndex.IsRefreshInFlight => IsRefreshInFlight;
+
+    void IGitRepoIndex.Invalidate() => Invalidate();
+
+    void IGitRepoIndex.Prewarm(IReadOnlyList<string> searchRoots, CancellationToken cancellationToken) =>
+        Prewarm(searchRoots, cancellationToken);
+
+    IReadOnlyList<GitRepoCandidate> IGitRepoIndex.Search(
+        string query,
+        IReadOnlyList<string> searchRoots,
+        CancellationToken cancellationToken) =>
+        Search(query, searchRoots, cancellationToken: cancellationToken);
+
+    IReadOnlyList<GitRepoCandidate> IGitRepoIndex.GetAll(
+        IReadOnlyList<string>? extraRoots,
+        CancellationToken cancellationToken) =>
+        GetAll(extraRoots, cancellationToken);
+
+    void IGitRepoIndex.RunAfterNextRefresh(Action callback) =>
+        RunAfterNextRefresh(callback);
 
     public static bool IsRefreshInFlight
     {
