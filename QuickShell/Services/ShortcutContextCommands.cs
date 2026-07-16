@@ -42,11 +42,17 @@ internal static class ShortcutContextCommands
         CreateShortcutCommand? createShortcutCommand = null,
         bool includeEdit = true,
         PinnedMoveVisibility moveVisibility = default,
-        Action? onFavoritesReordered = null)
+        Action? onFavoritesReordered = null,
+        bool? includePageCommands = null,
+        bool includePinnedMoveCommands = true)
     {
-        // Skip DirectoryExists here — list open already uses requireDirectoryExists:false
-        // for primary rows; disk checks on every context menu make leave/reload laggy.
-        if (ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+        // Page-level history belongs alongside the page's other global commands.
+        // Existing list callers that provide a create command opt into that group;
+        // the workspace-only command inventory stays free of Undo/Redo.
+        includePageCommands ??= createShortcutCommand is not null;
+
+        // Context menus should expose the repair actions for missing workspace folders.
+        if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return BuildRepairOnly(shortcut, onChanged, settings);
         }
@@ -101,7 +107,7 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderFavorite));
 
-        if (shortcut.IsPinned)
+        if (shortcut.IsPinned && includePinnedMoveCommands)
         {
             AddPinnedMoveCommands(items, shortcut, onFavoritesReordered ?? onChanged, moveVisibility);
         }
@@ -117,7 +123,23 @@ internal static class ShortcutContextCommands
             showInHoverActions: true,
             hoverOrder: HoverOrderDuplicate));
 
-        AddPreSettingsCommands(items, createShortcutCommand, onChanged);
+        if (includePageCommands == true)
+        {
+            AddPreSettingsCommands(items, createShortcutCommand, onChanged);
+        }
+        else if (createShortcutCommand is not null)
+        {
+            items.Add(new CommandContextItem(createShortcutCommand)
+            {
+                Title = Strings.Menu_CreateWorkspace,
+                Icon = new IconInfo("\uE710"),
+                RequestedShortcut = QuickShellKeyboardShortcuts.CreateShortcut,
+#if CMDPAL_HOVER_ACTIONS
+                ShowInHoverActions = true,
+                HoverOrder = HoverOrderCreate,
+#endif
+            });
+        }
         items.Add(CreateSettingsItem(settings));
 
         // Delete
@@ -137,7 +159,7 @@ internal static class ShortcutContextCommands
     }
 
     /// <summary>
-    /// Full home-list context menu (same as <see cref="Build"/>). Kept for call-site clarity.
+    /// Home-list context menu without page-level history or favorites-reordering commands.
     /// </summary>
     public static CommandContextItem[] BuildForHomePin(
         TerminalShortcut shortcut,
@@ -148,7 +170,15 @@ internal static class ShortcutContextCommands
         PinnedMoveVisibility moveVisibility = default) =>
         needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut)
             ? BuildRepairOnly(shortcut, onChanged, settings)
-            : Build(shortcut, onChanged, settings, createShortcutCommand, includeEdit: true, moveVisibility);
+            : Build(
+                shortcut,
+                onChanged,
+                settings,
+                createShortcutCommand,
+                includeEdit: true,
+                moveVisibility,
+                includePageCommands: createShortcutCommand is not null,
+                includePinnedMoveCommands: false);
 
     public static CommandContextItem[] BuildRepairOnly(
         TerminalShortcut shortcut,

@@ -159,6 +159,40 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
     }
 
     [Fact]
+    public void Build_FileMarkerScansAreLineLocalAndDoNotBufferWholeFiles()
+    {
+        Write("App.csproj", """
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Exe</OutputType>
+          </PropertyGroup>
+        </Project>
+        """);
+        Write("SplitMarker.csproj", """
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Ex
+            e</OutputType>
+          </PropertyGroup>
+        </Project>
+        """);
+        Write("mix.exs", """
+        defmodule Sample.MixProject do
+          # phoenix
+        end
+        """);
+
+        var suggestions = WorkspaceSetupSuggestion.Build(_root);
+
+        Assert.Contains(suggestions, task => task.Command == "dotnet run --project App.csproj");
+        Assert.Contains(suggestions, task => task.Command == "mix phx.server");
+        Assert.DoesNotContain(suggestions, task => task.Command == "dotnet run --project SplitMarker.csproj");
+
+        Assert.DoesNotContain("File.ReadAllText", ReadCoreSource("Classification", "ProjectClassificationBuilder.cs"));
+        Assert.DoesNotContain("File.ReadAllText", ReadCoreSource("Services", "WorkspaceSetupSuggestion.cs"));
+    }
+
+    [Fact]
     public void Build_GenericRunnerSuggestionsUseOnlyKnownTargets()
     {
         Write("Makefile", """
@@ -254,6 +288,18 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         }
 
         File.WriteAllText(path, contents);
+    }
+
+    private static string ReadCoreSource(params string[] relativePath)
+    {
+        var repositoryRoot = Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "../../../../../"));
+        var sourcePath = Path.Join(repositoryRoot, "QuickShell.Core");
+        foreach (var segment in relativePath)
+        {
+            sourcePath = Path.Join(sourcePath, segment);
+        }
+
+        return File.ReadAllText(sourcePath);
     }
 
     public void Dispose()
