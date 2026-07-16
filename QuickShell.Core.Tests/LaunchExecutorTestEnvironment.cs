@@ -37,6 +37,8 @@ internal static class LaunchExecutorTestEnvironment
             """,
             Encoding.UTF8);
 
+        WtProfilesService.InvalidateCache();
+        TerminalCatalog.InvalidateCache();
         WtProfilesService.TestLocationsOverride =
         [
             new TerminalSettingsLocation
@@ -48,8 +50,6 @@ internal static class LaunchExecutorTestEnvironment
                 DisplayPrefix = "Windows Terminal",
             },
         ];
-        WtProfilesService.InvalidateCache();
-        TerminalCatalog.InvalidateCache();
 
         WorkspaceHealthCheck.ExecutableExistsOverride = _ => true;
         WorkspaceHealthCheck.PortInUseOverride = _ => false;
