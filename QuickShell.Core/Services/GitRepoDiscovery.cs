@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using System.Threading;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -60,10 +61,11 @@ internal static partial class GitRepoDiscovery
 
     public static IReadOnlyList<GitRepoCandidate> Discover(
         IEnumerable<string>? extraRoots = null,
-        int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism)
+        int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism,
+        CancellationToken cancellationToken = default)
     {
         var roots = BuildSearchRoots(extraRoots);
-        if (roots.Count == 0)
+        if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
         {
             return [];
         }
@@ -84,10 +86,12 @@ internal static partial class GitRepoDiscovery
 
         var workers = Enumerable
             .Range(0, workerCount)
-            .Select(_ => Task.Run(Worker))
+            .Select(_ => Task.Run(Worker, cancellationToken))
             .ToArray();
 
-        Task.WaitAll(workers);
+        Task.WaitAll(workers, CancellationToken.None);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         return results
             .OrderBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
@@ -118,7 +122,14 @@ internal static partial class GitRepoDiscovery
         {
             while (true)
             {
-                signal.Wait();
+                try
+                {
+                    signal.Wait(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
 
                 if (!queue.TryDequeue(out var workItem))
                 {
@@ -209,6 +220,11 @@ internal static partial class GitRepoDiscovery
 
         bool ShouldStop()
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return true;
+            }
+
             lock (sync)
             {
                 return results.Count >= MaxRepos || scanned >= MaxDirectoriesScanned;

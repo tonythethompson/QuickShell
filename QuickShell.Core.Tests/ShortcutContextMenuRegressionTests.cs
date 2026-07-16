@@ -41,7 +41,8 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         _settings = new QuickShellSettingsManager();
         _createCommand = new CreateShortcutCommand(() => { });
 
-        QuickShellServices.Bind(new QuickShellServices(_repository, drafts, _settings, analysis));
+        var lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
+        QuickShellServices.Bind(new QuickShellServices(_repository, drafts, _settings, analysis, lifetime));
     }
 
     public void Dispose()
