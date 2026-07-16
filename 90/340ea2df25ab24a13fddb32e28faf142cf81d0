@@ -1,0 +1,73 @@
+QuickShell/Resources/Strings.cs
+  s_99741e654dbb1c::t_87c1bef805f805 17
+  s_99741e654dbb1c::t_07b4229052deb0 28,36-37,42,65,77-79,94-97,100-102,106,111,117,132-134,142,153
+QuickShell/Services/ShortcutListItems.cs
+  s_99741e654dbb1c::t_6d3c82617fa25d 18-19
+  s_99741e654dbb1c::t_c0e8c839d71d2b 47-62
+QuickShell/Services/PackageServicingShutdownWatcher.cs
+  s_99741e654dbb1c::t_6d3c82617fa25d 12
+  s_99741e654dbb1c::t_a82417dcf7a564 150,152-170,338
+QuickShell/QuickShell.cs
+  s_99741e654dbb1c::t_6d3c82617fa25d 14
+  s_99741e654dbb1c::t_d0a9107dd297fe 5,19,28-32
+QuickShell.Core.Tests/ExtensionCallbackQueueTests.cs
+  s_99741e654dbb1c::t_41851027a7a969 51,55
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_99741e654dbb1c::t_31989386fd7652 91,105-110
+QuickShell.Core/Classification/ProjectAnalysisAccessor.cs
+  s_99741e654dbb1c::t_84fc5c82a3ecae 20
+QuickShell.Core/QuickShellJsonContext.cs
+  s_99741e654dbb1c::t_0988e5320318cf 24
+QuickShell.Core/Services/CompanionAppCatalog.cs
+  s_99741e654dbb1c::t_cfcbf30ea1beaa 169
+QuickShell.Core/Services/CompanionAppDetection.cs
+  s_99741e654dbb1c::t_5e7bdd2a975066 8
+QuickShell.Core/Services/DevServerUrlDetection.cs
+  s_99741e654dbb1c::t_7c253d6b3fe267 8
+QuickShell.Core/Services/LaunchRowListEditor.cs
+  s_99741e654dbb1c::t_e246bab39601d1 127
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_99741e654dbb1c::t_84d0b53627ea46 862
+QuickShell/Commands/MoveFavoriteShortcutCommand.cs
+  s_99741e654dbb1c::t_963eb9dff56ea9 31
+QuickShell/Commands/WorkspaceUtilityCommands.cs
+  s_99741e654dbb1c::t_bc6add8e98bf09 120
+QuickShell/Pages/ImportConflictPage.cs
+  s_99741e654dbb1c::t_c689d02a53573a 217
+QuickShell/Pages/PendingShortcutEditPage.cs
+  s_99741e654dbb1c::t_e1eb7f8470b519 165
+QuickShell/Pages/QuickShellPage.cs
+  s_99741e654dbb1c::t_af8e859f5baf08 505,522-523,575,583-584,593,601,603
+QuickShell/Pages/ShortcutFormPage.cs
+  s_99741e654dbb1c::t_d9f520f983e7f7 1326,1427
+QuickShell/Pages/ShortcutTransferSettingsForm.cs
+  s_99741e654dbb1c::t_20c173bd24bb1b 332
+QuickShell/Pages/TerminalDefaultsSettingsForm.cs
+  s_99741e654dbb1c::t_266338208f86e8 304
+QuickShell/QuickShell.csproj
+  s_99741e654dbb1c::t_4964c0849a6055 48-59
+QuickShell/Services/AgentDebugLog.cs
+  s_99741e654dbb1c::t_49aac4aae5d8dd 35-36
+QuickShell/Services/CommandRouter.cs
+  s_99741e654dbb1c::t_419b2d8f2d8084 13
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_99741e654dbb1c::t_6f8c59052f9dd3 221
+QuickShell/Services/DiscoverGitRepoListItems.cs
+  s_99741e654dbb1c::t_f1723866d4f1a7 263,265
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "90340ea2df25ab24a13fddb32e28faf142cf81d0",
+  "prompts": {},
+  "sessions": {
+    "s_99741e654dbb1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f686e-011e-7572-a4f1-49bf184c8bf0",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
