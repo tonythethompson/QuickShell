@@ -167,6 +167,7 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
     public RunDirectorySuggestionLoader(Dispatcher dispatcher) => _dispatcher = dispatcher;
 
     public void Schedule(
+        IProjectAnalysisService projectAnalysis,
         string? directory,
         IEnumerable<string?> usedCommands,
         Action<int> onGenerationStarted,
@@ -202,7 +203,7 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
                     return;
                 }
 
-                var pills = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
+                var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis);
                 if (token.IsCancellationRequested)
                 {
                     return;

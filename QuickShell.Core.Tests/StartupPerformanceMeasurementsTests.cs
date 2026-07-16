@@ -27,6 +27,8 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
     private readonly string? _originalLocalAppData;
     private readonly StringBuilderTraceListener _trace;
     private readonly ITestOutputHelper _output;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public StartupPerformanceMeasurementsTests(ITestOutputHelper output)
     {
@@ -43,6 +45,9 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
         GitRepoIndex.ResetForTests();
+
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
 
         // Capture the provider ctor's nested StartupPerformanceTrace output.
         Environment.SetEnvironmentVariable("QUICKSHELL_STARTUP_TRACE", "1");
@@ -61,9 +66,9 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [scanRoot];
         GitRepoIndex.ResetForTests();
 
-        var discoverCold = Time(() => GitRepoDiscovery.Discover([scanRoot]));
+        var discoverCold = Time(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
         // Warm discover: reuses prior results within the same process walk.
-        var discoverWarm = Time(() => GitRepoDiscovery.Discover([scanRoot]));
+        var discoverWarm = Time(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
 
         // --- Provider constructor --------------------------------------------
         GitRepoIndex.ResetForTests();
@@ -101,11 +106,11 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         // Use the real search roots (user profile common folders + all drives).
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
-        ProjectAnalysisAccessor.Reset();
+        ProjectClassificationCache.Invalidate();
         GitRepoIndex.ResetForTests();
 
-        var discoverCold = Time(() => GitRepoDiscovery.Discover());
-        var discoverWarm = Time(() => GitRepoDiscovery.Discover());
+        var discoverCold = Time(() => GitRepoDiscovery.Discover(_projectAnalysis));
+        var discoverWarm = Time(() => GitRepoDiscovery.Discover(_projectAnalysis));
 
         // Provider ctor against an isolated settings store (real git roots still prewarm).
         GitRepoIndex.ResetForTests();
@@ -270,6 +275,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         Trace.Listeners.Remove(_trace);
         Environment.SetEnvironmentVariable("QUICKSHELL_STARTUP_TRACE", null);
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;

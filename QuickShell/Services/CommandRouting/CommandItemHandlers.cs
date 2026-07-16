@@ -63,7 +63,7 @@ internal sealed class DiscoverCreateWorkspaceCommandHandler : ICommandItemHandle
     public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var discoverDirectory = descriptor.Directory!;
-        var seed = WorkspaceSeedFactory.FromGitRepoDirectory(discoverDirectory);
+        var seed = WorkspaceSeedFactory.FromGitRepoDirectory(discoverDirectory, context.Services.ProjectAnalysis);
         return new CommandItem(new CreateShortcutCommand(context.ReloadRootPages, seed, context.Services))
         {
             Title = seed.Name,

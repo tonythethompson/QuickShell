@@ -1,13 +1,25 @@
+using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 using System.Linq;
 using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class ShortcutFormTemplateJsonTests
+public sealed class ShortcutFormTemplateJsonTests : IDisposable
 {
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+
+    public ShortcutFormTemplateJsonTests()
+    {
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+    }
+
+    public void Dispose() => _provider.Dispose();
     private static readonly string[] RequiredInputIds =
   [
       "OriginalName",
@@ -245,7 +257,7 @@ public sealed class ShortcutFormTemplateJsonTests
                     OpenOnLaunch = true,
                 },
             ],
-        }, ProjectAnalysisAccessor.Instance);
+        }, _projectAnalysis);
 
         using var document = JsonDocument.Parse(dataJson);
         Assert.True(document.RootElement.GetProperty("ShowCompanionArguments_0").GetBoolean());
@@ -269,7 +281,7 @@ public sealed class ShortcutFormTemplateJsonTests
                 },
             ],
             ShowRestoredDraftNote = true,
-        }, ProjectAnalysisAccessor.Instance);
+        }, _projectAnalysis);
 
         using var document = JsonDocument.Parse(dataJson);
         Assert.Equal("My App", document.RootElement.GetProperty("Name").GetString());
@@ -287,7 +299,7 @@ public sealed class ShortcutFormTemplateJsonTests
             [
                 new CompanionAppFormRow { Preset = CompanionAppCatalog.PresetCustom },
             ],
-        }, ProjectAnalysisAccessor.Instance);
+        }, _projectAnalysis);
 
         using var document = JsonDocument.Parse(dataJson);
         Assert.True(document.RootElement.GetProperty("ShowCompanionBrowseRequired_0").GetBoolean());
@@ -312,7 +324,7 @@ public sealed class ShortcutFormTemplateJsonTests
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(new ShortcutFormTemplateJson.DataPayload
         {
             Directory = @"C:\Projects\demo",
-        }, ProjectAnalysisAccessor.Instance);
+        }, _projectAnalysis);
 
         JsonDocument.Parse(dataJson);
         Assert.Contains(@"C:\\Projects\\demo", dataJson, StringComparison.Ordinal);
@@ -323,7 +335,7 @@ public sealed class ShortcutFormTemplateJsonTests
     {
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(
             new ShortcutFormTemplateJson.DataPayload { Name = "App" },
-            ProjectAnalysisAccessor.Instance,
+            _projectAnalysis,
             [
                 ("npm run dev", TaskTypeCatalog.Frontend, "default", false),
                 ("dotnet watch", TaskTypeCatalog.Api, "wt:pwsh", true),
@@ -355,7 +367,7 @@ public sealed class ShortcutFormTemplateJsonTests
                 {
                     Directory = root,
                 },
-                ProjectAnalysisAccessor.Instance);
+                _projectAnalysis);
 
             using var document = JsonDocument.Parse(dataJson);
             Assert.True(document.RootElement.GetProperty("ShowSuggestionPills").GetBoolean());

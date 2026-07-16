@@ -99,7 +99,7 @@ internal static class DiscoverGitRepoListItems
             return cached;
         }
 
-        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), context.Services))
+        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate, context.Services.ProjectAnalysis), context.Services))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForNew(candidate),
@@ -137,7 +137,7 @@ internal static class DiscoverGitRepoListItems
             ? BuildSavedWorkspaceCommands(context, candidate.Directory, matchingShortcuts, onSaved)
             : BuildDirectoryCommands(candidate.Directory);
 
-        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), context.Services))
+        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate, context.Services.ProjectAnalysis), context.Services))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForSaved(candidate, matchingShortcuts),

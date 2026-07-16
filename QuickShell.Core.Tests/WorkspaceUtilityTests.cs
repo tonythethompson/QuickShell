@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification.Detectors;
+using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Text.Json;
@@ -10,6 +12,8 @@ namespace QuickShell.Core.Tests;
 public sealed class GitRepoDiscoveryTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public GitRepoDiscoveryTests()
     {
@@ -17,6 +21,8 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(_root);
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -26,7 +32,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(repoPath);
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
 
-        var discovered = GitRepoDiscovery.Discover([_root]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, repoPath, StringComparison.OrdinalIgnoreCase)
@@ -46,7 +52,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
                 url = https://github.com/example/sample.git
             """);
 
-        var discovered = GitRepoDiscovery.Discover([_root]).Single();
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]).Single();
 
         Assert.Equal("https://github.com/example/sample", discovered.RemoteUrl);
     }
@@ -58,7 +64,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
         Directory.CreateDirectory(Path.Combine(repoPath, "nested", ".git"));
 
-        var discovered = GitRepoDiscovery.Discover([_root]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
 
         Assert.Single(discovered);
         Assert.Equal("outer", discovered[0].Name);
@@ -72,7 +78,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(frontendRepo, ".git"));
         Directory.CreateDirectory(Path.Combine(backendRepo, ".git"));
 
-        var discovered = GitRepoDiscovery.Discover([_root], maxDegreeOfParallelism: 2);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], maxDegreeOfParallelism: 2);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, frontendRepo, StringComparison.OrdinalIgnoreCase)
@@ -88,7 +94,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "zeta", ".git"));
         Directory.CreateDirectory(Path.Combine(_root, "alpha", ".git"));
 
-        var discovered = GitRepoDiscovery.Discover([_root], maxDegreeOfParallelism: 4);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], maxDegreeOfParallelism: 4);
 
         Assert.Collection(
             discovered,
@@ -103,7 +109,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [_root];
 
-        var discovered = GitRepoDiscovery.Discover();
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, repoPath, StringComparison.OrdinalIgnoreCase));
@@ -118,7 +124,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(defaultRoot, "from-default", ".git"));
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [defaultRoot];
 
-        var discovered = GitRepoDiscovery.Discover([extraRoot]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [extraRoot]);
 
         Assert.Contains(discovered, candidate => candidate.Name == "from-shortcut");
         Assert.Contains(discovered, candidate => candidate.Name == "from-default");
@@ -137,7 +143,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
             Directory.CreateDirectory(Path.Combine(siblingRoot, $"child-{i:D4}"));
         }
 
-        var discovered = GitRepoDiscovery.Discover([siblingRoot, workspaceRoot]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [siblingRoot, workspaceRoot]);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, workspaceRoot, StringComparison.OrdinalIgnoreCase)
@@ -146,6 +152,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try
@@ -263,11 +270,15 @@ public sealed class WorkspaceLinkValidationTests
 public sealed class DevServerUrlDetectionTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public DevServerUrlDetectionTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-dev-server-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -416,7 +427,7 @@ public sealed class DevServerUrlDetectionTests : IDisposable
             Name = "sample",
             Directory = _root,
             Launches = [],
-        });
+        }, _projectAnalysis);
 
         Assert.Equal("npm run dev", seed.Command);
         Assert.Single(seed.Launches);
@@ -450,7 +461,7 @@ public sealed class DevServerUrlDetectionTests : IDisposable
                     TaskType = TaskTypeCatalog.Database,
                 },
             ],
-        });
+        }, _projectAnalysis);
 
         Assert.Single(seed.Launches);
         Assert.Equal(TaskTypeCatalog.Database, seed.Launches[0].TaskType);
@@ -461,6 +472,7 @@ public sealed class DevServerUrlDetectionTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -481,11 +493,15 @@ public sealed class GitRepoIndexIsolation
 public sealed class GitRepoIndexTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public GitRepoIndexTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-git-index-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
         GitRepoIndex.Invalidate();
     }
 
@@ -498,14 +514,14 @@ public sealed class GitRepoIndexTests : IDisposable
         GitRepoIndex.Invalidate();
         var saved = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { repoPath };
 
-        _ = GitRepoIndex.Search("alpha", [_root], saved);
+        _ = GitRepoIndex.Search(_projectAnalysis, "alpha", [_root], saved);
         GitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
 
-        var matches = GitRepoIndex.Search("alpha", [_root], saved);
+        var matches = GitRepoIndex.Search(_projectAnalysis, "alpha", [_root], saved);
 
         Assert.Empty(matches);
 
-        matches = GitRepoIndex.Search("alpha", [_root], savedDirectories: null);
+        matches = GitRepoIndex.Search(_projectAnalysis, "alpha", [_root], savedDirectories: null);
 
         Assert.Single(matches);
         Assert.Equal("alpha-app", matches[0].Name);
@@ -521,13 +537,13 @@ public sealed class GitRepoIndexTests : IDisposable
         Directory.CreateDirectory(Path.Combine(firstRepo, ".git"));
         Directory.CreateDirectory(Path.Combine(secondRepo, ".git"));
 
-        _ = GitRepoIndex.GetAll([firstRoot]);
+        _ = GitRepoIndex.GetAll(_projectAnalysis, [firstRoot]);
         GitRepoIndex.WaitForPopulationForTests(BuildRootKeyForTest(firstRoot), TimeSpan.FromSeconds(10));
-        var first = GitRepoIndex.GetAll([firstRoot]);
+        var first = GitRepoIndex.GetAll(_projectAnalysis, [firstRoot]);
 
-        _ = GitRepoIndex.GetAll([secondRoot]);
+        _ = GitRepoIndex.GetAll(_projectAnalysis, [secondRoot]);
         GitRepoIndex.WaitForPopulationForTests(BuildRootKeyForTest(secondRoot), TimeSpan.FromSeconds(10));
-        var second = GitRepoIndex.GetAll([secondRoot]);
+        var second = GitRepoIndex.GetAll(_projectAnalysis, [secondRoot]);
 
         Assert.Contains(first, candidate => candidate.Name == "alpha-app");
         Assert.DoesNotContain(second, candidate => candidate.Name == "alpha-app");
@@ -536,6 +552,7 @@ public sealed class GitRepoIndexTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         GitRepoIndex.Invalidate();
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         try

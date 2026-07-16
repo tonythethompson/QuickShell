@@ -66,8 +66,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
             var shortcuts = _services.GetRequiredService<IShortcutRepository>();
-            var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
-            ProjectAnalysisAccessor.Instance = projectAnalysis;
 
             var host = _services.GetRequiredService<QuickShellHostServices>();
             var createShortcut = new CreateShortcutCommand(ReloadPages, host.Services);

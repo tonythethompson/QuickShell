@@ -23,20 +23,20 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _multiLaunchPresentationSetting;
     private Pages.QuickShellExtensionSettingsPage? _settingsPage;
     private readonly Action? _onReload;
-    private IQuickShellServices? _services;
+    private IQuickShellServices _quickShellServices = null!;
     private bool _servicesInitialized;
 
     internal IQuickShellServices Services
     {
-        get => _services ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
+        get => _quickShellServices ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
         private set
         {
-            if (_servicesInitialized && _services != value)
+            if (_servicesInitialized && _quickShellServices != value)
             {
                 throw new InvalidOperationException("IQuickShellServices has already been initialized and cannot be reassigned.");
             }
 
-            _services = value;
+            _quickShellServices = value;
             _servicesInitialized = true;
         }
     }

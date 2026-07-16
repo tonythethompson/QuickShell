@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -60,10 +61,12 @@ internal static partial class GitRepoDiscovery
     internal static bool IncludeDefaultSearchRoots { get; set; } = true;
 
     public static IReadOnlyList<GitRepoCandidate> Discover(
+        IProjectAnalysisService projectAnalysis,
         IEnumerable<string>? extraRoots = null,
         int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
         var roots = BuildSearchRoots(extraRoots);
         if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
         {
@@ -177,7 +180,7 @@ internal static partial class GitRepoDiscovery
                     Directory = workItem.Directory,
                     Name = Path.GetFileName(workItem.Directory.TrimEnd('\\', '/')),
                     RemoteUrl = TryReadOriginRemoteUrl(workItem.Directory),
-                    Classification = ProjectAnalysisAccessor.Instance.Classify(workItem.Directory),
+                    Classification = projectAnalysis.Classify(workItem.Directory),
                 };
 
                 lock (sync)

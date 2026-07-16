@@ -1,15 +1,28 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 using System.Linq;
 using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class TaskTypeCatalogTests
+public sealed class TaskTypeCatalogTests : IDisposable
 {
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+
+    public TaskTypeCatalogTests()
+    {
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+    }
+
+    public void Dispose() => _provider.Dispose();
     [Fact]
     public void BuildPickerChoicesJson_WithoutDirectory_IncludesOnlyPlaceholder()
     {
-        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson());
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis));
         var values = document.RootElement
             .EnumerateArray()
             .Select(choice => choice.GetProperty("value").GetString())
@@ -28,7 +41,7 @@ public sealed class TaskTypeCatalogTests
 
         try
         {
-            using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(root));
+            using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis, root));
             var values = document.RootElement
                 .EnumerateArray()
                 .Select(choice => choice.GetProperty("value").GetString())
@@ -55,7 +68,7 @@ public sealed class TaskTypeCatalogTests
     [Fact]
     public void BuildPickerChoicesJson_IncludesTooltipOnEachChoice()
     {
-        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson());
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis));
 
         foreach (var choice in document.RootElement.EnumerateArray())
         {

@@ -1,10 +1,23 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Pages;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class ShortcutFormLaunchSectionTests
+public sealed class ShortcutFormLaunchSectionTests : IDisposable
 {
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+
+    public ShortcutFormLaunchSectionTests()
+    {
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+    }
+
+    public void Dispose() => _provider.Dispose();
     [Fact]
     public void ToLaunchInputs_TrimsTrailingPlaceholderBlankRowWithNoTaskType()
     {
@@ -132,7 +145,7 @@ public sealed class ShortcutFormLaunchSectionTests
 
         try
         {
-            var created = ShortcutFormLaunchSection.TryCreateCommandFromTaskType(directory, TaskTypeCatalog.Logs);
+            var created = ShortcutFormLaunchSection.TryCreateCommandFromTaskType(_projectAnalysis, directory, TaskTypeCatalog.Logs);
 
             Assert.NotNull(created);
             Assert.Equal("docker compose logs -f", created!.Command);
@@ -153,6 +166,6 @@ public sealed class ShortcutFormLaunchSectionTests
     [Fact]
     public void TryCreateCommandFromTaskType_None_ReturnsNull()
     {
-        Assert.Null(ShortcutFormLaunchSection.TryCreateCommandFromTaskType(@"C:\temp", TaskTypeCatalog.None));
+        Assert.Null(ShortcutFormLaunchSection.TryCreateCommandFromTaskType(_projectAnalysis, @"C:\temp", TaskTypeCatalog.None));
     }
 }

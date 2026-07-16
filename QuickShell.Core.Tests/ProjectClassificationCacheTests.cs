@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -5,11 +8,15 @@ namespace QuickShell.Core.Tests;
 public sealed class ProjectClassificationCacheTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public ProjectClassificationCacheTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-classify-cache-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -17,8 +24,8 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
 
-        var first = ProjectClassificationCache.Classify(_root);
-        var second = ProjectClassificationCache.Classify(_root);
+        var first = ProjectClassificationCache.Classify(_root, _projectAnalysis);
+        var second = ProjectClassificationCache.Classify(_root, _projectAnalysis);
 
         Assert.True(first.Has(ProjectStack.Docker));
         Assert.Equal(first.Stacks, second.Stacks);
@@ -29,10 +36,10 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "package.json"), """{ "scripts": { "dev": "vite" } }""");
 
-        var first = ProjectClassificationCache.Classify(_root);
+        var first = ProjectClassificationCache.Classify(_root, _projectAnalysis);
         for (var i = 0; i < 20; i++)
         {
-            var next = ProjectClassificationCache.Classify(_root);
+            var next = ProjectClassificationCache.Classify(_root, _projectAnalysis);
             Assert.Equal(first.Stacks, next.Stacks);
         }
     }
@@ -41,11 +48,11 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     public void Invalidate_ForcesReclassification()
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
-        ProjectClassificationCache.Classify(_root);
+        ProjectClassificationCache.Classify(_root, _projectAnalysis);
         ProjectClassificationCache.Invalidate(_root);
         File.WriteAllText(Path.Combine(_root, "package.json"), """{ "scripts": { "dev": "vite" } }""");
 
-        var classification = ProjectClassificationCache.Classify(_root);
+        var classification = ProjectClassificationCache.Classify(_root, _projectAnalysis);
 
         Assert.True(classification.Has(ProjectStack.Node));
     }
@@ -72,12 +79,12 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     [Fact]
     public void Classify_DetectsDotNetWhenSlnxAppearsWithoutInvalidation()
     {
-        var before = ProjectClassificationCache.Classify(_root);
+        var before = ProjectClassificationCache.Classify(_root, _projectAnalysis);
         Assert.False(before.Has(ProjectStack.DotNet));
 
         File.WriteAllText(Path.Combine(_root, "QuickShell.slnx"), "<Solution />");
 
-        var after = ProjectClassificationCache.Classify(_root);
+        var after = ProjectClassificationCache.Classify(_root, _projectAnalysis);
 
         Assert.True(after.Has(ProjectStack.DotNet));
     }
@@ -104,7 +111,7 @@ public sealed class ProjectClassificationCacheTests : IDisposable
             }
             """);
 
-        var before = ProjectClassificationCache.Classify(_root);
+        var before = ProjectClassificationCache.Classify(_root, _projectAnalysis);
         Assert.True(before.Has(ProjectStack.VsCodeWorkspace));
         Assert.Contains(before.VsCodeTasks, task => task.Command.Contains("first", StringComparison.Ordinal));
 
@@ -125,7 +132,7 @@ public sealed class ProjectClassificationCacheTests : IDisposable
             }
             """);
 
-        var after = ProjectClassificationCache.Classify(_root);
+        var after = ProjectClassificationCache.Classify(_root, _projectAnalysis);
 
         Assert.True(after.Has(ProjectStack.VsCodeWorkspace));
         Assert.Contains(after.VsCodeTasks, task => task.Command.Contains("second-after-edit", StringComparison.Ordinal));
@@ -135,14 +142,14 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     [Fact]
     public void Classify_PicksUpNestedDevContainerJsonCreationWithoutInvalidation()
     {
-        var before = ProjectClassificationCache.Classify(_root);
+        var before = ProjectClassificationCache.Classify(_root, _projectAnalysis);
         Assert.False(before.Has(ProjectStack.DevContainer));
 
         var devcontainer = Path.Combine(_root, ".devcontainer");
         Directory.CreateDirectory(devcontainer);
         File.WriteAllText(Path.Combine(devcontainer, "devcontainer.json"), "{}");
 
-        var after = ProjectClassificationCache.Classify(_root);
+        var after = ProjectClassificationCache.Classify(_root, _projectAnalysis);
         Assert.True(after.Has(ProjectStack.DevContainer));
     }
 
@@ -184,6 +191,7 @@ public sealed class ProjectClassificationCacheTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         ProjectClassificationCache.Invalidate(_root);
         try
         {
