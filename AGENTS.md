@@ -119,13 +119,14 @@ npm run dev     # ray develop
 
 ## Runtime / Tooling Preferences
 
-- **.NET 10 SDK** (no `global.json`; SDK version implied). Most projects target `net10.0-windows10.0.26100.0`; `QuickShell.Core.Tests` is `net10.0-windows10.0.26100.0`; `QuickShell.Suggest` is a console Exe. Windows-only: CsWinRT/CsWin32, Windows App SDK, WinUI, MSIX tooling.
+- **.NET 10 SDK** (no `global.json`; SDK version implied). Target frameworks differ by project: the `QuickShell` CmdPal host targets `net10.0-windows10.0.26100.0`; `QuickShell.Core`, `QuickShell.Core.Tests`, and `QuickShell.Suggest` target `net10.0-windows7.0`. All are Windows-only (CsWinRT/CsWin32, Windows App SDK, WinUI, MSIX tooling).
+- **`QuickShell.Core` has `<UseWindowsForms>true</UseWindowsForms>`** despite owning no CmdPal SDK dependency. It uses WinForms for clipboard/path pickers. So Core is only *compilable* off-Windows (via `-p:EnableWindowsTargeting=true`); it cannot *execute* on Linux. Keep Windows-only APIs in Core minimal so the swappable-host story holds.
 - **Package manager:** NuGet with **Central Package Management** (`Directory.Packages.props`, `ManagePackageVersionsCentrally=true`). CmdPal SDK is `Microsoft.CommandPalette.Extensions` (NuGet) or a sibling local PowerToys SDK via `-p:UseLocalCmdPalSdk=true` (defines `CMDPAL_HOVER_ACTIONS`; don't assume those APIs exist otherwise).
 - **No `.editorconfig` or `global.json`.** Analyzers are on: `EnableNETAnalyzers=true`, `AnalysisMode=Recommended`, plus StyleCop. Treat analyzer warnings seriously; they can break the Windows build.
 - **Node >= 22.14** for the Raycast surface; `npm`/`ray` CLI for its build/lint/test.
 - **PowerShell** drives build/deploy (`scripts/*.ps1`). Platform flag (`x64`/`ARM64`) is required on CLI `dotnet build/test`.
 - **`Directory.Build.props` is protected** by a `PreToolUse` hook (`.claude/hooks/run-guard-directory-build-props.sh`); do not edit it unless explicitly asked.
-- **Cross-platform (Linux cloud VM):** only `QuickShell.Core` builds (`-p:EnableWindowsTargeting=true`); `net10.0-windows*` assemblies cannot execute, and `dotnet test` cannot run there. Validate shared-logic changes by building Core on Linux; anything touching the extension, Run plugin, tests, or packaging must be verified on Windows.
+- **Cross-platform (Linux cloud VM):** only `QuickShell.Core` (and `QuickShell.Suggest`) build with `-p:EnableWindowsTargeting=true`; `net10.0-windows*` assemblies cannot execute there (see the `UseWindowsForms` note above). The full solution does **not** build on Linux because `QuickShell.Core.Tests` references `QuickShell.csproj` (Win10.26100). Validate shared-logic changes by building Core alone on Linux; anything touching the extension, Run plugin, tests, or packaging must be verified on Windows.
 
 ## Testing & QA
 
