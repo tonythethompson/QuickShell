@@ -15,6 +15,7 @@ namespace QuickShell.Core.Tests;
 ///
 /// **Validates: Requirements 2.5, 2.6, 3.1, 3.2, 3.3, 3.4, 3.5**
 /// </summary>
+[Collection(QuickShellServicesIsolation.Name)]
 public sealed class ShortcutContextCommandsPreservationTests : IDisposable
 {
     private readonly string _configDirectory;
@@ -149,8 +150,8 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
     public void BuildForHomePin_AlwaysContainsElevationToggle(bool runAsAdmin)
     {
         var shortcut = CreateHealthyShortcut(isPinned: false, launchCount: 1);
-        shortcut.RunAsAdmin = runAsAdmin;
         _repository.Upsert(shortcut);
+        shortcut.RunAsAdmin = runAsAdmin;
 
         var items = ShortcutContextCommands.BuildForHomePin(
             shortcut,

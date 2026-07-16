@@ -26,11 +26,10 @@ internal static class SettingsFormHelpers
             return;
         }
 
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(PostNavigationRefreshDelayMs).ConfigureAwait(false);
-            ExtensionCallbackQueue.Enqueue(refresh);
-        });
+        // Queue before navigation so the destination page cannot fetch once and miss
+        // the callback. The callback itself performs the lightweight invalidation;
+        // the host drains it on its next fetch.
+        ExtensionCallbackQueue.Enqueue(refresh);
     }
 
     /// <summary>

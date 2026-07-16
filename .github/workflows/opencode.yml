@@ -9,10 +9,7 @@ on:
 jobs:
   opencode:
     if: |
-      (github.event.issue.author_association == 'MEMBER' ||
-       github.event.issue.author_association == 'OWNER' ||
-       github.event.issue.author_association == 'COLLABORATOR' ||
-       github.event.comment.author_association == 'MEMBER' ||
+      (github.event.comment.author_association == 'MEMBER' ||
        github.event.comment.author_association == 'OWNER' ||
        github.event.comment.author_association == 'COLLABORATOR') &&
       (contains(github.event.comment.body, '/oc') ||
@@ -28,8 +25,8 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - name: Run OpenCode
-        # Pin to a reviewed commit SHA before exposing ANTHROPIC_API_KEY in production.
-        uses: anomalyco/opencode/github@main
+        # Pin the reviewed dev branch commit before exposing ANTHROPIC_API_KEY.
+        uses: anomalyco/opencode/github@4a760b5743496942fd821eeafaa7d648a5630973
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
