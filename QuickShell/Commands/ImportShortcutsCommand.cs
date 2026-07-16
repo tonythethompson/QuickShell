@@ -15,11 +15,11 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
 
     public ImportShortcutsCommand(
         Action onReload,
-        bool stayOnSettings = true,
-        Action? onSettingsRefresh = null,
-        IQuickShellServices? services = null)
+        bool stayOnSettings,
+        Action? onSettingsRefresh,
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _stayOnSettings = stayOnSettings;
         _onSettingsRefresh = onSettingsRefresh;

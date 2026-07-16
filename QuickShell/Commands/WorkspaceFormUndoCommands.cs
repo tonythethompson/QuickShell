@@ -11,10 +11,10 @@ internal sealed partial class WorkspaceFormUndoCommand : InvokableCommand
 
     public WorkspaceFormUndoCommand(
         Func<bool> tryFormUndo,
-        Action? onRepositoryChanged = null,
-        IQuickShellServices? services = null)
+        Action? onRepositoryChanged,
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _tryFormUndo = tryFormUndo;
         _onRepositoryChanged = onRepositoryChanged;
         Name = Strings.Command_Undo_Name;
@@ -51,10 +51,10 @@ internal sealed partial class WorkspaceFormRedoCommand : InvokableCommand
 
     public WorkspaceFormRedoCommand(
         Func<bool> tryFormRedo,
-        Action? onRepositoryChanged = null,
-        IQuickShellServices? services = null)
+        Action? onRepositoryChanged,
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _tryFormRedo = tryFormRedo;
         _onRepositoryChanged = onRepositoryChanged;
         Name = Strings.Command_Redo_Name;

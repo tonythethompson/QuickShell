@@ -13,9 +13,9 @@ internal sealed partial class ToggleFavoriteShortcutCommand : InvokableCommand
         string name,
         Action onChanged,
         bool isFavorite,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _name = name;
         _onChanged = onChanged;
         Id = CommandDescriptor.FavoriteToggle(name).Id;

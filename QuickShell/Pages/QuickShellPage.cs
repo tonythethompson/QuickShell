@@ -10,6 +10,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 {
+    private readonly QuickShellPageContext _context;
     private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settings;
     private readonly CreateShortcutCommand _createShortcutCommand;
@@ -32,16 +33,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _forceQueryRefresh;
     private bool _disposed;
 
-    public QuickShellPage(
-        QuickShellSettingsManager settings,
-        CreateShortcutCommand createShortcutCommand,
-        IQuickShellServices? services = null)
+    public QuickShellPage(QuickShellPageContext context)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
-        _settings = settings;
-        _settings.Services = _services;
-        _createShortcutCommand = createShortcutCommand;
-        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(Reload, _services);
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
+        _services = context.Services;
+        _settings = context.Settings;
+        _createShortcutCommand = context.CreateShortcut;
+        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(context);
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Id = QuickShellNavigation.HomePageId;
         Icon = QuickShellBrandIcons.App;
@@ -262,7 +261,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private void SetOpeningItems()
     {
         var items = new List<IListItem>();
-        items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload, _services));
+        items.AddRange(QuickShellPageActions.BuildItems(_context));
         items.Add(CreateStatusItem("Loading workspaces", "Workspace list will appear in a moment."));
         _items = items.ToArray();
         _hasLoadedWorkspaces = false;
@@ -379,12 +378,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             var pinnedInOrder = BuildPinnedInOrder(allShortcuts);
 
             var items = new List<IListItem>(capacity: Math.Max(16, allShortcuts.Count + 8));
-            foreach (var action in QuickShellPageActions.BuildItems(
-                         _createShortcutCommand,
-                         _discoverGitReposCommand,
-                         _settings,
-                         Reload,
-                         _services))
+            foreach (var action in QuickShellPageActions.BuildItems(_context))
             {
                 items.Add(action);
             }
@@ -405,12 +399,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 foreach (var taskAction in _services.Shortcuts.SearchTaskActions(normalizedQuery))
                 {
                     anyMatch = true;
-                    items.Add(ShortcutTaskActionListItems.Create(
-                        taskAction,
-                        _settings,
-                        Reload,
-                        _createShortcutCommand,
-                        services: _services));
+                    items.Add(ShortcutTaskActionListItems.Create(_context, taskAction, Reload));
                 }
 
                 foreach (var shortcut in _services.Shortcuts.Search(normalizedQuery))
@@ -427,8 +416,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                         Subtitle = Strings.NoMatch_Subtitle,
                         MoreCommands =
                         [
-                            ..ShortcutContextCommands.BuildUndoRedoCommands(Reload, _services),
-                            ShortcutContextCommands.CreateSettingsItem(_settings, _services),
+                            ..ShortcutContextCommands.BuildUndoRedoCommands(_context.Services, Reload),
+                            ShortcutContextCommands.CreateSettingsItem(_context.Services),
                         ],
                     });
                 }
@@ -465,7 +454,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             // #endregion
 
             var items = new List<IListItem>();
-            items.AddRange(QuickShellPageActions.BuildItems(_createShortcutCommand, _discoverGitReposCommand, _settings, Reload, _services));
+            items.AddRange(QuickShellPageActions.BuildItems(_context));
             items.Add(CreateStatusItem(
                 "Could not load workspaces",
                 string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message));
@@ -520,14 +509,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         var item = ShortcutListItems.CreateOpen(
+            _context,
             shortcut,
-            _settings,
             Reload,
-            _createShortcutCommand,
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
             onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true),
-            useHomePinContextMenu: true,
-            services: _services);
+            useHomePinContextMenu: true);
 
         ScheduleProfileIconUpgrade(shortcut, item);
 

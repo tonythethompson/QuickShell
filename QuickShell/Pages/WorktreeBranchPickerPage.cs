@@ -9,23 +9,20 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 {
     private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
-    private readonly QuickShellSettingsManager _settings;
     private readonly Action _onChanged;
     private readonly WorkspaceGitStatus? _knownStatus;
     private readonly string? _knownTargetBranch;
     private IListItem[] _items = [];
 
     public WorktreeBranchPickerPage(
+        IQuickShellServices services,
         string shortcutId,
-        QuickShellSettingsManager settings,
         Action onChanged,
         WorkspaceGitStatus? knownStatus = null,
-        string? knownTargetBranch = null,
-        IQuickShellServices? services = null)
+        string? knownTargetBranch = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
-        _settings = settings;
         _onChanged = onChanged;
         _knownStatus = knownStatus;
         _knownTargetBranch = knownTargetBranch;
@@ -96,7 +93,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         foreach (var branch in branches)
         {
             var isCurrent = WorkspaceGitOperations.IsOnBranch(status, branch);
-            items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _settings, _onChanged, _services))
+            items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _services, _onChanged))
             {
                 Title = branch,
                 Subtitle = isCurrent ? "Current branch" : string.Empty,

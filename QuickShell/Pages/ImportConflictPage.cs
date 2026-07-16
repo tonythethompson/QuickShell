@@ -15,9 +15,9 @@ internal sealed partial class ImportConflictPage : ContentPage
     private readonly IQuickShellServices _services;
     private readonly Action _onReload;
 
-    public ImportConflictPage(Action onReload, IQuickShellServices? services = null)
+    public ImportConflictPage(IQuickShellServices services, Action onReload)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
         Title = Strings.ImportConflictPage_Title;
@@ -25,7 +25,7 @@ internal sealed partial class ImportConflictPage : ContentPage
         _onReload = onReload;
     }
 
-    public override IContent[] GetContent() => [new ImportConflictForm(_onReload, _services)];
+    public override IContent[] GetContent() => [new ImportConflictForm(_services, _onReload)];
 }
 
 internal sealed partial class ImportConflictForm : FormContent
@@ -36,9 +36,9 @@ internal sealed partial class ImportConflictForm : FormContent
     private readonly Action _onReload;
     private readonly Action? _onSettingsChanged;
 
-    public ImportConflictForm(Action onReload, IQuickShellServices? services = null, Action? onSettingsChanged = null)
+    public ImportConflictForm(IQuickShellServices services, Action onReload, Action? onSettingsChanged = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
 

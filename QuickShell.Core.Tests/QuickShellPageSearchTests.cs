@@ -25,6 +25,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     private readonly ShortcutRepository _repository;
     private readonly QuickShellSettingsManager _settings;
     private readonly IQuickShellServices _quickShellServices;
+    private readonly QuickShellPageContext _context;
 
     public QuickShellPageSearchTests()
     {
@@ -40,6 +41,10 @@ public sealed class QuickShellPageSearchTests : IDisposable
         _settings = new QuickShellSettingsManager();
         var lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
         _quickShellServices = new QuickShellServices(_repository, drafts, _settings, analysis, lifetime);
+        _context = new QuickShellPageContext(
+            new QuickShellHostServices(_quickShellServices),
+            new CreateShortcutCommand(() => { }, _quickShellServices),
+            () => { });
 
         _repository.Upsert(new TerminalShortcut
         {
@@ -60,7 +65,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void UpdateSearchText_ReopenedWithRestoredQuery_RebuildsFilteredItems()
     {
-        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }, _quickShellServices), _quickShellServices);
+        using var page = new QuickShellPage(_context);
         _ = page.GetItems();
 
         SetPrivateField(page, "_query", "Alpha");
@@ -76,7 +81,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void DiscoverSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
     {
-        using var page = new TestDiscoverGitReposPage(() => { }, _quickShellServices);
+        using var page = new TestDiscoverGitReposPage(_context);
         SetPrivateField(page, "_hasShownInitialList", true);
 
         page.UpdateSearchText(string.Empty, "alpha");
@@ -90,7 +95,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void HomeSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
     {
-        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }, _quickShellServices), _quickShellServices);
+        using var page = new QuickShellPage(_context);
         _ = page.GetItems();
         SetPrivateField(page, "_query", "a");
 
@@ -138,7 +143,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     [Fact]
     public void Reload_AfterUnpinnedWorkspaceRename_RebuildsCachedRow()
     {
-        using var page = new QuickShellPage(_settings, new CreateShortcutCommand(() => { }, _quickShellServices), _quickShellServices);
+        using var page = new QuickShellPage(_context);
         _ = page.GetItems();
 
         _repository.Upsert(new TerminalShortcut
@@ -182,7 +187,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     private static T GetPrivateField<T>(DiscoverGitReposPage page, string name) =>
         (T)typeof(DiscoverGitReposPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
 
-    private sealed class TestDiscoverGitReposPage(Action onReload, IQuickShellServices? services = null) : DiscoverGitReposPage(onReload, services)
+    private sealed class TestDiscoverGitReposPage(QuickShellPageContext context) : DiscoverGitReposPage(context)
     {
     }
 

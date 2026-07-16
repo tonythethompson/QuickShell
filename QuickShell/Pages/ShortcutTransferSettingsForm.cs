@@ -32,12 +32,12 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
     public string BodyElementsJson { get; private set; } = "[]";
 
     public ShortcutTransferSettingsForm(
-        Action? onReload,
-        IQuickShellServices? services = null,
+        IQuickShellServices services,
+        Action? onReload = null,
         Action? onSettingsChanged = null,
         Action? onBodyChanged = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
         _onBodyChanged = onBodyChanged;
@@ -89,8 +89,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var result = new ImportShortcutsCommand(
             _onReload ?? (() => { }),
             stayOnSettings: true,
-            onSettingsRefresh: _onSettingsChanged,
-            services: _services).Invoke();
+            _onSettingsChanged,
+            _services).Invoke();
         RebuildTemplate();
         return result;
     }

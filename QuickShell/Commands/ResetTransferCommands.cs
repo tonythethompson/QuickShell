@@ -9,9 +9,9 @@ internal sealed partial class ResetProjectsCommand : InvokableCommand
     private readonly Action _onReload;
     private readonly Action? _onSettingsRefresh;
 
-    public ResetProjectsCommand(Action onReload, Action? onSettingsRefresh = null, IQuickShellServices? services = null)
+    public ResetProjectsCommand(Action onReload, Action? onSettingsRefresh, IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _onSettingsRefresh = onSettingsRefresh;
         Name = "Reset all workspaces";

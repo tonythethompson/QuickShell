@@ -18,19 +18,18 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     private WorkspaceStatusForm? _form;
 
     public WorkspaceStatusPage(
+        IQuickShellServices services,
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
-        Action onChanged,
-        IQuickShellServices? services = null)
+        Action onChanged)
     {
         _shortcut = shortcut;
-        _settings = settings;
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
+        _settings = services.Settings;
         _onChanged = onChanged;
         Id = CommandDescriptor.WorkspaceStatus(shortcut.Id).Id;
         Name = "Workspace status";
         Title = shortcut.Name;
-        Icon = new IconInfo("");
+        Icon = new IconInfo("\ue799");
         // Do not run git here. Every home-list row builds this page for the
         // "Workspace status…" context command; eager TryGetStatus made open
         // take tens of seconds with ~45 workspaces (and worse for WSL paths).
@@ -51,12 +50,11 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         }
 
         _gitCommandsLoaded = true;
-        Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
+        Commands = BuildGitCommands(_shortcut, _onChanged);
     }
 
     private CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
         Action onChanged)
     {
         if (!WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var status))
@@ -67,10 +65,10 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
         var items = new List<CommandContextItem>
         {
-            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target, _services))
+            new(new WorktreeBranchPickerPage(_services, shortcut.Id, onChanged, status, target))
             {
                 Title = "Switch branch…",
-                Icon = new IconInfo(""),
+                Icon = new IconInfo("\ue6af"),
             },
         };
 
@@ -79,7 +77,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
             items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged, _services))
             {
                 Title = "Use current branch",
-                Icon = new IconInfo(""),
+                Icon = new IconInfo("\ue694"),
             });
         }
 

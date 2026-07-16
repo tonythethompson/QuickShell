@@ -17,10 +17,10 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
     public QuickShellExtensionSettingsPage(
         QuickShellSettingsManager settingsManager,
-        Action? onReload = null,
-        IQuickShellServices? services = null)
+        IQuickShellServices services,
+        Action? onReload = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _settingsManager = settingsManager;
         _onReload = onReload ?? (() => { });
 
@@ -28,7 +28,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         Name = "Settings";
         Title = QuickShellBrand.SettingsTitle;
         Icon = new IconInfo("\uE713");
-        Commands = ShortcutContextCommands.BuildUndoRedoCommands(_onReload, _services);
+        Commands = ShortcutContextCommands.BuildUndoRedoCommands(_services, _onReload);
     }
 
     public void RefreshContent()
@@ -54,7 +54,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 
         if (_services.Drafts.HasPending)
         {
-            content.Add(new PendingShortcutEditForm(_onReload, _services, refreshSettings));
+            content.Add(new PendingShortcutEditForm(_services, _onReload, refreshSettings));
         }
 
         // Single card: terminal + Home/Multi/Git + Backup & Transfer (controlled spacing).
@@ -67,7 +67,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         lock (_contentSync)
         {
             var refreshSettings = (Action)RefreshContent;
-            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _onReload, refreshSettings, _services);
+            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _services, _onReload, refreshSettings);
         }
     }
 }

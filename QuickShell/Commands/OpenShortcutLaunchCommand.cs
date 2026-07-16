@@ -9,22 +9,19 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
     private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly string _launchId;
-    private readonly QuickShellSettingsManager _settings;
     private readonly bool _runAsAdmin;
     private readonly bool _runAsStandard;
 
     public OpenShortcutLaunchCommand(
         TerminalShortcut shortcut,
         WorkspaceEntry launch,
-        QuickShellSettingsManager settings,
+        IQuickShellServices services,
         bool runAsAdmin = false,
-        bool runAsStandard = false,
-        IQuickShellServices? services = null)
+        bool runAsStandard = false)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcut.Id;
         _launchId = launch.Id;
-        _settings = settings;
         _runAsAdmin = runAsAdmin;
         _runAsStandard = runAsStandard;
         Id = CommandDescriptor.OpenLaunch(shortcut.Id, launch.Id, runAsAdmin, runAsStandard).Id;
@@ -50,17 +47,18 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
             return QuickShellNavigation.StayOpen("That launch entry was not found.");
         }
 
+        var settings = _services.Settings;
         var result = ShortcutLaunchExecutor.LaunchEntry(
             shortcut,
             launch,
-            _settings.TerminalApplicationId,
-            _settings.DefaultProfileId,
+            settings.TerminalApplicationId,
+            settings.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,
                 IncludeCompanionApp: false,
                 IncludeDevServerLink: false,
-                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch));
+                BlockDirtyBranchSwitch: settings.BlockDirtyBranchSwitch));
 
         LaunchDiagnosticsState.Set(result.Diagnostics);
 

@@ -28,12 +28,12 @@ internal sealed partial class BehaviorSettingsForm : FormContent
 
     public BehaviorSettingsForm(
         QuickShellSettingsManager settingsManager,
+        IQuickShellServices services,
         Action? onReload = null,
-        Action? onSettingsChanged = null,
-        IQuickShellServices? services = null)
+        Action? onSettingsChanged = null)
     {
         _settingsManager = settingsManager;
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
         _terminalForm = new TerminalDefaultsSettingsForm(
@@ -41,7 +41,7 @@ internal sealed partial class BehaviorSettingsForm : FormContent
             onReload,
             onSettingsChanged,
             RebuildTemplate);
-        _transferForm = new ShortcutTransferSettingsForm(onReload, _services, onSettingsChanged, RebuildTemplate);
+        _transferForm = new ShortcutTransferSettingsForm(services, onReload, onSettingsChanged, RebuildTemplate);
         SyncPendingFromSettings();
         RebuildTemplate();
     }
