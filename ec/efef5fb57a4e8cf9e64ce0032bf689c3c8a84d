@@ -1,0 +1,23 @@
+.github/workflows/opencode.yml
+  s_99741e654dbb1c::t_e49de39e72e438 23-24,27,32,35,39
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_99741e654dbb1c::t_aa6f1bd1d34cb9 55-56
+QuickShell/Pages/QuickShellPage.cs
+  s_99741e654dbb1c::t_04425a75d76519 108-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ecefef5fb57a4e8cf9e64ce0032bf689c3c8a84d",
+  "prompts": {},
+  "sessions": {
+    "s_99741e654dbb1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f686e-011e-7572-a4f1-49bf184c8bf0",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
