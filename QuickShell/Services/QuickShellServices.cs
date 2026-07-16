@@ -10,17 +10,6 @@ namespace QuickShell.Services;
 /// </summary>
 internal sealed class QuickShellServices : IQuickShellServices
 {
-    private static IQuickShellServices? _current;
-
-    public static IQuickShellServices Current =>
-        _current ?? throw new InvalidOperationException(
-            $"{nameof(QuickShellServices)} has not been initialized by the CmdPal provider.");
-
-    internal static void Bind(IQuickShellServices instance) =>
-        _current = instance ?? throw new ArgumentNullException(nameof(instance));
-
-    internal static void Unbind() => _current = null;
-
     public IShortcutRepository Shortcuts { get; }
 
     public IDraftStore Drafts { get; }

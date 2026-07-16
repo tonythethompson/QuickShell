@@ -24,7 +24,7 @@ internal sealed class ImportConflictCommandHandler : ICommandItemHandler
     public CommandKind Kind => CommandKind.ImportConflict;
 
     public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new ImportConflictPage(context.ReloadPages))
+        new CommandItem(new ImportConflictPage(context.ReloadPages, context.Services))
         {
             Title = Strings.ImportConflictPage_Title,
             Icon = new IconInfo("\uE8FD"),
@@ -36,7 +36,7 @@ internal sealed class PendingShortcutEditCommandHandler : ICommandItemHandler
     public CommandKind Kind => CommandKind.PendingShortcutEdit;
 
     public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new PendingShortcutEditPage(context.ReloadPages))
+        new CommandItem(new PendingShortcutEditPage(context.ReloadPages, context.Services))
         {
             Title = Strings.PendingEdit_Title,
             Icon = new IconInfo("\uE7BA"),
@@ -72,7 +72,7 @@ internal sealed class DiscoverCreateWorkspaceCommandHandler : ICommandItemHandle
                 Directory = discoverDirectory,
                 Name = seed.Name,
                 RemoteUrl = seed.RepoUrl,
-                Classification = QuickShellServices.Current.ProjectAnalysis.Classify(discoverDirectory),
+                Classification = context.Services.ProjectAnalysis.Classify(discoverDirectory),
             }),
             Icon = new IconInfo(ShortcutGlyphs.Add),
         };
@@ -84,7 +84,7 @@ internal sealed class DiscoverGitReposCommandHandler : ICommandItemHandler
     public CommandKind Kind => CommandKind.DiscoverGitRepos;
 
     public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new OpenDiscoverGitReposCommand(context.ReloadPages))
+        new CommandItem(new OpenDiscoverGitReposCommand(context.ReloadPages, context.Services))
         {
             Title = "Discover git repos",
             Icon = new IconInfo(ShortcutGlyphs.Discover),
@@ -129,7 +129,8 @@ internal sealed class OpenLaunchCommandHandler : ICommandItemHandler
             action,
             context.Settings,
             context.ReloadPages,
-            context.CreateShortcut);
+            context.CreateShortcut,
+            services: context.Services);
     }
 }
 
@@ -146,7 +147,8 @@ internal sealed class OpenWorkspaceCommandHandler : ICommandItemHandler
                 shortcut,
                 context.Settings,
                 context.ReloadPages,
-                context.CreateShortcut);
+                context.CreateShortcut,
+                services: context.Services);
     }
 }
 
@@ -159,7 +161,7 @@ internal sealed class WorkspaceStatusCommandHandler : ICommandItemHandler
         var shortcut = context.Shortcuts.GetById(descriptor.WorkspaceId!);
         return shortcut is null
             ? null
-            : new CommandItem(new WorkspaceStatusPage(shortcut, context.Settings, context.ReloadPages))
+            : new CommandItem(new WorkspaceStatusPage(shortcut, context.Settings, context.ReloadPages, context.Services))
             {
                 Title = shortcut.Name,
                 Icon = new IconInfo("\uE9D9"),
@@ -192,7 +194,8 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
             context.Settings,
             context.ReloadPages,
             status,
-            target))
+            target,
+            context.Services))
         {
             Title = "Switch branch",
             Icon = new IconInfo("\uE8AB"),
@@ -233,7 +236,7 @@ internal sealed class WorktreeBranchClearCommandHandler : ICommandItemHandler
         var shortcut = context.Shortcuts.GetById(descriptor.WorkspaceId!);
         return shortcut is null
             ? null
-            : new CommandItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, context.ReloadPages))
+            : new CommandItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, context.ReloadPages, context.Services))
             {
                 Title = "Use current branch",
                 Icon = new IconInfo("\uE894"),

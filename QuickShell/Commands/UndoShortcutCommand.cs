@@ -5,10 +5,12 @@ namespace QuickShell.Commands;
 
 internal sealed partial class UndoShortcutCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly Action _onChanged;
 
-    public UndoShortcutCommand(Action onChanged)
+    public UndoShortcutCommand(Action onChanged, IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onChanged = onChanged;
         Name = Strings.Command_Undo_Name;
         Icon = new IconInfo("\uE7A7");
@@ -16,7 +18,7 @@ internal sealed partial class UndoShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        if (!QuickShellServices.Current.Shortcuts.Undo())
+        if (!_services.Shortcuts.Undo())
         {
             return QuickShellNavigation.StayOpen(Strings.Undo_NothingToUndo);
         }

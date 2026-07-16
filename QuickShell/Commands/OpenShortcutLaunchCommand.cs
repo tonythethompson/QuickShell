@@ -6,6 +6,7 @@ namespace QuickShell.Commands;
 
 internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly string _launchId;
     private readonly QuickShellSettingsManager _settings;
@@ -17,8 +18,10 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
         WorkspaceEntry launch,
         QuickShellSettingsManager settings,
         bool runAsAdmin = false,
-        bool runAsStandard = false)
+        bool runAsStandard = false,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcut.Id;
         _launchId = launch.Id;
         _settings = settings;
@@ -40,7 +43,7 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -68,7 +71,7 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 
         if (result.MarkUsed)
         {
-            QuickShellServices.Current.Shortcuts.MarkUsed(_shortcutId);
+            _services.Shortcuts.MarkUsed(_shortcutId);
         }
 
         return result.Dismiss

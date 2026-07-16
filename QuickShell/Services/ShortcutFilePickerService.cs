@@ -8,10 +8,10 @@ internal static class ShortcutFilePickerService
     private const string JsonFilter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromMinutes(2);
 
-    public static string? PickExportFile()
+    public static string? PickExportFile(IQuickShellServices? services = null)
     {
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
+        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -34,9 +34,9 @@ internal static class ShortcutFilePickerService
         });
     }
 
-    public static string? PickImportFile()
+    public static string? PickImportFile(IQuickShellServices? services = null)
     {
-        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
+        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -58,9 +58,9 @@ internal static class ShortcutFilePickerService
         });
     }
 
-    public static string? PickImportWorkspacesFile()
+    public static string? PickImportWorkspacesFile(IQuickShellServices? services = null)
     {
-        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
+        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -107,10 +107,10 @@ internal static class ShortcutFilePickerService
         });
     }
 
-    public static string? PickExportWorkspacesFile()
+    public static string? PickExportWorkspacesFile(IQuickShellServices? services = null)
     {
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = QuickShellServices.Current.Shortcuts.ConfigDirectory;
+        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {

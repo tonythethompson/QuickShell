@@ -157,7 +157,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
         var settings = new QuickShellSettingsManager();
-        QuickShellServices.Bind(new QuickShellServices(repository, drafts, settings, analysis));
+        var qsServices = new QuickShellServices(repository, drafts, settings, analysis);
 
         workspaceCount = repository.GetShortcuts().Count;
         if (workspaceCount == 0)
@@ -177,7 +177,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             workspaceCount = repository.GetShortcuts().Count;
         }
 
-        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }));
+        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
         try
         {
             var reload = Time(() => page.Reload());
@@ -187,7 +187,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         finally
         {
             page.Dispose();
-            QuickShellServices.Unbind();
+            // static locator removed; pages receive services via constructor
             provider.Dispose();
             if (copied)
             {
@@ -215,7 +215,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var drafts = (ShortcutDraftStore)provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
         var settings = new QuickShellSettingsManager();
-        QuickShellServices.Bind(new QuickShellServices(repository, drafts, settings, analysis));
+        var qsServices = new QuickShellServices(repository, drafts, settings, analysis);
 
         for (var i = 0; i < workspaceCount; i++)
         {
@@ -229,7 +229,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         }
 
         // Reproduce exactly how the provider builds its home page.
-        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }));
+        var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
         try
         {
             var reload = Time(() => page.Reload());
@@ -239,7 +239,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         finally
         {
             page.Dispose();
-            QuickShellServices.Unbind();
+            // static locator removed; pages receive services via constructor
             provider.Dispose();
         }
     }

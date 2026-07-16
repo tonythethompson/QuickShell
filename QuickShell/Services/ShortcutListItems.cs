@@ -16,13 +16,14 @@ internal static class ShortcutListItems
         PinnedMoveVisibility moveVisibility = default,
         bool includeEdit = true,
         Action? onFavoritesReordered = null,
-        bool useHomePinContextMenu = false)
+        bool useHomePinContextMenu = false,
+        IQuickShellServices? services = null)
     {
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
-            ? new ShortcutFormPage(shortcut, onChanged)
-            : new OpenTerminalShortcutCommand(shortcut, settings);
+            ? new ShortcutFormPage(shortcut, onChanged, services: services)
+            : new OpenTerminalShortcutCommand(shortcut, settings, services: services);
 
         var item = new ListItem(primaryCommand)
         {
@@ -43,7 +44,7 @@ internal static class ShortcutListItems
         if (onChanged is not null)
         {
             item.MoreCommands = needsRepair
-                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings)
+                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings, services)
                 : useHomePinContextMenu
                     ? ShortcutContextCommands.BuildForHomePin(
                         shortcut,
@@ -51,7 +52,8 @@ internal static class ShortcutListItems
                         settings,
                         createShortcutCommand,
                         needsRepair,
-                        moveVisibility)
+                        moveVisibility,
+                        services)
                     : ShortcutContextCommands.Build(
                         shortcut,
                         onChanged,
@@ -59,7 +61,8 @@ internal static class ShortcutListItems
                         createShortcutCommand,
                         includeEdit,
                         moveVisibility,
-                        onFavoritesReordered);
+                        onFavoritesReordered,
+                        services: services);
         }
 
         return item;

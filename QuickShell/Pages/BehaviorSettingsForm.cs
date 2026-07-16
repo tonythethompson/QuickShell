@@ -16,6 +16,7 @@ internal sealed partial class BehaviorSettingsForm : FormContent
     private const string BlockDirtyBranchSwitchField = "blockDirtyBranchSwitch";
 
     private readonly QuickShellSettingsManager _settingsManager;
+    private readonly IQuickShellServices _services;
     private readonly Action? _onReload;
     private readonly Action? _onSettingsChanged;
     private readonly TerminalDefaultsSettingsForm _terminalForm;
@@ -28,9 +29,11 @@ internal sealed partial class BehaviorSettingsForm : FormContent
     public BehaviorSettingsForm(
         QuickShellSettingsManager settingsManager,
         Action? onReload = null,
-        Action? onSettingsChanged = null)
+        Action? onSettingsChanged = null,
+        IQuickShellServices? services = null)
     {
         _settingsManager = settingsManager;
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
         _terminalForm = new TerminalDefaultsSettingsForm(
@@ -38,7 +41,7 @@ internal sealed partial class BehaviorSettingsForm : FormContent
             onReload,
             onSettingsChanged,
             RebuildTemplate);
-        _transferForm = new ShortcutTransferSettingsForm(onReload, onSettingsChanged, RebuildTemplate);
+        _transferForm = new ShortcutTransferSettingsForm(onReload, _services, onSettingsChanged, RebuildTemplate);
         SyncPendingFromSettings();
         RebuildTemplate();
     }
