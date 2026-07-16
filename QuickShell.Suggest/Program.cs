@@ -1,4 +1,6 @@
 using System.Text.Json;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Services;
 
 if (!SuggestCommandLineArgs.TryParse(args, out var directory, out var usedCommands, out var generation))
@@ -7,7 +9,7 @@ if (!SuggestCommandLineArgs.TryParse(args, out var directory, out var usedComman
     return 1;
 }
 
-var pills = CommandSuggestionService.GetPills(directory, usedCommands);
+var pills = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
 var payload = new
 {
     generation,

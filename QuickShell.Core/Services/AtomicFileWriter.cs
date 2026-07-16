@@ -53,7 +53,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
                     File.Delete(tempPath);
                 }
             }
-            catch
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 // Best effort.
             }

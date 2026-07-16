@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -40,7 +41,7 @@ internal static class TaskTypeCandidateBuilder
             foreach (var (scriptName, scriptValue) in context.Classification.NodeScripts
                          .Take(CommandSuggestionService.MaxNodeScripts))
             {
-                var command = ProjectAnalysisAccessor.Instance.FormatPackageScriptCommand(context.Directory, scriptName);
+                var command = context.ProjectAnalysis.FormatPackageScriptCommand(context.Directory, scriptName);
                 AddCandidate(
                     candidates,
                     seenCommands,
@@ -476,5 +477,6 @@ internal static class TaskTypeCandidateBuilder
     internal sealed record SuggestionContext(
         string Directory,
         IReadOnlyList<WorkspaceSetupTask> Suggestions,
-        ProjectClassification Classification);
+        ProjectClassification Classification,
+        IProjectAnalysisService ProjectAnalysis);
 }

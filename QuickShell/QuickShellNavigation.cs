@@ -49,7 +49,7 @@ internal static class QuickShellNavigation
         ShowToast(toastMessage);
         return CommandResult.GoToPage(new GoToPageArgs
         {
-            PageId = Services.ShortcutCommandIds.CreateShortcut,
+            PageId = CommandDescriptor.CreateWorkspace().Id,
         });
     }
 

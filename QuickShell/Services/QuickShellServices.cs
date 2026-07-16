@@ -1,43 +1,39 @@
+using System.Text.Json;
 using System.Threading.Tasks;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
 
 /// <summary>
 /// CmdPal host facade seeded from the composition root at provider startup.
-/// Pages and commands resolve shared singletons through <see cref="Current"/>.
+/// Pages and commands receive this instance through constructor injection.
 /// </summary>
-internal sealed class QuickShellServices
+internal sealed class QuickShellServices : IQuickShellServices
 {
-    private static QuickShellServices? _current;
+    public IShortcutRepository Shortcuts { get; }
 
-    public static QuickShellServices Current =>
-        _current ?? throw new InvalidOperationException(
-            $"{nameof(QuickShellServices)} has not been initialized by the CmdPal provider.");
-
-    internal static void Bind(QuickShellServices instance) =>
-        _current = instance ?? throw new ArgumentNullException(nameof(instance));
-
-    internal static void Unbind() => _current = null;
-
-    public ShortcutRepository Shortcuts { get; }
-
-    public ShortcutDraftStore Drafts { get; }
+    public IDraftStore Drafts { get; }
 
     public QuickShellSettingsManager Settings { get; }
 
     public IProjectAnalysisService ProjectAnalysis { get; }
 
+    public IQuickShellLifetime Lifetime { get; }
+
     public QuickShellServices(
-        ShortcutRepository shortcuts,
-        ShortcutDraftStore drafts,
+        IShortcutRepository shortcuts,
+        IDraftStore drafts,
         QuickShellSettingsManager settings,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IQuickShellLifetime lifetime)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+        Lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+        settings.Services = this;
         BeginShortcutPreload();
     }
 
@@ -47,9 +43,9 @@ internal sealed class QuickShellServices
     {
         try
         {
-            await Shortcuts.PreloadAsync().ConfigureAwait(false);
+            await Shortcuts.PreloadAsync(Lifetime.CancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or OperationCanceledException)
         {
             // Best effort warm-up; synchronous access still loads on demand.
         }

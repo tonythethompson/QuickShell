@@ -13,11 +13,24 @@ internal static class SettingsFormHelpers
     internal const int PostNavigationRefreshDelayMs = 1;
 
     /// <summary>
-    /// Runs UI refresh callbacks on the CmdPal extension thread. Using Task.Run here
-    /// prevents RaiseItemsChanged from reaching the host and leaves pages stuck loading.
+    /// Defers the refresh so the calling page can return its current items before the
+    /// heavier refresh work runs, then marshals the callback back to the CmdPal extension
+    /// thread (via ExtensionCallbackQueue, drained from GetItems) so RaiseItemsChanged and
+    /// page notifications run where the host expects them. COM/disposed exceptions are
+    /// swallowed by the queue drain, matching ScheduleRefresh.
     /// </summary>
-    internal static void SchedulePostNavigationRefresh(Action? refresh) =>
-        InvokeSafe(refresh);
+    internal static void SchedulePostNavigationRefresh(Action? refresh)
+    {
+        if (refresh is null)
+        {
+            return;
+        }
+
+        // Queue before navigation so the destination page cannot fetch once and miss
+        // the callback. The callback itself performs the lightweight invalidation;
+        // the host drains it on its next fetch.
+        ExtensionCallbackQueue.Enqueue(refresh);
+    }
 
     /// <summary>
     /// Defers settings UI refresh so CmdPal can show a page-level toast first.

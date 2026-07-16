@@ -155,7 +155,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 return Clone(shortcut);
             }
 
-            if (ShortcutCommandIds.TryDecodeLegacyNameKey(key, out var legacyName) &&
+            if (CommandDescriptor.TryDecodeLegacyNameKey(key, out var legacyName) &&
                 _shortcutsByName.TryGetValue(legacyName, out shortcut))
             {
                 return Clone(shortcut);
@@ -763,9 +763,27 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         });
     }
 
-    public bool MovePinned(string name, int direction)
+    public bool MovePinned(string name, int direction) =>
+        MovePinnedCore(direction, match: s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    public bool MovePinnedToEdge(string name, bool toTop) =>
+        MovePinnedToEdgeCore(toTop, match: s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    public bool MovePinnedById(string id, int direction) =>
+        MovePinnedCore(
+            direction,
+            match: s => !string.IsNullOrWhiteSpace(id)
+                && s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+    public bool MovePinnedToEdgeById(string id, bool toTop) =>
+        MovePinnedToEdgeCore(
+            toTop,
+            match: s => !string.IsNullOrWhiteSpace(id)
+                && s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+    private bool MovePinnedCore(int direction, Func<TerminalShortcut, bool> match)
     {
-        if (string.IsNullOrWhiteSpace(name) || direction == 0)
+        if (direction == 0)
         {
             return false;
         }
@@ -776,14 +794,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             CancelPendingPersist();
             var previous = CloneLayout(_layout);
             var layout = CloneLayout(_layout);
-            var shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout);
-            var pinned = shortcuts
-                .Where(s => s.IsPinned)
-                .OrderBy(s => s.PinOrder ?? int.MaxValue)
-                .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var pinned = GetPinnedOrdered(layout);
 
-            var index = pinned.FindIndex(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var index = pinned.FindIndex(s => match(s));
             if (index < 0)
             {
                 return false;
@@ -796,10 +809,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             (pinned[index], pinned[target]) = (pinned[target], pinned[index]);
-            for (var i = 0; i < pinned.Count; i++)
-            {
-                SetPinOrder(shortcuts, pinned[i].Name, i + 1);
-            }
+            // Re-number every favorite so sort order is unambiguous (null PinOrder
+            // was collapsing many favorites into name order and making moves look inert).
+            RenumberPinned(pinned);
 
             RecordHistoryLayoutLocked(previous, layout);
             SaveLayoutLocked(layout);
@@ -807,27 +819,17 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         });
     }
 
-    public bool MovePinnedToEdge(string name, bool toTop)
+    private bool MovePinnedToEdgeCore(bool toTop, Func<TerminalShortcut, bool> match)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return false;
-        }
-
         return WithLock(() =>
         {
             EnsureLoaded();
             CancelPendingPersist();
             var previous = CloneLayout(_layout);
             var layout = CloneLayout(_layout);
-            var shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout);
-            var pinned = shortcuts
-                .Where(s => s.IsPinned)
-                .OrderBy(s => s.PinOrder ?? int.MaxValue)
-                .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var pinned = GetPinnedOrdered(layout);
 
-            var index = pinned.FindIndex(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var index = pinned.FindIndex(s => match(s));
             if (index < 0)
             {
                 return false;
@@ -842,16 +844,28 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             var item = pinned[index];
             pinned.RemoveAt(index);
             pinned.Insert(target, item);
-
-            for (var i = 0; i < pinned.Count; i++)
-            {
-                SetPinOrder(shortcuts, pinned[i].Name, i + 1);
-            }
+            RenumberPinned(pinned);
 
             RecordHistoryLayoutLocked(previous, layout);
             SaveLayoutLocked(layout);
             return true;
         });
+    }
+
+    private static List<TerminalShortcut> GetPinnedOrdered(List<ShortcutLayoutEntry> layout) =>
+        ShortcutLayoutJson.ExtractShortcuts(layout)
+            .Where(s => s.IsPinned)
+            .OrderBy(s => s.PinOrder ?? int.MaxValue)
+            .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static void RenumberPinned(List<TerminalShortcut> pinned)
+    {
+        for (var i = 0; i < pinned.Count; i++)
+        {
+            pinned[i].IsPinned = true;
+            pinned[i].PinOrder = i + 1;
+        }
     }
 
     public void MarkUsed(string shortcutId)
@@ -947,37 +961,36 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         try
         {
             EnsureLoaded();
+
+            // One pass over workspaces. Abbreviation hits win the whole query when any exist.
             List<TerminalShortcut>? abbreviationMatches = null;
-            foreach (var shortcut in _shortcuts)
-            {
-                if (!ContainsText(shortcut.Abbreviation, query, queryStart, queryLength))
-                {
-                    continue;
-                }
-
-                abbreviationMatches ??= [];
-                abbreviationMatches.Add(shortcut);
-            }
-
-            if (abbreviationMatches is not null)
-            {
-                abbreviationMatches.Sort((left, right) => CompareAbbreviationMatch(left, right, query, queryStart, queryLength));
-                return CloneAll(abbreviationMatches);
-            }
-
             List<TerminalShortcut>? matches = null;
             foreach (var shortcut in _shortcuts)
             {
+                if (ContainsText(shortcut.Abbreviation, query, queryStart, queryLength))
+                {
+                    abbreviationMatches ??= [];
+                    abbreviationMatches.Add(shortcut);
+                    continue;
+                }
+
                 if (!MatchesForRootPalette(shortcut, query, queryStart, queryLength))
                 {
                     continue;
                 }
 
                 matches ??= [];
-                matches.Add(Clone(shortcut));
+                matches.Add(shortcut);
             }
 
-            return matches is null ? [] : matches.ToArray();
+            if (abbreviationMatches is not null)
+            {
+                abbreviationMatches.Sort((left, right) =>
+                    CompareAbbreviationMatch(left, right, query, queryStart, queryLength));
+                return CloneAll(abbreviationMatches);
+            }
+
+            return matches is null ? [] : CloneAll(matches);
         }
         finally
         {
@@ -1005,6 +1018,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     continue;
                 }
 
+                bool? requiresRepair = null;
                 foreach (var launch in shortcut.Launches)
                 {
                     if (!launch.IsEnabled)
@@ -1018,9 +1032,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                         continue;
                     }
 
-                    if (ShortcutHealth.WouldNeedRepair(shortcut))
+                    // Avoid filesystem validation for workspaces that do not match this query.
+                    requiresRepair ??= ShortcutHealth.WouldNeedRepair(shortcut);
+                    if (requiresRepair.Value)
                     {
-                        continue;
+                        break;
                     }
 
                     matches ??= [];
@@ -1028,13 +1044,26 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 }
             }
 
-            return matches is null
-                ? []
-                : matches
-                    .OrderByDescending(action => action.Score)
-                    .ThenBy(action => action.Workspace.Name, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(action => action.Launch.Order)
-                    .ToArray();
+            if (matches is null)
+            {
+                return [];
+            }
+
+            matches.Sort(static (left, right) =>
+            {
+                var byScore = right.Score.CompareTo(left.Score);
+                if (byScore != 0)
+                {
+                    return byScore;
+                }
+
+                var byName = string.Compare(
+                    left.Workspace.Name,
+                    right.Workspace.Name,
+                    StringComparison.OrdinalIgnoreCase);
+                return byName != 0 ? byName : left.Launch.Order.CompareTo(right.Launch.Order);
+            });
+            return matches;
         }
         finally
         {
@@ -1937,10 +1966,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         left.OpenCompanionAppOnLaunch == right.OpenCompanionAppOnLaunch &&
         string.Equals(left.CompanionAppPath, right.CompanionAppPath, StringComparison.Ordinal) &&
         string.Equals(left.CompanionAppArguments, right.CompanionAppArguments, StringComparison.Ordinal) &&
-        LaunchListsEqual(left.Launches, right.Launches);
+        LaunchListsEqual(left.Launches, right.Launches) &&
+        CompanionListsEqual(left.CompanionApps, right.CompanionApps);
 
-    private static bool LaunchListsEqual(List<WorkspaceEntry> left, List<WorkspaceEntry> right)
+    private static bool LaunchListsEqual(List<WorkspaceEntry>? left, List<WorkspaceEntry>? right)
     {
+        left ??= [];
+        right ??= [];
         if (left.Count != right.Count)
         {
             return false;
@@ -1967,6 +1999,32 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return true;
     }
 
+    private static bool CompanionListsEqual(List<CompanionAppEntry>? left, List<CompanionAppEntry>? right)
+    {
+        left ??= [];
+        right ??= [];
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            var a = left[i];
+            var b = right[i];
+            if (!string.Equals(a.Id, b.Id, StringComparison.Ordinal)
+                || !string.Equals(a.Path, b.Path, StringComparison.Ordinal)
+                || !string.Equals(a.Arguments, b.Arguments, StringComparison.Ordinal)
+                || a.OpenOnLaunch != b.OpenOnLaunch
+                || a.Order != b.Order)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static TerminalShortcut Clone(TerminalShortcut shortcut) => new()
     {
         Id = shortcut.Id,
@@ -1980,7 +2038,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         IsPinned = shortcut.IsPinned,
         PinOrder = shortcut.PinOrder,
         LastUsedUtc = shortcut.LastUsedUtc,
-        Launches = shortcut.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
+        Launches = (shortcut.Launches ?? []).Select(WorkspaceMapper.CloneEntry).ToList(),
+        CompanionApps = (shortcut.CompanionApps ?? []).Select(CompanionAppNormalization.CloneEntry).ToList(),
         DevServerUrl = shortcut.DevServerUrl,
         OpenDevServerOnLaunch = shortcut.OpenDevServerOnLaunch,
         RepoUrl = shortcut.RepoUrl,

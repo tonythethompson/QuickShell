@@ -7,10 +7,14 @@ namespace QuickShell.Commands;
 
 internal sealed partial class CopyShortcutPathCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
 
-    public CopyShortcutPathCommand(string shortcutId)
+    public CopyShortcutPathCommand(
+        string shortcutId,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcutId;
         Name = Strings.Menu_CopyPath;
         Icon = new IconInfo(ShortcutGlyphs.CopyPath);
@@ -18,7 +22,7 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -50,10 +54,14 @@ internal sealed partial class CopyLaunchDiagnosticsCommand : InvokableCommand
 
 internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
 
-    public OpenShortcutFolderInExplorerCommand(string shortcutId)
+    public OpenShortcutFolderInExplorerCommand(
+        string shortcutId,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcutId;
         Name = Strings.Menu_OpenInFileExplorer;
         Icon = new IconInfo("\uE838");
@@ -61,7 +69,7 @@ internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCom
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -106,17 +114,23 @@ internal enum WorkspaceLinkKind
 
 internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly WorkspaceLinkKind _kind;
 
-    public OpenWorkspaceLinkCommand(string shortcutId, WorkspaceLinkKind kind)
+    public OpenWorkspaceLinkCommand(
+        string shortcutId,
+        WorkspaceLinkKind kind,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcutId;
         _kind = kind;
         Name = kind switch
         {
             WorkspaceLinkKind.DevServer => Strings.Menu_OpenDevServer,
             WorkspaceLinkKind.Repo => Strings.Menu_OpenRepository,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
         Icon = new IconInfo(
             kind == WorkspaceLinkKind.Repo ? ShortcutGlyphs.OpenRepository : "\uE774");
@@ -124,7 +138,7 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -142,18 +156,23 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
 
 internal sealed partial class OpenCompanionAppCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
 
-    public OpenCompanionAppCommand(TerminalShortcut shortcut)
+    public OpenCompanionAppCommand(
+        TerminalShortcut shortcut,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcut.Id;
-        Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath));
-        Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(shortcut.CompanionAppPath));
+        var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
+        Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut));
+        Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(primaryPath));
     }
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -170,9 +189,11 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
 
 internal sealed partial class OpenDiscoverGitReposCommand : DiscoverGitReposPage
 {
-    public OpenDiscoverGitReposCommand(Action onReload)
-        : base(onReload)
+    public OpenDiscoverGitReposCommand(Action onReload, IQuickShellServices? services = null)
+        : base(onReload, services)
     {
+        Id = PageId;
+        Icon = new IconInfo(ShortcutGlyphs.Discover);
         Title = Strings.Discover_Title;
         Name = Strings.Discover_Name;
         PlaceholderText = Strings.Discover_Placeholder;

@@ -12,27 +12,49 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
 {
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
+    private readonly IQuickShellServices _services;
+    private readonly Action _onChanged;
+    private bool _gitCommandsLoaded;
+    private WorkspaceStatusForm? _form;
 
     public WorkspaceStatusPage(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action onChanged)
+        Action onChanged,
+        IQuickShellServices? services = null)
     {
         _shortcut = shortcut;
         _settings = settings;
-        Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _onChanged = onChanged;
+        Id = CommandDescriptor.WorkspaceStatus(shortcut.Id).Id;
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");
-        Commands = BuildGitCommands(shortcut, settings, onChanged);
+        // Do not run git here. Every home-list row builds this page for the
+        // "Workspace status…" context command; eager TryGetStatus made open
+        // take tens of seconds with ~45 workspaces (and worse for WSL paths).
+        Commands = [];
     }
 
-    public override IContent[] GetContent() =>
-        [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
+    public override IContent[] GetContent()
+    {
+        EnsureGitCommands();
+        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
+    }
 
-    private WorkspaceStatusForm? _form;
+    private void EnsureGitCommands()
+    {
+        if (_gitCommandsLoaded)
+        {
+            return;
+        }
 
-    private static CommandContextItem[] BuildGitCommands(
+        _gitCommandsLoaded = true;
+        Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
+    }
+
+    private CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
         Action onChanged)
@@ -45,7 +67,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
         var items = new List<CommandContextItem>
         {
-            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target))
+            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target, _services))
             {
                 Title = "Switch branch…",
                 Icon = new IconInfo(""),
@@ -54,7 +76,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(target))
         {
-            items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged))
+            items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged, _services))
             {
                 Title = "Use current branch",
                 Icon = new IconInfo(""),
@@ -147,7 +169,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
         var count = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut).Count;
         var companion = CompanionAppLauncher.IsConfigured(shortcut)
-            ? $" · Companion: {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}"
+            ? $" · Companion: {CompanionAppLauncher.BuildDisplaySummary(shortcut)}"
             : string.Empty;
         return count == 1
             ? $"1 enabled launch{companion}"

@@ -1,5 +1,6 @@
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification.Classifiers;
+using QuickShell.Classification.Suggestions;
 using QuickShell.Services;
 
 namespace QuickShell.Classification;
@@ -21,6 +22,12 @@ internal static class ProjectClassificationPipeline
         new ProcfileProjectClassifier(),
         new RubyProjectClassifier(),
         new ElixirProjectClassifier(),
+    ];
+
+    internal static IReadOnlyList<ITaskSuggestionProvider> CreateDefaultTaskSuggestionProviders() =>
+    [
+        new WorkspaceSetupTaskSuggestionProvider(),
+        new DockerComposeTaskSuggestionProvider(),
     ];
 
     internal static ProjectClassification Classify(

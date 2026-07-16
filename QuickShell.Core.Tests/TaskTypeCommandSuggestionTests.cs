@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class TaskTypeCommandSuggestionTests : IDisposable
 {
     private readonly string _root;

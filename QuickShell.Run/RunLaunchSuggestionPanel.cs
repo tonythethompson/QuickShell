@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
 using QuickShell.Services;
 using System.IO;
 using System.Windows;
@@ -154,11 +156,13 @@ internal sealed class RunLaunchSuggestionPanel
     }
 }
 
-internal sealed class RunDirectorySuggestionLoader
+internal sealed class RunDirectorySuggestionLoader : IDisposable
 {
     private readonly Dispatcher _dispatcher;
+    private readonly object _gate = new();
     private CancellationTokenSource? _debounceCts;
     private int _generation;
+    private bool _disposed;
 
     public RunDirectorySuggestionLoader(Dispatcher dispatcher) => _dispatcher = dispatcher;
 
@@ -168,9 +172,22 @@ internal sealed class RunDirectorySuggestionLoader
         Action<int> onGenerationStarted,
         Func<IReadOnlyList<CommandSuggestionPill>, int, Task> onCompleted)
     {
-        _debounceCts?.Cancel();
-        _debounceCts = new CancellationTokenSource();
-        var token = _debounceCts.Token;
+        CancellationTokenSource cancellation;
+        CancellationTokenSource? previous;
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            cancellation = new CancellationTokenSource();
+            previous = _debounceCts;
+            _debounceCts = cancellation;
+        }
+
+        previous?.Cancel();
+        var token = cancellation.Token;
         var generation = Interlocked.Increment(ref _generation);
         onGenerationStarted(generation);
 
@@ -185,7 +202,7 @@ internal sealed class RunDirectorySuggestionLoader
                     return;
                 }
 
-                var pills = CommandSuggestionService.GetPills(directory, usedCommands);
+                var pills = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
                 if (token.IsCancellationRequested)
                 {
                     return;
@@ -205,6 +222,36 @@ internal sealed class RunDirectorySuggestionLoader
 
                 await _dispatcher.InvokeAsync(() => onCompleted([], generation));
             }
-        }, token);
+            finally
+            {
+                lock (_gate)
+                {
+                    if (ReferenceEquals(_debounceCts, cancellation))
+                    {
+                        _debounceCts = null;
+                    }
+                }
+
+                cancellation.Dispose();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        CancellationTokenSource? cancellation;
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            cancellation = _debounceCts;
+            _debounceCts = null;
+        }
+
+        cancellation?.Cancel();
     }
 }

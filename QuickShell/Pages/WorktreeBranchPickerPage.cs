@@ -7,6 +7,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly QuickShellSettingsManager _settings;
     private readonly Action _onChanged;
@@ -19,14 +20,16 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         QuickShellSettingsManager settings,
         Action onChanged,
         WorkspaceGitStatus? knownStatus = null,
-        string? knownTargetBranch = null)
+        string? knownTargetBranch = null,
+        IQuickShellServices? services = null)
     {
+        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         _shortcutId = shortcutId;
         _settings = settings;
         _onChanged = onChanged;
         _knownStatus = knownStatus;
         _knownTargetBranch = knownTargetBranch;
-        Id = ShortcutCommandIds.WorktreeBranchPicker(shortcutId);
+        Id = CommandDescriptor.WorktreeBranchPicker(shortcutId).Id;
         Title = "Switch branch";
         Name = "Switch branch";
         Icon = new IconInfo("\uE8AB");
@@ -41,7 +44,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 
     private IListItem[] BuildItems()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return
@@ -93,7 +96,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         foreach (var branch in branches)
         {
             var isCurrent = WorkspaceGitOperations.IsOnBranch(status, branch);
-            items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _settings, _onChanged))
+            items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _settings, _onChanged, _services))
             {
                 Title = branch,
                 Subtitle = isCurrent ? "Current branch" : string.Empty,

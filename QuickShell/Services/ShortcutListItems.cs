@@ -12,13 +12,23 @@ internal static class ShortcutListItems
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
         Action? onChanged = null,
-        CreateShortcutCommand? createShortcutCommand = null)
+        CreateShortcutCommand? createShortcutCommand = null,
+        PinnedMoveVisibility moveVisibility = default,
+        bool includeEdit = true,
+        Action? onFavoritesReordered = null,
+        bool useHomePinContextMenu = false,
+        IQuickShellServices? services = null)
     {
+        if (services is null)
+        {
+            throw new InvalidOperationException("IQuickShellServices is required.");
+        }
+
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
-            ? new ShortcutFormPage(shortcut, onChanged)
-            : new OpenTerminalShortcutCommand(shortcut, settings);
+            ? new ShortcutFormPage(services, shortcut, onChanged)
+            : new OpenTerminalShortcutCommand(shortcut, settings, services: services);
 
         var item = new ListItem(primaryCommand)
         {
@@ -39,15 +49,25 @@ internal static class ShortcutListItems
         if (onChanged is not null)
         {
             item.MoreCommands = needsRepair
-                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings)
-                : createShortcutCommand is not null
+                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings, services)
+                : useHomePinContextMenu
                     ? ShortcutContextCommands.BuildForHomePin(
                         shortcut,
                         onChanged,
                         settings,
                         createShortcutCommand,
-                        needsRepair)
-                    : item.MoreCommands;
+                        needsRepair,
+                        moveVisibility,
+                        services)
+                    : ShortcutContextCommands.Build(
+                        shortcut,
+                        onChanged,
+                        settings,
+                        createShortcutCommand,
+                        includeEdit,
+                        moveVisibility,
+                        onFavoritesReordered,
+                        services: services);
         }
 
         return item;

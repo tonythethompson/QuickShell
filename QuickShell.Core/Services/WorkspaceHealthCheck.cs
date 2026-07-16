@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Diagnostics;
 using System.Net;
@@ -58,8 +59,18 @@ internal sealed class WorkspaceHealthResult
         Findings.Where(finding => finding.Severity == WorkspaceHealthSeverity.Warning).ToList();
 }
 
-internal static partial class WorkspaceHealthCheck
+/// <summary>
+/// Production health checks for a workspace. The public static API is still the primary
+/// entry point for callers and test seams, but the mutable override state now lives on
+/// a singleton instance so the service lifetime matches the global state.
+/// </summary>
+internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
 {
+    /// <summary>
+    /// Singleton instance used by the public static API and registered in DI.
+    /// </summary>
+    internal static WorkspaceHealthCheck Default { get; } = new WorkspaceHealthCheck();
+
     private static readonly string[] ShellBuiltins =
     [
         "cd",
@@ -80,18 +91,72 @@ internal static partial class WorkspaceHealthCheck
         "type",
     ];
 
-    internal static Func<string, bool>? ExecutableExistsOverride { get; set; }
+    // Test-seam overrides stored on the singleton instance so mutable state is scoped
+    // to the service lifetime rather than spread across static fields.
+    private Func<string, bool>? _executableExistsOverride;
+    private Func<int, bool>? _portInUseOverride;
+    private Func<IReadOnlyList<string>>? _processNamesOverride;
+    private Func<IReadOnlyList<string>>? _wslDistroNamesOverride;
+    private Func<string, WorkspaceGitStatus?>? _gitStatusOverride;
+    private Func<string, string, string?>? _gitCommandOverride;
 
-    internal static Func<int, bool>? PortInUseOverride { get; set; }
+    internal static Func<string, bool>? ExecutableExistsOverride
+    {
+        get => Default._executableExistsOverride;
+        set => Default._executableExistsOverride = value;
+    }
 
-    internal static Func<IReadOnlyList<string>>? ProcessNamesOverride { get; set; }
+    internal static Func<int, bool>? PortInUseOverride
+    {
+        get => Default._portInUseOverride;
+        set => Default._portInUseOverride = value;
+    }
 
-    internal static Func<IReadOnlyList<string>>? WslDistroNamesOverride { get; set; }
+    internal static Func<IReadOnlyList<string>>? ProcessNamesOverride
+    {
+        get => Default._processNamesOverride;
+        set => Default._processNamesOverride = value;
+    }
 
-    internal static Func<string, WorkspaceGitStatus?>? GitStatusOverride { get; set; }
+    internal static Func<IReadOnlyList<string>>? WslDistroNamesOverride
+    {
+        get => Default._wslDistroNamesOverride;
+        set => Default._wslDistroNamesOverride = value;
+    }
 
-    internal static Func<string, string, string?>? GitCommandOverride { get; set; }
+    internal static Func<string, WorkspaceGitStatus?>? GitStatusOverride
+    {
+        get => Default._gitStatusOverride;
+        set => Default._gitStatusOverride = value;
+    }
 
+    internal static Func<string, string, string?>? GitCommandOverride
+    {
+        get => Default._gitCommandOverride;
+        set => Default._gitCommandOverride = value;
+    }
+
+    WorkspaceHealthResult IWorkspaceHealthChecker.Check(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId,
+        bool includeVolatile,
+        bool includeGit) =>
+        Check(shortcut, terminalApplicationId, defaultProfileId, includeVolatile, includeGit);
+
+    WorkspaceHealthResult IWorkspaceHealthChecker.CheckEntry(
+        TerminalShortcut shortcut,
+        WorkspaceEntry entry,
+        string terminalApplicationId,
+        string defaultProfileId,
+        bool includeVolatile) =>
+        CheckEntry(shortcut, entry, terminalApplicationId, defaultProfileId, includeVolatile);
+
+    /// <summary>
+    /// Launch-safety / status snapshot path. Can fan into directory, launch, git, ports, and
+    /// process checks. Keep <paramref name="includeVolatile"/> and git off the typing/search
+    /// list rebuild path — CmdPal list tags use <see cref="WorkspaceStatusService.TryGetCached"/> only.
+    /// </summary>
     public static WorkspaceHealthResult Check(
         TerminalShortcut shortcut,
         string terminalApplicationId,

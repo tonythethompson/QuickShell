@@ -2,6 +2,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class DockerComposeDiscoveryTests : IDisposable
 {
     private readonly string _root;
@@ -86,6 +87,7 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
     }
 }
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class TaskTypeCandidatePickTests : IDisposable
 {
     private readonly string _root;

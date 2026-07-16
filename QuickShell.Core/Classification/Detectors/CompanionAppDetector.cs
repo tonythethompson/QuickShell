@@ -8,6 +8,8 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
     private static readonly string[] GitClientPresetPriority =
     [
         CompanionAppCatalog.PresetFork,
+        CompanionAppCatalog.PresetGitKraken,
+        CompanionAppCatalog.PresetSourcetree,
         CompanionAppCatalog.PresetGitHubDesktop,
     ];
 
@@ -17,6 +19,12 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
         CompanionAppCatalog.PresetVs2022,
     ];
 
+    private static readonly string[] VsCodeFamilyPriority =
+    [
+        CompanionAppCatalog.PresetVsCode,
+        CompanionAppCatalog.PresetVsCodeInsiders,
+    ];
+
     public CompanionAppSuggestion? TrySuggest(string directory)
     {
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
@@ -24,28 +32,35 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
             return null;
         }
 
+        // First installed match among ordered signals (not a ranked multi-choice UI).
         return TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".cursor")),
+                Directory.Exists(Path.Join(directory, ".cursor")),
                 CompanionAppCatalog.PresetCursor)
+            ?? (Directory.Exists(Path.Join(directory, ".vscode"))
+                ? BuildFirstSuggestion(VsCodeFamilyPriority)
+                : null)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".vscode")),
+                Directory.Exists(Path.Join(directory, ".vscode")),
                 CompanionAppCatalog.PresetVsCode)
             ?? TrySuggestFromPreset(
-                Directory.Exists(Path.Combine(directory, ".obsidian")),
+                WorkspaceCompanionSignals.HasKiroProject(directory),
+                CompanionAppCatalog.PresetKiro)
+            ?? TrySuggestFromPreset(
+                WorkspaceCompanionSignals.HasWindsurfProject(directory),
+                CompanionAppCatalog.PresetDevin)
+            ?? TrySuggestFromPreset(
+                WorkspaceCompanionSignals.HasAntigravityProject(directory),
+                CompanionAppCatalog.PresetAntigravity)
+            ?? TrySuggestFromPreset(
+                Directory.Exists(Path.Join(directory, ".obsidian")),
                 CompanionAppCatalog.PresetObsidian)
             ?? TrySuggestFromPreset(
                 WorkspaceCompanionSignals.HasZedProject(directory),
                 CompanionAppCatalog.PresetZed)
-            ?? (WorkspaceCompanionSignals.HasJetBrainsProject(directory)
-                && WorkspaceCompanionSignals.HasDotNetProject(directory)
-                ? BuildSuggestion(CompanionAppCatalog.PresetRider)
-                : null)
+            ?? TrySuggestJetBrains(directory)
             ?? (WorkspaceCompanionSignals.HasVisualStudioSolution(directory)
                 ? BuildFirstSuggestion(VisualStudioPresetPriority)
                 : null)
-            ?? TrySuggestFromPreset(
-                WorkspaceCompanionSignals.HasJetBrainsProject(directory),
-                CompanionAppCatalog.PresetIntelliJIdea)
             ?? TrySuggestFromPreset(
                 WorkspaceCompanionSignals.HasSublimeProject(directory),
                 CompanionAppCatalog.PresetSublime)
@@ -54,12 +69,57 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
                 : null);
     }
 
+    private static CompanionAppSuggestion? TrySuggestJetBrains(string directory)
+    {
+        if (!WorkspaceCompanionSignals.HasJetBrainsProject(directory))
+        {
+            return null;
+        }
+
+        var candidates = new List<string>();
+
+        if (WorkspaceCompanionSignals.HasGradleOrAndroidProject(directory))
+        {
+            candidates.Add(CompanionAppCatalog.PresetAndroidStudio);
+        }
+
+        if (WorkspaceCompanionSignals.HasDotNetProject(directory))
+        {
+            candidates.Add(CompanionAppCatalog.PresetRider);
+        }
+
+        if (WorkspaceCompanionSignals.HasGoMod(directory))
+        {
+            candidates.Add(CompanionAppCatalog.PresetGoLand);
+        }
+
+        if (WorkspaceCompanionSignals.HasPyprojectToml(directory))
+        {
+            candidates.Add(CompanionAppCatalog.PresetPyCharm);
+        }
+
+        if (WorkspaceCompanionSignals.HasPackageJson(directory))
+        {
+            candidates.Add(CompanionAppCatalog.PresetWebStorm);
+        }
+
+        if (WorkspaceCompanionSignals.HasCMakeProject(directory))
+        {
+            candidates.Add(CompanionAppCatalog.PresetCLion);
+        }
+
+        // Generic IntelliJ always remains a fallback for bare .idea projects.
+        candidates.Add(CompanionAppCatalog.PresetIntelliJIdea);
+
+        return BuildFirstSuggestion(CompanionAppPreference.PreferLastUsed(candidates));
+    }
+
     private static CompanionAppSuggestion? TrySuggestFromPreset(bool condition, string presetId) =>
         condition ? BuildSuggestion(presetId) : null;
 
     private static CompanionAppSuggestion? BuildFirstSuggestion(IEnumerable<string> presetIds)
     {
-        foreach (var presetId in presetIds)
+        foreach (var presetId in CompanionAppPreference.PreferLastUsed(presetIds))
         {
             var suggestion = BuildSuggestion(presetId);
             if (suggestion is not null)

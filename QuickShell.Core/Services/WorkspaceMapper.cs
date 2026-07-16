@@ -1,9 +1,16 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
 
-internal static class WorkspaceMapper
+internal sealed class WorkspaceMapper : IWorkspaceMapper
 {
+    Workspace IWorkspaceMapper.CloneWorkspace(Workspace workspace) => CloneWorkspace(workspace);
+
+    WorkspaceEntry IWorkspaceMapper.CloneEntry(WorkspaceEntry entry) => CloneEntry(entry);
+
+    void IWorkspaceMapper.NormalizeEntryOrders(Workspace workspace) => NormalizeEntryOrders(workspace);
+
     public static Workspace CloneWorkspace(Workspace workspace) => new()
     {
         Id = workspace.Id,

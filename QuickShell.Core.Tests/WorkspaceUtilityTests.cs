@@ -1,3 +1,5 @@
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification.Detectors;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Text.Json;
@@ -227,7 +229,7 @@ public sealed class ShortcutRecentsTests
         var shortcuts = Enumerable.Range(1, 12)
             .Select(index => new TerminalShortcut
             {
-                Id = index.ToString(),
+                Id = index.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 Name = $"Workspace {index}",
                 LastUsedUtc = DateTime.UtcNow.AddMinutes(-index),
             })
@@ -590,33 +592,53 @@ public sealed class GitRepoSearchRootsTests
     }
 }
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class CompanionAppTests : IDisposable
 {
     private readonly string _root;
+    private readonly CompanionAppDetector _companionAppDetector = new();
 
     public CompanionAppTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-companion-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        CompanionAppCatalog.TryResolveExecutableOverride = null;
+        CompanionAppPreference.ReadLastUsedOverride = null;
+        CompanionAppPreference.WriteLastUsedOverride = null;
     }
 
     [Fact]
     public void TrySuggestFromDirectory_PrefersVsCodeWhenDotVscodeExists()
     {
         Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+        CompanionAppPreference.ReadLastUsedOverride = () => null;
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
-
-        if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is null)
+        try
         {
-            Assert.Null(suggestion);
-            return;
-        }
+            var suggestion = _companionAppDetector.TrySuggest(_root);
 
-        Assert.NotNull(suggestion);
-        Assert.Equal(CompanionAppCatalog.PresetVsCode, suggestion!.PresetId);
-        Assert.Equal(".", suggestion.Arguments);
-        Assert.True(suggestion.EnableOnLaunch);
+            if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is not null)
+            {
+                Assert.NotNull(suggestion);
+                Assert.Equal(CompanionAppCatalog.PresetVsCode, suggestion!.PresetId);
+                Assert.Equal(".", suggestion.Arguments);
+                Assert.True(suggestion.EnableOnLaunch);
+                return;
+            }
+
+            if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCodeInsiders) is not null)
+            {
+                Assert.NotNull(suggestion);
+                Assert.Equal(CompanionAppCatalog.PresetVsCodeInsiders, suggestion!.PresetId);
+                return;
+            }
+
+            Assert.Null(suggestion);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+        }
     }
 
     [Fact]
@@ -624,28 +646,44 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".cursor"));
         Directory.CreateDirectory(Path.Combine(_root, ".vscode"));
+        CompanionAppPreference.ReadLastUsedOverride = () => null;
 
-        var cursorInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetCursor) is not null;
-        var vsCodeInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is not null;
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
-
-        if (!cursorInstalled && vsCodeInstalled)
+        try
         {
-            Assert.NotNull(suggestion);
-            Assert.Equal(CompanionAppCatalog.PresetVsCode, suggestion!.PresetId);
-            return;
+            var cursorInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetCursor) is not null;
+            var vsCodeInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCode) is not null;
+            var insidersInstalled = CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetVsCodeInsiders) is not null;
+            var suggestion = _companionAppDetector.TrySuggest(_root);
+
+            if (!cursorInstalled && vsCodeInstalled)
+            {
+                Assert.NotNull(suggestion);
+                Assert.Equal(CompanionAppCatalog.PresetVsCode, suggestion!.PresetId);
+                return;
+            }
+
+            if (!cursorInstalled && !vsCodeInstalled && insidersInstalled)
+            {
+                Assert.NotNull(suggestion);
+                Assert.Equal(CompanionAppCatalog.PresetVsCodeInsiders, suggestion!.PresetId);
+                return;
+            }
+
+            if (cursorInstalled)
+            {
+                Assert.NotNull(suggestion);
+                Assert.Equal(CompanionAppCatalog.PresetCursor, suggestion!.PresetId);
+                return;
+            }
+
+            if (!vsCodeInstalled && !insidersInstalled)
+            {
+                Assert.Null(suggestion);
+            }
         }
-
-        if (cursorInstalled)
+        finally
         {
-            Assert.NotNull(suggestion);
-            Assert.Equal(CompanionAppCatalog.PresetCursor, suggestion!.PresetId);
-            return;
-        }
-
-        if (!vsCodeInstalled)
-        {
-            Assert.Null(suggestion);
+            CompanionAppPreference.ReadLastUsedOverride = null;
         }
     }
 
@@ -829,14 +867,38 @@ public sealed class CompanionAppTests : IDisposable
             CompanionAppCatalog.PresetVsCode,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Microsoft VS Code\Code.exe"));
         Assert.Equal(
+            CompanionAppCatalog.PresetVsCodeInsiders,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Microsoft VS Code Insiders\Code - Insiders.exe"));
+        Assert.Equal(
             CompanionAppCatalog.PresetFork,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Fork\Fork.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetGitKraken,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Users\demo\AppData\Local\gitkraken\gitkraken.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetSourcetree,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Users\demo\AppData\Local\SourceTree\SourceTree.exe"));
         Assert.Equal(
             CompanionAppCatalog.PresetRider,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\JetBrains\Rider\bin\rider64.exe"));
         Assert.Equal(
             CompanionAppCatalog.PresetIntelliJIdea,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\JetBrains\IntelliJ IDEA\bin\idea64.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetWebStorm,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\JetBrains\WebStorm\bin\webstorm64.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetPyCharm,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\JetBrains\PyCharm\bin\pycharm64.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetAndroidStudio,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Program Files\Android\Android Studio\bin\studio64.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetDevin,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Users\demo\AppData\Local\Programs\Windsurf\Windsurf.exe"));
+        Assert.Equal(
+            CompanionAppCatalog.PresetKiro,
+            CompanionAppCatalog.InferPresetFromPath(@"C:\Users\demo\AppData\Local\Programs\Kiro\Kiro.exe"));
         Assert.Equal(
             CompanionAppCatalog.PresetZed,
             CompanionAppCatalog.InferPresetFromPath(@"C:\Apps\Zed\zed.exe"));
@@ -853,11 +915,164 @@ public sealed class CompanionAppTests : IDisposable
     }
 
     [Fact]
+    public void GetDefaultArguments_NotepadPlusPlus_UsesFolderToken()
+    {
+        Assert.Equal("{folder}", CompanionAppCatalog.GetDefaultArguments(CompanionAppCatalog.PresetNotepadPlusPlus));
+    }
+
+    [Fact]
+    public void PreferLastUsed_MovesMatchingPresetToFront()
+    {
+        CompanionAppPreference.ReadLastUsedOverride = () => CompanionAppCatalog.PresetWebStorm;
+        try
+        {
+            var ordered = CompanionAppPreference.PreferLastUsed(
+            [
+                CompanionAppCatalog.PresetPyCharm,
+                CompanionAppCatalog.PresetWebStorm,
+                CompanionAppCatalog.PresetIntelliJIdea,
+            ]);
+
+            Assert.Equal(CompanionAppCatalog.PresetWebStorm, ordered[0]);
+            Assert.Equal(CompanionAppCatalog.PresetPyCharm, ordered[1]);
+            Assert.Equal(CompanionAppCatalog.PresetIntelliJIdea, ordered[2]);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+        }
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersWebStormForPackageJsonIdeaProjectsWhenInstalled()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "package.json"), "{}");
+        CompanionAppPreference.ReadLastUsedOverride = () => null;
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            preset is CompanionAppCatalog.PresetWebStorm or CompanionAppCatalog.PresetIntelliJIdea
+                ? $@"C:\fake\{preset}.exe"
+                : null;
+
+        try
+        {
+            var suggestion = _companionAppDetector.TrySuggest(_root);
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetWebStorm, suggestion!.PresetId);
+            Assert.Equal("{folder}", suggestion.Arguments);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+            CompanionAppCatalog.TryResolveExecutableOverride = null;
+        }
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_FallsBackToIdeaWhenWebStormMissing()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "package.json"), "{}");
+        CompanionAppPreference.ReadLastUsedOverride = () => null;
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            string.Equals(preset, CompanionAppCatalog.PresetIntelliJIdea, StringComparison.OrdinalIgnoreCase)
+                ? @"C:\fake\idea64.exe"
+                : null;
+
+        try
+        {
+            var suggestion = _companionAppDetector.TrySuggest(_root);
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetIntelliJIdea, suggestion!.PresetId);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+            CompanionAppCatalog.TryResolveExecutableOverride = null;
+        }
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersAndroidStudioForGradleIdeaProjects()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "build.gradle"), string.Empty);
+        CompanionAppPreference.ReadLastUsedOverride = () => null;
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            preset is CompanionAppCatalog.PresetAndroidStudio or CompanionAppCatalog.PresetIntelliJIdea
+                ? $@"C:\fake\{preset}.exe"
+                : null;
+
+        try
+        {
+            var suggestion = _companionAppDetector.TrySuggest(_root);
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetAndroidStudio, suggestion!.PresetId);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+            CompanionAppCatalog.TryResolveExecutableOverride = null;
+        }
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersPyCharmForPyprojectIdeaProjects()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "pyproject.toml"), "[project]\nname = \"demo\"\n");
+        CompanionAppPreference.ReadLastUsedOverride = () => null;
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            preset is CompanionAppCatalog.PresetPyCharm or CompanionAppCatalog.PresetIntelliJIdea
+                ? $@"C:\fake\{preset}.exe"
+                : null;
+
+        try
+        {
+            var suggestion = _companionAppDetector.TrySuggest(_root);
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetPyCharm, suggestion!.PresetId);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+            CompanionAppCatalog.TryResolveExecutableOverride = null;
+        }
+    }
+
+    [Fact]
+    public void TrySuggestFromDirectory_PrefersLastUsedAmongJetBrainsCandidates()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".idea"));
+        File.WriteAllText(Path.Combine(_root, "package.json"), "{}");
+        File.WriteAllText(Path.Combine(_root, "pyproject.toml"), "[project]\nname = \"demo\"\n");
+        CompanionAppPreference.ReadLastUsedOverride = () => CompanionAppCatalog.PresetIntelliJIdea;
+        CompanionAppCatalog.TryResolveExecutableOverride = preset =>
+            preset is CompanionAppCatalog.PresetWebStorm
+                or CompanionAppCatalog.PresetPyCharm
+                or CompanionAppCatalog.PresetIntelliJIdea
+                ? $@"C:\fake\{preset}.exe"
+                : null;
+
+        try
+        {
+            var suggestion = _companionAppDetector.TrySuggest(_root);
+            Assert.NotNull(suggestion);
+            Assert.Equal(CompanionAppCatalog.PresetIntelliJIdea, suggestion!.PresetId);
+        }
+        finally
+        {
+            CompanionAppPreference.ReadLastUsedOverride = null;
+            CompanionAppCatalog.TryResolveExecutableOverride = null;
+        }
+    }
+
+    [Fact]
     public void TrySuggestFromDirectory_PrefersObsidianWhenVaultMarkerExists()
     {
         Directory.CreateDirectory(Path.Combine(_root, ".obsidian"));
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
 
         if (CompanionAppCatalog.TryResolveExecutable(CompanionAppCatalog.PresetObsidian) is null)
         {
@@ -873,16 +1088,21 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".git"));
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetFork)
+                || CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetGitKraken)
+                || CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetSourcetree)
                 || CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetGitHubDesktop));
             return;
         }
 
         Assert.True(
-            suggestion.PresetId is CompanionAppCatalog.PresetFork or CompanionAppCatalog.PresetGitHubDesktop);
+            suggestion.PresetId is CompanionAppCatalog.PresetFork
+                or CompanionAppCatalog.PresetGitKraken
+                or CompanionAppCatalog.PresetSourcetree
+                or CompanionAppCatalog.PresetGitHubDesktop);
     }
 
     [Fact]
@@ -890,7 +1110,7 @@ public sealed class CompanionAppTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "App.sln"), string.Empty);
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetVs2022)
@@ -909,7 +1129,7 @@ public sealed class CompanionAppTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, ".idea"));
         File.WriteAllText(Path.Combine(_root, "App.csproj"), "<Project />");
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetRider));
@@ -925,7 +1145,7 @@ public sealed class CompanionAppTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, ".idea"));
         File.WriteAllText(Path.Combine(_root, "pom.xml"), "<project />");
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetIntelliJIdea));
@@ -940,7 +1160,7 @@ public sealed class CompanionAppTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, ".zed"));
 
-        var suggestion = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var suggestion = _companionAppDetector.TrySuggest(_root);
         if (suggestion is null)
         {
             Assert.False(CompanionAppCatalog.IsPresetInstalled(CompanionAppCatalog.PresetZed));
@@ -1037,6 +1257,9 @@ public sealed class CompanionAppTests : IDisposable
 
     public void Dispose()
     {
+        CompanionAppCatalog.TryResolveExecutableOverride = null;
+        CompanionAppPreference.ReadLastUsedOverride = null;
+        CompanionAppPreference.WriteLastUsedOverride = null;
         try
         {
             Directory.Delete(_root, recursive: true);

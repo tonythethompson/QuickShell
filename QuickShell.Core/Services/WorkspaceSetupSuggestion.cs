@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Models;
 
@@ -7,17 +8,22 @@ internal static class WorkspaceSetupSuggestion
 {
     private static readonly string[] PreferredTaskNames = ["dev", "start", "test", "build"];
 
-    public static IReadOnlyList<WorkspaceSetupTask> Build(string directory) =>
-        Build(directory, ProjectAnalysisAccessor.Instance.Classify(directory));
+    public static IReadOnlyList<WorkspaceSetupTask> Build(
+        string directory,
+        IProjectAnalysisService? projectAnalysis = null) =>
+        Build(directory, (projectAnalysis ?? ProjectAnalysisAccessor.Instance).Classify(directory), projectAnalysis);
 
-    public static IReadOnlyList<WorkspaceSetupTask> Build(string directory, ProjectClassification classification)
+    public static IReadOnlyList<WorkspaceSetupTask> Build(
+        string directory,
+        ProjectClassification classification,
+        IProjectAnalysisService? projectAnalysis = null)
     {
         if (string.IsNullOrWhiteSpace(directory) || classification.Stacks == ProjectStack.None)
         {
             return [];
         }
 
-        var builder = new Builder(directory, classification);
+        var builder = new Builder(directory, classification, projectAnalysis ?? ProjectAnalysisAccessor.Instance);
         builder.AddSuggestions();
         return builder.Tasks;
     }
@@ -77,7 +83,10 @@ internal static class WorkspaceSetupSuggestion
             : taskType;
     }
 
-    private sealed class Builder(string directory, ProjectClassification classification)
+    private sealed class Builder(
+        string directory,
+        ProjectClassification classification,
+        IProjectAnalysisService projectAnalysis)
     {
         private readonly List<WorkspaceSetupTask> _tasks = [];
         private readonly HashSet<string> _seenCommands = new(StringComparer.OrdinalIgnoreCase);
@@ -116,7 +125,7 @@ internal static class WorkspaceSetupSuggestion
             {
                 if (classification.NodeScripts.ContainsKey(scriptName))
                 {
-                    Add(ToTitle(scriptName), ProjectAnalysisAccessor.Instance.FormatPackageScriptCommand(directory, scriptName));
+                    Add(ToTitle(scriptName), projectAnalysis.FormatPackageScriptCommand(directory, scriptName));
                 }
             }
         }
@@ -131,13 +140,17 @@ internal static class WorkspaceSetupSuggestion
             Add("Build", "dotnet build");
             Add("Tests", "dotnet test");
 
-            if (classification.RunnableDotNetProjects.Count == 1)
+            var runnableProjects = classification.RunnableDotNetProjects
+                .Where(LaunchCommandSanity.IsUsableDotNetProjectFileName)
+                .ToList();
+
+            if (runnableProjects.Count == 1)
             {
-                var project = QuoteIfNeeded(classification.RunnableDotNetProjects[0]);
+                var project = QuoteIfNeeded(runnableProjects[0]);
                 Add("Watch", $"dotnet watch --project {project}");
                 Add("Run", $"dotnet run --project {project}");
             }
-            else if (classification.RunnableDotNetProjects.Count > 1)
+            else if (runnableProjects.Count > 1)
             {
                 Add("Watch", "dotnet watch");
             }
@@ -343,6 +356,12 @@ internal static class WorkspaceSetupSuggestion
         {
             foreach (var task in classification.VsCodeTasks)
             {
+                // Skip tasks that rely on VS Code variable expansion (${workspaceFolder}, etc.).
+                if (!LaunchCommandSanity.IsUsableSuggestion(task.Command))
+                {
+                    continue;
+                }
+
                 Add($"VS Code: {task.Label}", task.Command);
             }
         }
@@ -357,7 +376,9 @@ internal static class WorkspaceSetupSuggestion
 
         private void Add(string label, string command)
         {
-            if (string.IsNullOrWhiteSpace(command) || !_seenCommands.Add(command))
+            if (string.IsNullOrWhiteSpace(command)
+                || !LaunchCommandSanity.IsUsableSuggestion(command)
+                || !_seenCommands.Add(command))
             {
                 return;
             }
@@ -413,7 +434,6 @@ internal static class WorkspaceSetupSuggestion
 
             try
             {
-                // Bolt: Optimize file scanning by avoiding loading entire file into a single string allocation
                 return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
             catch

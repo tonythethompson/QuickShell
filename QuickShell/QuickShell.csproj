@@ -45,6 +45,18 @@
           Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1&quot;" />
   </Target>
 
+  <!-- The CmdPal SDK winmd is an out-of-process API contract, not an in-process
+       WinRT component. Tell MSIX packaging not to harvest a nonexistent DLL
+       implementation for this contract. -->
+  <Target Name="MarkCmdPalContractWinmdOutOfProcess"
+          BeforeTargets="_CalculateInputsForGenerateCurrentProjectAppxManifest">
+    <ItemGroup>
+      <PackagingOutputs Update="Microsoft.CommandPalette.Extensions.winmd">
+        <SkipHarvestingWinmdRegistration>true</SkipHarvestingWinmdRegistration>
+      </PackagingOutputs>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
