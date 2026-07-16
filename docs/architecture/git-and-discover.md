@@ -66,8 +66,7 @@ Capture caches ~10s; health portion often `includeGit: false` with git loaded se
 ### UI (`DiscoverGitReposPage`)
 
 - List/search candidates  
-- Add as workspace (create seed / discover-create deep link)  
-- Can apply setup suggestions + companion detection when creating  
+- Add as workspace (create seed via `WorkspaceSeedFactory`: heuristic launches + companion when layout/markers are clear)  
 
 CmdPal home and create flows link here. Raycast: `discover-git-repos.tsx` + `git-repo-discovery.ts` (TS reimplementation of scan ideas).
 

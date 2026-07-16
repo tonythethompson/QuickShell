@@ -165,14 +165,19 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private ListItem BuildShortcutItem(TerminalShortcut shortcut)
     {
-        var item = ShortcutListItems.CreateOpen(shortcut, _settings, _onReload);
+        var item = ShortcutListItems.CreateOpen(
+            shortcut,
+            _settings,
+            _onReload,
+            createShortcutCommand: null,
+            moveVisibility: default,
+            includeEdit: false);
         if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return item;
         }
 
         item.Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcut);
-        item.MoreCommands = ShortcutContextCommands.Build(shortcut, _onReload, _settings, includeEdit: false);
         return item;
     }
 

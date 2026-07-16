@@ -13,8 +13,8 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
     private readonly Action _onChanged;
-    private bool _commandsReady;
-    private WorkspaceStatusSnapshot? _snapshot;
+    private bool _gitCommandsLoaded;
+    private WorkspaceStatusForm? _form;
 
     public WorkspaceStatusPage(
         TerminalShortcut shortcut,
@@ -23,79 +23,55 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     {
         _shortcut = shortcut;
         _settings = settings;
-        _onChanged = () =>
-        {
-            // Branch switches invalidate the captured snapshot so the next
-            // open re-probes git status instead of reusing stale commands.
-            _commandsReady = false;
-            _snapshot = null;
-            onChanged();
-        };
+        _onChanged = onChanged;
         Id = ShortcutCommandIds.WorkspaceStatus(shortcut.Id);
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("");
-        // Do not probe git status here. Home list builds this page for every
-        // workspace when attaching MoreCommands; defer until the page opens.
+        // Do not run git here. Every home-list row builds this page for the
+        // "Workspace status…" context command; eager TryGetStatus made open
+        // take tens of seconds with ~45 workspaces (and worse for WSL paths).
         Commands = [];
     }
 
     public override IContent[] GetContent()
     {
         EnsureGitCommands();
-        if (_form is not null)
-        {
-            _form.Refresh(_snapshot!);
-            return [_form];
-        }
-
-        return [_form = new WorkspaceStatusForm(
-            _shortcut,
-            _settings,
-            () => _form = null,
-            onRefresh: () => _commandsReady = false,
-            _snapshot!)];
+        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
     }
-
-    private WorkspaceStatusForm? _form;
 
     private void EnsureGitCommands()
     {
-        if (_commandsReady)
+        if (_gitCommandsLoaded)
         {
             return;
         }
 
-        _snapshot = WorkspaceStatusService.Capture(
-            _shortcut,
-            _settings.TerminalApplicationId,
-            _settings.DefaultProfileId,
-            forceRefresh: true);
-        Commands = BuildGitCommands(_shortcut, _settings, _onChanged, _snapshot);
-        _commandsReady = true;
+        _gitCommandsLoaded = true;
+        Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
     }
 
     private static CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action onChanged,
-        WorkspaceStatusSnapshot? snapshot)
+        Action onChanged)
     {
-        if (snapshot?.Git is null)
+        if (!WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var status))
         {
             return [];
         }
 
+        var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
         var items = new List<CommandContextItem>
         {
-            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, snapshot.Git, snapshot.TargetBranch))
+            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target))
             {
                 Title = "Switch branch…",
                 Icon = new IconInfo(""),
             },
         };
 
-        if (!string.IsNullOrWhiteSpace(snapshot.TargetBranch))
+        if (!string.IsNullOrWhiteSpace(target))
         {
             items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged))
             {
@@ -113,28 +89,17 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
     private readonly Action _releaseForm;
-    private readonly Action _onRefresh;
 
     public WorkspaceStatusForm(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
-        Action releaseForm,
-        Action onRefresh,
-        WorkspaceStatusSnapshot? initialSnapshot = null)
+        Action releaseForm)
     {
         _shortcut = shortcut;
         _settings = settings;
         _releaseForm = releaseForm;
-        _onRefresh = onRefresh;
         TemplateJson = Template;
-        if (initialSnapshot is not null)
-        {
-            Refresh(initialSnapshot);
-        }
-        else
-        {
-            Refresh(forceRefresh: true);
-        }
+        Refresh(forceRefresh: true);
     }
 
     public override CommandResult SubmitForm(string inputs, string data) =>
@@ -149,7 +114,6 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         {
             case "refresh":
                 Refresh(forceRefresh: true);
-                _onRefresh();
                 return CommandResult.KeepOpen();
             case "copyDiagnostics":
                 LaunchDiagnosticsState.TryCopyLastReport(out var message);
@@ -169,11 +133,6 @@ internal sealed partial class WorkspaceStatusForm : FormContent
             _settings.TerminalApplicationId,
             _settings.DefaultProfileId,
             forceRefresh);
-        Refresh(snapshot);
-    }
-
-    internal void Refresh(WorkspaceStatusSnapshot snapshot)
-    {
         DataJson = new JsonObject
         {
             ["Launches"] = BuildLaunchSummary(_shortcut),
@@ -207,7 +166,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
         var count = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut).Count;
         var companion = CompanionAppLauncher.IsConfigured(shortcut)
-            ? $" · Companion: {CompanionAppCatalog.GetDisplayName(shortcut.CompanionAppPath)}"
+            ? $" · Companion: {CompanionAppLauncher.BuildDisplaySummary(shortcut)}"
             : string.Empty;
         return count == 1
             ? $"1 enabled launch{companion}"

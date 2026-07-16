@@ -34,6 +34,10 @@ public sealed class CompanionAppArgumentValidationTests
             CompanionAppCatalog.PresetVs2022,
             @"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.exe",
             arguments: "   "));
+        Assert.Equal("{folder}", CompanionAppArgumentValidation.NormalizeForSave(
+            CompanionAppCatalog.PresetNotepadPlusPlus,
+            @"C:\Program Files\Notepad++\notepad++.exe",
+            arguments: null));
     }
 
     [Fact]

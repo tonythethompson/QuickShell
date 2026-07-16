@@ -37,7 +37,7 @@ Empty stack → no pills / no seeds.
 
 Short ordered default tasks (e.g. Node `dev`/`start`/`test`/`build`, `dotnet watch`, compose, cargo, …).
 
-`ApplyToShortcut`: if any launch/command already non-empty, **skip**; else replace launches with seed rows. Used by create/discover when layout is clear.
+`ApplyToShortcut`: if any launch/command already non-empty, **skip**; else replace launches with seed rows. Used by **Discover / git-create** (`WorkspaceSeedFactory`). Plain CmdPal/Run add/edit Browse–Paste does **not** auto-fill commands (pills only).
 
 ## Task types (`TaskTypeCatalog`)
 
@@ -61,6 +61,7 @@ Filter: score &gt; 0 and command not in **used** set (`TaskTypePickContext` from
 GetPills(directory, usedCommands, maxCount = MaxPills)
 ```
 
+- Pill **button title** is the exact command (truncated); **tooltip** carries category / product name (`Test · npm test`, `Agent · Claude Code — …`)  
 - Merge by **command string** (keep higher score)  
 - Sort score ↓; take max (**16** slots; ~**8** visible + show more)  
 - Caps: scripts 40, docker services 20, pre-dedupe candidates 32  
@@ -81,9 +82,14 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 
 Architecture proposal **0004** discusses registry/plugin consolidation of this cluster; today it is static helpers + catalogs.
 
-## Agent CLIs (not implemented as pills)
+## Agent CLIs (PATH + project markers)
 
-Manual multi-agent workspaces are supported (`claude` / `codex` / `opencode` as launch **commands**). PATH-based **agent pills** are a natural extension (see product discussions) but are **not** part of classification today. Do **not** put TUI agents in [companions.md](./companions.md) — companions are GUI apps.
+Agent CLI **pills** come from [`AgentCliCatalog`](../../QuickShell.Core/Services/AgentCliCatalog.cs) / [`AgentCliSuggestion`](../../QuickShell.Core/Services/AgentCliSuggestion.cs), merged in `CommandSuggestionService.GetPills`:
+
+1. **PATH** — agent binaries such as `claude`, `codex`, `opencode`, `gemini`, `copilot`, `cursor-agent` / `agent`, `kiro-cli`, `grok`, `pi`, `kilocode`, `cmdc`, `agy`, `qwen`, `hermes`, `openclaw`, `cline`, `openhands`, `goose`, `aider`
+2. **Marker fallback** — project files such as `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.opencode/`, `.kiro/`, etc.
+
+At most **4** agent pills are shown by default (`AgentCliCatalog.MaxDefaultAgentPills`). Copilot is detected as the `copilot` CLI (not bare `gh`). They use task type `agent` and appear even when `ProjectStack.None`. They are **not** auto-seeded into new workspaces and must **not** be treated as [companions](./companions.md) (GUI apps).
 
 ## Key files
 
@@ -94,6 +100,7 @@ Manual multi-agent workspaces are supported (`claude` / `codex` / `opencode` as 
 | `WorkspaceSetupSuggestion.cs` | Seeds |
 | `TaskTypeCatalog.cs` / `TaskTypeCandidateBuilder.cs` | Types / scores |
 | `CommandSuggestionService.cs` / `CommandSuggestionPill.cs` | Pills |
+| `AgentCliCatalog.cs` / `AgentCliSuggestion.cs` | AI agent CLI pills (PATH + markers) |
 | `LaunchRowListEditor.cs` | Apply/clear rows |
 | `QuickShell.Suggest/Program.cs` | CLI for Raycast |
 

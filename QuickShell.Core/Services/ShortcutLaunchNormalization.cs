@@ -93,6 +93,7 @@ internal static class ShortcutLaunchNormalization
 
         NormalizeLaunchOrders(shortcut);
         MirrorLegacyFieldsFromFirstLaunch(shortcut);
+        CompanionAppNormalization.NormalizeCompanions(shortcut);
     }
 
     public static IReadOnlyList<WorkspaceEntry> GetEnabledLaunches(TerminalShortcut shortcut) =>

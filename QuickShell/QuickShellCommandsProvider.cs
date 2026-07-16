@@ -44,11 +44,12 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             // #region agent log
             AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
             // #endregion
-            _settingsManager = new QuickShellSettingsManager(ReloadPages);
+            // Settings + create/edit forms leave via SubmitForm — invalidate only (no list rebuild).
+            _settingsManager = new QuickShellSettingsManager(InvalidatePagesAfterNavigation);
             // #region agent log
             AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
             // #endregion
-            _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
+            _createShortcutCommand = new CreateShortcutCommand(InvalidatePagesAfterNavigation);
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
@@ -74,6 +75,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                 hypothesisId: "B");
             // #endregion
             KickoffGitRepoIndexPrewarm();
+            KickoffFormCatalogPrewarm();
         }
 
         DisplayName = QuickShellBrand.DisplayName;
@@ -96,7 +98,18 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         }
 
         var settingsPage = _settingsManager.SettingsPage;
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.PrewarmSettingsContent);
+        // Build settings Adaptive Card off the activation path so first open is warm.
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                _settingsManager.PrewarmSettingsContent();
+            }
+            catch
+            {
+                // Best effort.
+            }
+        });
 
         _commands =
         [
@@ -153,10 +166,27 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public override IFallbackCommandItem[] FallbackCommands() => _fallbacks;
 
+    /// <summary>Immediate home-list rebuild (favorite moves, delete, undo, …).</summary>
     private void ReloadPages()
     {
         GitRepoIndex.Invalidate();
         _page.Reload();
+        if (_fallbackPage.IsValueCreated)
+        {
+            _fallbackPage.Value.ClearResults();
+        }
+    }
+
+    /// <summary>Deferred list refresh after form/settings navigation (do not block GoBack).</summary>
+    private void InvalidatePagesAfterNavigation()
+    {
+        GitRepoIndex.Invalidate();
+        // _page may still be null while the provider ctor builds CreateShortcutCommand.
+        if (_page is not null)
+        {
+            _page.InvalidateWorkspaces();
+        }
+
         if (_fallbackPage.IsValueCreated)
         {
             _fallbackPage.Value.ClearResults();
@@ -175,6 +205,22 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             catch
             {
                 // Best effort; discover/create still work without the warm cache.
+            }
+        });
+    }
+
+    private void KickoffFormCatalogPrewarm()
+    {
+        var terminalApplicationId = _settingsManager.TerminalApplicationId;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                FormCatalogPrewarm.Warm(terminalApplicationId);
+            }
+            catch
+            {
+                // Best effort; first form open pays cold cost instead.
             }
         });
     }

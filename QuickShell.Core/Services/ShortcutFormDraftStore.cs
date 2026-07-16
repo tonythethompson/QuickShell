@@ -31,6 +31,8 @@ internal sealed class ShortcutFormDraftData
 
     public string CompanionAppArguments { get; set; } = string.Empty;
 
+    public List<ShortcutFormCompanionDraftData> Companions { get; set; } = [];
+
     public bool RunAsAdmin { get; set; }
 
     public List<ShortcutFormLaunchDraftData> Launches { get; set; } = [];
@@ -71,8 +73,35 @@ internal sealed class ShortcutFormDraftData
                 .ToList();
         }
 
+        if (draft.Companions is { Count: > 0 })
+        {
+            data.Companions = draft.Companions
+                .Select(companion => new ShortcutFormCompanionDraftData
+                {
+                    Id = companion.Id,
+                    Preset = companion.Preset,
+                    Path = companion.Path,
+                    Arguments = companion.Arguments,
+                    OpenOnLaunch = companion.OpenOnLaunch,
+                })
+                .ToList();
+        }
+
         return data;
     }
+}
+
+internal sealed class ShortcutFormCompanionDraftData
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string Preset { get; set; } = CompanionAppCatalog.PresetNone;
+
+    public string Path { get; set; } = string.Empty;
+
+    public string Arguments { get; set; } = string.Empty;
+
+    public bool OpenOnLaunch { get; set; }
 }
 
 internal sealed class ShortcutFormLaunchDraftData
@@ -126,7 +155,22 @@ internal sealed class PersistedShortcutEditDraft
 
     public string CompanionAppArguments { get; set; } = string.Empty;
 
+    public List<PersistedShortcutCompanionDraft> Companions { get; set; } = [];
+
     public List<PersistedShortcutLaunchDraft> Launches { get; set; } = [];
+}
+
+internal sealed class PersistedShortcutCompanionDraft
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string Preset { get; set; } = CompanionAppCatalog.PresetNone;
+
+    public string Path { get; set; } = string.Empty;
+
+    public string Arguments { get; set; } = string.Empty;
+
+    public bool OpenOnLaunch { get; set; }
 }
 
 internal sealed class PersistedShortcutLaunchDraft
@@ -379,7 +423,8 @@ internal static class ShortcutFormSave
         bool openDevServerOnLaunch = false,
         bool openCompanionAppOnLaunch = false,
         string? companionAppPath = null,
-        string? companionAppArguments = null)
+        string? companionAppArguments = null,
+        IReadOnlyList<CompanionAppEntry>? companionApps = null)
     {
         if (string.IsNullOrWhiteSpace(directory))
         {
@@ -418,9 +463,6 @@ internal static class ShortcutFormSave
             DevServerUrl = string.IsNullOrWhiteSpace(devServerUrl) ? null : devServerUrl.Trim(),
             RepoUrl = string.IsNullOrWhiteSpace(repoUrl) ? null : repoUrl.Trim(),
             OpenDevServerOnLaunch = openDevServerOnLaunch && !string.IsNullOrWhiteSpace(devServerUrl),
-            OpenCompanionAppOnLaunch = openCompanionAppOnLaunch,
-            CompanionAppPath = string.IsNullOrWhiteSpace(companionAppPath) ? null : companionAppPath.Trim(),
-            CompanionAppArguments = string.IsNullOrWhiteSpace(companionAppArguments) ? null : companionAppArguments.Trim(),
             Launches = launches.Select((launch, index) =>
             {
                 var entry = new WorkspaceEntry
@@ -441,6 +483,24 @@ internal static class ShortcutFormSave
                 return entry;
             }).ToList(),
         };
+
+        if (companionApps is not null)
+        {
+            shortcut.CompanionApps = companionApps
+                .Select(CompanionAppNormalization.CloneEntry)
+                .ToList();
+            CompanionAppNormalization.NormalizeCompanions(shortcut);
+        }
+        else
+        {
+            // Scalar form path: update primary, preserve extras already on the workspace.
+            CompanionAppNormalization.ApplyPrimaryFromScalars(
+                shortcut,
+                openCompanionAppOnLaunch,
+                companionAppPath,
+                companionAppArguments,
+                preserveAdditionalFrom: existing?.CompanionApps);
+        }
 
         ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
 
@@ -550,6 +610,7 @@ internal static class ShortcutFormSave
         PinOrder = source.PinOrder,
         LastUsedUtc = source.LastUsedUtc,
         Launches = source.Launches.Select(WorkspaceMapper.CloneEntry).ToList(),
+        CompanionApps = source.CompanionApps.Select(CompanionAppNormalization.CloneEntry).ToList(),
         DevServerUrl = source.DevServerUrl,
         RepoUrl = source.RepoUrl,
         OpenDevServerOnLaunch = source.OpenDevServerOnLaunch,
@@ -577,4 +638,6 @@ internal sealed class ShortcutFormLaunchInput
 }
 
 [JsonSerializable(typeof(PersistedShortcutEditDraft))]
+[JsonSerializable(typeof(PersistedShortcutCompanionDraft))]
+[JsonSerializable(typeof(List<PersistedShortcutCompanionDraft>))]
 internal sealed partial class ShortcutFormDraftJsonContext : JsonSerializerContext;

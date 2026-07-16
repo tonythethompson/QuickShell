@@ -99,8 +99,10 @@ internal static class WorkspaceSeedFactory
             return;
         }
 
-        seed.CompanionAppPath = suggestion.ExecutablePath;
-        seed.CompanionAppArguments = suggestion.Arguments;
-        seed.OpenCompanionAppOnLaunch = suggestion.EnableOnLaunch;
+        CompanionAppNormalization.ApplyPrimaryFromScalars(
+            seed,
+            openOnLaunch: suggestion.EnableOnLaunch,
+            path: suggestion.ExecutablePath,
+            arguments: suggestion.Arguments);
     }
 }

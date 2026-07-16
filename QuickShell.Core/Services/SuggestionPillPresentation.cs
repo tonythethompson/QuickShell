@@ -6,18 +6,38 @@ internal static class SuggestionPillPresentation
     public const int DefaultVisibleSlots = 8;
     public const int DisplayTitleMaxLength = 42;
 
-    public static string FormatDisplayTitle(string typeTitle, string command)
+    /// <summary>Pill button label: command text only (truncated).</summary>
+    public static string FormatDisplayTitle(string command)
     {
-        var full = string.IsNullOrWhiteSpace(typeTitle)
-            ? command
-            : $"{typeTitle} · {command}";
-
-        if (full.Length <= DisplayTitleMaxLength)
+        var text = (command ?? string.Empty).Trim();
+        if (text.Length <= DisplayTitleMaxLength)
         {
-            return full;
+            return text;
         }
 
-        return full[..(DisplayTitleMaxLength - 1)] + "…";
+        return text[..(DisplayTitleMaxLength - 1)] + "…";
+    }
+
+    /// <summary>
+    /// Hover text: category and optional product/friendly name, plus the command.
+    /// Examples: <c>Test · npm test</c>, <c>Agent · Claude Code — … Adds `claude`.</c>
+    /// </summary>
+    public static string FormatTooltip(string categoryTitle, string command, string? productName = null, string? detail = null)
+    {
+        var category = (categoryTitle ?? string.Empty).Trim();
+        var cmd = (command ?? string.Empty).Trim();
+        var product = (productName ?? string.Empty).Trim();
+
+        var head = string.IsNullOrWhiteSpace(product)
+            ? (string.IsNullOrWhiteSpace(category) ? cmd : $"{category} · {cmd}")
+            : (string.IsNullOrWhiteSpace(category) ? product : $"{category} · {product}");
+
+        if (string.IsNullOrWhiteSpace(detail))
+        {
+            return head;
+        }
+
+        return $"{head} — {detail.Trim()}";
     }
 
     public static IReadOnlyDictionary<string, string> BuildDataFields(

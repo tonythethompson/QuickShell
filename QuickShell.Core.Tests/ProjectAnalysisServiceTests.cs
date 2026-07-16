@@ -6,6 +6,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class ProjectAnalysisServiceTests : IDisposable
 {
     private readonly string _root;

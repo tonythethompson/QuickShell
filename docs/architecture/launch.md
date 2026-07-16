@@ -10,7 +10,7 @@ End-to-end path from “open workspace” to `Process.Start`, including resolve,
 | **Run** | `Main.Launch` → `Launch` | context variants |
 | **Raycast** | `executeWorkspace` → plan → `executeWorkspaceLaunch` | filter plan entries |
 
-Options injected by UI: `RunAsAdmin`, `RunAsStandard`, `BlockDirtyBranchSwitch`, `SeparateWindowsForMultiLaunch`, companion/dev-server include flags.
+Options injected by UI: `RunAsAdmin`, `RunAsStandard`, `BlockDirtyBranchSwitch`, `SeparateWindowsForMultiLaunch`, companion/dev-server include flags. Per-row `WorkspaceEntry.RunAsAdmin` is set from the CmdPal Commands **Admin** checkbox (and Run’s per-row elevate toggle). Mixed elevation cannot share WT tabs (see grouping below).
 
 ## Call graph (Core)
 

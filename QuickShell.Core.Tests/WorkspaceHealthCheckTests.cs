@@ -4,7 +4,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideCollection.Name)]
+[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorkspaceHealthCheckTests : IDisposable
 {
     private readonly string _root;

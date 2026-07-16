@@ -1,5 +1,4 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using System.Text.Json;
 
 namespace QuickShell.Services;
 
@@ -13,16 +12,21 @@ internal enum SettingsFeedbackTone
 
 internal static class SettingsCardJson
 {
-    public static string SectionHeader(string title) =>
-        $$"""
+    public static string SectionHeader(string title, string spacing = "None", string? tooltip = null)
+    {
+        var tooltipLine = string.IsNullOrWhiteSpace(tooltip)
+            ? string.Empty
+            : $",\n          \"tooltip\": \"{Escape(tooltip)}\"";
+        return $$"""
         {
           "type": "TextBlock",
           "text": "{{Escape(title)}}",
           "weight": "Bolder",
           "size": "Medium",
-          "spacing": "None"
+          "spacing": "{{spacing}}"{{tooltipLine}}
         }
         """;
+    }
 
     public static string SubtleText(string text) =>
         $$"""
@@ -63,55 +67,105 @@ internal static class SettingsCardJson
         """;
 
     public static string RecentEnabledToggle(bool enabled) =>
-        ToggleSetting(
-            id: "showRecents",
-            label: "Show recent workspaces",
-            help: $"Show up to {QuickShellRecentSettings.EnabledCount} recently used workspaces on the home page.",
-            value: enabled,
-            saveAction: "saveRecents");
-
-    public static string MultiLaunchTabsToggle(bool singleWindowTabs, bool showWtHint) =>
-        ToggleSetting(
-            id: "singleWindowTabs",
-            label: "Open multiple commands in one Windows Terminal window",
-            help: showWtHint
-                ? "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."
-                : "Requires Windows Terminal as the default terminal application. Console Host always opens separate windows.",
-            value: singleWindowTabs,
-            saveAction: "saveMultiLaunch");
-
-    /// <summary>
-    /// CmdPal Adaptive Cards do not wrap <c>Input.Toggle</c> titles, so long titles overflow
-    /// neighboring columns. Put the label in a wrapping TextBlock and keep the toggle title short.
-    /// </summary>
-    public static string ToggleSetting(
-        string id,
-        string label,
-        string help,
-        bool value,
-        string saveAction) =>
         $$"""
         {
-          "type": "Container",
+          "type": "Input.Toggle",
+          "id": "showRecents",
+          "title": "Show recent workspaces",
+          "tooltip": "Up to {{QuickShellRecentSettings.EnabledCount}} on the home list.",
           "spacing": "None",
-          "items": [
+          "value": "{{(enabled ? "true" : "false")}}",
+          "valueOn": "true",
+          "valueOff": "false",
+          {{ChangeActionSave("previewSettings")}}
+        }
+        """;
+
+    public static string MultiLaunchTabsToggle(bool singleWindowTabs, bool showWtHint) =>
+        $$"""
+        {
+          "type": "Input.Toggle",
+          "id": "singleWindowTabs",
+          "title": "Use tabs when possible",
+          "tooltip": "{{Escape(showWtHint
+              ? "Open multiple commands as tabs in one window when possible. Mixed elevation still opens separate windows."
+              : "Open multiple commands as tabs in one window. Requires Windows Terminal; Console Host always opens separate windows.")}}",
+          "spacing": "None",
+          "value": "{{(singleWindowTabs ? "true" : "false")}}",
+          "valueOn": "true",
+          "valueOff": "false",
+          {{ChangeActionSave("previewSettings")}}
+        }
+        """;
+
+    public static string BlockDirtyBranchToggle(bool enabled) =>
+        $$"""
+        {
+          "type": "Input.Toggle",
+          "id": "blockDirtyBranchSwitch",
+          "title": "Block dirty branch switches",
+          "tooltip": "Stops launch or branch switch when the target differs and the tree is dirty. Use git worktree for two branches at once.",
+          "spacing": "None",
+          "value": "{{(enabled ? "true" : "false")}}",
+          "valueOn": "true",
+          "valueOff": "false",
+          {{ChangeActionSave("previewSettings")}}
+        }
+        """;
+
+    /// <summary>Bottom-right Cancel + Save &amp; close row for the settings page.</summary>
+    public static string SettingsFooterActions() =>
+        $$"""
+        {
+          "type": "ColumnSet",
+          "spacing": "Large",
+          "columns": [
             {
-              "type": "TextBlock",
-              "text": "{{Escape(label)}}",
-              "wrap": true,
-              "spacing": "None"
+              "type": "Column",
+              "width": "1",
+              "items": []
             },
             {
-              "type": "Input.Toggle",
-              "id": "{{Escape(id)}}",
-              "title": "Enabled",
+              "type": "Column",
+              "width": "auto",
+              "verticalContentAlignment": "Center",
+              "items": [
+                {
+                  "type": "ActionSet",
+                  "spacing": "None",
+                  "actions": [
+                    {
+                      "type": "Action.Submit",
+                      "title": "Cancel",
+                      "tooltip": "Discard unsaved settings and close.",
+                      "associatedInputs": "none",
+                      "data": { "action": "cancelSettings" }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "verticalContentAlignment": "Center",
               "spacing": "Small",
-              "value": "{{(value ? "true" : "false")}}",
-              "valueOn": "true",
-              "valueOff": "false",
-              {{ChangeActionSave(saveAction)}}
-            },
-            {{SubtleText(help)}}
+              "items": [
+                {
+                  "type": "ActionSet",
+                  "spacing": "None",
+                  "actions": [
+                    {
+                      "type": "Action.Submit",
+                      "title": "Save & close",
+                      "tooltip": "Save all settings and close.",
+                      "associatedInputs": "auto",
+                      "data": { "action": "saveAndCloseSettings" }
+                    }
+                  ]
+                }
+              ]
+            }
           ]
         }
         """;
@@ -124,15 +178,45 @@ internal static class SettingsCardJson
           "columns": [
             {
               "type": "Column",
-              "width": "stretch",
+              "width": "1",
               "items": [
                 {{leftJson}}
               ]
             },
             {
               "type": "Column",
-              "width": "stretch",
-              "spacing": "Medium",
+              "width": "1",
+              "items": [
+                {{rightJson}}
+              ]
+            }
+          ]
+        }
+        """;
+
+    public static string ThreeColumnSection(string leftJson, string middleJson, string rightJson, string spacing = "None") =>
+        $$"""
+        {
+          "type": "ColumnSet",
+          "spacing": "{{spacing}}",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "1",
+              "items": [
+                {{leftJson}}
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "1",
+              "items": [
+                {{middleJson}}
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "1",
               "items": [
                 {{rightJson}}
               ]
@@ -163,6 +247,32 @@ internal static class SettingsCardJson
           ]
         }
         """;
+
+    /// <summary>Actions only (no subtitle). Optional short header with tooltip for hover detail.</summary>
+    public static string TransferActionsBlock(
+        string actionsJson,
+        string topSpacing = "Small",
+        string? header = null,
+        string? tooltip = null)
+    {
+        var items = new List<string>();
+        if (!string.IsNullOrWhiteSpace(header))
+        {
+            items.Add(SectionHeader(header, spacing: "None", tooltip: tooltip));
+        }
+
+        items.Add(actionsJson);
+        var itemsJson = string.Join(",\n            ", items);
+        return $$"""
+        {
+          "type": "Container",
+          "spacing": "{{topSpacing}}",
+          "items": [
+            {{itemsJson}}
+          ]
+        }
+        """;
+    }
 
     public static string TransferActionRow(
         string exportActionJson,
@@ -212,6 +322,6 @@ internal static class SettingsCardJson
         _ => "Good",
     };
 
-    private static string Escape(string? value) =>
-        value is null ? string.Empty : JsonEncodedText.Encode(value).Value;
+    private static string Escape(string value) =>
+        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

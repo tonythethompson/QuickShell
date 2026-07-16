@@ -33,7 +33,11 @@ internal readonly record struct PinnedMoveVisibility(
 
         for (var i = 0; i < pinnedInOrder.Count; i++)
         {
-            if (pinnedInOrder[i].Name.Equals(shortcut.Name, StringComparison.OrdinalIgnoreCase))
+            var candidate = pinnedInOrder[i];
+            if ((!string.IsNullOrWhiteSpace(shortcut.Id)
+                    && !string.IsNullOrWhiteSpace(candidate.Id)
+                    && candidate.Id.Equals(shortcut.Id, StringComparison.OrdinalIgnoreCase))
+                || candidate.Name.Equals(shortcut.Name, StringComparison.OrdinalIgnoreCase))
             {
                 return FromPinnedIndex(i, pinnedInOrder.Count);
             }

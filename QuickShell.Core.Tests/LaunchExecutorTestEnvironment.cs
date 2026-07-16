@@ -55,6 +55,11 @@ internal static class LaunchExecutorTestEnvironment
         WorkspaceHealthCheck.PortInUseOverride = _ => false;
         WorkspaceHealthCheck.ProcessNamesOverride = () => [];
         WorkspaceHealthCheck.WslDistroNamesOverride = () => ["Ubuntu"];
+
+        // Launch tests use real directories (often this repo). Ignore any on-disk branch target
+        // so a dirty worktree + saved target cannot block Process.Start under the override seam.
+        WorktreeBranchTargetStore.GetTargetOverride = _ => null;
+        WorkspaceGitLaunchGate.ResetForTests();
     }
 
     public static void Reset()
@@ -67,6 +72,14 @@ internal static class LaunchExecutorTestEnvironment
         WorkspaceHealthCheck.PortInUseOverride = null;
         WorkspaceHealthCheck.ProcessNamesOverride = null;
         WorkspaceHealthCheck.WslDistroNamesOverride = null;
+
+        CompanionAppLauncher.TryLaunchOverride = null;
+        CompanionAppLauncher.StartProcessOverride = null;
+        CompanionAppPreference.ReadLastUsedOverride = null;
+        CompanionAppPreference.WriteLastUsedOverride = null;
+
+        WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorkspaceGitLaunchGate.ResetForTests();
 
         if (_settingsDirectory is null)
         {
