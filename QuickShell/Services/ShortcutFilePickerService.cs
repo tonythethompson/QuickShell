@@ -58,30 +58,6 @@ internal static class ShortcutFilePickerService
         });
     }
 
-    public static string? PickImportWorkspacesFile(IQuickShellServices? services = null)
-    {
-        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
-
-        return RunOnStaThread(() =>
-        {
-            using var dialog = new System.Windows.Forms.OpenFileDialog
-            {
-                Title = $"Import {QuickShellBrand.DisplayName} workspaces",
-                Filter = JsonFilter,
-                DefaultExt = "json",
-                CheckFileExists = true,
-                Multiselect = false,
-            };
-
-            if (Directory.Exists(initialDirectory))
-            {
-                dialog.InitialDirectory = initialDirectory;
-            }
-
-            return ShowDialog(dialog);
-        });
-    }
-
     public static string? PickExecutableFile()
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -99,32 +75,6 @@ internal static class ShortcutFilePickerService
             };
 
             if (initialDirectory is not null)
-            {
-                dialog.InitialDirectory = initialDirectory;
-            }
-
-            return ShowDialog(dialog);
-        });
-    }
-
-    public static string? PickExportWorkspacesFile(IQuickShellServices? services = null)
-    {
-        var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
-
-        return RunOnStaThread(() =>
-        {
-            using var dialog = new System.Windows.Forms.SaveFileDialog
-            {
-                Title = $"Export {QuickShellBrand.DisplayName} workspaces",
-                Filter = JsonFilter,
-                DefaultExt = "json",
-                AddExtension = true,
-                FileName = defaultName,
-                OverwritePrompt = true,
-            };
-
-            if (Directory.Exists(initialDirectory))
             {
                 dialog.InitialDirectory = initialDirectory;
             }

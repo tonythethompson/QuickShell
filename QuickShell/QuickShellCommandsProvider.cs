@@ -71,7 +71,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
             ProjectAnalysisAccessor.Instance = projectAnalysis;
             _quickShellServices = _services.GetRequiredService<IQuickShellServices>();
-            _settingsManager.Services = _quickShellServices;
             _createShortcutCommand = _services.GetRequiredService<CreateShortcutCommand>();
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
             // #region agent log
