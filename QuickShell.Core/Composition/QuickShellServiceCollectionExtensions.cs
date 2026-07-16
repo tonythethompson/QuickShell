@@ -43,12 +43,12 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
 
-        services.AddSingleton<ITerminalLauncher, TerminalLauncherService>();
-        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolverService>();
-        services.AddSingleton<IWorkspaceMapper, WorkspaceMapperService>();
-        services.AddSingleton<IGitRepoIndex, GitRepoIndexService>();
-        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperationsService>();
-        services.AddTransient<IWorkspaceHealthChecker, WorkspaceHealthCheckerService>();
+        services.AddSingleton<ITerminalLauncher, TerminalLauncher>();
+        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolver>();
+        services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
+        services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
+        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperations>();
+        services.AddSingleton<IWorkspaceHealthChecker>(_ => WorkspaceHealthCheck.Default);
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();

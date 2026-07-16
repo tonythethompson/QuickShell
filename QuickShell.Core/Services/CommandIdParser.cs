@@ -14,25 +14,25 @@ internal sealed class CommandIdParser : ICommandIdParser
             return false;
         }
 
-        if (string.Equals(rawId, QuickShellDeepLinkIds.Settings, StringComparison.Ordinal))
+        if (string.Equals(rawId, CommandDescriptor.SettingsId, StringComparison.Ordinal))
         {
             descriptor = new CommandDescriptor(rawId, CommandKind.OpenSettings);
             return true;
         }
 
-        if (string.Equals(rawId, QuickShellDeepLinkIds.ImportConflict, StringComparison.Ordinal))
+        if (string.Equals(rawId, CommandDescriptor.ImportConflictId, StringComparison.Ordinal))
         {
             descriptor = new CommandDescriptor(rawId, CommandKind.ImportConflict);
             return true;
         }
 
-        if (string.Equals(rawId, QuickShellDeepLinkIds.PendingShortcutEdit, StringComparison.Ordinal))
+        if (string.Equals(rawId, CommandDescriptor.PendingShortcutEditId, StringComparison.Ordinal))
         {
             descriptor = new CommandDescriptor(rawId, CommandKind.PendingShortcutEdit);
             return true;
         }
 
-        if (string.Equals(rawId, ShortcutCommandIds.CreateShortcut, StringComparison.Ordinal))
+        if (string.Equals(rawId, CommandDescriptor.CreateWorkspaceId, StringComparison.Ordinal))
         {
             descriptor = new CommandDescriptor(rawId, CommandKind.CreateWorkspace);
             return true;
@@ -48,7 +48,7 @@ internal sealed class CommandIdParser : ICommandIdParser
             return true;
         }
 
-        if (string.Equals(rawId, QuickShellDeepLinkIds.DiscoverGitRepos, StringComparison.Ordinal))
+        if (string.Equals(rawId, CommandDescriptor.DiscoverGitReposId, StringComparison.Ordinal))
         {
             descriptor = new CommandDescriptor(rawId, CommandKind.DiscoverGitRepos);
             return true;
@@ -114,29 +114,29 @@ internal sealed class CommandIdParser : ICommandIdParser
         return false;
     }
 
-    internal static bool TryDecodeDiscoverCreateDirectory(string commandId, out string directory)
+    private static bool TryDecodeDiscoverCreateDirectory(string commandId, out string directory)
     {
         directory = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.DiscoverCreatePrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.DiscoverCreatePrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        var directoryKey = commandId[QuickShellDeepLinkIds.DiscoverCreatePrefix.Length..];
-        return CommandIdEncoding.TryDecodeHexUtf8(directoryKey, out directory);
+        var directoryKey = commandId[CommandDescriptor.DiscoverCreatePrefix.Length..];
+        return CommandDescriptor.TryDecodeHexUtf8(directoryKey, out directory);
     }
 
-    internal static bool TryParseOpen(string commandId, out string key)
+    private static bool TryParseOpen(string commandId, out string key)
     {
         key = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.OpenPrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.OpenPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        key = commandId[QuickShellDeepLinkIds.OpenPrefix.Length..];
+        key = commandId[CommandDescriptor.OpenPrefix.Length..];
         if (key.EndsWith(".admin", StringComparison.Ordinal))
         {
             key = key[..^".admin".Length];
@@ -149,25 +149,25 @@ internal sealed class CommandIdParser : ICommandIdParser
         return !string.IsNullOrWhiteSpace(key);
     }
 
-    internal static bool TryParseOpenLaunch(string commandId, out string shortcutId, out string launchId)
+    private static bool TryParseOpenLaunch(string commandId, out string shortcutId, out string launchId)
     {
         shortcutId = string.Empty;
         launchId = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.OpenPrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.OpenPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        var value = commandId[QuickShellDeepLinkIds.OpenPrefix.Length..];
-        var launchSeparatorIndex = value.IndexOf(QuickShellDeepLinkIds.LaunchSeparator, StringComparison.Ordinal);
+        var value = commandId[CommandDescriptor.OpenPrefix.Length..];
+        var launchSeparatorIndex = value.IndexOf(CommandDescriptor.LaunchSeparator, StringComparison.Ordinal);
         if (launchSeparatorIndex <= 0)
         {
             return false;
         }
 
         shortcutId = value[..launchSeparatorIndex];
-        launchId = value[(launchSeparatorIndex + QuickShellDeepLinkIds.LaunchSeparator.Length)..];
+        launchId = value[(launchSeparatorIndex + CommandDescriptor.LaunchSeparator.Length)..];
         if (launchId.EndsWith(".admin", StringComparison.Ordinal))
         {
             launchId = launchId[..^".admin".Length];
@@ -177,46 +177,46 @@ internal sealed class CommandIdParser : ICommandIdParser
             launchId = launchId[..^".standard".Length];
         }
 
-        return ShortcutCommandIds.IsStableShortcutId(shortcutId) && ShortcutCommandIds.IsStableShortcutId(launchId);
+        return CommandDescriptor.IsStableId(shortcutId) && CommandDescriptor.IsStableId(launchId);
     }
 
     private static bool TryParseWorkspaceStatus(string commandId, out string shortcutId)
     {
         shortcutId = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.WorkspaceStatusPrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.WorkspaceStatusPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        shortcutId = commandId[QuickShellDeepLinkIds.WorkspaceStatusPrefix.Length..];
-        return ShortcutCommandIds.IsStableShortcutId(shortcutId);
+        shortcutId = commandId[CommandDescriptor.WorkspaceStatusPrefix.Length..];
+        return CommandDescriptor.IsStableId(shortcutId);
     }
 
     private static bool TryParseWorktreeBranchPicker(string commandId, out string shortcutId)
     {
         shortcutId = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.WorktreeBranchPickerPrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.WorktreeBranchPickerPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        shortcutId = commandId[QuickShellDeepLinkIds.WorktreeBranchPickerPrefix.Length..];
-        return ShortcutCommandIds.IsStableShortcutId(shortcutId);
+        shortcutId = commandId[CommandDescriptor.WorktreeBranchPickerPrefix.Length..];
+        return CommandDescriptor.IsStableId(shortcutId);
     }
 
     private static bool TryParseWorktreeBranchClear(string commandId, out string shortcutId)
     {
         shortcutId = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.WorktreeBranchClearPrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.WorktreeBranchClearPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        shortcutId = commandId[QuickShellDeepLinkIds.WorktreeBranchClearPrefix.Length..];
-        return ShortcutCommandIds.IsStableShortcutId(shortcutId);
+        shortcutId = commandId[CommandDescriptor.WorktreeBranchClearPrefix.Length..];
+        return CommandDescriptor.IsStableId(shortcutId);
     }
 
     private static bool TryParseWorktreeBranchSelect(string commandId, out string shortcutId, out string branch)
@@ -224,12 +224,12 @@ internal sealed class CommandIdParser : ICommandIdParser
         shortcutId = string.Empty;
         branch = string.Empty;
 
-        if (!commandId.StartsWith(QuickShellDeepLinkIds.WorktreeBranchSelectPrefix, StringComparison.Ordinal))
+        if (!commandId.StartsWith(CommandDescriptor.WorktreeBranchSelectPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        var remainder = commandId[QuickShellDeepLinkIds.WorktreeBranchSelectPrefix.Length..];
+        var remainder = commandId[CommandDescriptor.WorktreeBranchSelectPrefix.Length..];
         var separatorIndex = remainder.IndexOf('.', StringComparison.Ordinal);
         if (separatorIndex <= 0)
         {
@@ -238,6 +238,6 @@ internal sealed class CommandIdParser : ICommandIdParser
 
         shortcutId = remainder[..separatorIndex];
         branch = remainder[(separatorIndex + 1)..];
-        return ShortcutCommandIds.IsStableShortcutId(shortcutId) && !string.IsNullOrWhiteSpace(branch);
+        return CommandDescriptor.IsStableId(shortcutId) && !string.IsNullOrWhiteSpace(branch);
     }
 }

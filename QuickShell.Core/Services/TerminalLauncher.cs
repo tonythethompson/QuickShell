@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Diagnostics;
 
@@ -13,9 +14,26 @@ internal sealed record TerminalLaunchAttempt(
     bool RunAsAdmin,
     string? FallbackReason);
 
-internal static class TerminalLauncher
+internal sealed class TerminalLauncher : ITerminalLauncher
 {
     internal static Func<ProcessStartInfo, bool>? StartProcessOverride { get; set; }
+
+    ResolvedLaunch ITerminalLauncher.Resolve(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId) =>
+        Resolve(shortcut, terminalApplicationId, defaultProfileId);
+
+    TerminalLaunchAttempt ITerminalLauncher.Open(
+        TerminalShortcut shortcut,
+        string terminalApplicationId,
+        string defaultProfileId,
+        bool runAsAdmin,
+        bool runAsStandard) =>
+        Open(shortcut, terminalApplicationId, defaultProfileId, runAsAdmin, runAsStandard);
+
+    TerminalLaunchAttempt ITerminalLauncher.OpenResolved(ResolvedLaunch resolved, bool effectiveElevation) =>
+        OpenResolved(resolved, effectiveElevation);
 
     public static ResolvedLaunch Resolve(
         TerminalShortcut shortcut,

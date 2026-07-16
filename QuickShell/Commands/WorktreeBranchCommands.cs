@@ -22,7 +22,7 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
         _branch = branch;
         _settings = settings;
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorktreeBranchSelect(shortcutId, branch);
+        Id = CommandDescriptor.WorktreeBranchSelect(shortcutId, branch).Id;
         Name = branch;
         Icon = new IconInfo("\uE8AB");
     }
@@ -60,7 +60,7 @@ internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
     {
         _shortcutId = shortcutId;
         _onChanged = onChanged;
-        Id = ShortcutCommandIds.WorktreeBranchClear(shortcutId);
+        Id = CommandDescriptor.WorktreeBranchClear(shortcutId).Id;
         Name = "Use current branch";
         Icon = new IconInfo("\uE894");
     }
