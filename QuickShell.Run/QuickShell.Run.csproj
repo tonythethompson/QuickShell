@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
     <ProjectReference Include="..\QuickShell.Core\QuickShell.Core.csproj">
       <Private>true</Private>
       <CopyLocal>true</CopyLocal>
