@@ -26,10 +26,11 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - name: Run OpenCode
-        # Pin the reviewed dev branch commit before exposing ANTHROPIC_API_KEY.
+        # Pin the reviewed dev branch commit before exposing credentials.
+        # Use the OpenCode-provided key, not a third-party Anthropic secret.
         uses: anomalyco/opencode/github@4a760b5743496942fd821eeafaa7d648a5630973
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: anthropic/claude-sonnet-4-5
