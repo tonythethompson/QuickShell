@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Commands;
 using QuickShell.Composition;
 
@@ -22,8 +23,14 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
 
         services.AddSingleton(settingsManager);
         services.AddSingleton(createShortcutCommand);
+        services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
+            sp.GetRequiredService<IShortcutRepository>(),
+            sp.GetRequiredService<IDraftStore>(),
+            sp.GetRequiredService<QuickShellSettingsManager>(),
+            sp.GetRequiredService<IProjectAnalysisService>()));
         services.AddSingleton(sp => new CommandItemFactoryContext
         {
+            Services = sp.GetRequiredService<IQuickShellServices>(),
             Shortcuts = sp.GetRequiredService<IShortcutRepository>(),
             Settings = settingsManager,
             CreateShortcut = createShortcutCommand,

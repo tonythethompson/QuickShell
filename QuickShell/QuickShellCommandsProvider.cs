@@ -19,6 +19,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
 #endif
     private readonly ServiceProvider _services;
+    private readonly IQuickShellServices _quickShellServices;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly QuickShellPage _page;
     private readonly CreateShortcutCommand _createShortcutCommand;
@@ -61,11 +62,12 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages);
             _services = collection.BuildServiceProvider();
 
-            var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
-            var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
+            var shortcuts = _services.GetRequiredService<IShortcutRepository>();
+            var drafts = _services.GetRequiredService<IDraftStore>();
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
             ProjectAnalysisAccessor.Instance = projectAnalysis;
-            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis));
+            _quickShellServices = new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis);
+            QuickShellServices.Bind(_quickShellServices);
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
             // #region agent log
             AgentDebugLog.Write(

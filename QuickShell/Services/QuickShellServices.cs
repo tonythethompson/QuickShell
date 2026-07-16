@@ -6,32 +6,32 @@ namespace QuickShell.Services;
 
 /// <summary>
 /// CmdPal host facade seeded from the composition root at provider startup.
-/// Pages and commands resolve shared singletons through <see cref="Current"/>.
+/// Pages and commands receive this instance through constructor injection.
 /// </summary>
-internal sealed class QuickShellServices
+internal sealed class QuickShellServices : IQuickShellServices
 {
-    private static QuickShellServices? _current;
+    private static IQuickShellServices? _current;
 
-    public static QuickShellServices Current =>
+    public static IQuickShellServices Current =>
         _current ?? throw new InvalidOperationException(
             $"{nameof(QuickShellServices)} has not been initialized by the CmdPal provider.");
 
-    internal static void Bind(QuickShellServices instance) =>
+    internal static void Bind(IQuickShellServices instance) =>
         _current = instance ?? throw new ArgumentNullException(nameof(instance));
 
     internal static void Unbind() => _current = null;
 
-    public ShortcutRepository Shortcuts { get; }
+    public IShortcutRepository Shortcuts { get; }
 
-    public ShortcutDraftStore Drafts { get; }
+    public IDraftStore Drafts { get; }
 
     public QuickShellSettingsManager Settings { get; }
 
     public IProjectAnalysisService ProjectAnalysis { get; }
 
     public QuickShellServices(
-        ShortcutRepository shortcuts,
-        ShortcutDraftStore drafts,
+        IShortcutRepository shortcuts,
+        IDraftStore drafts,
         QuickShellSettingsManager settings,
         IProjectAnalysisService projectAnalysis)
     {
