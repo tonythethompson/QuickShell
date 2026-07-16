@@ -188,7 +188,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         finally
         {
             // static locator removed; pages receive services via constructor
-            
+
             if (copied)
             {
                 try
@@ -234,7 +234,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var reload = Time(() => page.Reload());
         getItemsMs = Time(() => page.GetItems());
         // static locator removed; pages receive services via constructor
-        
+
         return reload;
     }
 

@@ -10,7 +10,7 @@ namespace QuickShell.Commands;
 /// </summary>
 internal sealed partial class CreateShortcutCommand : ShortcutFormPage
 {
-    public CreateShortcutCommand(Action onSaved, IQuickShellServices? services = null)
+    public CreateShortcutCommand(Action onSaved, IQuickShellServices services)
         : base(existing: null, onSaved, services: services)
     {
         Id = CommandDescriptor.CreateWorkspace().Id;
@@ -20,7 +20,7 @@ internal sealed partial class CreateShortcutCommand : ShortcutFormPage
     /// Create form prefilled from a seed (e.g. discovered git repo). Uses a stable command id
     /// derived from the repo directory so CmdPal Pin to home can resolve the command later.
     /// </summary>
-    public CreateShortcutCommand(Action onSaved, TerminalShortcut createSeed, IQuickShellServices? services = null)
+    public CreateShortcutCommand(Action onSaved, TerminalShortcut createSeed, IQuickShellServices services)
         : base(existing: null, onSaved, createSeed, services)
     {
         if (!string.IsNullOrWhiteSpace(createSeed.Directory))

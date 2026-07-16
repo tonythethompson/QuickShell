@@ -48,7 +48,7 @@ internal sealed class CreateWorkspaceCommandHandler : ICommandItemHandler
     public CommandKind Kind => CommandKind.CreateWorkspace;
 
     public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new CreateShortcutCommand(context.ReloadPages))
+        new CommandItem(new CreateShortcutCommand(context.ReloadPages, context.Services))
         {
             Title = "Create workspace",
             Subtitle = "Folder and terminal launches",
@@ -64,7 +64,7 @@ internal sealed class DiscoverCreateWorkspaceCommandHandler : ICommandItemHandle
     {
         var discoverDirectory = descriptor.Directory!;
         var seed = WorkspaceSeedFactory.FromGitRepoDirectory(discoverDirectory);
-        return new CommandItem(new CreateShortcutCommand(context.ReloadPages, seed))
+        return new CommandItem(new CreateShortcutCommand(context.ReloadPages, seed, context.Services))
         {
             Title = seed.Name,
             Subtitle = DiscoverGitRepoListItems.BuildSubtitleForNew(new GitRepoCandidate

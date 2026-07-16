@@ -87,6 +87,7 @@ internal static class DiscoverGitRepoListItems
         ISet<string>? usedKeys = null,
         IQuickShellServices? services = null)
     {
+        var requiredServices = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         var cacheKey = BuildCacheKey("new", candidate);
         usedKeys?.Add(cacheKey);
 
@@ -95,7 +96,7 @@ internal static class DiscoverGitRepoListItems
             return cached;
         }
 
-        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), services))
+        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), requiredServices))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForNew(candidate),
@@ -121,6 +122,7 @@ internal static class DiscoverGitRepoListItems
         ISet<string>? usedKeys = null,
         IQuickShellServices? services = null)
     {
+        var requiredServices = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
         var cacheKey = BuildCacheKey("saved", candidate, matchingShortcuts);
         usedKeys?.Add(cacheKey);
 
@@ -133,7 +135,7 @@ internal static class DiscoverGitRepoListItems
             ? BuildSavedWorkspaceCommands(candidate.Directory, matchingShortcuts, settings, onSaved, services)
             : BuildDirectoryCommands(candidate.Directory);
 
-        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate)))
+        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), requiredServices))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForSaved(candidate, matchingShortcuts),
