@@ -29,6 +29,16 @@ internal static class Strings
     public static string Section_Favorites => Get(nameof(Section_Favorites));
     public static string Section_Workspaces => Get(nameof(Section_Workspaces));
     public static string Section_NeedsAttention => Get(nameof(Section_NeedsAttention));
+    public static string Pill_OpenToDirectory => Get(nameof(Pill_OpenToDirectory));
+    public static string Menu_SwitchBranch => Get(nameof(Menu_SwitchBranch));
+    public static string Menu_SwitchBranchEllipsis => Get(nameof(Menu_SwitchBranchEllipsis));
+    public static string Menu_UseCurrentBranch => Get(nameof(Menu_UseCurrentBranch));
+    public static string BranchPicker_WorkspaceNotFound => Get(nameof(BranchPicker_WorkspaceNotFound));
+    public static string BranchPicker_NotAGitRepository => Get(nameof(BranchPicker_NotAGitRepository));
+    public static string BranchPicker_NoLocalBranches => Get(nameof(BranchPicker_NoLocalBranches));
+    public static string BranchPicker_SelectLocalBranch => Get(nameof(BranchPicker_SelectLocalBranch));
+    public static string BranchPicker_ClearTargetPinnedFormat(object arg0) => string.Format(CultureInfo.CurrentCulture, Get(nameof(BranchPicker_ClearTargetPinnedFormat)), arg0);
+    public static string BranchPicker_CurrentBranch => Get(nameof(BranchPicker_CurrentBranch));
     public static string Tooltip_Favorite => Get(nameof(Tooltip_Favorite));
     public static string Tooltip_AlwaysRunAsAdmin => Get(nameof(Tooltip_AlwaysRunAsAdmin));
     public static string Section_NotSavedYet => Get(nameof(Section_NotSavedYet));

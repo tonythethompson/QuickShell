@@ -66,7 +66,7 @@ internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
         _shortcutId = shortcutId;
         _onChanged = onChanged;
         Id = CommandDescriptor.WorktreeBranchClear(shortcutId).Id;
-        Name = "Use current branch";
+        Name = Strings.Menu_UseCurrentBranch;
         Icon = new IconInfo("\uE894");
     }
 

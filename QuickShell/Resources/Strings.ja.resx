@@ -87,6 +87,39 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>ワークスペース</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>要確認</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>ディレクトリのみを開く</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>ブランチを切り替え</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>ブランチを切り替え…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>現在のブランチを使用</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>ワークスペースが見つかりません</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>Git リポジトリではありません</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>ローカルブランチが見つかりません</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>ローカルブランチを選択</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>ターゲットをクリア: 現在 {0} に固定中</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>現在のブランチ</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>お気に入り</value>
   </data>
