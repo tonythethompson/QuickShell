@@ -176,7 +176,7 @@ internal static class SupportDiagnostics
             }
         }
 
-        File.Move(activePath, Path.Combine(directory, "support.1.jsonl"));
+        File.Move(activePath, Path.Join(directory, "support.1.jsonl"));
     }
 
     private static string NormalizeEventCode(string location)
