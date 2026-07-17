@@ -1,0 +1,30 @@
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_7cacaa318abe5a::t_32ef5fe4fe4630 2
+  s_7cacaa318abe5a::t_0ae793f14768f6 11-14
+  s_7cacaa318abe5a::t_3c70e5b24ab60e 57,61,67,70-73,75,77-79,333,336-343,583-584,587-588,592-598,606-609,631
+QuickShell.Core/Services/RepositoryDiagnostics.cs
+  s_7cacaa318abe5a::t_37788fc18abc13 1-15
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_7cacaa318abe5a::t_46fae84771fabe 37
+  s_7cacaa318abe5a::t_81bdea5be2e373 2
+  s_7cacaa318abe5a::t_9d3122b22eab64 34-36
+  s_7cacaa318abe5a::t_5aa50ad023766c 927-931,958,969-972,1009,1021-1022,1062,1079,1083,1475-1480,1482-1490,2119-2125,2127,2129,2131-2140,2142,2146-2152,2155-2156,2163,2170,2177
+QuickShell/Program.cs
+  s_7cacaa318abe5a::t_2bd38fa52f31fd 15-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6f4eb633b67126bda87bad592eb82bcf59a5ce0c",
+  "prompts": {},
+  "sessions": {
+    "s_7cacaa318abe5a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7767d51-6999-4078-80d3-7741accbd322",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
