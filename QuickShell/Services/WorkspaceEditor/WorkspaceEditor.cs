@@ -757,7 +757,23 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
                     _ = CommandSuggestionService.GetPills(directory, usedCommands, _services.ProjectAnalysis, _services.ClassificationCache);
                 }
             }
-            catch
+            catch (OperationCanceledException)
+            {
+                // Expected when scan is canceled.
+            }
+            catch (IOException)
+            {
+                // Best effort — form remains usable without pills.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best effort — form remains usable without pills.
+            }
+            catch (ArgumentException)
+            {
+                // Best effort — form remains usable without pills.
+            }
+            catch (InvalidOperationException)
             {
                 // Best effort — form remains usable without pills.
             }
