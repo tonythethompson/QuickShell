@@ -368,7 +368,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             {
                 _onSaved?.Invoke();
             }
-            catch
+            catch (Exception)
             {
                 // Best-effort; repository write already succeeded.
             }
