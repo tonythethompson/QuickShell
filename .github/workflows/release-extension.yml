@@ -184,7 +184,7 @@ jobs:
     steps:
       - name: Install WingetCreate
         run: |
-          winget install --id Microsoft.WingetCreate -e `
+          winget install --id Microsoft.WingetCreate -e --source winget `
             --accept-source-agreements --accept-package-agreements --disable-interactivity
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
