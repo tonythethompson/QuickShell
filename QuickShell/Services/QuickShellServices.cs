@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using QuickShell.Abstractions;
@@ -5,36 +6,21 @@ using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
 
-/// <summary>
-/// CmdPal host facade seeded from the composition root at provider startup.
-/// Pages and commands receive this instance through constructor injection.
-/// </summary>
 internal sealed class QuickShellServices : IQuickShellServices
 {
     public IShortcutRepository Shortcuts { get; }
-
     public IDraftStore Drafts { get; }
-
     public QuickShellSettingsManager Settings { get; }
-
     public IProjectAnalysisService ProjectAnalysis { get; }
-
+    public ICommandSuggestionService CommandSuggestions { get; }
     public IShortcutLaunchExecutor LaunchExecutor { get; }
-
     public IWorkspaceGitOperations GitOperations { get; }
-
     public ICompanionAppLauncher CompanionApps { get; }
-
     public IWorkspaceHealthChecker HealthChecker { get; }
-
     public WorkspaceGitLaunchGate GitLaunchGate { get; }
-
     public IGitRepoIndex GitRepos { get; }
-
     public IProjectClassificationCache ClassificationCache { get; }
-
     public IExtensionCallbackQueue CallbackQueue { get; }
-
     public IQuickShellLifetime Lifetime { get; }
 
     public QuickShellServices(
@@ -42,6 +28,7 @@ internal sealed class QuickShellServices : IQuickShellServices
         IDraftStore drafts,
         QuickShellSettingsManager settings,
         IProjectAnalysisService projectAnalysis,
+        ICommandSuggestionService commandSuggestions,
         IShortcutLaunchExecutor launchExecutor,
         IWorkspaceGitOperations gitOperations,
         ICompanionAppLauncher companionApps,
@@ -56,6 +43,7 @@ internal sealed class QuickShellServices : IQuickShellServices
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+        CommandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
         LaunchExecutor = launchExecutor ?? throw new ArgumentNullException(nameof(launchExecutor));
         GitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
         CompanionApps = companionApps ?? throw new ArgumentNullException(nameof(companionApps));
@@ -73,13 +61,11 @@ internal sealed class QuickShellServices : IQuickShellServices
 
     private async Task PreloadShortcutsAsync()
     {
-        try
-        {
-            await Shortcuts.PreloadAsync(Lifetime.CancellationToken).ConfigureAwait(false);
-        }
+        try { await Shortcuts.PreloadAsync(Lifetime.CancellationToken).ConfigureAwait(false); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or OperationCanceledException)
         {
-            // Best effort warm-up; synchronous access still loads on demand.
+            // Best-effort warm-up; synchronous access still loads on demand.
+            Debug.WriteLine($"Shortcut preload skipped: {ex}");
         }
     }
 }

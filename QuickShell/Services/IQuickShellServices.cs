@@ -17,6 +17,8 @@ internal interface IQuickShellServices
 
     IProjectAnalysisService ProjectAnalysis { get; }
 
+    ICommandSuggestionService CommandSuggestions { get; }
+
     IShortcutLaunchExecutor LaunchExecutor { get; }
 
     IWorkspaceGitOperations GitOperations { get; }

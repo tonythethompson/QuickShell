@@ -88,11 +88,10 @@ internal static class ShortcutFormLaunchSection
             ? TaskTypePickContext.Empty
             : TaskTypePickContext.FromCommands(existingCommands);
 
-        var suggestion = TaskTypeCommandSuggestion.TrySuggest(
+        var suggestion = projectAnalysis.TrySuggestTaskCommand(
             directory,
             normalized,
-            pickContext,
-            projectAnalysis);
+            pickContext);
         if (string.IsNullOrWhiteSpace(suggestion))
         {
             return null;
