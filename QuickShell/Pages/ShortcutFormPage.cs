@@ -590,7 +590,9 @@ internal sealed partial class ShortcutForm : FormContent
     {
         MergeDraftFromInputs(payload, out _);
 
-        var pills = CommandSuggestionService.GetPills(
+        // Must match BuildDataFields / BuildSelectablePills so Open to Directory (blank command)
+        // and pillIndex slots resolve the same list the Adaptive Card rendered.
+        var pills = SuggestionPillPresentation.BuildSelectablePills(
             _draft.Directory,
             _draft.Commands.Select(command => command.Command),
             _services.ProjectAnalysis,
@@ -614,7 +616,10 @@ internal sealed partial class ShortcutForm : FormContent
             GetDefaultRowLaunchTarget());
 
         ApplyDraft(_draft, forceTemplateRebuild: rowAdded);
-        return QuickShellNavigation.StayOpen($"Added {pill.TypeTitle} command.");
+        var toast = ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill)
+            ? "Added Open to Directory."
+            : $"Added {pill.TypeTitle} command.";
+        return QuickShellNavigation.StayOpen(toast);
     }
 
     private CommandResult HandleClearLaunch(string payload, int index)
