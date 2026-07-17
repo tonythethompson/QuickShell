@@ -81,6 +81,7 @@ internal static class ShortcutContextCommands
 
         // Workspace
         AddFolderAndLinkCommands(context, items, shortcut);
+        AddSwitchBranchCommand(context, items, shortcut, onChanged);
 
         // Status…
         AddStatusCommand(context, items, shortcut, onChanged);
@@ -422,6 +423,27 @@ internal static class ShortcutContextCommands
 #endif
             });
         }
+    }
+
+    /// <summary>
+    /// Unconditional — deliberately does not check whether shortcut.Directory is actually a
+    /// git repo here. That check needs git status, and this runs once per visible row on every
+    /// home-list refresh; the "Workspace status…" page learned that lesson the hard way (see
+    /// its constructor comment: eager git status made open take tens of seconds with ~45
+    /// workspaces). WorktreeBranchPickerPage defers its own git work to GetItems(), so showing
+    /// "Not a git repository" there instead of hiding this item entirely is the cheap tradeoff.
+    /// </summary>
+    private static void AddSwitchBranchCommand(
+        QuickShellPageContext context,
+        List<CommandContextItem> items,
+        TerminalShortcut shortcut,
+        Action onChanged)
+    {
+        items.Add(new CommandContextItem(new WorktreeBranchPickerPage(context.Services, shortcut.Id, onChanged))
+        {
+            Title = "Switch branch…",
+            Icon = new IconInfo(""),
+        });
     }
 
     private static void AddStatusCommand(
