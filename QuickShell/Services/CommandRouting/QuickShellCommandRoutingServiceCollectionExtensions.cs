@@ -1,3 +1,4 @@
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
@@ -30,7 +31,10 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<ICompanionAppLauncher>(),
             sp.GetRequiredService<IWorkspaceHealthChecker>(),
             sp.GetRequiredService<WorkspaceGitLaunchGate>(),
-            sp.GetRequiredService<IQuickShellLifetime>()));
+            sp.GetRequiredService<IQuickShellLifetime>(),
+            sp.GetRequiredService<IGitRepoIndex>(),
+            sp.GetRequiredService<IProjectClassificationCache>(),
+            sp.GetRequiredService<IExtensionCallbackQueue>()));
         services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
         services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
 
@@ -57,7 +61,16 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
         string? configDirectory = null,
         QuickShell.Abstractions.IQuickShellLifetime? lifetime = null)
     {
+        // Capture extension SynchronizationContext at host registration (provider ctor thread).
+        var extensionContext = SynchronizationContext.Current;
+
         services.AddQuickShellCore(configDirectory, lifetime);
+        services.AddSingleton<IExtensionCallbackQueue, ExtensionCallbackQueue>();
+        // Override Core's Sync scheduler with CmdPal-aware marshaling.
+        services.AddSingleton<IExtensionThreadScheduler>(sp =>
+            new CmdPalExtensionThreadScheduler(
+                extensionContext,
+                sp.GetRequiredService<IExtensionCallbackQueue>()));
         services.AddQuickShellCommandRouting(settingsManager);
         return services;
     }

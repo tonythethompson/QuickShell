@@ -19,6 +19,8 @@ internal static class TestQuickShellServicesFactory
         LaunchTestBundle? launch = null)
     {
         var bundle = launch ?? LaunchTestServices.CreateBundle();
+        var classificationCache = new ProjectClassificationCache(analysis);
+        var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
         return new QuickShellServices(
             repository,
             drafts,
@@ -29,7 +31,10 @@ internal static class TestQuickShellServicesFactory
             bundle.Companion,
             bundle.Health,
             bundle.GitGate,
-            lifetime);
+            lifetime,
+            gitRepos,
+            classificationCache,
+            new ExtensionCallbackQueue());
     }
 
     public static QuickShellServices CreateFromProvider(
@@ -49,5 +54,8 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<ICompanionAppLauncher>(),
             provider.GetRequiredService<IWorkspaceHealthChecker>(),
             provider.GetRequiredService<WorkspaceGitLaunchGate>(),
-            lifetime);
+            lifetime,
+            provider.GetRequiredService<IGitRepoIndex>(),
+            provider.GetRequiredService<IProjectClassificationCache>(),
+            new ExtensionCallbackQueue());
 }

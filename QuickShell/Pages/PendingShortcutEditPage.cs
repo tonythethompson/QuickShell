@@ -124,7 +124,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings(result.Message);
         }
 
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_services.CallbackQueue, _onReload);
         _onSettingsChanged?.Invoke();
         return QuickShellNavigation.StayOnSettings(result.Message);
     }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification.Detectors;
 using QuickShell.Composition;
@@ -489,12 +490,12 @@ public sealed class GitRepoIndexIsolation
     public const string Name = "GitRepoIndex";
 }
 
-[Collection(GitRepoIndexIsolation.Name)]
 public sealed class GitRepoIndexTests : IDisposable
 {
     private readonly string _root;
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly GitRepoIndex _index;
 
     public GitRepoIndexTests()
     {
@@ -502,7 +503,10 @@ public sealed class GitRepoIndexTests : IDisposable
         Directory.CreateDirectory(_root);
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
-        GitRepoIndex.Invalidate();
+        _index = new GitRepoIndex(
+            _projectAnalysis,
+            _provider.GetRequiredService<IQuickShellLifetime>(),
+            new SyncExtensionThreadScheduler());
     }
 
     [Fact]
@@ -511,17 +515,17 @@ public sealed class GitRepoIndexTests : IDisposable
         var repoPath = Path.Combine(_root, "alpha-app");
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
 
-        GitRepoIndex.Invalidate();
+        _index.Invalidate();
         var saved = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { repoPath };
 
-        _ = GitRepoIndex.Search(_projectAnalysis, "alpha", [_root], saved);
-        GitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
+        _ = _index.Search("alpha", [_root], saved);
+        _index.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
 
-        var matches = GitRepoIndex.Search(_projectAnalysis, "alpha", [_root], saved);
+        var matches = _index.Search("alpha", [_root], saved);
 
         Assert.Empty(matches);
 
-        matches = GitRepoIndex.Search(_projectAnalysis, "alpha", [_root], savedDirectories: null);
+        matches = _index.Search("alpha", [_root], savedDirectories: null);
 
         Assert.Single(matches);
         Assert.Equal("alpha-app", matches[0].Name);
@@ -537,13 +541,13 @@ public sealed class GitRepoIndexTests : IDisposable
         Directory.CreateDirectory(Path.Combine(firstRepo, ".git"));
         Directory.CreateDirectory(Path.Combine(secondRepo, ".git"));
 
-        _ = GitRepoIndex.GetAll(_projectAnalysis, [firstRoot]);
-        GitRepoIndex.WaitForPopulationForTests(BuildRootKeyForTest(firstRoot), TimeSpan.FromSeconds(10));
-        var first = GitRepoIndex.GetAll(_projectAnalysis, [firstRoot]);
+        _ = _index.GetAll([firstRoot]);
+        _index.WaitForPopulationForTests(BuildRootKeyForTest(firstRoot), TimeSpan.FromSeconds(10));
+        var first = _index.GetAll([firstRoot]);
 
-        _ = GitRepoIndex.GetAll(_projectAnalysis, [secondRoot]);
-        GitRepoIndex.WaitForPopulationForTests(BuildRootKeyForTest(secondRoot), TimeSpan.FromSeconds(10));
-        var second = GitRepoIndex.GetAll(_projectAnalysis, [secondRoot]);
+        _ = _index.GetAll([secondRoot]);
+        _index.WaitForPopulationForTests(BuildRootKeyForTest(secondRoot), TimeSpan.FromSeconds(10));
+        var second = _index.GetAll([secondRoot]);
 
         Assert.Contains(first, candidate => candidate.Name == "alpha-app");
         Assert.DoesNotContain(second, candidate => candidate.Name == "alpha-app");
@@ -552,8 +556,8 @@ public sealed class GitRepoIndexTests : IDisposable
 
     public void Dispose()
     {
+        _index.Dispose();
         _provider.Dispose();
-        GitRepoIndex.Invalidate();
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         try
         {

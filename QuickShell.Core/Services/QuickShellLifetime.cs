@@ -39,8 +39,5 @@ internal sealed class QuickShellLifetime : IQuickShellLifetime
             _cts.Cancel();
             _cts.Dispose();
         }
-
-        ProjectClassificationCache.Invalidate();
-        GitRepoIndex.Invalidate();
     }
 }

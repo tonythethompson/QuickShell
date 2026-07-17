@@ -46,6 +46,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private QuickShellSettingsReader? _settings;
     private QuickShellRunSettingsPanel? _settingsPanel;
     private IProjectAnalysisService? _projectAnalysis;
+    private IProjectClassificationCache? _classificationCache;
     private IShortcutLaunchExecutor? _launchExecutor;
     private IWorkspaceHealthChecker? _healthChecker;
     private IWorkspaceGitOperations? _gitOperations;
@@ -71,6 +72,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             _lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
             _shortcuts = _serviceProvider.GetRequiredService<IShortcutRepository>();
             _projectAnalysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
+            _classificationCache = _serviceProvider.GetRequiredService<IProjectClassificationCache>();
             _launchExecutor = _serviceProvider.GetRequiredService<IShortcutLaunchExecutor>();
             _healthChecker = _serviceProvider.GetRequiredService<IWorkspaceHealthChecker>();
             _gitOperations = _serviceProvider.GetRequiredService<IWorkspaceGitOperations>();
@@ -138,6 +140,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             Settings,
             Shortcuts,
             _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
+            _classificationCache ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
             GitOperations,
             (_, _) => { });
         _settingsPanel.Reload();
@@ -273,7 +276,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
                     return false;
                 }
 
-                if (ShortcutEditor.TryShowDialog(duplicate, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, out var message))
+                if (ShortcutEditor.TryShowDialog(duplicate, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), _classificationCache ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, out var message))
                 {
                     NotifyStatus(message);
                     RefreshResults();
@@ -352,7 +355,13 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
                 _settingsPanel?.Reload();
                 break;
             case RunManageAction.CreateShortcut:
-                if (ShortcutEditor.TryShowDialog(null, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, out var createMessage))
+                if (ShortcutEditor.TryShowDialog(
+                        null,
+                        Shortcuts,
+                        _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
+                        _classificationCache ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
+                        GitOperations,
+                        out var createMessage))
                 {
                     NotifyStatus(createMessage);
                     RefreshResults();
@@ -397,7 +406,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private void ExecuteManageShortcutEdit(TerminalShortcut shortcut)
     {
-        if (ShortcutEditor.TryShowDialog(shortcut, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, out var message))
+        if (ShortcutEditor.TryShowDialog(shortcut, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), _classificationCache ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, out var message))
         {
             NotifyStatus(message);
             RefreshResults();

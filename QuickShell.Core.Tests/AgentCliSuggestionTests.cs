@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Composition;
@@ -19,6 +20,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
     private readonly Func<string, bool>? _previousOverride;
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IProjectClassificationCache _classificationCache;
 
     public AgentCliSuggestionTests()
     {
@@ -28,6 +30,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
         AgentCliCatalog.IsCommandOnPathOverride = _ => false;
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        _classificationCache = _provider.GetRequiredService<IProjectClassificationCache>();
     }
 
     [Fact]
@@ -175,7 +178,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "CLAUDE.md"), "# Claude");
 
-        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.Contains(pills, pill => pill.Command == "claude" && pill.TaskType == TaskTypeCatalog.Agent);
     }
@@ -187,7 +190,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
         AgentCliCatalog.IsCommandOnPathOverride = name =>
             name.Equals("claude", StringComparison.OrdinalIgnoreCase);
 
-        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.Contains(pills, pill => pill.Command == "claude");
         Assert.Contains(pills, pill => pill.Command == "docker compose up");
