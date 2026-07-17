@@ -886,7 +886,7 @@ internal static class CompanionAppCatalog
 
         return
         [
-            Path.Combine(localAppData, "Programs", "Trae", "Trae.exe"),
+            Path.Join(localAppData, "Programs", "Trae", "Trae.exe"),
         ];
     }
 
