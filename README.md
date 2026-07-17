@@ -165,6 +165,42 @@ Run uses the same `shortcuts.json` and settings as Command Palette. You can crea
 
 **Microsoft Store** installs do not include Run. Download `QuickShell.Run-x64.zip` or `QuickShell.Run-ARM64.zip` from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases), or follow [docs/powertoys-run-plugin.md](docs/powertoys-run-plugin.md).
 
+![PowerToys Run search results for qs](QuickShell/Assets/Screenshot_Run_1.png)
+
+Run ships its own native (WPF) settings window and workspace editor, so both work without Command Palette running:
+
+<table>
+<tr>
+<td><img src="QuickShell/Assets/Screenshot_Run_2.png" alt="Quick Shell settings window"></td>
+<td><img src="QuickShell/Assets/Screenshot_Run_3.png" alt="Create workspace, General tab"></td>
+</tr>
+<tr>
+<td><img src="QuickShell/Assets/Screenshot_Run_4.png" alt="Create workspace, Launches tab with suggested command pills"></td>
+<td><img src="QuickShell/Assets/Screenshot_Run_5.png" alt="Create workspace, Links tab (dev server, repo, companion app)"></td>
+</tr>
+</table>
+
+---
+
+## Raycast
+
+A native Raycast for Windows extension covering the same workspace model: **Open Workspace**, **Create Workspace**, **Edit Workspace**, **Discover Git Repos**, and **Manage Workspaces**. Search `qs`, `quickshell`, or a workspace's home keyword from Raycast's root search.
+
+**Install:**
+- WinGet: `winget install tonythethompson.QuickShellforRaycast`
+- Or download `QuickShellforRaycast-Setup-*-x64.exe` (installer) or `QuickShell.Raycast.zip` (Raycast → Developer → Import Extension) from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases)
+
+Requires [Raycast for Windows](https://www.raycast.com/). Raycast reads/writes the same `shortcuts.json` as Command Palette and Run, so workspaces stay in sync across all three. See [QuickShell.Raycast/README.md](QuickShell.Raycast/README.md) for commands, preferences, and deeplinks.
+
+<table>
+<tr>
+<td><img src="QuickShell/Assets/Screenshot_Raycast_1.png" alt="Create Workspace form, directory-first with auto-fill"></td>
+<td><img src="QuickShell/Assets/Screenshot_Raycast_2.png" alt="Raycast root search showing QuickShell commands"></td>
+</tr>
+</table>
+
+![Create Workspace form, dev server / repository / companion app fields](QuickShell/Assets/Screenshot_Raycast_3.png)
+
 ---
 
 ## Quick start
@@ -190,6 +226,12 @@ Set your default terminal host and profile, configure **git launch** safety (blo
 ![Quick Shell settings](QuickShell/Assets/Screenshot_3.png)
 
 At the top of the list: **Create workspace** (**Ctrl+N**), then **Discover git repos**, then **Quick Shell settings**. You can also open settings from **⋯** → **Quick Shell settings** on any workspace.
+
+### 4. Discover git repos
+
+Scans common project folders and lists repositories not yet saved as workspaces — add one with a click, or pin it straight to home.
+
+![Discover git repos scan results](QuickShell/Assets/Screenshot_4.png)
 
 Your workspaces are stored in `%LOCALAPPDATA%\QuickShell\shortcuts.json`. Git branch targets live in `%LOCALAPPDATA%\QuickShell\worktree-branch-targets.json`. The app creates these on first run; you can also manage everything from Command Palette.
 
