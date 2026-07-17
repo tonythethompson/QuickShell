@@ -25,11 +25,11 @@ internal static class FolderPickerService
         thread.Start();
 
         // Wait for the dialog thread to exit. PickFolderOnStaThread auto-closes the modal dialog
-        // via a timer at DialogTimeout, so the thread normally exits right at the timeout and this
-        // returns the (null) result. The bounded wait is a safety net: if auto-close ever fails to
-        // dismiss the dialog, the caller still returns instead of blocking forever.
-        thread.Join(DialogTimeout + TimeSpan.FromSeconds(5));
-        return selected;
+        // via a timer at DialogTimeout, so the thread normally exits at or shortly after that
+        // timeout. Join is bounded to DialogTimeout plus a small grace period so shutdown can
+        // finish after the close is posted; if the thread is still alive after that, treat the
+        // pick as cancelled (return null) instead of blocking forever or returning a partial result.
+        return thread.Join(DialogTimeout + TimeSpan.FromSeconds(5)) ? selected : null;
     }
 
     private static string? PickFolderOnStaThread(string? initialDirectory, nint ownerHandle)
