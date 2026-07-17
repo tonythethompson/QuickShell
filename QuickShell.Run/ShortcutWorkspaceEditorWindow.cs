@@ -59,6 +59,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private readonly IProjectAnalysisService _projectAnalysis;
 
+    private readonly IProjectClassificationCache _classificationCache;
+
     private readonly IWorkspaceGitOperations _gitOperations;
 
     private int _activeSuggestionGeneration;
@@ -73,6 +75,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         TerminalShortcut? existing,
         IShortcutRepository shortcuts,
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         IWorkspaceGitOperations gitOperations)
 
     {
@@ -82,6 +85,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         _shortcuts = shortcuts;
 
         _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+
+        _classificationCache = classificationCache ?? throw new ArgumentNullException(nameof(classificationCache));
 
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
 
@@ -639,6 +644,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         _suggestionLoader.Schedule(
 
             _projectAnalysis,
+
+            _classificationCache,
 
             directory,
 
@@ -1723,6 +1730,7 @@ internal static class ShortcutEditor
         TerminalShortcut? existing,
         IShortcutRepository shortcuts,
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         IWorkspaceGitOperations gitOperations,
         out string message)
 
@@ -1740,7 +1748,12 @@ internal static class ShortcutEditor
 
         {
 
-            var window = new ShortcutWorkspaceEditorWindow(existing, shortcuts, projectAnalysis, gitOperations);
+            var window = new ShortcutWorkspaceEditorWindow(
+                existing,
+                shortcuts,
+                projectAnalysis,
+                classificationCache,
+                gitOperations);
 
             if (window.ShowDialog() == true)
 

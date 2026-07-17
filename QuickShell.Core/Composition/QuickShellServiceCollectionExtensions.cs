@@ -54,6 +54,8 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<ICompanionAppLauncher, CompanionAppLauncher>();
         services.AddSingleton<IShortcutLaunchExecutor, ShortcutLaunchExecutor>();
         services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
+        services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
+        services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
         services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();

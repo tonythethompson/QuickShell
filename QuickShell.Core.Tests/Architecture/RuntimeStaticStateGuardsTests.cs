@@ -31,6 +31,14 @@ public sealed class RuntimeStaticStateGuardsTests
         "WslDistroNamesOverride",
         "TryLaunchOverride",
         "WorkspaceGitLaunchGate.ResetForTests",
+        "GitRepoIndex.ResetForTests",
+        "GitRepoIndex.ExtensionThreadPoster",
+        "GitRepoIndex.ExtensionSynchronizationContext",
+        "GitRepoIndex.DiscoverOverride",
+        "static class ProjectClassificationCache",
+        "static class ExtensionCallbackQueue",
+        "static Action<Action>? ExtensionThreadPoster",
+        "static SynchronizationContext? ExtensionSynchronizationContext",
     ];
 
     // Heuristic: constructor parameters typed as IServiceProvider in host/core service code.

@@ -53,7 +53,7 @@ internal sealed partial class HomeDisplaySettingsForm : FormContent
         if (nextCount != _settingsManager.RecentWorkspaceCount)
         {
             _settingsManager.UpdateRecentWorkspaceCount(nextCount);
-            SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
+            SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.Services.CallbackQueue, _onReload);
             SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
             QuickShellStatus.ShowToast(Strings.Saved_Toast);
         }

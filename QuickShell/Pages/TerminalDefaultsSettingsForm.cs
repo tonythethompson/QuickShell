@@ -130,7 +130,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
         // refreshed terminal choices.
         ApplyPendingFromValues(values: null);
         RebuildTemplate();
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.Services.CallbackQueue, _onReload);
         SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.StayOnSettings(Strings.TerminalDefaults_ListRefreshed_Status);
     }

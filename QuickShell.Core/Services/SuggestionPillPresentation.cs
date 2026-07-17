@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
@@ -46,9 +47,12 @@ internal static class SuggestionPillPresentation
         string? directory,
         IEnumerable<string?> usedCommands,
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         bool expandSuggestionPills,
         bool isScanningSuggestions = false)
     {
+        ArgumentNullException.ThrowIfNull(classificationCache);
+
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["ShowSuggestionPills"] = "false",
@@ -74,7 +78,7 @@ internal static class SuggestionPillPresentation
             return fields;
         }
 
-        var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
         if (pills.Count == 0)
         {
             return fields;

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -15,12 +16,13 @@ internal static class SettingsFormHelpers
     /// <summary>
     /// Defers the refresh so the calling page can return its current items before the
     /// heavier refresh work runs, then marshals the callback back to the CmdPal extension
-    /// thread (via ExtensionCallbackQueue, drained from GetItems) so RaiseItemsChanged and
-    /// page notifications run where the host expects them. COM/disposed exceptions are
-    /// swallowed by the queue drain, matching ScheduleRefresh.
+    /// thread (via <see cref="IExtensionCallbackQueue"/>, drained from GetItems) so
+    /// RaiseItemsChanged and page notifications run where the host expects them.
+    /// COM/disposed exceptions are swallowed by the queue drain, matching ScheduleRefresh.
     /// </summary>
-    internal static void SchedulePostNavigationRefresh(Action? refresh)
+    internal static void SchedulePostNavigationRefresh(IExtensionCallbackQueue queue, Action? refresh)
     {
+        ArgumentNullException.ThrowIfNull(queue);
         if (refresh is null)
         {
             return;
@@ -29,7 +31,7 @@ internal static class SettingsFormHelpers
         // Queue before navigation so the destination page cannot fetch once and miss
         // the callback. The callback itself performs the lightweight invalidation;
         // the host drains it on its next fetch.
-        ExtensionCallbackQueue.Enqueue(refresh);
+        queue.Enqueue(refresh);
     }
 
     /// <summary>

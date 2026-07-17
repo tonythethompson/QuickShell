@@ -41,7 +41,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
         _context = context;
         _services = context.Services;
         _onReload = context.ReloadRootPages;
-        _extensionSynchronizationContext = SynchronizationContext.Current ?? GitRepoIndex.ExtensionSynchronizationContext;
+        _extensionSynchronizationContext = SynchronizationContext.Current;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
 #if CMDPAL_HOVER_ACTIONS
         // Match home list so Tab/hover keyboard can reach secondary actions (open folder, etc.).
@@ -57,11 +57,11 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
 
     public override IListItem[] GetItems()
     {
-        ExtensionCallbackQueue.Drain();
+        _services.CallbackQueue.Drain();
 
         // Never call RaiseItemsChanged from GetItems — CmdPal may be mid-fetch and a nested
         // ItemsChanged defers a second fetch that rebuilds the list and drops keyboard selection.
-        if (_awaitingGitRefresh && !GitRepoIndex.IsRefreshInFlight)
+        if (_awaitingGitRefresh && !_services.GitRepos.IsRefreshInFlight)
         {
             _awaitingGitRefresh = false;
             ScheduleRefreshItems();
@@ -151,7 +151,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
             _refreshScheduled = true;
         }
 
-        SettingsFormHelpers.SchedulePostNavigationRefresh(() =>
+        SettingsFormHelpers.SchedulePostNavigationRefresh(_services.CallbackQueue, () =>
         {
             lock (_refreshSync)
             {
@@ -185,10 +185,10 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
         try
         {
             var shortcuts = _services.Shortcuts.GetShortcuts();
-            var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
-            var discovered = GitRepoIndex.GetAll(_services.ProjectAnalysis, extraRoots).ToList();
+            var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts).ToList();
+            var discovered = _services.GitRepos.GetAll(extraRoots).ToList();
             if (discovered.Count == 0
-                && GitRepoIndex.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
+                && _services.GitRepos.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
             {
                 _awaitingGitRefresh = true;
                 // Keep the scanning placeholder visible until the in-flight scan finishes.

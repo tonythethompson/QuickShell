@@ -26,4 +26,10 @@ internal interface IQuickShellServices
     IWorkspaceHealthChecker HealthChecker { get; }
 
     WorkspaceGitLaunchGate GitLaunchGate { get; }
+
+    IGitRepoIndex GitRepos { get; }
+
+    IProjectClassificationCache ClassificationCache { get; }
+
+    IExtensionCallbackQueue CallbackQueue { get; }
 }
