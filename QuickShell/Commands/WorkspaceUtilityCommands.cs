@@ -166,7 +166,7 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcut.Id;
         var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
-        Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut));
+        Name = Strings.Menu_OpenCompanionAppFormat(services.CompanionApps.BuildDisplaySummary(shortcut));
         Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(primaryPath));
     }
 
@@ -178,7 +178,7 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
-        if (!CompanionAppLauncher.TryLaunch(shortcut, onDemand: true, out var error))
+        if (!_services.CompanionApps.TryLaunch(shortcut, onDemand: true, out var error))
         {
             return QuickShellNavigation.StayOpen(error ?? Strings.CompanionAppLaunchFailed);
         }

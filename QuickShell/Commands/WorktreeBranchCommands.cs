@@ -35,7 +35,7 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
             return QuickShellNavigation.StayOpen("That workspace was not found.");
         }
 
-        var result = WorkspaceGitLaunchGate.SelectTargetBranch(
+        var result = _services.GitLaunchGate.SelectTargetBranch(
             shortcut.Directory,
             _branch,
             _services.Settings.BlockDirtyBranchSwitch);
@@ -78,7 +78,7 @@ internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
             return QuickShellNavigation.StayOpen("That workspace was not found.");
         }
 
-        WorkspaceGitLaunchGate.ClearTargetBranch(shortcut.Directory);
+        _services.GitLaunchGate.ClearTargetBranch(shortcut.Directory);
         WorkspaceStatusService.Invalidate(shortcut.Directory);
         _onChanged();
         return QuickShellNavigation.GoBack("Worktree branch target cleared.");

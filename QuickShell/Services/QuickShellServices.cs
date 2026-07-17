@@ -19,6 +19,16 @@ internal sealed class QuickShellServices : IQuickShellServices
 
     public IProjectAnalysisService ProjectAnalysis { get; }
 
+    public IShortcutLaunchExecutor LaunchExecutor { get; }
+
+    public IWorkspaceGitOperations GitOperations { get; }
+
+    public ICompanionAppLauncher CompanionApps { get; }
+
+    public IWorkspaceHealthChecker HealthChecker { get; }
+
+    public WorkspaceGitLaunchGate GitLaunchGate { get; }
+
     public IQuickShellLifetime Lifetime { get; }
 
     public QuickShellServices(
@@ -26,12 +36,22 @@ internal sealed class QuickShellServices : IQuickShellServices
         IDraftStore drafts,
         QuickShellSettingsManager settings,
         IProjectAnalysisService projectAnalysis,
+        IShortcutLaunchExecutor launchExecutor,
+        IWorkspaceGitOperations gitOperations,
+        ICompanionAppLauncher companionApps,
+        IWorkspaceHealthChecker healthChecker,
+        WorkspaceGitLaunchGate gitLaunchGate,
         IQuickShellLifetime lifetime)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+        LaunchExecutor = launchExecutor ?? throw new ArgumentNullException(nameof(launchExecutor));
+        GitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
+        CompanionApps = companionApps ?? throw new ArgumentNullException(nameof(companionApps));
+        HealthChecker = healthChecker ?? throw new ArgumentNullException(nameof(healthChecker));
+        GitLaunchGate = gitLaunchGate ?? throw new ArgumentNullException(nameof(gitLaunchGate));
         Lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
         settings.InitializeServices(this);
         BeginShortcutPreload();

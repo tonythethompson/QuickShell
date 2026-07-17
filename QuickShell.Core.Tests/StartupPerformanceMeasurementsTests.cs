@@ -163,7 +163,13 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
         var settings = new QuickShellSettingsManager();
         var lifetime = provider.GetRequiredService<IQuickShellLifetime>();
-        var qsServices = new QuickShellServices(repository, drafts, settings, analysis, lifetime);
+        var qsServices = TestQuickShellServicesFactory.CreateFromProvider(
+            provider,
+            repository,
+            drafts,
+            settings,
+            analysis,
+            lifetime);
 
         workspaceCount = repository.GetShortcuts().Count;
         if (workspaceCount == 0)
@@ -223,7 +229,13 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
         var settings = new QuickShellSettingsManager();
         var lifetime = provider.GetRequiredService<IQuickShellLifetime>();
-        var qsServices = new QuickShellServices(repository, drafts, settings, analysis, lifetime);
+        var qsServices = TestQuickShellServicesFactory.CreateFromProvider(
+            provider,
+            repository,
+            drafts,
+            settings,
+            analysis,
+            lifetime);
 
         for (var i = 0; i < workspaceCount; i++)
         {

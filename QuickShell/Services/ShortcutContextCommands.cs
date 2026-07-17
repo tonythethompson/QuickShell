@@ -409,12 +409,12 @@ internal static class ShortcutContextCommands
             });
         }
 
-        if (CompanionAppLauncher.IsConfigured(shortcut))
+        if (context.Services.CompanionApps.IsConfigured(shortcut))
         {
             var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
             items.Add(new CommandContextItem(new OpenCompanionAppCommand(shortcut, context.Services))
             {
-                Title = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut)),
+                Title = Strings.Menu_OpenCompanionAppFormat(context.Services.CompanionApps.BuildDisplaySummary(shortcut)),
                 Icon = new IconInfo(CompanionAppCatalog.GetContextMenuIcon(primaryPath)),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
