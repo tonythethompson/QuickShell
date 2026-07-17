@@ -1,0 +1,25 @@
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_6fad6f7a509527::t_f3819b37e3d3e2 15
+  s_6fad6f7a509527::t_27680fd39cfe88 33-35,38,96-105
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_6fad6f7a509527::t_360bbd7abf160c 36
+  s_6fad6f7a509527::t_24c9988f2a2c8b 37
+QuickShell/Services/ShortcutContextCommands.cs
+  s_6fad6f7a509527::t_c51469905df89d 84,428-448
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9d1e22de1db73f054071c56d2d7462701ea8c791",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
