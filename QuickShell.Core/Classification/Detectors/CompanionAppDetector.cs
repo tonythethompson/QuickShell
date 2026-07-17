@@ -36,6 +36,9 @@ internal sealed class CompanionAppDetector : ICompanionAppDetector
         return TrySuggestFromPreset(
                 Directory.Exists(Path.Join(directory, ".cursor")),
                 CompanionAppCatalog.PresetCursor)
+            ?? TrySuggestFromPreset(
+                Directory.Exists(Path.Join(directory, ".trae")),
+                CompanionAppCatalog.PresetTrae)
             ?? (Directory.Exists(Path.Join(directory, ".vscode"))
                 ? BuildFirstSuggestion(VsCodeFamilyPriority)
                 : null)

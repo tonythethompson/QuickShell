@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
-using QuickShell.Commands;
 using QuickShell.Composition;
 
 namespace QuickShell.Services.CommandRouting;
@@ -13,12 +12,10 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
 {
     public static IServiceCollection AddQuickShellCommandRouting(
         this IServiceCollection services,
-        QuickShellSettingsManager settingsManager,
-        Action reloadPages)
+        QuickShellSettingsManager settingsManager)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(settingsManager);
-        ArgumentNullException.ThrowIfNull(reloadPages);
 
         services.AddSingleton(settingsManager);
         services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
@@ -27,15 +24,7 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<QuickShellSettingsManager>(),
             sp.GetRequiredService<IProjectAnalysisService>(),
             sp.GetRequiredService<IQuickShellLifetime>()));
-        services.AddSingleton(sp => new CreateShortcutCommand(reloadPages, sp.GetRequiredService<IQuickShellServices>()));
-        services.AddSingleton(sp => new CommandItemFactoryContext
-        {
-            Services = sp.GetRequiredService<IQuickShellServices>(),
-            Shortcuts = sp.GetRequiredService<IShortcutRepository>(),
-            Settings = settingsManager,
-            CreateShortcut = sp.GetRequiredService<CreateShortcutCommand>(),
-            ReloadPages = reloadPages,
-        });
+        services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
 
         services.AddSingleton<ICommandItemHandler, OpenSettingsCommandHandler>();
         services.AddSingleton<ICommandItemHandler, ImportConflictCommandHandler>();
@@ -57,12 +46,11 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
     public static IServiceCollection AddQuickShellHost(
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager,
-        Action reloadPages,
         string? configDirectory = null,
         QuickShell.Abstractions.IQuickShellLifetime? lifetime = null)
     {
         services.AddQuickShellCore(configDirectory, lifetime);
-        services.AddQuickShellCommandRouting(settingsManager, reloadPages);
+        services.AddQuickShellCommandRouting(settingsManager);
         return services;
     }
 }

@@ -4,6 +4,7 @@ using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace QuickShell.Pages;
@@ -18,19 +19,18 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     private WorkspaceStatusForm? _form;
 
     public WorkspaceStatusPage(
+        IQuickShellServices services,
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
-        Action onChanged,
-        IQuickShellServices? services = null)
+        Action onChanged)
     {
         _shortcut = shortcut;
-        _settings = settings;
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
+        _settings = services.Settings;
         _onChanged = onChanged;
         Id = CommandDescriptor.WorkspaceStatus(shortcut.Id).Id;
         Name = "Workspace status";
         Title = shortcut.Name;
-        Icon = new IconInfo("");
+        Icon = new IconInfo("\ue799");
         // Do not run git here. Every home-list row builds this page for the
         // "Workspace status…" context command; eager TryGetStatus made open
         // take tens of seconds with ~45 workspaces (and worse for WSL paths).
@@ -51,12 +51,11 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         }
 
         _gitCommandsLoaded = true;
-        Commands = BuildGitCommands(_shortcut, _settings, _onChanged);
+        Commands = BuildGitCommands(_shortcut, _onChanged);
     }
 
     private CommandContextItem[] BuildGitCommands(
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
         Action onChanged)
     {
         if (!WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var status))
@@ -67,10 +66,10 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
         var items = new List<CommandContextItem>
         {
-            new(new WorktreeBranchPickerPage(shortcut.Id, settings, onChanged, status, target, _services))
+            new(new WorktreeBranchPickerPage(_services, shortcut.Id, onChanged, status, target))
             {
                 Title = "Switch branch…",
-                Icon = new IconInfo(""),
+                Icon = new IconInfo("\ue6af"),
             },
         };
 
@@ -79,7 +78,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
             items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged, _services))
             {
                 Title = "Use current branch",
-                Icon = new IconInfo(""),
+                Icon = new IconInfo("\ue694"),
             });
         }
 
@@ -101,7 +100,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         _shortcut = shortcut;
         _settings = settings;
         _releaseForm = releaseForm;
-        TemplateJson = Template;
+        TemplateJson = BuildTemplate();
         Refresh(forceRefresh: true);
     }
 
@@ -121,6 +120,13 @@ internal sealed partial class WorkspaceStatusForm : FormContent
             case "copyDiagnostics":
                 LaunchDiagnosticsState.TryCopyLastReport(out var message);
                 return QuickShellNavigation.StayOpen(message);
+            case "copySupportBundle":
+                SupportDiagnostics.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var supportMessage);
+                return QuickShellNavigation.StayOpen(supportMessage);
+            case "openSupportLogs":
+                return SupportDiagnostics.TryOpenLogFolder(out var error)
+                    ? QuickShellNavigation.StayOpen(Strings.Diagnostics_LogFolderOpened)
+                    : QuickShellNavigation.StayOpen(error);
             case "close":
                 _releaseForm();
                 return QuickShellNavigation.GoBack();
@@ -193,7 +199,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         }
     }
 
-    private const string Template = """
+    private static string BuildTemplate() => $$"""
     {
       "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
       "type": "AdaptiveCard",
@@ -212,9 +218,17 @@ internal sealed partial class WorkspaceStatusForm : FormContent
       ],
       "actions": [
         { "type": "Action.Submit", "title": "Refresh", "data": { "action": "refresh" } },
-        { "$when": "${HasDiagnostics}", "type": "Action.Submit", "title": "Copy launch diagnostics", "data": { "action": "copyDiagnostics" } },
+        { "$when": "${HasDiagnostics}", "type": "Action.Submit", "title": "{{Escape(Strings.Diagnostics_CopyLaunch_Title)}}", "data": { "action": "copyDiagnostics" } },
+        { "type": "Action.Submit", "title": "{{Escape(Strings.Diagnostics_CopySupportBundle_Title)}}", "data": { "action": "copySupportBundle" } },
+        { "type": "Action.Submit", "title": "{{Escape(Strings.Diagnostics_OpenLogFolder_Title)}}", "data": { "action": "openSupportLogs" } },
         { "type": "Action.Submit", "title": "Close", "data": { "action": "close" } }
       ]
     }
     """;
+
+    private static string Escape(string value)
+    {
+        var serialized = JsonSerializer.Serialize(value, QuickShellJsonContext.Default.String);
+        return serialized.Substring(1, serialized.Length - 2);
+    }
 }

@@ -1,4 +1,5 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Commands;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -7,6 +8,7 @@ public sealed class DiscoverGitRepoListItemsTests : IDisposable
 {
     private readonly string _root;
     private readonly IQuickShellServices _services;
+    private readonly QuickShellPageContext _context;
 
     public DiscoverGitRepoListItemsTests()
     {
@@ -20,6 +22,10 @@ public sealed class DiscoverGitRepoListItemsTests : IDisposable
             new QuickShellSettingsManager(),
             new FakeProjectAnalysisService(),
             new QuickShellLifetime());
+        _context = new QuickShellPageContext(
+            new QuickShellHostServices(_services),
+            new CreateShortcutCommand(() => { }, _services),
+            () => { });
     }
 
     [Fact]
@@ -33,8 +39,8 @@ public sealed class DiscoverGitRepoListItemsTests : IDisposable
         };
         var cache = new Dictionary<string, ListItem>(StringComparer.OrdinalIgnoreCase);
 
-        var first = DiscoverGitRepoListItems.CreateNew(candidate, () => { }, itemCache: cache, services: _services);
-        var second = DiscoverGitRepoListItems.CreateNew(candidate, () => { }, itemCache: cache, services: _services);
+        var first = DiscoverGitRepoListItems.CreateNew(_context, candidate, () => { }, itemCache: cache);
+        var second = DiscoverGitRepoListItems.CreateNew(_context, candidate, () => { }, itemCache: cache);
 
         Assert.Same(first, second);
     }
@@ -56,8 +62,8 @@ public sealed class DiscoverGitRepoListItemsTests : IDisposable
             Classification = new ProjectClassification { Stacks = ProjectStack.Python, Labels = ["Python"] },
         };
 
-        var first = DiscoverGitRepoListItems.CreateNew(initial, () => { }, itemCache: cache, services: _services);
-        var second = DiscoverGitRepoListItems.CreateNew(refreshed, () => { }, itemCache: cache, services: _services);
+        var first = DiscoverGitRepoListItems.CreateNew(_context, initial, () => { }, itemCache: cache);
+        var second = DiscoverGitRepoListItems.CreateNew(_context, refreshed, () => { }, itemCache: cache);
 
         Assert.NotSame(first, second);
     }

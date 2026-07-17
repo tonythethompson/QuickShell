@@ -12,9 +12,9 @@ internal sealed partial class DeleteShortcutCommand : InvokableCommand
     public DeleteShortcutCommand(
         string name,
         Action onDeleted,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _name = name;
         _onDeleted = onDeleted;
         Name = Strings.Command_Delete_Name;

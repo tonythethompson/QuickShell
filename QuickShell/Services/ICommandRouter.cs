@@ -12,5 +12,5 @@ internal interface ICommandRouter
     /// resulting item is null because the target workspace/launch is missing).
     /// Unknown IDs return false so the provider can fall through to the base.
     /// </summary>
-    bool TryHandle(string id, out ICommandItem? item);
+    bool TryHandle(string id, QuickShellPageContext context, out ICommandItem? item);
 }

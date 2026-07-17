@@ -24,9 +24,9 @@ internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
         string name,
         FavoriteMoveKind move,
         Action onChanged,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _id = id ?? string.Empty;
         _name = name;
         _move = move;

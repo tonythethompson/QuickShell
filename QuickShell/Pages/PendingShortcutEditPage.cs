@@ -13,9 +13,9 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
     private readonly IQuickShellServices _services;
     private readonly Action _onReload;
 
-    public PendingShortcutEditPage(Action onReload, IQuickShellServices? services = null)
+    public PendingShortcutEditPage(IQuickShellServices services, Action onReload)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         Id = PageId;
         Icon = new IconInfo("\uE7BA");
@@ -23,7 +23,7 @@ internal sealed partial class PendingShortcutEditPage : ContentPage
         Name = Strings.PendingEdit_ResumeName;
     }
 
-    public override IContent[] GetContent() => [new PendingShortcutEditForm(_onReload, _services)];
+    public override IContent[] GetContent() => [new PendingShortcutEditForm(_services, _onReload)];
 }
 
 internal sealed partial class PendingShortcutEditForm : FormContent
@@ -32,9 +32,9 @@ internal sealed partial class PendingShortcutEditForm : FormContent
     private readonly Action _onReload;
     private readonly Action? _onSettingsChanged;
 
-    public PendingShortcutEditForm(Action onReload, IQuickShellServices? services = null, Action? onSettingsChanged = null)
+    public PendingShortcutEditForm(IQuickShellServices services, Action onReload, Action? onSettingsChanged = null)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
 

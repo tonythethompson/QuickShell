@@ -23,17 +23,35 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _multiLaunchPresentationSetting;
     private Pages.QuickShellExtensionSettingsPage? _settingsPage;
     private readonly Action? _onReload;
+    private IQuickShellServices? _services;
+    private bool _servicesInitialized;
 
-    internal IQuickShellServices? Services { get; set; }
+    internal IQuickShellServices Services
+    {
+        get => _services ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
+        private set
+        {
+            if (_servicesInitialized && !ReferenceEquals(_services, value))
+            {
+                throw new InvalidOperationException("IQuickShellServices has already been initialized and cannot be reassigned.");
+            }
 
-    private IQuickShellServices RequiredServices =>
-        Services ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
+            _services = value;
+            _servicesInitialized = true;
+        }
+    }
+
+    internal void InitializeServices(IQuickShellServices services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        Services = services;
+    }
 
     public QuickShellSettingsManager(Action? onReload = null)
     {
         _onReload = onReload;
         // #region agent log
-        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
         // #endregion
 
         _settingsStore = new QuickShellJsonSettingsStore();
@@ -81,7 +99,7 @@ internal sealed class QuickShellSettingsManager
         _settingsStore.LoadSettings();
 
         // #region agent log
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
             "after LoadSettings",
             new { settingsPath = _settingsStore.FilePath, exists = File.Exists(_settingsStore.FilePath) },
@@ -107,7 +125,7 @@ internal sealed class QuickShellSettingsManager
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}","{{MultiLaunchPresentationSettingId}}":"{{initialMultiLaunchPresentation}}"}""");
 
         // #region agent log
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
             "before SyncDefaultProfileChoices",
             new { initialApp, initialProfile },
@@ -115,7 +133,7 @@ internal sealed class QuickShellSettingsManager
         // #endregion
         SyncDefaultProfileChoices();
         // #region agent log
-        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
         // #endregion
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
@@ -124,7 +142,7 @@ internal sealed class QuickShellSettingsManager
         }
 
         // #region agent log
-        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
         // #endregion
     }
 
@@ -134,7 +152,7 @@ internal sealed class QuickShellSettingsManager
 
     internal Settings SettingsModel => _settings;
 
-    internal Pages.QuickShellExtensionSettingsPage TypedSettingsPage => _settingsPage ??= new Pages.QuickShellExtensionSettingsPage(this, _onReload, RequiredServices);
+    internal Pages.QuickShellExtensionSettingsPage TypedSettingsPage => _settingsPage ??= new Pages.QuickShellExtensionSettingsPage(this, Services, _onReload);
 
     public IContentPage SettingsPage => TypedSettingsPage;
 

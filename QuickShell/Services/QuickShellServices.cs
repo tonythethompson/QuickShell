@@ -33,7 +33,7 @@ internal sealed class QuickShellServices : IQuickShellServices
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
         Lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
-        settings.Services = this;
+        settings.InitializeServices(this);
         BeginShortcutPreload();
     }
 
