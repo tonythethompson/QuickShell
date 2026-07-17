@@ -35,7 +35,7 @@ internal static class ShortcutContextCommands
         return new(services.Settings.SettingsPage)
         {
             Title = QuickShellBrand.SettingsTitle,
-            Icon = new IconInfo("\ue73e"),
+            Icon = new IconInfo("\ue713"),
         };
     }
 

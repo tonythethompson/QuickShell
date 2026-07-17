@@ -9,6 +9,23 @@ internal static class SuggestionPillPresentation
     public const int DefaultVisibleSlots = 8;
     public const int DisplayTitleMaxLength = 42;
 
+    /// <summary>
+    /// Always-available pill that explicitly marks a launch row as folder-only (blank Command,
+    /// no task). Previously a row was only ever implicitly folder-only by having a blank
+    /// Command with no visible indication, which was indistinguishable from a still-empty
+    /// unused row — confusing given new shortcuts default to three blank rows and only one
+    /// intentionally-blank convention (not all three opening a shell). Appended after ranked
+    /// suggestions so it never displaces a real command match.
+    /// </summary>
+    public static readonly CommandSuggestionPill OpenToDirectoryPill = new(
+        Command: string.Empty,
+        TaskType: TaskTypeCatalog.None,
+        TypeTitle: "Folder",
+        DisplayTitle: "Open to Directory",
+        Tooltip: "Open this folder without running a command.",
+        Score: 0,
+        Source: "folder-only");
+
     /// <summary>Pill button label: command text only (truncated).</summary>
     public static string FormatDisplayTitle(string command)
     {
@@ -78,11 +95,10 @@ internal static class SuggestionPillPresentation
             return fields;
         }
 
-        var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
-        if (pills.Count == 0)
-        {
-            return fields;
-        }
+        var ranked = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
+        var pills = new List<CommandSuggestionPill>(ranked.Count + 1);
+        pills.AddRange(ranked);
+        pills.Add(OpenToDirectoryPill);
 
         fields["ShowSuggestionPills"] = "true";
         fields["ShowMoreSuggestions"] = pills.Count > DefaultVisibleSlots && !expandSuggestionPills ? "true" : "false";

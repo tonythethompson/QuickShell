@@ -118,17 +118,15 @@ internal static class CommandSuggestionService
         string? command,
         string? taskType)
     {
-        if (string.IsNullOrWhiteSpace(command))
-        {
-            return null;
-        }
-
+        // Blank command is a legitimate pill value (the "Open to Directory" pill has no
+        // command by definition) — only taskType is normalized/optional, command matches
+        // as-is including blank-to-blank.
         var normalizedTaskType = string.IsNullOrWhiteSpace(taskType)
             ? null
             : TaskTypeCatalog.Normalize(taskType);
 
         return pills.FirstOrDefault(pill =>
-            string.Equals(pill.Command, command, StringComparison.OrdinalIgnoreCase)
+            string.Equals(pill.Command, command ?? string.Empty, StringComparison.OrdinalIgnoreCase)
             && (normalizedTaskType is null
                 || string.Equals(pill.TaskType, normalizedTaskType, StringComparison.Ordinal)));
     }
