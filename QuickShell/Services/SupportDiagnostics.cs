@@ -144,7 +144,42 @@ internal static class SupportDiagnostics
             error = string.Empty;
             return true;
         }
-        catch
+        catch (UnauthorizedAccessException)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (IOException)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (PlatformNotSupportedException)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (ObjectDisposedException)
+        {
+            error = Strings.Diagnostics_LogFolderOpenFailed;
+            return false;
+        }
+        catch (ArgumentException)
         {
             error = Strings.Diagnostics_LogFolderOpenFailed;
             return false;
