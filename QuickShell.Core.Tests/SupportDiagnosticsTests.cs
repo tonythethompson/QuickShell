@@ -16,7 +16,7 @@ public sealed class SupportDiagnosticsTests : IDisposable
 
     public SupportDiagnosticsTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-support-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-support-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         SupportDiagnostics.LogDirectoryOverride = _root;
         SupportDiagnostics.MaximumLogFileBytesOverride = null;
