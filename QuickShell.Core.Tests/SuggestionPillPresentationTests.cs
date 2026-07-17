@@ -85,6 +85,56 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         Assert.Equal("Open to Directory", found.DisplayTitle);
     }
 
+    [Fact]
+    public void BuildSelectablePills_IncludesOpenToDirectory_AndBlankCommandResolves()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
+
+        var pills = SuggestionPillPresentation.BuildSelectablePills(
+            _root,
+            [],
+            _projectAnalysis,
+            _classificationCache);
+
+        Assert.Contains(pills, pill => ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill));
+        Assert.Equal(
+            SuggestionPillPresentation.OpenToDirectoryPill.DisplayTitle,
+            pills[^1].DisplayTitle);
+
+        // Form apply path: same list + blank command from the Adaptive Card template.
+        var found = CommandSuggestionService.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
+        Assert.NotNull(found);
+        Assert.True(ReferenceEquals(found, SuggestionPillPresentation.OpenToDirectoryPill));
+    }
+
+    [Fact]
+    public void BuildSelectablePills_MatchesBuildDataFieldsSlotOrder()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
+
+        var pills = SuggestionPillPresentation.BuildSelectablePills(
+            _root,
+            [],
+            _projectAnalysis,
+            _classificationCache);
+        var fields = SuggestionPillPresentation.BuildDataFields(
+            _root,
+            [],
+            _projectAnalysis,
+            _classificationCache,
+            expandSuggestionPills: true);
+
+        for (var i = 0; i < pills.Count && i < SuggestionPillPresentation.MaxSlots; i++)
+        {
+            Assert.Equal("true", fields[$"ShowPill_{i}"]);
+            Assert.Equal(pills[i].DisplayTitle, fields[$"PillTitle_{i}"]);
+            Assert.Equal(pills[i].Command, fields[$"PillCommand_{i}"]);
+            Assert.Equal(pills[i].TaskType, fields[$"PillTaskType_{i}"]);
+        }
+    }
+
 
     [Fact]
     public void FormatDisplayTitle_UsesCommandOnlyAndTruncates()
