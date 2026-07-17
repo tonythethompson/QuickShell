@@ -25,7 +25,7 @@ internal static class LaunchTestServices
             "qs-launch-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_settingsDirectory);
 
-        var settingsPath = Path.Combine(_settingsDirectory, "settings.json");
+        var settingsPath = Path.Join(_settingsDirectory, "settings.json");
         File.WriteAllText(
             settingsPath,
             """
