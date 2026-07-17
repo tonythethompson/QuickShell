@@ -1,0 +1,19 @@
+QuickShell/Services/FolderPickerService.cs
+  s_15a9af5697c977::t_8655586edbde56 27-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b21253a10157c65cb9caed3f225eab6fd5b511e4",
+  "prompts": {},
+  "sessions": {
+    "s_15a9af5697c977": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_091335512ffeS7YvSswG7kFHhd",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
