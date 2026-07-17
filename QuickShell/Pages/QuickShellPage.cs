@@ -14,7 +14,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settings;
     private readonly CreateShortcutCommand _createShortcutCommand;
-    private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly SearchDebouncer _searchDebouncer;
     private readonly object _refreshSync = new();
     /// <summary>
@@ -40,7 +39,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         _services = context.Services;
         _settings = context.Settings;
         _createShortcutCommand = context.CreateShortcut;
-        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(context);
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Id = QuickShellNavigation.HomePageId;
         Icon = QuickShellBrandIcons.App;
@@ -356,7 +354,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         // #region agent log
         var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "QuickShellPage.cs:RefreshItems",
             "start",
             new
@@ -433,7 +431,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
 
             // #region agent log
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "QuickShellPage.cs:RefreshItems",
                 "complete",
                 new
@@ -450,7 +448,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         catch (Exception ex)
         {
             // #region agent log
-            AgentDebugLog.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-form");
+            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-form");
             // #endregion
 
             var items = new List<IListItem>();

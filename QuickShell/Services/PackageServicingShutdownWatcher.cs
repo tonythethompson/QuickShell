@@ -47,7 +47,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
         if (!_started.Wait(TimeSpan.FromSeconds(5)))
         {
             // Keep waiting on COM lifetime; shutdown signals may be unavailable.
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "PackageServicingShutdownWatcher",
                 "start-timeout",
                 hypothesisId: "S");
@@ -78,7 +78,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
         {
             // Message-pump threads can't be safely force-terminated; if the pump
             // hasn't exited we let it run and the process exits with the COM host.
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "PackageServicingShutdownWatcher",
                 "join-timeout",
                 hypothesisId: "S");
@@ -91,7 +91,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
                 {
                     if (!_thread.Join(TimeSpan.FromSeconds(1)))
                     {
-                        AgentDebugLog.Write(
+                        SupportDiagnostics.Write(
                             "PackageServicingShutdownWatcher",
                             "join-timeout-after-quit",
                             hypothesisId: "S");
@@ -127,7 +127,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
 
             if (_hwnd == IntPtr.Zero)
             {
-                AgentDebugLog.Write(
+                SupportDiagnostics.Write(
                     "PackageServicingShutdownWatcher",
                     "create-window-failed",
                     new { error = Marshal.GetLastWin32Error() },
@@ -137,7 +137,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
             }
 
             // #region agent log
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "PackageServicingShutdownWatcher",
                 "listening",
                 new { hwnd = _hwnd.ToInt64() },
@@ -161,7 +161,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
                 }
                 else
                 {
-                    AgentDebugLog.Write(
+                    SupportDiagnostics.Write(
                         "PackageServicingShutdownWatcher",
                         "getmessage-failed",
                         new { hwnd = _hwnd.ToInt64(), errorCode = Marshal.GetLastWin32Error() },
@@ -172,7 +172,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
         }
         catch (Exception ex)
         {
-            AgentDebugLog.WriteException(
+            SupportDiagnostics.WriteException(
                 "PackageServicingShutdownWatcher",
                 ex,
                 hypothesisId: "S",
@@ -218,7 +218,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
     private void SignalExit(string reason)
     {
         // #region agent log
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "PackageServicingShutdownWatcher",
             "signal-exit",
             new { reason },

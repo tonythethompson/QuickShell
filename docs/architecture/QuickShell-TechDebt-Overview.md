@@ -260,9 +260,9 @@ Based on the existing architecture tours and the `remaining-architectural-gaps` 
 
 ### Tier 2 — Product-quality fixes
 
-- Resolve `same-as-previous` row expansion in `WorkspaceHealthCheck` for multi-row workspaces.
-- Keep companion detection current (JetBrains, VS Code Insiders, Devin/Windsurf, etc.).
-- Surface structured diagnostics / a log file for support.
+- [x] `WorkspaceHealthCheck` resolves every enabled `same-as-previous` row before validating its effective terminal, profile, WSL distro, and executable.
+- [x] Companion detection includes current desktop IDEs, including TRAE’s `.trae/` workspace marker and installed executable preset.
+- [x] Support diagnostics use bounded, redacted JSONL logs plus a copyable aggregate support bundle; detailed launch diagnostics remain an explicit user action.
 
 ### Tier 3 — Performance (only with numbers)
 
