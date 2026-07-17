@@ -1,0 +1,69 @@
+QuickShell/Pages/ShortcutForm.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-319,321-382
+  s_51a1c9d129d830::t_63cf8f72c0f1e6 320
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditorFactory.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-6
+QuickShell/Services/WorkspaceEditor/WorkspaceEditorFactory.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-18
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-292
+QuickShell/Services/WorkspaceEditor/WorkspaceEditResult.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-30
+docs/plans/PR_D_PLAN.md
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-105
+QuickShell.Core/Services/VisualStudioInstallDiscoveryInstance.cs
+  s_51a1c9d129d830::t_8bfe8b0a7f2e93 1-2,5
+  s_51a1c9d129d830::t_fdba0891e9996e 9-10,25,32
+QuickShell/Services/WorkspaceEditor/WorkspaceEditChangedEventArgs.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-11
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_51a1c9d129d830::t_e8ec3476eaa0b4 760
+  s_51a1c9d129d830::t_33eb2a3470e659 1177,1180
+  s_51a1c9d129d830::t_bfbaf3571f430b 126,132,134,146,149
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-125,127-131,133,135-145,147-148,150-759,761-1176,1178-1179,1181-1346
+QuickShell/Pages/ShortcutFormPage.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 5,10,12,16-22,25,32,34,47,55,84
+  s_51a1c9d129d830::t_ed1e0cd2be0281 60,62-66,80-83,85-98,112-113,121,123,128-129,131-134,136-141
+QuickShell.Core/Abstractions/ICompanionAppCatalog.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-56
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionParser.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-151
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditor.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-52
+QuickShell/Services/WorkspaceEditor/WorkspaceFormAction.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-10
+QuickShell/Services/WorkspaceEditor/WorkspaceEditState.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-22
+QuickShell.Core.Tests/WorkspaceFormActionParserTests.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-105
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionKind.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-21
+QuickShell.Core/Services/JetBrainsInstallDiscoveryInstance.cs
+  s_51a1c9d129d830::t_6b9fd96607fd71 1-2
+  s_51a1c9d129d830::t_7e2739fc1a1708 5,9-10
+  s_51a1c9d129d830::t_c04c29ea436d3b 11-15
+.commandcode/taste/taste.md
+  s_51a1c9d129d830::t_cceae714facf6b 3-40
+.gitignore
+  s_51a1c9d129d830::t_2ab353da2dc965 25,83
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_51a1c9d129d830::t_f72945c918d12e 7,40
+QuickShell/Services/IQuickShellServices.cs
+  s_51a1c9d129d830::t_4b7fb910b3134c 37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "de10d8b0de09b6f77fcd469d45140577e95bfaf7",
+  "prompts": {},
+  "sessions": {
+    "s_51a1c9d129d830": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e79dff3e-130e-4e69-9c6e-57daaea42589",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
