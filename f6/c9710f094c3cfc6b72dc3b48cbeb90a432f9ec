@@ -1,0 +1,54 @@
+QuickShell.Core.Tests/TaskTypeCommandSuggestionTests.cs
+  s_51a1c9d129d830::t_f1f62ff2675141 1
+  s_51a1c9d129d830::t_2ab33c2d6614e0 19,28,39,60,77,87,105,107,122,124,138,148,176,192,213,215
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_51a1c9d129d830::t_7ff1110285c84b 1
+  s_f4bf1a8e70f35d::t_511c3f0881baf7 24,37-38,41-54
+QuickShell/Services/QuickShellServices.cs
+  s_51a1c9d129d830::t_a38ddd1febb28c 1
+  s_265ac3fcb9e78a::t_ad9047d10b5c95 65-69
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_6fad6f7a509527::t_092b985d23e616 1,36,39-52
+QuickShell.Core/Services/TaskTypeCandidateBuilder.cs
+  s_265ac3fcb9e78a::t_3f764f0566115f 485-486
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f6c9710f094c3cfc6b72dc3b48cbeb90a432f9ec",
+  "prompts": {},
+  "sessions": {
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_51a1c9d129d830": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e79dff3e-130e-4e69-9c6e-57daaea42589",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_f4bf1a8e70f35d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31477488-1d27-453e-ab44-67f45a090323",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
