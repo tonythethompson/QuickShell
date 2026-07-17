@@ -125,7 +125,8 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             var pills = CommandSuggestionService.GetPills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
-                _services.ProjectAnalysis);
+                _services.ProjectAnalysis,
+                _services.ClassificationCache);
 
             var pill = CommandSuggestionService.TryFindPill(pills, command, taskType);
             if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
@@ -242,6 +243,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
                 index = 0;
             }
 
+            PushEditSnapshot();
             ApplyCompanionFormState(index, CompanionAppCatalog.CreateStateFromPreset(preset));
             PersistEditDraftIfNeeded();
             OnChanged();
@@ -262,6 +264,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             var row = _draft.Companions[index];
             var preset = CompanionAppCatalog.ResolvePresetAfterBrowse(path);
             var args = CompanionAppArgumentValidation.NormalizeForSave(preset, path, row.Arguments);
+            PushEditSnapshot();
             ApplyCompanionFormState(index, CompanionAppCatalog.ReconcileForForm(preset, path, args));
             PersistEditDraftIfNeeded();
             OnChanged();
@@ -751,7 +754,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             {
                 if (!token.IsCancellationRequested)
                 {
-                    _ = CommandSuggestionService.GetPills(directory, usedCommands, _services.ProjectAnalysis);
+                    _ = CommandSuggestionService.GetPills(directory, usedCommands, _services.ProjectAnalysis, _services.ClassificationCache);
                 }
             }
             catch
@@ -1147,7 +1150,8 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             : CommandSuggestionService.GetPills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
-                _services.ProjectAnalysis);
+                _services.ProjectAnalysis,
+                _services.ClassificationCache);
 
         return new WorkspaceEditState(
             _originalName,
@@ -1234,6 +1238,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             || !string.Equals(Normalize(left.LaunchTarget), Normalize(right.LaunchTarget), StringComparison.Ordinal)
             || !string.Equals(Normalize(left.DevServerUrl), Normalize(right.DevServerUrl), StringComparison.Ordinal)
             || !string.Equals(Normalize(left.RepoUrl), Normalize(right.RepoUrl), StringComparison.Ordinal)
+            || left.OpenDevServerOnLaunch != right.OpenDevServerOnLaunch
             || left.OpenCompanionAppOnLaunch != right.OpenCompanionAppOnLaunch
             || !string.Equals(Normalize(left.CompanionAppPreset), Normalize(right.CompanionAppPreset), StringComparison.Ordinal)
             || !string.Equals(Normalize(left.CompanionAppPath), Normalize(right.CompanionAppPath), StringComparison.Ordinal)

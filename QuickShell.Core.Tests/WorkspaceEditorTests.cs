@@ -182,6 +182,41 @@ public sealed class WorkspaceEditorTests : IDisposable
         Assert.Null(exception);
     }
 
+    [Fact]
+    public void TryApplyInputs_TogglingOpenDevServerOnLaunch_MarksUnsavedChanges()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+        Assert.False(editor.HasUnsavedChanges);
+
+        editor.TryApplyInputs("""{"OpenDevServerOnLaunch":"true"}""");
+
+        Assert.True(editor.HasUnsavedChanges);
+
+        var result = editor.Cancel();
+
+        Assert.Equal(WorkspaceEditResultKind.PromptDiscard, result.Kind);
+    }
+
+    [Fact]
+    public void UndoRedo_RestoresCompanionPresetChange()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+
+        var before = editor.GetState().Companions[0].Preset;
+        editor.ApplyCompanionPreset(0, CompanionAppCatalog.PresetExplorer);
+        Assert.Equal(CompanionAppCatalog.PresetExplorer, editor.GetState().Companions[0].Preset);
+
+        Assert.True(editor.CanUndo);
+        Assert.True(editor.TryUndo());
+        Assert.Equal(before, editor.GetState().Companions[0].Preset);
+
+        Assert.True(editor.CanRedo);
+        Assert.True(editor.TryRedo());
+        Assert.Equal(CompanionAppCatalog.PresetExplorer, editor.GetState().Companions[0].Preset);
+    }
+
     private WorkspaceEditor CreateEditor(Action? onSaved = null)
     {
         var editor = new WorkspaceEditor(_services, _lifetime, onSaved);
