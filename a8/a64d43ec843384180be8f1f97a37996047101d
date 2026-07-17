@@ -1,0 +1,19 @@
+.commandcode/taste/taste.md
+  s_f7785fd078a403::t_3ea1663543174f 3-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a8a64d43ec843384180be8f1f97a37996047101d",
+  "prompts": {},
+  "sessions": {
+    "s_f7785fd078a403": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b449954d-aab6-4c38-bb4e-fa535a69a41b",
+        "model": "SWE-1.7 Max"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
