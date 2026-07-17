@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using QuickShell.Abstractions;
@@ -61,6 +62,10 @@ internal sealed class QuickShellServices : IQuickShellServices
     private async Task PreloadShortcutsAsync()
     {
         try { await Shortcuts.PreloadAsync(Lifetime.CancellationToken).ConfigureAwait(false); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or OperationCanceledException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or OperationCanceledException)
+        {
+            // Best-effort warm-up; synchronous access still loads on demand.
+            Debug.WriteLine($"Shortcut preload skipped: {ex}");
+        }
     }
 }

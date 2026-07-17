@@ -482,9 +482,9 @@ internal static class TaskTypeCandidateBuilder
         var choices = TaskTypeCatalog.GetChoices();
         var bestByCmd = new Dictionary<string, (string Type, int Score, string Source)>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var task in sourceTasks)
+        foreach (var task in sourceTasks.Where(t =>
+                     !pickContext.UsedCommands.Contains(t.Command) && !string.IsNullOrWhiteSpace(t.Command)))
         {
-            if (pickContext.UsedCommands.Contains(task.Command) || string.IsNullOrWhiteSpace(task.Command)) continue;
             var (sn, sv, src) = ResolveScriptDetails(task, context);
             var best = 0; var bestType = TaskTypeCatalog.None;
             foreach (var choice in choices)

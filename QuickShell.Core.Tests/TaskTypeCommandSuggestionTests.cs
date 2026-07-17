@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
@@ -15,7 +16,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
 
     public TaskTypeCommandSuggestionTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-task-type-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-task-type-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
@@ -24,7 +25,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     [Fact]
     public void TrySuggest_Logs_PrefersDockerComposeLogs()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
         var suggested = _projectAnalysis.TrySuggestTaskCommand(_root, TaskTypeCatalog.Logs, TaskTypePickContext.Empty);
 
@@ -35,7 +36,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     public void TrySuggest_Frontend_PrefersPackageDevScript()
     {
         File.WriteAllText(
-            Path.Combine(_root, "package.json"),
+            Path.Join(_root, "package.json"),
             """
             {
               "scripts": {
@@ -56,7 +57,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     public void TrySuggest_Api_PrefersDotNetRun()
     {
         File.WriteAllText(
-            Path.Combine(_root, "sample.csproj"),
+            Path.Join(_root, "sample.csproj"),
             """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -73,7 +74,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     [Fact]
     public void TrySuggest_Services_PrefersDockerComposeUp()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
         var suggested = _projectAnalysis.TrySuggestTaskCommand(_root, TaskTypeCatalog.Services, TaskTypePickContext.Empty);
 
@@ -83,7 +84,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     [Fact]
     public void HasAvailableTypes_TrueForDockerCompose()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
         Assert.True(_projectAnalysis.HasAvailableTaskTypes(_root));
         Assert.Contains(TaskTypeCatalog.Logs, _projectAnalysis.GetAvailableTaskTypes(_root, TaskTypePickContext.Empty));
@@ -101,9 +102,9 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
 
         scripts["logs"] = "docker compose logs -f";
         File.WriteAllText(
-            Path.Combine(_root, "package.json"),
+            Path.Join(_root, "package.json"),
             System.Text.Json.JsonSerializer.Serialize(new { scripts }));
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
         Assert.True(_projectAnalysis.IsTaskTypeAvailable(_root, TaskTypeCatalog.Logs, TaskTypePickContext.Empty));
         Assert.Equal(
@@ -118,8 +119,9 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            Debug.WriteLine($"Cleanup failed for '{_root}': {ex}");
         }
     }
 }
@@ -133,7 +135,7 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
 
     public DockerComposeDiscoveryTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-compose-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-compose-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
@@ -143,7 +145,7 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
     public void DiscoverServiceNames_ParsesTopLevelServices()
     {
         File.WriteAllText(
-            Path.Combine(_root, "docker-compose.yml"),
+            Path.Join(_root, "docker-compose.yml"),
             """
             services:
               postgres:
@@ -171,7 +173,7 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
     public void TrySuggest_Services_PrefersDatabaseServiceOverWholeStack()
     {
         File.WriteAllText(
-            Path.Combine(_root, "docker-compose.yml"),
+            Path.Join(_root, "docker-compose.yml"),
             """
             services:
               postgres:
@@ -187,7 +189,7 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
     public void TrySuggest_Logs_PrefersServiceSpecificLogs()
     {
         File.WriteAllText(
-            Path.Combine(_root, "docker-compose.yml"),
+            Path.Join(_root, "docker-compose.yml"),
             """
             services:
               api:
@@ -208,8 +210,9 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            Debug.WriteLine($"Cleanup failed for '{_root}': {ex}");
         }
     }
 }

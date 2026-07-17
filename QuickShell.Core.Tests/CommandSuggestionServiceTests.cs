@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
@@ -32,8 +33,21 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact] public void BuildDataFields_AlwaysIncludesOpenToDirectory() { File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}"); _suggestions.ResetForTests(); var fields = SuggestionPillPresentation.BuildDataFields(_root, [], _projectAnalysis, _suggestions, expandSuggestionPills: false); Assert.Equal("true", fields["ShowSuggestionPills"]); Assert.Contains(fields, kv => kv.Key.StartsWith("PillTitle_", StringComparison.Ordinal) && kv.Value == SuggestionPillPresentation.OpenToDirectoryPill.DisplayTitle); }
     [Fact] public void GetPills_Cache_RepeatedSameResult() { File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}"); _suggestions.ResetForTests(); var a = _suggestions.GetPills(_root, [], _projectAnalysis); var b = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.Equal(a.Count, b.Count); }
     [Fact] public void GetPills_ExcludesUsedCommands() { File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}"); var p = _suggestions.GetPills(_root, ["docker compose logs -f"], _projectAnalysis); Assert.DoesNotContain(p, x => x.Command == "docker compose logs -f"); }
-    [Fact] public void GetPills_LargePackageJson_Caps() { var s = new Dictionary<string, string>(); for (var i = 0; i < 100; i++) s[$"script{i}"] = "echo test"; File.WriteAllText(Path.Join(_root, "package.json"), System.Text.Json.JsonSerializer.Serialize(new { scripts = s })); Assert.True(_suggestions.GetPills(_root, [], _projectAnalysis).Count <= SuggestionPillPresentation.MaxSlots); }
+    [Fact] public void GetPills_LargePackageJson_Caps() { var s = new Dictionary<string, string>(); for (var i = 0; i < 100; i++) { s[$"script{i}"] = "echo test"; } File.WriteAllText(Path.Join(_root, "package.json"), System.Text.Json.JsonSerializer.Serialize(new { scripts = s })); Assert.True(_suggestions.GetPills(_root, [], _projectAnalysis).Count <= SuggestionPillPresentation.MaxSlots); }
     [Fact] public void TryFindPill_MatchesCommandAndTaskType() { var p = new[] { new CommandSuggestionPill("npm run dev", TaskTypeCatalog.Frontend, "Frontend", "npm run dev", "f", 10, "s"), new CommandSuggestionPill("npm run dev", TaskTypeCatalog.Api, "API", "npm run dev", "a", 8, "s") }; var r = _suggestions.TryFindPill(p, "npm run dev", TaskTypeCatalog.Api); Assert.NotNull(r); Assert.Equal(TaskTypeCatalog.Api, r.TaskType); }
     [Fact] public void ApplyPill_FillThenAppend_ThreeRowsBeforeFourth() { File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}"); var rows = new List<LaunchRowDraft> { new() { LaunchTarget = "default", IsEditorPlaceholder = true }, new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true }, new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true } }; var pills = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.NotEmpty(pills); Assert.False(_suggestions.ApplyPill(rows, pills[0], "default")); Assert.Equal(3, rows.Count); }
-    public void Dispose() { _provider.Dispose(); _suggestions.ResetForTests(); AgentCliCatalog.IsCommandOnPathOverride = _prev; try { Directory.Delete(_root, true); } catch { } }
+    public void Dispose()
+    {
+        _provider.Dispose();
+        _suggestions.ResetForTests();
+        AgentCliCatalog.IsCommandOnPathOverride = _prev;
+        try
+        {
+            Directory.Delete(_root, true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Debug.WriteLine($"Cleanup failed for '{_root}': {ex}");
+        }
+    }
 }
