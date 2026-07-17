@@ -140,7 +140,7 @@ public sealed class WorkspaceEditorTests : IDisposable
         var editor = CreateEditor();
         editor.ResetForOpen(null, null);
 
-        var projectDir = Path.Combine(_temp.Path, "KnownProject");
+        var projectDir = Path.Join(_temp.Path, "KnownProject");
         Directory.CreateDirectory(projectDir);
         editor.SelectDirectory(projectDir);
 
