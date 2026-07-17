@@ -305,6 +305,8 @@ public sealed class WorkspaceStatusSnapshotTests
                     CreateMinimalShortcut(freshRoot),
                     TerminalHostIds.WindowsConsoleHost,
                     "cmd",
+                    health,
+                    git,
                     out _));
         }
         finally
@@ -351,6 +353,8 @@ public sealed class WorkspaceStatusSnapshotTests
                     shortcut,
                     TerminalHostIds.WindowsConsoleHost,
                     "cmd",
+                    health,
+                    git,
                     out _));
             Assert.Equal(0, WorkspaceStatusService.CacheCountForTests);
         }

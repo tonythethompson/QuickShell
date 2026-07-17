@@ -39,6 +39,8 @@ internal static class RunWorkspaceSubtitle
                         shortcut,
                         settings.TerminalApplicationId,
                         settings.DefaultProfileId,
+                        healthChecker,
+                        gitOperations,
                         out snapshot))
                 {
                     return null;

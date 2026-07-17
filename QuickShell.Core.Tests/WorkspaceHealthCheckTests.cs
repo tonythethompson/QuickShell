@@ -324,7 +324,9 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
-            "cmd");
+            "cmd",
+            health,
+            _git);
 
         Assert.NotNull(tags);
         var warningTag = Assert.Single(tags, tag => tag.ToolTip == "Workspace health warning");
@@ -353,7 +355,9 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
-            "cmd");
+            "cmd",
+            health,
+            _git);
 
         Assert.NotNull(tags);
         Assert.True(tags.Length <= 2, $"Expected at most 2 tags, found {tags.Length}.");

@@ -50,7 +50,15 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
 
             return process.ExitCode == 0;
         }
-        catch
+        catch (Win32Exception)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (IOException)
         {
             return false;
         }
@@ -58,16 +66,27 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
 
     public bool PortInUse(int port)
     {
+        TcpListener? listener = null;
         try
         {
-            using var listener = new TcpListener(IPAddress.Loopback, port);
+            listener = new TcpListener(IPAddress.Loopback, port);
             listener.Start();
-            listener.Stop();
             return false;
         }
         catch (SocketException)
         {
             return true;
+        }
+        finally
+        {
+            try
+            {
+                listener?.Stop();
+            }
+            catch (SocketException)
+            {
+                // Best effort cleanup.
+            }
         }
     }
 
@@ -85,7 +104,7 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
         {
             return [];
         }
-        catch (System.ComponentModel.Win32Exception)
+        catch (Win32Exception)
         {
             return [];
         }
@@ -115,10 +134,21 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
                 return [];
             }
 
-            var output = process.StandardOutput.ReadToEnd();
+            // Read both streams asynchronously so a full stderr buffer cannot deadlock
+            // ReadToEnd, and so WaitForExit(timeout) can still kill a hung wsl.exe.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
             if (!process.WaitForExit(3000))
             {
                 TryKill(process);
+                _ = Task.WhenAny(Task.WhenAll(stdoutTask, stderrTask), Task.Delay(250));
+                return [];
+            }
+
+            // Process exited; finish draining pipes without blocking forever.
+            if (!Task.WaitAll([stdoutTask, stderrTask], 1000))
+            {
                 return [];
             }
 
@@ -127,7 +157,7 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
                 return [];
             }
 
-            return output
+            return stdoutTask.Result
                 .Replace("\0", string.Empty, StringComparison.Ordinal)
                 .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim())
@@ -147,6 +177,10 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
         {
             return [];
         }
+        catch (AggregateException)
+        {
+            return [];
+        }
     }
 
     private static void TryKill(Process process)
@@ -159,7 +193,7 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
         {
             // Best effort.
         }
-        catch (System.ComponentModel.Win32Exception)
+        catch (Win32Exception)
         {
             // Best effort.
         }
