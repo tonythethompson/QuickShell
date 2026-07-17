@@ -1,0 +1,13 @@
+refactor(core): convert suggestion services to DI  
+  
+- Create ICommandSuggestionService interface + DI singleton  
+- Create AgentCliSuggestionProvider implementing ITaskSuggestionProvider  
+- Update ITaskSuggestionProvider interface with TaskSuggestionContext, Order  
+- Update WorkspaceSetupTaskSuggestionProvider to include all Node/Deno scripts  
+- Add BuildTaskTypeChoicesJson to IProjectAnalysisService/ProjectAnalysisService  
+- Convert CommandSuggestionService from static to instance class  
+- Delete TaskTypeCommandSuggestion.cs and AgentCliSuggestion.cs  
+- Update all production callers to use injected ICommandSuggestionService  
+- Add ICommandSuggestionService to IQuickShellServices/QuickShellServices  
+  
+Co-authored-by: CommandCodeBot <noreply@commandcode.ai>  

@@ -25,6 +25,7 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<IDraftStore>(),
             sp.GetRequiredService<QuickShellSettingsManager>(),
             sp.GetRequiredService<IProjectAnalysisService>(),
+            sp.GetRequiredService<ICommandSuggestionService>(),
             sp.GetRequiredService<IShortcutLaunchExecutor>(),
             sp.GetRequiredService<IWorkspaceGitOperations>(),
             sp.GetRequiredService<ICompanionAppLauncher>(),

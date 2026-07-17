@@ -590,13 +590,12 @@ internal sealed partial class ShortcutForm : FormContent
     {
         MergeDraftFromInputs(payload, out _);
 
-        var pills = CommandSuggestionService.GetPills(
+        var pills = _services.CommandSuggestions.GetPills(
             _draft.Directory,
             _draft.Commands.Select(command => command.Command),
-            _services.ProjectAnalysis,
-            _services.ClassificationCache);
+            _services.ProjectAnalysis);
 
-        var pill = CommandSuggestionService.TryFindPill(pills, pillCommand, pillTaskType);
+        var pill = _services.CommandSuggestions.TryFindPill(pills, pillCommand, pillTaskType);
         if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
         {
             pill = pills[pillIndex];
@@ -608,7 +607,7 @@ internal sealed partial class ShortcutForm : FormContent
         }
 
         PushEditSnapshot();
-        var rowAdded = CommandSuggestionService.ApplyPill(
+        var rowAdded = _services.CommandSuggestions.ApplyPill(
             _draft.Commands,
             pill,
             GetDefaultRowLaunchTarget());
@@ -1170,7 +1169,7 @@ internal sealed partial class ShortcutForm : FormContent
                 SaveError = _saveError,
             },
             _services.ProjectAnalysis,
-            _services.ClassificationCache,
+            _services.CommandSuggestions,
             draft.Commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin)).ToList());
     }
 
@@ -1194,11 +1193,10 @@ internal sealed partial class ShortcutForm : FormContent
         {
             try
             {
-                _ = CommandSuggestionService.GetPills(
+                _ = _services.CommandSuggestions.GetPills(
                     directory,
                     usedCommands,
-                    _services.ProjectAnalysis,
-                    _services.ClassificationCache);
+                    _services.ProjectAnalysis);
             }
             catch
             {

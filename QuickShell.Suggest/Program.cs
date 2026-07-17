@@ -12,9 +12,9 @@ if (!SuggestCommandLineArgs.TryParse(args, out var directory, out var usedComman
 
 using var provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
 var projectAnalysis = provider.GetRequiredService<IProjectAnalysisService>();
-var classificationCache = provider.GetRequiredService<QuickShell.Abstractions.IProjectClassificationCache>();
+var commandSuggestions = provider.GetRequiredService<ICommandSuggestionService>();
 
-var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
+var pills = commandSuggestions.GetPills(directory, usedCommands, projectAnalysis);
 var payload = new
 {
     generation,

@@ -76,6 +76,8 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IDevServerDetector, DevServerDetector>();
         services.AddSingleton<ITaskSuggestionProvider, WorkspaceSetupTaskSuggestionProvider>();
         services.AddSingleton<ITaskSuggestionProvider, DockerComposeTaskSuggestionProvider>();
+        services.AddSingleton<ITaskSuggestionProvider, AgentCliSuggestionProvider>();
+        services.AddSingleton<ICommandSuggestionService, CommandSuggestionService>();
         services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
 
         return services;

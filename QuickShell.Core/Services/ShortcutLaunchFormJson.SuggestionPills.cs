@@ -43,7 +43,7 @@ internal static partial class ShortcutLaunchFormJson
           "spacing": "Small",
           "$when": "${ShowSuggestionPills}",
           "items": [
-            {{AdaptiveCardFormJson.FieldLabel(CommandSuggestionService.FieldLabel, CommandSuggestionService.FieldHelp, bold: false)}},
+            {{AdaptiveCardFormJson.FieldLabel("Suggested commands", "Click a pill to add.", bold: false)}},
             {{string.Join(",\n", pillRows)}},
             {
               "type": "ActionSet",

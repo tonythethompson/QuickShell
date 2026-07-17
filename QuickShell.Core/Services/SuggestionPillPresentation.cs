@@ -47,11 +47,11 @@ internal static class SuggestionPillPresentation
         string? directory,
         IEnumerable<string?> usedCommands,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache,
+        ICommandSuggestionService commandSuggestions,
         bool expandSuggestionPills,
         bool isScanningSuggestions = false)
     {
-        ArgumentNullException.ThrowIfNull(classificationCache);
+        ArgumentNullException.ThrowIfNull(commandSuggestions);
 
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -78,7 +78,7 @@ internal static class SuggestionPillPresentation
             return fields;
         }
 
-        var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
+        var pills = commandSuggestions.GetPills(directory, usedCommands, projectAnalysis);
         if (pills.Count == 0)
         {
             return fields;
