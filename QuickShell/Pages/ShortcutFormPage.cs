@@ -13,10 +13,12 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
     private readonly TerminalShortcut? _existing;
     private readonly TerminalShortcut? _createSeed;
     private readonly Action? _onSaved;
+    private readonly bool _hasOnSaved;
     private readonly Lock _formSync = new();
     private WorkspaceEditor? _editor;
     private ShortcutForm? _form;
     private bool _formNeedsReset;
+    private bool _commandsInitialized;
     private bool _disposed;
 
     public ShortcutFormPage(
@@ -29,6 +31,7 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
         _existing = existing is null ? null : CloneShortcut(existing);
         _createSeed = existing is null ? createSeed : null;
         _onSaved = onSaved;
+        _hasOnSaved = onSaved is not null;
         var isCreate = _existing is null;
         Id = isCreate
             ? $"com.quickshell.shortcut-form.create.{Guid.NewGuid():N}"
@@ -36,23 +39,6 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
         Icon = new IconInfo("\uE70F");
         Title = isCreate ? "New workspace" : $"Edit {_existing!.Name}";
         Name = isCreate ? "Create" : "Edit";
-
-        if (onSaved is not null)
-        {
-            Commands = [.. ShortcutContextCommands.BuildFormUndoRedoCommands(
-                () =>
-                {
-                    EnsureFormBuilt();
-                    return _editor!.TryUndo();
-                },
-                () =>
-                {
-                    EnsureFormBuilt();
-                    return _editor!.TryRedo();
-                },
-                onSaved,
-                _services)];
-        }
     }
 
     public override IContent[] GetContent()
@@ -131,4 +117,26 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
         CompanionAppPath = shortcut.CompanionAppPath,
         CompanionAppArguments = shortcut.CompanionAppArguments,
     };
+    private void EnsureCommandsInitialized()
+    {
+        if (!_hasOnSaved || _commandsInitialized || _onSaved is null)
+        {
+            return;
+        }
+
+        Commands = [.. ShortcutContextCommands.BuildFormUndoRedoCommands(
+            () =>
+            {
+                EnsureFormBuilt();
+                return _editor!.TryUndo();
+            },
+            () =>
+            {
+                EnsureFormBuilt();
+                return _editor!.TryRedo();
+            },
+            _onSaved,
+            _services)];
+        _commandsInitialized = true;
+    }
 }
