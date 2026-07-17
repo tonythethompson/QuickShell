@@ -317,7 +317,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
                     SaveError = state.SaveError ?? string.Empty,
                 },
                 _services.ProjectAnalysis,
-                _services.ClassificationCache,
+                _services.CommandSuggestions,
                 state.Commands.Select(c => (c.Command, c.TaskType, c.LaunchTarget, c.RunAsAdmin)).ToList());
         }
     }

@@ -225,10 +225,10 @@ internal static class ShortcutFormTemplateJson
     public static string BuildDataJson(
         DataPayload draft,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache,
+        ICommandSuggestionService commandSuggestions,
         IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)>? commands = null)
     {
-        ArgumentNullException.ThrowIfNull(classificationCache);
+        ArgumentNullException.ThrowIfNull(commandSuggestions);
         commands ??= [];
         var commandFields = string.Join(
             ",\n",
@@ -241,7 +241,7 @@ internal static class ShortcutFormTemplateJson
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
-        var pillFields = BuildPillDataFields(draft, commands, projectAnalysis, classificationCache);
+        var pillFields = BuildPillDataFields(draft, commands, projectAnalysis, commandSuggestions);
         var pillSection = pillFields.Length > 0 ? ",\n" + pillFields : string.Empty;
         var companions = draft.Companions is { Count: > 0 }
             ? draft.Companions
@@ -278,7 +278,7 @@ internal static class ShortcutFormTemplateJson
         DataPayload draft,
         IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache)
+        ICommandSuggestionService commandSuggestions)
     {
         var launchRows = commands
             .Select(row => new LaunchRowDraft
@@ -295,7 +295,7 @@ internal static class ShortcutFormTemplateJson
                      draft.Directory,
                      launchRows.Select(row => row.Command),
                      projectAnalysis,
-                     classificationCache,
+                     commandSuggestions,
                      draft.ExpandSuggestionPills,
                      isScanningSuggestions: draft.SuggestionScanning))
         {

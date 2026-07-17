@@ -76,7 +76,15 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IDevServerDetector, DevServerDetector>();
         services.AddSingleton<ITaskSuggestionProvider, WorkspaceSetupTaskSuggestionProvider>();
         services.AddSingleton<ITaskSuggestionProvider, DockerComposeTaskSuggestionProvider>();
+        services.AddSingleton<ITaskSuggestionProvider, AgentCliSuggestionProvider>();
+        services.AddSingleton<ICommandSuggestionService, CommandSuggestionService>();
         services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
+
+        services.AddSingleton<ICompanionAppArgumentValidation, CompanionAppArgumentValidationInstance>();
+        services.AddSingleton<ICompanionAppNormalization, CompanionAppNormalizationInstance>();
+        services.AddSingleton<IWorkspaceCompanionSignals, WorkspaceCompanionSignalsInstance>();
+        services.AddSingleton<IInstallDiscovery, JetBrainsInstallDiscoveryInstance>();
+        services.AddSingleton<IInstallDiscovery, VisualStudioInstallDiscoveryInstance>();
 
         return services;
     }

@@ -9,26 +9,17 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
     private readonly IProjectLayoutAnalyzer _layoutAnalyzer;
     private readonly ICompanionAppDetector _companionAppDetector;
     private readonly IDevServerDetector _devServerDetector;
-    private readonly IReadOnlyList<ITaskSuggestionProvider> _taskSuggestionProviders;
 
     public ProjectAnalysisService(
         IEnumerable<IProjectClassifier> classifiers,
         IProjectLayoutAnalyzer layoutAnalyzer,
         ICompanionAppDetector companionAppDetector,
-        IDevServerDetector devServerDetector,
-        IEnumerable<ITaskSuggestionProvider> taskSuggestionProviders)
+        IDevServerDetector devServerDetector)
     {
-        ArgumentNullException.ThrowIfNull(classifiers);
-        ArgumentNullException.ThrowIfNull(layoutAnalyzer);
-        ArgumentNullException.ThrowIfNull(companionAppDetector);
-        ArgumentNullException.ThrowIfNull(devServerDetector);
-        ArgumentNullException.ThrowIfNull(taskSuggestionProviders);
-
-        _classifiers = classifiers.OrderByDescending(classifier => classifier.Priority).ToArray();
-        _layoutAnalyzer = layoutAnalyzer;
-        _companionAppDetector = companionAppDetector;
-        _devServerDetector = devServerDetector;
-        _taskSuggestionProviders = taskSuggestionProviders.OrderByDescending(provider => provider.Priority).ToArray();
+        _classifiers = classifiers.OrderByDescending(c => c.Priority).ToArray();
+        _layoutAnalyzer = layoutAnalyzer ?? throw new ArgumentNullException(nameof(layoutAnalyzer));
+        _companionAppDetector = companionAppDetector ?? throw new ArgumentNullException(nameof(companionAppDetector));
+        _devServerDetector = devServerDetector ?? throw new ArgumentNullException(nameof(devServerDetector));
     }
 
     public ProjectClassification Classify(string directory) =>
@@ -39,26 +30,27 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
 
     public IReadOnlyList<string> GetAvailableTaskTypes(string? directory, TaskTypePickContext pickContext)
     {
-        if (!TryBuildContext(directory, out var context))
+        if (!TryBuildSuggestionContext(directory, out var context))
         {
             return [];
         }
 
         return TaskTypeCatalog.GetChoices()
-            .Where(choice => IsAvailable(choice.Id, context, pickContext))
+            .Where(choice => TaskTypeCandidateBuilder.Build(choice.Id, context, pickContext).Count > 0)
             .Select(choice => choice.Id)
             .ToList();
     }
 
     public bool IsTaskTypeAvailable(string? directory, string? taskType, TaskTypePickContext pickContext)
     {
-        if (!TryBuildContext(directory, out var context))
+        if (!TryBuildSuggestionContext(directory, out var context))
         {
             return false;
         }
 
         var normalized = TaskTypeCatalog.Normalize(taskType);
-        return IsAvailable(normalized, context, pickContext);
+        return normalized != TaskTypeCatalog.None
+            && TaskTypeCandidateBuilder.Build(normalized, context, pickContext).Count > 0;
     }
 
     public string? TrySuggestTaskCommand(string? directory, string? taskType, TaskTypePickContext pickContext)
@@ -70,12 +62,7 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
     public string GetTaskTypeChoiceTooltip(string? directory, string? taskType, TaskTypePickContext pickContext)
     {
         var normalized = TaskTypeCatalog.Normalize(taskType);
-        if (!TryBuildContext(directory, out var context))
-        {
-            return GetStaticChoiceTooltip(normalized);
-        }
-
-        var candidates = TaskTypeCandidateBuilder.Build(normalized, context, pickContext);
+        var candidates = GetCandidates(directory, normalized, pickContext);
         if (candidates.Count == 0)
         {
             return GetStaticChoiceTooltip(normalized);
@@ -87,10 +74,43 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
             return $"Suggests: {first.Command}";
         }
 
-        var alternates = string.Join(
-            ", ",
-            candidates.Skip(1).Take(2).Select(candidate => candidate.Command));
+        var alternates = string.Join(", ", candidates.Skip(1).Take(2).Select(c => c.Command));
         return $"Suggests: {first.Command} · also {alternates}";
+    }
+
+    public string BuildTaskTypeChoicesJson(
+        string? directory = null,
+        TaskTypePickContext? pickContext = null,
+        bool includePlaceholder = true)
+    {
+        pickContext ??= TaskTypePickContext.Empty;
+        var choices = new List<object>();
+        if (includePlaceholder)
+        {
+            choices.Add(new
+            {
+                title = "Choose a command…",
+                value = TaskTypeCatalog.None,
+                tooltip = "Adds a new command row with a project-aware suggestion.",
+            });
+        }
+
+        foreach (var def in TaskTypeCatalog.GetChoices())
+        {
+            if (!IsTaskTypeAvailable(directory, def.Id, pickContext))
+            {
+                continue;
+            }
+
+            choices.Add(new
+            {
+                title = def.Title,
+                value = def.Id,
+                tooltip = GetTaskTypeChoiceTooltip(directory, def.Id, pickContext),
+            });
+        }
+
+        return System.Text.Json.JsonSerializer.Serialize(choices);
     }
 
     public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
@@ -113,7 +133,7 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         string? taskType,
         TaskTypePickContext pickContext)
     {
-        if (!TryBuildContext(directory, out var context))
+        if (!TryBuildSuggestionContext(directory, out var context))
         {
             return [];
         }
@@ -127,13 +147,9 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         return TaskTypeCandidateBuilder.Build(normalized, context, pickContext);
     }
 
-    private static bool IsAvailable(
-        string taskType,
-        TaskTypeCandidateBuilder.SuggestionContext context,
-        TaskTypePickContext pickContext) =>
-        TaskTypeCandidateBuilder.Build(taskType, context, pickContext).Count > 0;
-
-    private bool TryBuildContext(string? directory, out TaskTypeCandidateBuilder.SuggestionContext context)
+    private bool TryBuildSuggestionContext(
+        string? directory,
+        out TaskTypeCandidateBuilder.SuggestionContext context)
     {
         context = default!;
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
@@ -142,9 +158,7 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         }
 
         var classification = Classify(directory);
-        var suggestions = _taskSuggestionProviders
-            .SelectMany(provider => provider.GetSuggestions(directory, classification, this))
-            .ToList();
+        var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, this);
         context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, this);
         return true;
     }
@@ -158,6 +172,6 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
             TaskTypeCatalog.Logs => "Log stream (e.g. docker compose logs -f)",
             TaskTypeCatalog.Test => "Test runner (e.g. dotnet test, npm test)",
             TaskTypeCatalog.Build => "Build or compile (e.g. dotnet build, npm run build)",
-            _ => "No category — leaves the command unchanged",
+            _ => "No category: leaves the command unchanged",
         };
 }

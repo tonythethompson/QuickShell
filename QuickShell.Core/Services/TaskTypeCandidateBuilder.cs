@@ -474,6 +474,37 @@ internal static class TaskTypeCandidateBuilder
         return false;
     }
 
+    internal static IReadOnlyList<CommandSuggestionPill> BuildPills(IEnumerable<WorkspaceSetupTask> tasks, TaskSuggestionContext context)
+    {
+        var sourceTasks = tasks as IReadOnlyList<WorkspaceSetupTask> ?? tasks.ToList();
+        var suggestionContext = new SuggestionContext(context.WorkspaceDirectory, sourceTasks, context.ProjectClassification, context.ProjectAnalysis);
+        var pickContext = TaskTypePickContext.FromCommands(context.ExistingLaunches.Select(e => e.Command));
+        var choices = TaskTypeCatalog.GetChoices();
+        var bestByCmd = new Dictionary<string, (string Type, int Score, string Source)>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var task in sourceTasks.Where(t =>
+                     !pickContext.UsedCommands.Contains(t.Command) && !string.IsNullOrWhiteSpace(t.Command)))
+        {
+            var (sn, sv, src) = ResolveScriptDetails(task, context);
+            var best = 0; var bestType = TaskTypeCatalog.None;
+            foreach (var choice in choices)
+            {
+                var score = src is "node-script" or "deno-task" ? ScoreNodeScript(choice.Id, sn, sv, task.Command, suggestionContext) : ScoreSuggestion(choice.Id, task, suggestionContext);
+                if (score > best) { best = score; bestType = choice.Id; }
+            }
+            if (best > 0 && (!bestByCmd.TryGetValue(task.Command, out var e) || best > e.Score)) bestByCmd[task.Command] = (bestType, best, src);
+        }
+
+        return bestByCmd.Select(kv => new CommandSuggestionPill(kv.Key, kv.Value.Type, TaskTypeCatalog.GetTitle(kv.Value.Type), SuggestionPillPresentation.FormatDisplayTitle(kv.Key), SuggestionPillPresentation.FormatTooltip(TaskTypeCatalog.GetTitle(kv.Value.Type), kv.Key), kv.Value.Score, kv.Value.Source)).OrderByDescending(p => p.Score).ThenBy(p => p.DisplayTitle, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static (string, string, string) ResolveScriptDetails(WorkspaceSetupTask task, TaskSuggestionContext context)
+    {
+        if (context.ProjectClassification.NodeScripts.TryGetValue(task.Label, out var sv)) return (task.Label, sv, "node-script");
+        if (context.ProjectClassification.DenoTasks.TryGetValue(task.Label, out sv)) return (task.Label, sv, "deno-task");
+        return (task.Label, string.Empty, task.Command.StartsWith("docker compose ", StringComparison.OrdinalIgnoreCase) ? "docker-service" : "workspace");
+    }
+
     internal sealed record SuggestionContext(
         string Directory,
         IReadOnlyList<WorkspaceSetupTask> Suggestions,

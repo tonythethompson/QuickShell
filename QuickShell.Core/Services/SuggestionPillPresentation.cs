@@ -66,11 +66,11 @@ internal static class SuggestionPillPresentation
         string? directory,
         IEnumerable<string?> usedCommands,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache,
+        ICommandSuggestionService commandSuggestions,
         bool expandSuggestionPills,
         bool isScanningSuggestions = false)
     {
-        ArgumentNullException.ThrowIfNull(classificationCache);
+        ArgumentNullException.ThrowIfNull(commandSuggestions);
 
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -97,8 +97,8 @@ internal static class SuggestionPillPresentation
             return fields;
         }
 
-        // Same ordered list the form uses when applying a pill click (including Open to Directory).
-        var pills = BuildSelectablePills(directory, usedCommands, projectAnalysis, classificationCache);
+        // Same ordered list the form uses when applying a pill click (including Open directory only).
+        var pills = BuildSelectablePills(directory, usedCommands, projectAnalysis, commandSuggestions);
 
         fields["ShowSuggestionPills"] = "true";
         fields["ShowMoreSuggestions"] = pills.Count > DefaultVisibleSlots && !expandSuggestionPills ? "true" : "false";
@@ -120,27 +120,27 @@ internal static class SuggestionPillPresentation
     /// <summary>
     /// Ranked suggestion pills plus the always-appended <see cref="OpenToDirectoryPill"/>, in the
     /// same order rendered by <see cref="BuildDataFields"/>. Form apply must use this list so a
-    /// blank-command Open to Directory click resolves the same way the template displayed it.
+    /// blank-command Open directory only click resolves the same way the template displayed it.
     /// </summary>
     public static IReadOnlyList<CommandSuggestionPill> BuildSelectablePills(
         string? directory,
         IEnumerable<string?> usedCommands,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache)
+        ICommandSuggestionService commandSuggestions)
     {
-        ArgumentNullException.ThrowIfNull(classificationCache);
+        ArgumentNullException.ThrowIfNull(commandSuggestions);
 
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
             return [OpenToDirectoryPill];
         }
 
-        var ranked = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
+        var ranked = commandSuggestions.GetPills(directory, usedCommands, projectAnalysis);
 
         // Loosely group same-type pills together for display (Agent, Test, Services, ...).
         // OrderBy is stable, so within each type group pills keep GetPills' original score
         // order -- this only reorders across groups, ranking within a group is untouched.
-        // Open to Directory stays last so it is never sorted into the middle alphabetically.
+        // Open directory only stays last so it is never sorted into the middle alphabetically.
         var pills = new List<CommandSuggestionPill>(ranked.Count + 1);
         pills.AddRange(ranked.OrderBy(pill => pill.TypeTitle, StringComparer.OrdinalIgnoreCase));
         pills.Add(OpenToDirectoryPill);

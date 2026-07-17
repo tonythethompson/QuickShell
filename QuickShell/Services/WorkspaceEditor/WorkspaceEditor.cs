@@ -123,15 +123,15 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            // Must match BuildDataFields / BuildSelectablePills so Open to Directory (blank command)
+            // Must match BuildDataFields / BuildSelectablePills so Open directory only (blank command)
             // and pillIndex slots resolve the same list the Adaptive Card rendered.
             var pills = SuggestionPillPresentation.BuildSelectablePills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
                 _services.ProjectAnalysis,
-                _services.ClassificationCache);
+                _services.CommandSuggestions);
 
-            var pill = CommandSuggestionService.TryFindPill(pills, command, taskType);
+            var pill = _services.CommandSuggestions.TryFindPill(pills, command, taskType);
             if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
             {
                 pill = pills[pillIndex];
@@ -143,10 +143,10 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             }
 
             PushEditSnapshot();
-            _ = CommandSuggestionService.ApplyPill(_draft.Commands, pill, GetDefaultRowLaunchTarget());
+            _ = _services.CommandSuggestions.ApplyPill(_draft.Commands, pill, GetDefaultRowLaunchTarget());
             ApplyDraft();
             var toast = ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill)
-                ? "Added Open to Directory."
+                ? "Added Open directory only."
                 : $"Added {pill.TypeTitle} command.";
             return WorkspaceEditResult.StayOpen(toast);
         }
@@ -757,7 +757,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             {
                 if (!token.IsCancellationRequested)
                 {
-                    _ = CommandSuggestionService.GetPills(directory, usedCommands, _services.ProjectAnalysis, _services.ClassificationCache);
+                    _ = _services.CommandSuggestions.GetPills(directory, usedCommands, _services.ProjectAnalysis);
                 }
             }
             catch (OperationCanceledException)
@@ -1174,11 +1174,10 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         var scanning = IsSuggestionScanning;
         IReadOnlyList<CommandSuggestionPill> pills = scanning
             ? []
-            : CommandSuggestionService.GetPills(
+            : _services.CommandSuggestions.GetPills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
-                _services.ProjectAnalysis,
-                _services.ClassificationCache);
+                _services.ProjectAnalysis);
 
         return new WorkspaceEditState(
             _originalName,

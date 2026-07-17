@@ -71,7 +71,7 @@ internal sealed class RunLaunchSuggestionPanel
             Visibility = Visibility.Collapsed,
         };
         _root.Children.Add(RunWpfUiHelpers.FieldLabel(
-            CommandSuggestionService.FieldLabel,
+            "Suggested commands",
             WorkspaceFormTooltips.SuggestedCommands));
         _root.Children.Add(_loadingText);
         _root.Children.Add(_scrollViewer);
@@ -169,13 +169,13 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
 
     public void Schedule(
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache,
+        ICommandSuggestionService commandSuggestions,
         string? directory,
         IEnumerable<string?> usedCommands,
         Action<int> onGenerationStarted,
         Func<IReadOnlyList<CommandSuggestionPill>, int, Task> onCompleted)
     {
-        ArgumentNullException.ThrowIfNull(classificationCache);
+        ArgumentNullException.ThrowIfNull(commandSuggestions);
         CancellationTokenSource cancellation;
         CancellationTokenSource? previous;
         lock (_gate)
@@ -206,11 +206,10 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
                     return;
                 }
 
-                var pills = CommandSuggestionService.GetPills(
+                var pills = commandSuggestions.GetPills(
                     directory,
                     usedCommands,
-                    projectAnalysis,
-                    classificationCache);
+                    projectAnalysis);
                 if (token.IsCancellationRequested)
                 {
                     return;

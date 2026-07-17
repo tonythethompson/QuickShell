@@ -62,7 +62,7 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     [Fact]
     public void BuildCheapSignature_StampsFsprojAfterTenCsprojFiles()
     {
-        for (var i = 0; i < CommandSuggestionService.MaxRootProjects; i++)
+        for (var i = 0; i < 10; i++)
         {
             File.WriteAllText(Path.Combine(_root, $"{i:D2}.csproj"), "<Project />");
         }
