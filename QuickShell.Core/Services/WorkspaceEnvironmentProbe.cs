@@ -138,7 +138,15 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
         {
             process.Kill(entireProcessTree: true);
         }
-        catch
+        catch (InvalidOperationException)
+        {
+            // Best effort.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Best effort.
+        }
+        catch (NotSupportedException)
         {
             // Best effort.
         }
