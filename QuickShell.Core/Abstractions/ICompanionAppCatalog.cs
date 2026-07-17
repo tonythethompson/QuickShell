@@ -1,0 +1,56 @@
+namespace QuickShell.Abstractions;
+
+internal interface ICompanionAppCatalog
+{
+    const string PresetNone = "none";
+    const string PresetCustom = "custom";
+    const string PresetExplorer = "explorer";
+    const string PresetVs2022 = "vs2022";
+    const string PresetVs2026 = "vs2026";
+    const string PresetVsCode = "vscode";
+    const string PresetVsCodeInsiders = "vscode-insiders";
+    const string PresetCursor = "cursor";
+    const string PresetZed = "zed";
+    const string PresetKiro = "kiro";
+    const string PresetSublime = "sublime";
+    const string PresetRider = "rider";
+    const string PresetIntelliJIdea = "intellij-idea";
+    const string PresetWebStorm = "webstorm";
+    const string PresetPyCharm = "pycharm";
+    const string PresetGoLand = "goland";
+    const string PresetCLion = "clion";
+    const string PresetAndroidStudio = "android-studio";
+    const string PresetGitHubDesktop = "github-desktop";
+    const string PresetFork = "fork";
+    const string PresetGitKraken = "gitkraken";
+    const string PresetSourcetree = "sourcetree";
+    const string PresetAzureDataStudio = "azure-data-studio";
+    const string PresetObsidian = "obsidian";
+    const string PresetNeovide = "neovide";
+    const string PresetGvim = "gvim";
+    const string PresetNotepadPlusPlus = "notepad-plus-plus";
+    const string PresetTrae = "trae";
+    const string PresetAntigravity = "antigravity";
+    const string PresetDevin = "devin";
+    bool IsCatalogPreset(string presetId);
+    bool IsPresetInstalled(string presetId);
+    string NormalizePresetForForm(string presetId, string? executablePath);
+    string BuildFormChoicesJson();
+    IReadOnlyList<(string Id, string Title)> GetInstalledFormChoices();
+    void InvalidateInstallCaches();
+    string ToFormPresetValue(string presetId, string? executablePath);
+    string ResolvePresetAfterBrowse(string selectedPath);
+    bool ShouldShowExecutablePath(string? path);
+    bool ShouldShowPathWarning(string preset, string? path);
+    string InferPresetFromPath(string? executablePath);
+    string InferPresetFromFileName(string? executablePath);
+    string GetDisplayName(string? executablePath);
+    string GetContextMenuIcon(string? executablePath);
+    bool TryApplyPreset(string presetId, out string? executablePath, out string arguments);
+    string? TryResolveExecutable(string presetId);
+    string GetDefaultArguments(string presetId);
+    bool TryResolveExecutablePath(string? executablePath, out string resolvedPath);
+    bool ShouldShowBrowseRequiredPrompt(string preset, string? path);
+    bool TryValidateFormSelection(string preset, string? path, out string error);
+    string BuildPathWarning(string preset, string? path);
+}
