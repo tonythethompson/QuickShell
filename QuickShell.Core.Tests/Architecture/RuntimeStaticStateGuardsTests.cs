@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace QuickShell.Core.Tests.Architecture;
@@ -43,9 +44,8 @@ public sealed class RuntimeStaticStateGuardsTests
         var repoRoot = FindRepoRoot();
         var violations = new List<string>();
 
-        foreach (var root in ProductionRoots)
+        foreach (var directory in ProductionRoots.Select(root => Path.Combine(repoRoot, root)))
         {
-            var directory = Path.Combine(repoRoot, root);
             if (!Directory.Exists(directory))
             {
                 continue;
