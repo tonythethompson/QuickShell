@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -241,15 +242,17 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
             {
                 RebuildFromState(e.State);
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
+                Debug.WriteLine($"OnEditorChanged ignored ObjectDisposedException during rebuild: {ex}");
             }
-            catch (System.Runtime.InteropServices.COMException)
+            catch (System.Runtime.InteropServices.COMException ex)
             {
+                Debug.WriteLine($"OnEditorChanged ignored COMException during rebuild: {ex}");
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort.
+                Debug.WriteLine($"OnEditorChanged ignored unexpected exception during rebuild: {ex}");
             }
         }
     }
