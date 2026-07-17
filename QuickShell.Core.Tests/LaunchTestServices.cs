@@ -20,7 +20,7 @@ internal static class LaunchTestServices
     {
         ResetTerminalDiscoveryStubs();
 
-        _settingsDirectory = Path.Combine(
+        _settingsDirectory = Path.Join(
             Path.GetTempPath(),
             "qs-launch-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_settingsDirectory);
