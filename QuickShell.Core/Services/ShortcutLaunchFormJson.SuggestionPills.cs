@@ -2,13 +2,17 @@ namespace QuickShell.Services;
 
 internal static partial class ShortcutLaunchFormJson
 {
+    // 2 per row instead of 3 -- gives each pill more horizontal room for longer commands
+    // before DisplayTitleMaxLength truncates them.
+    private const int PillsPerRow = 2;
+
     public static string BuildSuggestionPillsBlock()
     {
         var pillRows = new List<string>();
-        for (var rowStart = 0; rowStart < SuggestionPillPresentation.MaxSlots; rowStart += 3)
+        for (var rowStart = 0; rowStart < SuggestionPillPresentation.MaxSlots; rowStart += PillsPerRow)
         {
             var actions = new List<string>();
-            for (var slot = rowStart; slot < rowStart + 3 && slot < SuggestionPillPresentation.MaxSlots; slot++)
+            for (var slot = rowStart; slot < rowStart + PillsPerRow && slot < SuggestionPillPresentation.MaxSlots; slot++)
             {
                 actions.Add($$"""
                 {

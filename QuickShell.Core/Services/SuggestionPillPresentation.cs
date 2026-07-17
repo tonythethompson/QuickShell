@@ -7,7 +7,9 @@ internal static class SuggestionPillPresentation
 {
     public const int MaxSlots = 16;
     public const int DefaultVisibleSlots = 8;
-    public const int DisplayTitleMaxLength = 42;
+    // 60 not 42 -- pills render 2 per row instead of 3 (see PillsPerRow in
+    // ShortcutLaunchFormJson.SuggestionPills.cs), so there's more horizontal room per pill.
+    public const int DisplayTitleMaxLength = 60;
 
     /// <summary>
     /// Always-available pill that explicitly marks a launch row as folder-only (blank Command,
@@ -96,8 +98,12 @@ internal static class SuggestionPillPresentation
         }
 
         var ranked = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis, classificationCache);
+
+        // Loosely group same-type pills together for display (Agent, Test, Services, ...).
+        // OrderBy is stable, so within each type group pills keep GetPills' original score
+        // order -- this only reorders across groups, ranking within a group is untouched.
         var pills = new List<CommandSuggestionPill>(ranked.Count + 1);
-        pills.AddRange(ranked);
+        pills.AddRange(ranked.OrderBy(pill => pill.TypeTitle, StringComparer.OrdinalIgnoreCase));
         pills.Add(OpenToDirectoryPill);
 
         fields["ShowSuggestionPills"] = "true";
