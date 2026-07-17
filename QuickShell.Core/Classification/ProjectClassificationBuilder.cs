@@ -370,7 +370,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
                 .Take(25)
                 .ToList();
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
             return [];
         }
@@ -390,7 +390,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
                 line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
                 || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
             return false;
         }
@@ -402,7 +402,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         {
             return JsonFileDocument.Parse(path, JsonOptions);
         }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
             return null;
         }
@@ -526,7 +526,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         {
             return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
             return false;
         }
