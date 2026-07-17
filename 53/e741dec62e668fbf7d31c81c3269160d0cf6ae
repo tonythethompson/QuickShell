@@ -1,0 +1,21 @@
+QuickShell.Core.Tests/TerminalLauncherTests.cs
+  s_7f50c38fe81888::t_22f7d331e67591 14
+QuickShell.Core/Services/WorkspaceEnvironmentProbe.cs
+  s_7f50c38fe81888::t_ddf32021e29fb0 94-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "53e741dec62e668fbf7d31c81c3269160d0cf6ae",
+  "prompts": {},
+  "sessions": {
+    "s_7f50c38fe81888": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "969032fc-5bae-4065-b467-2274fc866564",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
