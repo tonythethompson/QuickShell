@@ -80,7 +80,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             .Select(shortcut => shortcut.Directory)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var gitRepos = GitRepoIndex.Search(_lastQuery, extraRoots, savedDirectories).ToArray();
+        var gitRepos = GitRepoIndex.Search(_context.Services.ProjectAnalysis, _lastQuery, extraRoots, savedDirectories).ToArray();
         if (gitRepos.Length > 0)
         {
             var listPage = _listPage.Value;

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 using System.Reflection;
 
@@ -9,11 +11,15 @@ namespace QuickShell.Core.Tests;
 public sealed class CommandSuggestionServiceTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public CommandSuggestionServiceTests()
     {
         _root = Path.Join(Path.GetTempPath(), "quickshell-pills-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -22,7 +28,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
 
         Assert.Contains(pills, pill => pill.Command == "docker compose logs -f");
         Assert.Contains(pills, pill => pill.Command == "docker compose up");
@@ -40,9 +46,9 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        Assert.True(CommandSuggestionService.HasSuggestions(_root, [], ProjectAnalysisAccessor.Instance));
-        Assert.False(CommandSuggestionService.HasSuggestions(Path.Join(_root, "missing"), [], ProjectAnalysisAccessor.Instance));
-        Assert.False(CommandSuggestionService.HasSuggestions(null, [], ProjectAnalysisAccessor.Instance));
+        Assert.True(CommandSuggestionService.HasSuggestions(_root, [], _projectAnalysis));
+        Assert.False(CommandSuggestionService.HasSuggestions(Path.Join(_root, "missing"), [], _projectAnalysis));
+        Assert.False(CommandSuggestionService.HasSuggestions(null, [], _projectAnalysis));
     }
 
     [Fact]
@@ -51,9 +57,9 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        var full = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var full = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
         CommandSuggestionService.ClearResultCache();
-        var single = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance, maxCount: 1);
+        var single = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, maxCount: 1);
 
         Assert.NotEmpty(full);
         Assert.Single(single);
@@ -67,8 +73,8 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        var first = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
-        var second = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var first = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var second = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
 
         Assert.Equal(first.Count, second.Count);
         Assert.Equal(
@@ -103,7 +109,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
             """);
         File.WriteAllText(Path.Join(_root, "tmp_serilog_probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
 
-        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
 
         Assert.DoesNotContain(pills, pill => pill.Command.Contains("${workspaceFolder}", StringComparison.Ordinal));
         Assert.DoesNotContain(pills, pill => pill.Command.Contains("tmp_serilog_probe", StringComparison.OrdinalIgnoreCase));
@@ -114,7 +120,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     {
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
-        var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"], _projectAnalysis);
 
         Assert.DoesNotContain(pills, pill => pill.Command == "docker compose logs -f");
     }
@@ -131,7 +137,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         var json = System.Text.Json.JsonSerializer.Serialize(new { scripts });
         File.WriteAllText(Path.Join(_root, "package.json"), json);
 
-        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
 
         Assert.True(pills.Count <= CommandSuggestionService.MaxPills);
     }
@@ -147,7 +153,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
             new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
         };
 
-        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
         Assert.True(pills.Count >= 2);
 
         Assert.False(CommandSuggestionService.ApplyPill(rows, pills[0], "default"));
@@ -192,6 +198,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         CommandSuggestionService.ClearResultCache();
         try
         {
