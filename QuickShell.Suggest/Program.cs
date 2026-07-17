@@ -1,6 +1,7 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
-using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 
 if (!SuggestCommandLineArgs.TryParse(args, out var directory, out var usedCommands, out var generation))
@@ -9,7 +10,10 @@ if (!SuggestCommandLineArgs.TryParse(args, out var directory, out var usedComman
     return 1;
 }
 
-var pills = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
+using var provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+var projectAnalysis = provider.GetRequiredService<IProjectAnalysisService>();
+
+var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis);
 var payload = new
 {
     generation,

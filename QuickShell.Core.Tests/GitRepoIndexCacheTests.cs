@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 using System.Diagnostics;
 
@@ -6,9 +9,21 @@ namespace QuickShell.Core.Tests;
 [Collection(GitRepoIndexIsolation.Name)]
 public sealed class GitRepoIndexCacheTests : IDisposable
 {
-    public GitRepoIndexCacheTests() => GitRepoIndex.ResetForTests();
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
-    public void Dispose() => GitRepoIndex.ResetForTests();
+    public GitRepoIndexCacheTests()
+    {
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        GitRepoIndex.ResetForTests();
+    }
+
+    public void Dispose()
+    {
+        _provider.Dispose();
+        GitRepoIndex.ResetForTests();
+    }
 
     [Fact]
     public void GetAll_ReturnsStaleCache_WithoutBlockingOnRefresh()
@@ -39,7 +54,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
             refreshedUtc: DateTime.UtcNow.AddMinutes(-20));
 
         var stopwatch = Stopwatch.StartNew();
-        var result = GitRepoIndex.GetAll([]);
+        var result = GitRepoIndex.GetAll(_projectAnalysis, []);
         stopwatch.Stop();
 
         Assert.Single(result);
@@ -48,7 +63,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
 
         gate.Set();
         GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
-        var refreshed = GitRepoIndex.GetAll([]);
+        var refreshed = GitRepoIndex.GetAll(_projectAnalysis, []);
         Assert.Single(refreshed);
         Assert.Equal("Fresh", refreshed[0].Name);
     }
@@ -83,11 +98,11 @@ public sealed class GitRepoIndexCacheTests : IDisposable
 
         GitRepoIndex.Invalidate();
 
-        Assert.Empty(GitRepoIndex.GetAll([]));
+        Assert.Empty(GitRepoIndex.GetAll(_projectAnalysis, []));
 
         gate.Set();
         GitRepoIndex.WaitForPopulationForTests(string.Empty, TimeSpan.FromSeconds(5));
-        var refreshed = GitRepoIndex.GetAll([]);
+        var refreshed = GitRepoIndex.GetAll(_projectAnalysis, []);
         Assert.Single(refreshed);
         Assert.Equal("AfterInvalidate", refreshed[0].Name);
     }
@@ -112,7 +127,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
 
         GitRepoIndex.Invalidate();
         GitRepoIndex.RunAfterNextRefresh(() => invoked = true);
-        _ = GitRepoIndex.GetAll([]);
+        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
 
         gate.Set();
         Assert.True(
@@ -131,7 +146,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
 
         GitRepoIndex.Invalidate();
         GitRepoIndex.RunAfterNextRefresh(() => invoked = true);
-        _ = GitRepoIndex.GetAll([]);
+        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
 
         Assert.True(
             SpinWait.SpinUntil(() => invoked, TimeSpan.FromSeconds(5)),
@@ -155,7 +170,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
             rootKey: @"C:\other-root",
             refreshedUtc: DateTime.UtcNow);
 
-        Assert.Empty(GitRepoIndex.GetAll([@"C:\different-root"]));
+        Assert.Empty(GitRepoIndex.GetAll(_projectAnalysis, [@"C:\different-root"]));
     }
 
     [Fact]
@@ -169,14 +184,14 @@ public sealed class GitRepoIndexCacheTests : IDisposable
         };
 
         GitRepoIndex.Invalidate();
-        _ = GitRepoIndex.GetAll([]);
+        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
         GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
         Assert.Equal(1, Volatile.Read(ref refreshCount));
 
-        _ = GitRepoIndex.GetAll([]);
+        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
         GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(1));
         Assert.Equal(1, Volatile.Read(ref refreshCount));
-        Assert.Empty(GitRepoIndex.GetAll([]));
+        Assert.Empty(GitRepoIndex.GetAll(_projectAnalysis, []));
     }
 
     [Fact]
@@ -196,7 +211,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
             ];
         };
 
-        var exception = Record.Exception(() => GitRepoIndex.Prewarm([]));
+        var exception = Record.Exception(() => GitRepoIndex.Prewarm(_projectAnalysis, []));
         Assert.Null(exception);
         Assert.True(completed.Wait(TimeSpan.FromSeconds(5)));
     }

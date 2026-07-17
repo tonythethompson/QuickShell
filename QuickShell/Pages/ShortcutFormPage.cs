@@ -593,7 +593,7 @@ internal sealed partial class ShortcutForm : FormContent
         var pills = CommandSuggestionService.GetPills(
             _draft.Directory,
             _draft.Commands.Select(command => command.Command),
-            ProjectAnalysisAccessor.Instance);
+            _services.ProjectAnalysis);
 
         var pill = CommandSuggestionService.TryFindPill(pills, pillCommand, pillTaskType);
         if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
@@ -1168,7 +1168,7 @@ internal sealed partial class ShortcutForm : FormContent
                 SuggestionScanning = scanSuggestions,
                 SaveError = _saveError,
             },
-            ProjectAnalysisAccessor.Instance,
+            _services.ProjectAnalysis,
             draft.Commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin)).ToList());
     }
 
@@ -1192,7 +1192,7 @@ internal sealed partial class ShortcutForm : FormContent
         {
             try
             {
-                _ = CommandSuggestionService.GetPills(directory, usedCommands, ProjectAnalysisAccessor.Instance);
+                _ = CommandSuggestionService.GetPills(directory, usedCommands, _services.ProjectAnalysis);
             }
             catch
             {

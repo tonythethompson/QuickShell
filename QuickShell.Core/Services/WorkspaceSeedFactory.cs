@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Models;
 
@@ -5,18 +6,21 @@ namespace QuickShell.Services;
 
 internal static class WorkspaceSeedFactory
 {
-    public static TerminalShortcut FromGitRepo(GitRepoCandidate candidate) =>
+    public static TerminalShortcut FromGitRepo(GitRepoCandidate candidate, IProjectAnalysisService projectAnalysis) =>
         ApplyDirectoryHints(new TerminalShortcut
         {
             Name = candidate.Name,
             Directory = candidate.Directory,
             RepoUrl = candidate.RemoteUrl,
         }, candidate.Classification.Stacks == ProjectStack.None
-            ? ProjectAnalysisAccessor.Instance.Classify(candidate.Directory)
-            : candidate.Classification);
+            ? projectAnalysis.Classify(candidate.Directory)
+            : candidate.Classification,
+        projectAnalysis);
 
-    public static TerminalShortcut FromGitRepoDirectory(string directory)
+    public static TerminalShortcut FromGitRepoDirectory(string directory, IProjectAnalysisService projectAnalysis)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var trimmed = directory.Trim().TrimEnd('\\', '/');
         var name = Path.GetFileName(trimmed);
         if (string.IsNullOrWhiteSpace(name))
@@ -29,15 +33,17 @@ internal static class WorkspaceSeedFactory
             Directory = trimmed,
             Name = name,
             RemoteUrl = GitRepoDiscovery.TryGetRemoteUrl(trimmed),
-            Classification = ProjectAnalysisAccessor.Instance.Classify(trimmed),
-        });
+            Classification = projectAnalysis.Classify(trimmed),
+        }, projectAnalysis);
     }
 
-    public static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed) =>
-        ApplyDirectoryHints(seed, ProjectAnalysisAccessor.Instance.Classify(seed.Directory));
+    public static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed, IProjectAnalysisService projectAnalysis) =>
+        ApplyDirectoryHints(seed, projectAnalysis.Classify(seed.Directory), projectAnalysis);
 
-    private static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed, ProjectClassification classification)
+    private static TerminalShortcut ApplyDirectoryHints(TerminalShortcut seed, ProjectClassification classification, IProjectAnalysisService projectAnalysis)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         if (string.IsNullOrWhiteSpace(seed.Directory))
         {
             return seed;
@@ -50,15 +56,15 @@ internal static class WorkspaceSeedFactory
 
         if (string.IsNullOrWhiteSpace(seed.DevServerUrl))
         {
-            seed.DevServerUrl = ProjectAnalysisAccessor.Instance.TryDetectDevServerUrl(seed.Directory);
+            seed.DevServerUrl = projectAnalysis.TryDetectDevServerUrl(seed.Directory);
         }
 
-        ApplyCompanionHints(seed);
+        ApplyCompanionHints(seed, projectAnalysis);
 
         if (!HasNonemptyLaunchCommand(seed))
         {
-            WorkspaceSetupSuggestion.ApplyToShortcut(seed, classification);
-            ApplyInferredTaskTypes(seed);
+            WorkspaceSetupSuggestion.ApplyToShortcut(seed, classification, projectAnalysis);
+            ApplyInferredTaskTypes(seed, projectAnalysis);
         }
 
         return seed;
@@ -68,10 +74,10 @@ internal static class WorkspaceSeedFactory
         seed.Launches.Any(launch => !string.IsNullOrWhiteSpace(launch.Command))
         || !string.IsNullOrWhiteSpace(seed.Command);
 
-    private static void ApplyInferredTaskTypes(TerminalShortcut seed)
+    private static void ApplyInferredTaskTypes(TerminalShortcut seed, IProjectAnalysisService projectAnalysis)
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(seed);
-        var inferred = ProjectAnalysisAccessor.Instance.TryInferTaskType(seed.Directory);
+        var inferred = projectAnalysis.TryInferTaskType(seed.Directory);
         if (inferred is null)
         {
             return;
@@ -86,14 +92,14 @@ internal static class WorkspaceSeedFactory
         }
     }
 
-    private static void ApplyCompanionHints(TerminalShortcut seed)
+    private static void ApplyCompanionHints(TerminalShortcut seed, IProjectAnalysisService projectAnalysis)
     {
         if (!string.IsNullOrWhiteSpace(seed.CompanionAppPath))
         {
             return;
         }
 
-        var suggestion = ProjectAnalysisAccessor.Instance.TrySuggestCompanionApp(seed.Directory);
+        var suggestion = projectAnalysis.TrySuggestCompanionApp(seed.Directory);
         if (suggestion is null)
         {
             return;

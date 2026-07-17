@@ -10,38 +10,43 @@ internal static class WorkspaceSetupSuggestion
 
     public static IReadOnlyList<WorkspaceSetupTask> Build(
         string directory,
-        IProjectAnalysisService? projectAnalysis = null) =>
-        Build(directory, (projectAnalysis ?? ProjectAnalysisAccessor.Instance).Classify(directory), projectAnalysis);
+        IProjectAnalysisService projectAnalysis) =>
+        Build(directory, projectAnalysis.Classify(directory), projectAnalysis);
 
     public static IReadOnlyList<WorkspaceSetupTask> Build(
         string directory,
         ProjectClassification classification,
-        IProjectAnalysisService? projectAnalysis = null)
+        IProjectAnalysisService projectAnalysis)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         if (string.IsNullOrWhiteSpace(directory) || classification.Stacks == ProjectStack.None)
         {
             return [];
         }
 
-        var builder = new Builder(directory, classification, projectAnalysis ?? ProjectAnalysisAccessor.Instance);
+        var builder = new Builder(directory, classification, projectAnalysis);
         builder.AddSuggestions();
         return builder.Tasks;
     }
 
-    public static string? TryGetPrimaryCommand(string directory)
+    public static string? TryGetPrimaryCommand(string directory, IProjectAnalysisService projectAnalysis)
     {
-        var suggestions = Build(directory);
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+        var suggestions = Build(directory, projectAnalysis);
         return suggestions.Count == 0 ? null : suggestions[0].Command;
     }
 
-    public static void ApplyToShortcut(TerminalShortcut shortcut, ProjectClassification classification)
+    public static void ApplyToShortcut(TerminalShortcut shortcut, ProjectClassification classification, IProjectAnalysisService projectAnalysis)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         if (HasNonemptyLaunchCommand(shortcut))
         {
             return;
         }
 
-        var suggestions = Build(shortcut.Directory, classification);
+        var suggestions = Build(shortcut.Directory, classification, projectAnalysis);
         if (suggestions.Count == 0)
         {
             return;

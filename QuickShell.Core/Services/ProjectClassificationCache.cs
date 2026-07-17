@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -13,8 +14,10 @@ internal static class ProjectClassificationCache
     private static readonly Queue<string> InsertionOrder = new();
     private static readonly object EvictionLock = new();
 
-    public static ProjectClassification Classify(string? directory)
+    public static ProjectClassification Classify(string? directory, IProjectAnalysisService projectAnalysis)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
             return ProjectClassification.Empty;
@@ -30,7 +33,7 @@ internal static class ProjectClassificationCache
             return cached.Classification;
         }
 
-        var classification = ProjectAnalysisAccessor.Instance.Classify(normalized);
+        var classification = projectAnalysis.Classify(normalized);
         Entries[normalized] = new CacheEntry(signature, classification);
         TrackInsertion(normalized);
         return classification;

@@ -165,7 +165,7 @@ internal static class CommandSuggestionService
         TaskTypePickContext pickContext,
         IProjectAnalysisService projectAnalysis)
     {
-        var classification = ProjectClassificationCache.Classify(directory);
+        var classification = ProjectClassificationCache.Classify(directory, projectAnalysis);
         if (classification.Stacks == ProjectStack.None)
         {
             return false;
@@ -218,7 +218,7 @@ internal static class CommandSuggestionService
             Consider(merged, agentPill);
         }
 
-        var classification = ProjectClassificationCache.Classify(directory);
+        var classification = ProjectClassificationCache.Classify(directory, projectAnalysis);
         if (classification.Stacks != ProjectStack.None)
         {
             var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);

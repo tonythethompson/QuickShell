@@ -186,7 +186,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
         {
             var shortcuts = _services.Shortcuts.GetShortcuts();
             var extraRoots = GitRepoSearchRoots.FromShortcuts(shortcuts);
-            var discovered = GitRepoIndex.GetAll(extraRoots).ToList();
+            var discovered = GitRepoIndex.GetAll(_services.ProjectAnalysis, extraRoots).ToList();
             if (discovered.Count == 0
                 && GitRepoIndex.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
             {

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -15,6 +17,8 @@ public sealed class AgentCliSuggestionTests : IDisposable
 {
     private readonly string _root;
     private readonly Func<string, bool>? _previousOverride;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public AgentCliSuggestionTests()
     {
@@ -22,6 +26,8 @@ public sealed class AgentCliSuggestionTests : IDisposable
         Directory.CreateDirectory(_root);
         _previousOverride = AgentCliCatalog.IsCommandOnPathOverride;
         AgentCliCatalog.IsCommandOnPathOverride = _ => false;
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -169,7 +175,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "CLAUDE.md"), "# Claude");
 
-        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
 
         Assert.Contains(pills, pill => pill.Command == "claude" && pill.TaskType == TaskTypeCatalog.Agent);
     }
@@ -181,7 +187,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
         AgentCliCatalog.IsCommandOnPathOverride = name =>
             name.Equals("claude", StringComparison.OrdinalIgnoreCase);
 
-        var pills = CommandSuggestionService.GetPills(_root, [], ProjectAnalysisAccessor.Instance);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
 
         Assert.Contains(pills, pill => pill.Command == "claude");
         Assert.Contains(pills, pill => pill.Command == "docker compose up");
@@ -191,6 +197,7 @@ public sealed class AgentCliSuggestionTests : IDisposable
 
     public void Dispose()
     {
+        _provider.Dispose();
         AgentCliCatalog.IsCommandOnPathOverride = _previousOverride;
         try
         {
