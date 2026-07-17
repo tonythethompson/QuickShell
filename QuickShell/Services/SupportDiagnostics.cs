@@ -91,7 +91,12 @@ internal static class SupportDiagnostics
                 File.AppendAllText(path, line, Encoding.UTF8);
             }
         }
-        catch
+        catch (Exception ex) when (
+            ex is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.Security.SecurityException
+            or JsonException)
         {
             // Support diagnostics must never interfere with the extension host.
         }
