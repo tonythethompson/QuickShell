@@ -1502,16 +1502,26 @@ internal sealed partial class ShortcutForm : FormContent
         for (var i = 0; i < count; i++)
         {
             var prior = i < existing.Count ? existing[i] : new LaunchRowDraft();
+            var mergedCommand = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command;
+
+            // Backspacing a row's command back to blank in the text field is "make this row
+            // available again", not "mark it intentionally folder-only" -- that's what the
+            // Open to Directory pill is for. Without this, a row that had real content and got
+            // manually cleared kept IsEditorPlaceholder=false from its prior non-blank state,
+            // so ApplyPill's FindFirstEmptyCommandIndex would skip it forever (indistinguishable
+            // from a deliberately-blank row) until the dedicated Clear button was used instead.
+            var becameBlankViaEdit = !string.IsNullOrWhiteSpace(prior.Command) && string.IsNullOrWhiteSpace(mergedCommand);
+
             merged.Add(new LaunchRowDraft
             {
                 Id = prior.Id,
-                Command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command,
+                Command = mergedCommand,
                 TaskType = TaskTypeCatalog.Normalize(data[$"LaunchType_{i}"]?.ToString() ?? prior.TaskType),
                 LaunchTarget = data[$"LaunchTarget_{i}"]?.ToString()
                     ?? prior.LaunchTarget
                     ?? fallbackLaunchTarget,
                 RunAsAdmin = ParseToggleBool(data[$"LaunchRunAsAdmin_{i}"]?.ToString(), prior.RunAsAdmin),
-                IsEditorPlaceholder = prior.IsEditorPlaceholder,
+                IsEditorPlaceholder = becameBlankViaEdit || prior.IsEditorPlaceholder,
             });
         }
 
@@ -1632,7 +1642,12 @@ internal sealed partial class ShortcutForm : FormContent
             _ = int.TryParse(node["pillIndex"]?.ToString(), out pillIndex);
         }
 
-        return !string.IsNullOrWhiteSpace(pillCommand) || pillIndex >= 0;
+        // action already matched "addSuggestedCommand" above -- that's sufficient signal on
+        // its own. pillCommand is legitimately blank for the Open to Directory pill, and the
+        // pill template never sends pillIndex at all, so requiring either non-blank pillCommand
+        // or pillIndex >= 0 here made Open to Directory unrecognized and fall through to
+        // default (save) handling.
+        return true;
     }
 
     private static bool IsClearLaunchAction(string inputs, string? data, out int index)

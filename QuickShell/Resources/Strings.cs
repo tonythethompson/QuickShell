@@ -28,6 +28,7 @@ internal static class Strings
     public static string Menu_OpenCompanionAppFormat(object arg0) => string.Format(CultureInfo.CurrentCulture, Get(nameof(Menu_OpenCompanionAppFormat)), arg0);
     public static string Section_Favorites => Get(nameof(Section_Favorites));
     public static string Section_Workspaces => Get(nameof(Section_Workspaces));
+    public static string Section_NeedsAttention => Get(nameof(Section_NeedsAttention));
     public static string Tooltip_Favorite => Get(nameof(Tooltip_Favorite));
     public static string Tooltip_AlwaysRunAsAdmin => Get(nameof(Tooltip_AlwaysRunAsAdmin));
     public static string Section_NotSavedYet => Get(nameof(Section_NotSavedYet));
