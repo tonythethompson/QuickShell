@@ -1,7 +1,21 @@
+QuickShell.Run/Services/FolderPickerService.cs
+  s_15a9af5697c977::t_10690ef538b2c6 1,14-19,21-24,27-32,37-45,51-60,62-66,72-98
+QuickShell/Services/FolderPickerService.cs
+  s_15a9af5697c977::t_78f4eb4a54b1b6 27-32,61-71,73-77,83-115
 ---
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.6.14",
   "base_commit_sha": "673bbbadf9bc9aa63dd28441a23b509f26a7ce17",
-  "prompts": {}
+  "prompts": {},
+  "sessions": {
+    "s_15a9af5697c977": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_091335512ffeS7YvSswG7kFHhd",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
 }
