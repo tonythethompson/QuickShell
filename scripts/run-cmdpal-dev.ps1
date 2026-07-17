@@ -41,7 +41,8 @@ param(
     [switch]$DeployOnly,
     [switch]$UseDevCmdPal,
     [switch]$SkipElevation,
-    [switch]$RecreateCertificate
+    [switch]$RecreateCertificate,
+    [switch]$RegenerateAssets
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +60,7 @@ try {
             RecreateCertificate = $RecreateCertificate
             NoRestartCmdPal     = $DeployOnly
             UseDevCmdPal         = $UseDevCmdPal
+            RegenerateAssets    = $RegenerateAssets
         }
         if ($UseLocalSdk) {
             $deployArgs.UseLocalCmdPalSdk = $true

@@ -564,16 +564,43 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         IReadOnlyList<TerminalShortcut> allShortcuts,
         IReadOnlyList<TerminalShortcut> pinnedInOrder)
     {
+        // Unfiltered -- BuildShortcutItem uses this for pin-move-visibility context regardless
+        // of which section a shortcut ends up rendered in.
         var pinnedList = pinnedInOrder.ToList();
-        var recents = ShortcutRecents.GetRecentWorkspaces(allShortcuts, _settings.RecentWorkspaceCount);
-        var recentIds = recents.Count == 0
+
+        // WouldNeedRepair already runs once per row for the context-menu build (see
+        // ShortcutContextCommands.Build), so reusing it here for sorting adds no new per-row
+        // cost class -- unlike WorkspaceStatusPage's git-status lookups, this is a local check.
+        var needsAttention = allShortcuts
+            .Where(shortcut => ShortcutHealth.WouldNeedRepair(shortcut))
+            .OrderBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var needsAttentionIds = needsAttention.Count == 0
             ? null
+            : needsAttention.Select(shortcut => shortcut.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var visiblePinned = needsAttentionIds is null
+            ? pinnedList
+            : pinnedList.Where(shortcut => !needsAttentionIds.Contains(shortcut.Id)).ToList();
+
+        var recents = ShortcutRecents.GetRecentWorkspaces(allShortcuts, _settings.RecentWorkspaceCount);
+        if (needsAttentionIds is not null)
+        {
+            recents = recents.Where(shortcut => !needsAttentionIds.Contains(shortcut.Id)).ToList();
+        }
+
+        var excludeFromWorkspaces = recents.Count == 0
+            ? needsAttentionIds
             : recents.Select(shortcut => shortcut.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (needsAttentionIds is not null && excludeFromWorkspaces is not null && excludeFromWorkspaces != needsAttentionIds)
+        {
+            excludeFromWorkspaces.UnionWith(needsAttentionIds);
+        }
 
         foreach (var item in ShortcutLayoutDisplay.BuildFavoriteItems(
                      layout,
                      shortcut => BuildShortcutItem(shortcut, pinnedList),
-                     pinnedList))
+                     visiblePinned))
         {
             yield return item;
         }
@@ -591,10 +618,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         foreach (var item in ShortcutLayoutDisplay.BuildWorkspaceItems(
                      layout,
                      shortcut => BuildShortcutItem(shortcut, pinnedList),
-                     recentIds,
-                     showDefaultWorkspacesHeader: pinnedList.Count > 0))
+                     excludeFromWorkspaces,
+                     showDefaultWorkspacesHeader: visiblePinned.Count > 0))
         {
             yield return item;
+        }
+
+        if (needsAttention.Count > 0)
+        {
+            foreach (var item in SectionListItems.InSection(
+                         Strings.Section_NeedsAttention,
+                         needsAttention.Select(shortcut => BuildShortcutItem(shortcut, pinnedList))))
+            {
+                yield return item;
+            }
         }
     }
 }

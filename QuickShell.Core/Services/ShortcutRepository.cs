@@ -1293,9 +1293,35 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             "shortcuts.json");
     }
 
+    /// <summary>Matches the async loader's retry budget for transient sharing violations.</summary>
+    private const int LoadRetryAttempts = 3;
+    private static readonly TimeSpan LoadRetryDelay = TimeSpan.FromMilliseconds(50);
+
     private static bool TryLoadLayoutFromFile(string path, out List<ShortcutLayoutEntry> layout)
     {
+        for (var attempt = 1; attempt <= LoadRetryAttempts; attempt++)
+        {
+            if (TryLoadLayoutFromFileOnce(path, out layout, out var transient))
+            {
+                return true;
+            }
+
+            if (!transient || attempt == LoadRetryAttempts)
+            {
+                return false;
+            }
+
+            Thread.Sleep(LoadRetryDelay);
+        }
+
         layout = [];
+        return false;
+    }
+
+    private static bool TryLoadLayoutFromFileOnce(string path, out List<ShortcutLayoutEntry> layout, out bool transient)
+    {
+        layout = [];
+        transient = false;
 
         try
         {
@@ -1305,7 +1331,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 return false;
             }
 
-            using var stream = File.OpenRead(path);
+            // FileShare.ReadWrite matches TryLoadLayoutFromFileAsync below: a fresh process's
+            // first read can race a just-completed File.Replace from the previous process (or
+            // an AV/indexer scan touching the file), and FileShare.Read-only would throw a
+            // sharing violation exactly then — right after every redeploy, on the one read that
+            // matters most. That failure fell straight through to an empty in-memory layout with
+            // no retry, which then got persisted as soon as the user made any edit, silently
+            // discarding real data still sitting untouched on disk.
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             if (!ShortcutLayoutJson.TryParse(stream, out layout))
             {
                 return false;
@@ -1319,6 +1352,12 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
             layout = NormalizeLayout(layout);
             return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            layout = [];
+            transient = true;
+            return false;
         }
         catch
         {
