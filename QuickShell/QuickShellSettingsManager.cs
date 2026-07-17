@@ -33,7 +33,7 @@ internal sealed class QuickShellSettingsManager
     {
         _onReload = onReload;
         // #region agent log
-        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
         // #endregion
 
         _settingsStore = new QuickShellJsonSettingsStore();
@@ -81,7 +81,7 @@ internal sealed class QuickShellSettingsManager
         _settingsStore.LoadSettings();
 
         // #region agent log
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
             "after LoadSettings",
             new { settingsPath = _settingsStore.FilePath, exists = File.Exists(_settingsStore.FilePath) },
@@ -107,7 +107,7 @@ internal sealed class QuickShellSettingsManager
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}","{{MultiLaunchPresentationSettingId}}":"{{initialMultiLaunchPresentation}}"}""");
 
         // #region agent log
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
             "before SyncDefaultProfileChoices",
             new { initialApp, initialProfile },
@@ -115,7 +115,7 @@ internal sealed class QuickShellSettingsManager
         // #endregion
         SyncDefaultProfileChoices();
         // #region agent log
-        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
         // #endregion
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
@@ -124,7 +124,7 @@ internal sealed class QuickShellSettingsManager
         }
 
         // #region agent log
-        AgentDebugLog.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
         // #endregion
     }
 

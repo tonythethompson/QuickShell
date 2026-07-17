@@ -17,18 +17,18 @@ public class Program
         {
             if (eventArgs.ExceptionObject is Exception ex)
             {
-                AgentDebugLog.WriteException("Program.cs:UnhandledException", ex, hypothesisId: "E");
+                SupportDiagnostics.WriteException("Program.cs:UnhandledException", ex, hypothesisId: "E");
             }
             else
             {
-                AgentDebugLog.Write(
+                SupportDiagnostics.Write(
                     "Program.cs:UnhandledException",
                     "non-exception unhandled",
                     new { value = eventArgs.ExceptionObject?.ToString() },
                     hypothesisId: "E");
             }
         };
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "Program.cs:Main",
             "entry",
             new { argCount = args.Length, firstArg = args.Length > 0 ? args[0] : null },
@@ -47,7 +47,7 @@ public class Program
     private static void RunComServer()
     {
         // #region agent log
-        AgentDebugLog.Write("Program.cs:RunComServer", "start", hypothesisId: "E");
+        SupportDiagnostics.Write("Program.cs:RunComServer", "start", hypothesisId: "E");
         // #endregion
 
         global::Shmuelie.WinRTServer.ComServer server = new();
@@ -57,17 +57,17 @@ public class Program
         try
         {
             // #region agent log
-            AgentDebugLog.Write("Program.cs:RunComServer", "creating extension", hypothesisId: "E");
+            SupportDiagnostics.Write("Program.cs:RunComServer", "creating extension", hypothesisId: "E");
             // #endregion
             extensionInstance = new QuickShellExtension(extensionDisposedEvent);
             // #region agent log
-            AgentDebugLog.Write("Program.cs:RunComServer", "extension created", hypothesisId: "E");
+            SupportDiagnostics.Write("Program.cs:RunComServer", "extension created", hypothesisId: "E");
             // #endregion
         }
         catch (Exception ex)
         {
             // #region agent log
-            AgentDebugLog.WriteException("Program.cs:RunComServer", ex, hypothesisId: "E");
+            SupportDiagnostics.WriteException("Program.cs:RunComServer", ex, hypothesisId: "E");
             // #endregion
             throw;
         }
@@ -76,7 +76,7 @@ public class Program
         server.Start();
 
         // #region agent log
-        AgentDebugLog.Write("Program.cs:RunComServer", "com server started", hypothesisId: "E");
+        SupportDiagnostics.Write("Program.cs:RunComServer", "com server started", hypothesisId: "E");
         // #endregion
 
         try
@@ -85,7 +85,7 @@ public class Program
             {
                 e.Cancel = true;
                 // #region agent log
-                AgentDebugLog.Write(
+                SupportDiagnostics.Write(
                     "Program.cs:CancelKeyPress",
                     "signal-exit",
                     runId: "post-fix",
@@ -97,7 +97,7 @@ public class Program
         catch (Exception ex)
         {
             // #region agent log
-            AgentDebugLog.WriteException("Program.cs:CancelKeyPress", ex, hypothesisId: "S", runId: "post-fix");
+            SupportDiagnostics.WriteException("Program.cs:CancelKeyPress", ex, hypothesisId: "S", runId: "post-fix");
             // #endregion
         }
 
