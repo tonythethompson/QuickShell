@@ -186,9 +186,19 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             results.AddRange(GetManageResults(filter));
         }
 
-        var shortcuts = string.IsNullOrWhiteSpace(filter)
-            ? Shortcuts.GetShortcuts()
-            : MergeSearchResults(filter);
+        IEnumerable<TerminalShortcut> shortcuts;
+        try
+        {
+            shortcuts = string.IsNullOrWhiteSpace(filter)
+                ? Shortcuts.GetShortcuts()
+                : MergeSearchResults(filter);
+        }
+        catch (TimeoutException)
+        {
+            // The shortcut store lock was stuck; degrade to no matches rather than
+            // surfacing a host error on a PowerToys Run keystroke.
+            shortcuts = [];
+        }
 
         results.AddRange(shortcuts
             .Select(shortcut => CreateShortcutResult(shortcut, filter, directActivationBrowse)));

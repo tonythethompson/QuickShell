@@ -1436,8 +1436,30 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private void SchedulePersistLocked()
     {
         _persistPending = true;
-        _persistTimer ??= new System.Threading.Timer(_ => WithLock(FlushPendingPersistLocked), null, Timeout.Infinite, Timeout.Infinite);
+        _persistTimer ??= new System.Threading.Timer(_ => RunScheduledPersist(), null, Timeout.Infinite, Timeout.Infinite);
         _persistTimer.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+    }
+
+    private void RunScheduledPersist()
+    {
+        try
+        {
+            WithLock(FlushPendingPersistLocked);
+        }
+        catch (TimeoutException)
+        {
+            // The lock was held by someone else when this fired; _persistPending is still
+            // true (FlushPendingPersistLocked never ran), so reschedule instead of silently
+            // dropping the deferred write.
+            try
+            {
+                _persistTimer?.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposed between the throw and here; Dispose()'s own flush covers this.
+            }
+        }
     }
 
     private void CancelPendingPersist()
@@ -2166,7 +2188,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     private async Task WithLockAsync(Func<Task> action, CancellationToken cancellationToken)
     {
-        await _sync.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Bound independently of the caller's token: a CancellationToken.None (or long-lived
+        // lifetime token) would otherwise still wait forever if a holder never releases.
+        if (!await _sync.WaitAsync(LockTimeout, cancellationToken).ConfigureAwait(false))
+        {
+            RepositoryDiagnostics.Report($"ShortcutRepository.{nameof(WithLockAsync)}", "lock-timeout", (long)LockTimeout.TotalMilliseconds);
+            throw new TimeoutException("Timed out waiting for the shortcut store lock.");
+        }
+
         var startTimestamp = Stopwatch.GetTimestamp();
         try
         {

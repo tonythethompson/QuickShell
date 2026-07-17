@@ -324,11 +324,24 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         _writeGeneration++;
         _cached = null;
         _cacheLoaded = false;
-        DrainFileIoQueueLocked();
-        DeleteDraftFileSync();
+
+        if (DrainFileIoQueueLocked())
+        {
+            DeleteDraftFileSync();
+        }
+
+        // Else: the in-flight write is stuck past the drain timeout. Its generation no
+        // longer matches _writeGeneration (bumped above), so PersistDraftAsync's own
+        // post-write check deletes the draft file once that write finally completes —
+        // deleting here now would race a write that hasn't happened yet.
     }
 
-    private void DrainFileIoQueueLocked()
+    /// <returns>
+    /// True if the queue was observed idle (drained, or nothing pending). False if it
+    /// timed out with a write still in flight — callers must not assume the file on disk
+    /// reflects a quiesced queue.
+    /// </returns>
+    private bool DrainFileIoQueueLocked()
     {
         var queue = _fileIoQueue;
         try
@@ -337,14 +350,16 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             if (!ReferenceEquals(completed, queue))
             {
                 RepositoryDiagnostics.Report("ShortcutDraftStore.DrainFileIoQueueLocked", "drain-timeout", (long)DrainTimeout.TotalMilliseconds);
-                return;
+                return false;
             }
 
             queue.GetAwaiter().GetResult();
+            return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Best effort.
+            return true;
         }
     }
 
