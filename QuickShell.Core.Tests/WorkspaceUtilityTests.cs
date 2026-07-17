@@ -644,7 +644,7 @@ public sealed class CompanionAppTests : IDisposable
     [Fact]
     public void TrySuggestFromDirectory_PrefersTraeWhenTraeMarkerExists()
     {
-        Directory.CreateDirectory(Path.Combine(_root, ".trae"));
+        Directory.CreateDirectory(Path.Join(_root, ".trae"));
         CompanionAppCatalog.TryResolveExecutableOverride = preset =>
             string.Equals(preset, CompanionAppCatalog.PresetTrae, StringComparison.OrdinalIgnoreCase)
                 ? @"C:\fake\Trae.exe"
