@@ -91,11 +91,22 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
     {
         try
         {
-            return Process.GetProcesses()
-                .Select(process => process.ProcessName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var processes = Process.GetProcesses();
+            try
+            {
+                return processes
+                    .Select(process => process.ProcessName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
         }
         catch (InvalidOperationException)
         {

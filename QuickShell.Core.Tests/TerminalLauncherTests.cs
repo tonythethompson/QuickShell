@@ -11,7 +11,7 @@ namespace QuickShell.Core.Tests;
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class TerminalLauncherOverrideIsolation
 {
-    public const string Name = "TerminalLauncher.StartProcessOverride";
+    public const string Name = "WtProfilesService.TestLocationsOverride";
 }
 
 /// <summary>
