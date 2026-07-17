@@ -423,6 +423,39 @@
   <data name="ShortcutTransfer_ResetButton_Tooltip" xml:space="preserve">
     <value>Delete every workspace you have saved. Use Undo (Ctrl+Z) to restore.</value>
   </data>
+  <data name="Diagnostics_SectionHeader" xml:space="preserve">
+    <value>Diagnostics &amp; Support</value>
+  </data>
+  <data name="Diagnostics_CopyLaunch_Title" xml:space="preserve">
+    <value>Copy launch diagnostics</value>
+  </data>
+  <data name="Diagnostics_CopyLaunch_Tooltip" xml:space="preserve">
+    <value>Copy the detailed last workspace launch report for troubleshooting.</value>
+  </data>
+  <data name="Diagnostics_CopySupportBundle_Title" xml:space="preserve">
+    <value>Copy support bundle</value>
+  </data>
+  <data name="Diagnostics_CopySupportBundle_Tooltip" xml:space="preserve">
+    <value>Copy a redacted support bundle with app details and diagnostic counts.</value>
+  </data>
+  <data name="Diagnostics_OpenLogFolder_Title" xml:space="preserve">
+    <value>Open support log folder</value>
+  </data>
+  <data name="Diagnostics_OpenLogFolder_Tooltip" xml:space="preserve">
+    <value>Open the local redacted support logs.</value>
+  </data>
+  <data name="Diagnostics_SupportBundleCopied" xml:space="preserve">
+    <value>Redacted support bundle copied to clipboard.</value>
+  </data>
+  <data name="Diagnostics_CopySupportBundleFailed" xml:space="preserve">
+    <value>Failed to copy support bundle to clipboard.</value>
+  </data>
+  <data name="Diagnostics_LogFolderOpened" xml:space="preserve">
+    <value>Support log folder opened.</value>
+  </data>
+  <data name="Diagnostics_LogFolderOpenFailed" xml:space="preserve">
+    <value>Unable to open the support log folder.</value>
+  </data>
   <data name="ImportConflict_Summary_WarningFormat" xml:space="preserve">
     <value>Import paused: {0} duplicate {1} in {2} ({3} {4}). Choose how to finish.</value>
   </data>

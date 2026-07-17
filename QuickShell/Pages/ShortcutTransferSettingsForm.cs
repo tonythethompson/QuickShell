@@ -18,6 +18,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         "importWorkspaces",
         "resetWorkspaces",
         "copyLaunchDiagnostics",
+        "copySupportBundle",
+        "openSupportLogs",
         "merge",
         "replace",
         "cancel",
@@ -69,6 +71,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             "importWorkspaces" => RunWorkspaceImport(),
             "resetWorkspaces" => ConfirmResetWorkspaces(),
             "copyLaunchDiagnostics" => CopyLaunchDiagnostics(),
+            "copySupportBundle" => CopySupportBundle(),
+            "openSupportLogs" => OpenSupportLogs(),
             "merge" => ResolveImportConflict(merge: true),
             "replace" => ResolveImportConflict(merge: false),
             "cancel" => CancelImportConflict(),
@@ -182,8 +186,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             bodyParts.Add(SettingsCardJson.TransferActionsBlock(
                 BuildLaunchDiagnosticsActionSet(),
                 topSpacing: "Medium",
-                header: "Launch diagnostics",
-                tooltip: "Copy the last workspace launch report for troubleshooting terminal, command, URL, profile, or health-check issues."));
+                header: Strings.Diagnostics_SectionHeader,
+                tooltip: Strings.Diagnostics_CopyLaunch_Tooltip));
         }
 
         var conflictBlock = BuildImportConflictBlock();
@@ -247,17 +251,31 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             }
             """);
 
-    private static string BuildLaunchDiagnosticsActionSet() => """
+    private static string BuildLaunchDiagnosticsActionSet() => $$"""
         {
           "type": "ActionSet",
           "spacing": "None",
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "Copy launch diagnostics",
-              "tooltip": "Copy the last workspace launch report for troubleshooting terminal, command, URL, profile, or health-check issues.",
+              "title": "{{Escape(Strings.Diagnostics_CopyLaunch_Title)}}",
+              "tooltip": "{{Escape(Strings.Diagnostics_CopyLaunch_Tooltip)}}",
               "associatedInputs": "none",
               "data": { "action": "copyLaunchDiagnostics" }
+            },
+            {
+              "type": "Action.Submit",
+              "title": "{{Escape(Strings.Diagnostics_CopySupportBundle_Title)}}",
+              "tooltip": "{{Escape(Strings.Diagnostics_CopySupportBundle_Tooltip)}}",
+              "associatedInputs": "none",
+              "data": { "action": "copySupportBundle" }
+            },
+            {
+              "type": "Action.Submit",
+              "title": "{{Escape(Strings.Diagnostics_OpenLogFolder_Title)}}",
+              "tooltip": "{{Escape(Strings.Diagnostics_OpenLogFolder_Tooltip)}}",
+              "associatedInputs": "none",
+              "data": { "action": "openSupportLogs" }
             }
           ]
         }
@@ -267,6 +285,19 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
     {
         LaunchDiagnosticsState.TryCopyLastReport(out var message);
         return QuickShellNavigation.StayOnSettings(message);
+    }
+
+    private static CommandResult CopySupportBundle()
+    {
+        SupportDiagnostics.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var message);
+        return QuickShellNavigation.StayOnSettings(message);
+    }
+
+    private static CommandResult OpenSupportLogs()
+    {
+        return SupportDiagnostics.TryOpenLogFolder(out var error)
+            ? QuickShellNavigation.StayOnSettings(Strings.Diagnostics_LogFolderOpened)
+            : QuickShellNavigation.StayOnSettings(error);
     }
 
     private static string BuildImportConflictBlock()

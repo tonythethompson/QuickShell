@@ -139,6 +139,17 @@ internal static class Strings
     public static string ShortcutTransfer_ImportButton_Title => Get(nameof(ShortcutTransfer_ImportButton_Title));
     public static string ShortcutTransfer_ResetButton_Title => Get(nameof(ShortcutTransfer_ResetButton_Title));
     public static string ShortcutTransfer_ResetButton_Tooltip => Get(nameof(ShortcutTransfer_ResetButton_Tooltip));
+    public static string Diagnostics_SectionHeader => Get(nameof(Diagnostics_SectionHeader));
+    public static string Diagnostics_CopyLaunch_Title => Get(nameof(Diagnostics_CopyLaunch_Title));
+    public static string Diagnostics_CopyLaunch_Tooltip => Get(nameof(Diagnostics_CopyLaunch_Tooltip));
+    public static string Diagnostics_CopySupportBundle_Title => Get(nameof(Diagnostics_CopySupportBundle_Title));
+    public static string Diagnostics_CopySupportBundle_Tooltip => Get(nameof(Diagnostics_CopySupportBundle_Tooltip));
+    public static string Diagnostics_OpenLogFolder_Title => Get(nameof(Diagnostics_OpenLogFolder_Title));
+    public static string Diagnostics_OpenLogFolder_Tooltip => Get(nameof(Diagnostics_OpenLogFolder_Tooltip));
+    public static string Diagnostics_SupportBundleCopied => Get(nameof(Diagnostics_SupportBundleCopied));
+    public static string Diagnostics_CopySupportBundleFailed => Get(nameof(Diagnostics_CopySupportBundleFailed));
+    public static string Diagnostics_LogFolderOpened => Get(nameof(Diagnostics_LogFolderOpened));
+    public static string Diagnostics_LogFolderOpenFailed => Get(nameof(Diagnostics_LogFolderOpenFailed));
     public static string ImportConflict_Summary_WarningFormat(object arg0, object arg1, object arg2, object arg3, object arg4) => string.Format(CultureInfo.CurrentCulture, Get(nameof(ImportConflict_Summary_WarningFormat)), arg0, arg1, arg2, arg3, arg4);
     public static string ImportConflict_MergeButton_Title => Get(nameof(ImportConflict_MergeButton_Title));
     public static string ImportConflict_ReplaceButton_Title => Get(nameof(ImportConflict_ReplaceButton_Title));

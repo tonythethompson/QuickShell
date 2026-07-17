@@ -48,9 +48,9 @@ Presets (installed-only in form dropdown) include among others:
 | Preset | Default args (typical) |
 |--------|-------------------------|
 | Explorer, Fork, GitHub Desktop, Rider, IntelliJ, Obsidian, Azure Data Studio | `{folder}` |
-| VS Code, Cursor, Zed, Sublime, Neovide, GVim | `.` |
+| VS Code, Cursor, TRAE, Zed, Sublime, Neovide, GVim | `.` |
 | Visual Studio 2022 / 2026 | `{solution}` |
-| Notepad++ | empty (no folder open by default) |
+| Notepad++ | `{folder}` |
 | Custom | user path |
 
 Resolution: candidate paths, `VisualStudioInstallDiscovery`, `JetBrainsInstallDiscovery` (Rider / IDEA). Infer preset from executable filename / devenv path.
@@ -68,6 +68,7 @@ First match, only if executable resolves:
 | Priority (approx.) | Signal | Preset |
 |--------------------|--------|--------|
 | High | `.cursor/` | Cursor |
+| | `.trae/` | TRAE |
 | | `.vscode/` | VS Code |
 | | `.obsidian/` | Obsidian |
 | | Zed project | Zed |
@@ -142,7 +143,7 @@ Keep agent CLIs on launch rows / [intelligence.md](./intelligence.md) pills — 
 
 ## Tests
 
-`CompanionAppLauncherTests` (expansion, multi auto/on-demand with `StartProcessOverride`), `CompanionAppNormalizationTests`, `CompanionAppArgumentValidationTests`, related catalog tests.
+`CompanionAppLauncherTests` (expansion, multi auto/on-demand with `StartProcessOverride`), `CompanionAppNormalizationTests`, `CompanionAppArgumentValidationTests`, and deterministic catalog/detection tests (including TRAE marker priority).
 
 ## Related
 

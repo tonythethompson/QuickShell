@@ -28,6 +28,7 @@ internal static class CompanionAppCatalog
     public const string PresetVsCode = "vscode";
     public const string PresetVsCodeInsiders = "vscode-insiders";
     public const string PresetCursor = "cursor";
+    public const string PresetTrae = "trae";
     public const string PresetGitKraken = "gitkraken";
     public const string PresetSourcetree = "sourcetree";
     public const string PresetAntigravity = "antigravity";
@@ -60,6 +61,7 @@ internal static class CompanionAppCatalog
         (PresetVsCode, "Visual Studio Code", ".", BuildVsCodeCandidates()),
         (PresetVsCodeInsiders, "VS Code Insiders", ".", BuildVsCodeInsidersCandidates()),
         (PresetCursor, "Cursor", ".", BuildCursorCandidates()),
+        (PresetTrae, "TRAE", ".", BuildTraeCandidates()),
         (PresetAntigravity, "Antigravity", ".", BuildAntigravityCandidates()),
         (PresetDevin, "Devin", ".", BuildDevinCandidates()),
         (PresetKiro, "Kiro", ".", BuildKiroCandidates()),
@@ -875,6 +877,16 @@ internal static class CompanionAppCatalog
         [
             Path.Combine(localAppData, "Programs", "cursor", "Cursor.exe"),
             Path.Combine(localAppData, "Programs", "Cursor", "Cursor.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildTraeCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        return
+        [
+            Path.Join(localAppData, "Programs", "Trae", "Trae.exe"),
         ];
     }
 
