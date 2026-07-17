@@ -1,0 +1,23 @@
+QuickShell.Run/Main.cs
+  s_51a1c9d129d830::t_2e1466a19ba471 49,75,143,279,362,409
+QuickShell.Run/QuickShellRunSettingsPanel.cs
+  s_51a1c9d129d830::t_8ad1cc299daa9d 16,23,31,80
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_51a1c9d129d830::t_809c5ac6c3d949 62,78,89,648,1733,1755
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a41c1187e95ed095bc65fb7100eb05db03126177",
+  "prompts": {},
+  "sessions": {
+    "s_51a1c9d129d830": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e79dff3e-130e-4e69-9c6e-57daaea42589",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
