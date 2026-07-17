@@ -59,7 +59,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private readonly IProjectAnalysisService _projectAnalysis;
 
-    private readonly IProjectClassificationCache _classificationCache;
+    private readonly ICommandSuggestionService _commandSuggestions;
 
     private readonly IWorkspaceGitOperations _gitOperations;
 
@@ -75,7 +75,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         TerminalShortcut? existing,
         IShortcutRepository shortcuts,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache,
+        ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations)
 
     {
@@ -86,7 +86,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
 
-        _classificationCache = classificationCache ?? throw new ArgumentNullException(nameof(classificationCache));
+        _commandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
 
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
 
@@ -645,7 +645,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             _projectAnalysis,
 
-            _classificationCache,
+            _commandSuggestions,
 
             directory,
 
@@ -1730,7 +1730,7 @@ internal static class ShortcutEditor
         TerminalShortcut? existing,
         IShortcutRepository shortcuts,
         IProjectAnalysisService projectAnalysis,
-        IProjectClassificationCache classificationCache,
+        ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations,
         out string message)
 
@@ -1752,7 +1752,7 @@ internal static class ShortcutEditor
                 existing,
                 shortcuts,
                 projectAnalysis,
-                classificationCache,
+                commandSuggestions,
                 gitOperations);
 
             if (window.ShowDialog() == true)
