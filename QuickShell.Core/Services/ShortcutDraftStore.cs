@@ -1,4 +1,5 @@
 using QuickShell.Models;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,10 @@ namespace QuickShell.Services;
 
 internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
 {
+    private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan SlowOperationThreshold = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(3);
+
     private readonly IShortcutRepository _shortcuts;
     private readonly IAtomicFileWriter _fileWriter;
     private readonly SemaphoreSlim _sync = new(1, 1);
@@ -49,27 +54,29 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             return false;
         }
 
-        _sync.Wait();
-        try
+        var found = WithLock(() =>
         {
             if (!TryGetPendingLocked(out var pending))
             {
-                return false;
+                return null;
             }
 
             if (pending is null
                 || !string.Equals(pending.OriginalName, originalName, StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                return null;
             }
 
-            draft = pending;
-            return true;
-        }
-        finally
+            return pending;
+        });
+
+        if (found is null)
         {
-            _sync.Release();
+            return false;
         }
+
+        draft = found;
+        return true;
     }
 
     public void SaveIfDirty(
@@ -323,9 +330,17 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
 
     private void DrainFileIoQueueLocked()
     {
+        var queue = _fileIoQueue;
         try
         {
-            _fileIoQueue.GetAwaiter().GetResult();
+            var completed = Task.WhenAny(queue, Task.Delay(DrainTimeout)).GetAwaiter().GetResult();
+            if (!ReferenceEquals(completed, queue))
+            {
+                RepositoryDiagnostics.Report("ShortcutDraftStore.DrainFileIoQueueLocked", "drain-timeout", (long)DrainTimeout.TotalMilliseconds);
+                return;
+            }
+
+            queue.GetAwaiter().GetResult();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
@@ -565,22 +580,22 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
 
     private static string Normalize(string? value) => (value ?? string.Empty).Trim();
 
-    private void WithLock(Action action)
-    {
-        _sync.Wait();
-        try
+    private void WithLock(Action action) =>
+        WithLock(() =>
         {
             action();
-        }
-        finally
-        {
-            _sync.Release();
-        }
-    }
+            return true;
+        });
 
     private T WithLock<T>(Func<T> action)
     {
-        _sync.Wait();
+        if (!_sync.Wait(LockTimeout))
+        {
+            RepositoryDiagnostics.Report("ShortcutDraftStore.WithLock", "lock-timeout", (long)LockTimeout.TotalMilliseconds);
+            throw new TimeoutException("Timed out waiting for the shortcut draft store lock.");
+        }
+
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             return action();
@@ -588,6 +603,10 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         finally
         {
             _sync.Release();
+            if (stopwatch.Elapsed > SlowOperationThreshold)
+            {
+                RepositoryDiagnostics.Report("ShortcutDraftStore.WithLock", "slow-operation", stopwatch.ElapsedMilliseconds);
+            }
         }
     }
 
@@ -609,7 +628,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         {
             WithLock(DrainFileIoQueueLocked);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or TimeoutException)
         {
             // Best effort drain during shutdown.
         }
