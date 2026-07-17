@@ -1,0 +1,49 @@
+QuickShell/Resources/Strings.de.resx
+  s_6fad6f7a509527::t_ae9898b0f61b24 90-104
+QuickShell/Resources/Strings.es.resx
+  s_6fad6f7a509527::t_c024906c7a8f47 90-104
+QuickShell/Resources/Strings.fr.resx
+  s_6fad6f7a509527::t_c28a0967bd56f0 90-104
+QuickShell/Resources/Strings.it.resx
+  s_6fad6f7a509527::t_388697b93d6a07 90-104
+QuickShell/Resources/Strings.ja.resx
+  s_6fad6f7a509527::t_23814a46f639f0 90-104
+QuickShell/Resources/Strings.ko.resx
+  s_6fad6f7a509527::t_a922b0dd4a00e5 90-104
+QuickShell/Resources/Strings.pt-BR.resx
+  s_6fad6f7a509527::t_006af996488113 90-104
+QuickShell/Resources/Strings.ru.resx
+  s_6fad6f7a509527::t_828a162b42ef26 90-104
+QuickShell/Resources/Strings.zh-Hans.resx
+  s_6fad6f7a509527::t_9c9e264af5fa78 90-104
+QuickShell/Resources/Strings.zh-Hant.resx
+  s_6fad6f7a509527::t_dd181ec218f204 90-104
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_6fad6f7a509527::t_fc2a523a248d99 191,232
+QuickShell/Services/ShortcutContextCommands.cs
+  s_6fad6f7a509527::t_0edab657eb8d02 444
+QuickShell/Commands/WorktreeBranchCommands.cs
+  s_6fad6f7a509527::t_da3f607ee66511 69
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_6fad6f7a509527::t_44ecbb2832aa97 30-31,100
+QuickShell/Resources/Strings.cs
+  s_6fad6f7a509527::t_bd2f693ea53331 32-35
+QuickShell/Resources/Strings.resx
+  s_6fad6f7a509527::t_271d913ba06d37 93-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a4a655472b3976f57879371e2a2050697cc037dd",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
