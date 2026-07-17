@@ -8,9 +8,9 @@ internal sealed partial class RedoShortcutCommand : InvokableCommand
     private readonly IQuickShellServices _services;
     private readonly Action _onChanged;
 
-    public RedoShortcutCommand(Action onChanged, IQuickShellServices? services = null)
+    public RedoShortcutCommand(Action onChanged, IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onChanged = onChanged;
         Name = Strings.Command_Redo_Name;
         Icon = new IconInfo("\uE7A6");

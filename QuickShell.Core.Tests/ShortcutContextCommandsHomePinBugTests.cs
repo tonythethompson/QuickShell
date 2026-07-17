@@ -26,6 +26,7 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
     private readonly QuickShellSettingsManager _settings;
     private readonly QuickShellLifetime _lifetime;
     private readonly IQuickShellServices _quickShellServices;
+    private readonly QuickShellPageContext _context;
     public ShortcutContextCommandsHomePinBugTests()
     {
         LaunchExecutorTestEnvironment.Apply();
@@ -40,6 +41,10 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _settings = new QuickShellSettingsManager();
         _lifetime = new QuickShellLifetime();
         _quickShellServices = new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService(), _lifetime);
+        _context = new QuickShellPageContext(
+            new QuickShellHostServices(_quickShellServices),
+            new CreateShortcutCommand(OnChanged, _quickShellServices),
+            OnChanged);
     }
 
     public void Dispose()
@@ -78,11 +83,10 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _repository.Upsert(shortcut);
 
         var items = ShortcutContextCommands.BuildForHomePin(
+            _context,
             shortcut,
             OnChanged,
-            _settings,
-            needsRepair: false,
-            services: _quickShellServices);
+            needsRepair: false);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -114,11 +118,10 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _repository.Upsert(shortcut);
 
         var items = ShortcutContextCommands.BuildForHomePin(
+            _context,
             shortcut,
             OnChanged,
-            _settings,
-            needsRepair: false,
-            services: _quickShellServices);
+            needsRepair: false);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -146,11 +149,10 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _repository.Upsert(shortcut);
 
         var items = ShortcutContextCommands.BuildForHomePin(
+            _context,
             shortcut,
             OnChanged,
-            _settings,
-            needsRepair: false,
-            services: _quickShellServices);
+            needsRepair: false);
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -175,11 +177,10 @@ public sealed class ShortcutContextCommandsHomePinBugTests : IDisposable
         _repository.Upsert(shortcut);
 
         var items = ShortcutContextCommands.BuildForHomePin(
+            _context,
             shortcut,
             OnChanged,
-            _settings,
-            needsRepair: false,
-            services: _quickShellServices);
+            needsRepair: false);
 
         var deleteItem = items.FirstOrDefault(i =>
             i.Title.Equals(Strings.Command_Delete_Name, StringComparison.Ordinal));

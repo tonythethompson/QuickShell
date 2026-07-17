@@ -1,4 +1,5 @@
 using Microsoft.CommandPalette.Extensions;
+using QuickShell.Services;
 
 namespace QuickShell.Services.CommandRouting;
 
@@ -9,5 +10,5 @@ internal interface ICommandItemHandler
 {
     CommandKind Kind { get; }
 
-    ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context);
+    ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context);
 }

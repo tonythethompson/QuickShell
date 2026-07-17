@@ -12,9 +12,9 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
 
     public CopyShortcutPathCommand(
         string shortcutId,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
         Name = Strings.Menu_CopyPath;
         Icon = new IconInfo(ShortcutGlyphs.CopyPath);
@@ -59,9 +59,9 @@ internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCom
 
     public OpenShortcutFolderInExplorerCommand(
         string shortcutId,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
         Name = Strings.Menu_OpenInFileExplorer;
         Icon = new IconInfo("\uE838");
@@ -121,9 +121,9 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
     public OpenWorkspaceLinkCommand(
         string shortcutId,
         WorkspaceLinkKind kind,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
         _kind = kind;
         Name = kind switch
@@ -161,9 +161,9 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
 
     public OpenCompanionAppCommand(
         TerminalShortcut shortcut,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcut.Id;
         var primaryPath = CompanionAppNormalization.GetPrimary(shortcut)?.Path ?? shortcut.CompanionAppPath;
         Name = Strings.Menu_OpenCompanionAppFormat(CompanionAppLauncher.BuildDisplaySummary(shortcut));
@@ -189,8 +189,8 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
 
 internal sealed partial class OpenDiscoverGitReposCommand : DiscoverGitReposPage
 {
-    public OpenDiscoverGitReposCommand(Action onReload, IQuickShellServices? services = null)
-        : base(onReload, services)
+    public OpenDiscoverGitReposCommand(QuickShellPageContext context)
+        : base(context)
     {
         Id = PageId;
         Icon = new IconInfo(ShortcutGlyphs.Discover);

@@ -22,11 +22,9 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 #endif
     private readonly ServiceProvider _services;
     private readonly IQuickShellLifetime _lifetime;
-    private readonly IQuickShellServices _quickShellServices;
     private readonly QuickShellSettingsManager _settingsManager;
+    private readonly QuickShellPageContext _context;
     private readonly QuickShellPage _page;
-    private readonly CreateShortcutCommand _createShortcutCommand;
-    private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly ICommandRouter _commandRouter;
     private readonly Lazy<QuickShellFallbackPage> _fallbackPage;
     private readonly ICommandItem[] _commands;
@@ -63,16 +61,18 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             // #endregion
             var collection = new ServiceCollection();
             var lifetime = new QuickShellLifetime();
-            collection.AddQuickShellHost(_settingsManager, ReloadPages, lifetime: lifetime);
+            collection.AddQuickShellHost(_settingsManager, lifetime: lifetime);
             _services = collection.BuildServiceProvider();
             _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
             var shortcuts = _services.GetRequiredService<IShortcutRepository>();
             var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
             ProjectAnalysisAccessor.Instance = projectAnalysis;
-            _quickShellServices = _services.GetRequiredService<IQuickShellServices>();
-            _createShortcutCommand = _services.GetRequiredService<CreateShortcutCommand>();
+
+            var host = _services.GetRequiredService<QuickShellHostServices>();
+            var createShortcut = new CreateShortcutCommand(ReloadPages, host.Services);
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
+            _context = new QuickShellPageContext(host, createShortcut, ReloadPages);
             // #region agent log
             SupportDiagnostics.Write(
                 "QuickShellCommandsProvider.cs:ctor",
@@ -94,8 +94,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             // #region agent log
             SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
             // #endregion
-            _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages, _quickShellServices);
-            _page = new QuickShellPage(_settingsManager, _createShortcutCommand, _quickShellServices);
+            _page = new QuickShellPage(_context);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;
             // #region agent log
@@ -129,7 +128,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 #endif
                 MoreCommands =
                 [
-                    new CommandContextItem(_createShortcutCommand)
+                    new CommandContextItem(_context.CreateShortcut)
                     {
                         Title = "Create workspace",
                         Icon = new IconInfo("\uE710"),
@@ -148,7 +147,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
                         HoverOrder = 10,
 #endif
                     },
-                    ..ShortcutContextCommands.BuildUndoRedoCommands(ReloadPages, _quickShellServices),
+                    ..ShortcutContextCommands.BuildUndoRedoCommands(_context.Services, _context.ReloadRootPages),
 #if DEBUG
                     new CommandContextItem(new CmdPalFormReproIndexPage())
                     {
@@ -160,8 +159,8 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             },
         ];
 
-        _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_settingsManager, ReloadPages, _quickShellServices));
-        _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand, _settingsManager, _quickShellServices)];
+        _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_context));
+        _fallbacks = [new QuickShellFallback(_context, _fallbackPage)];
 
         // #region agent log
         SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
@@ -261,7 +260,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     public override ICommandItem? GetCommandItem(string id)
     {
-        if (_commandRouter.TryHandle(id, out var item))
+        if (_commandRouter.TryHandle(id, _context, out var item))
         {
             return item;
         }
@@ -283,6 +282,11 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         if (_fallbackPage.IsValueCreated)
         {
             _fallbackPage.Value.Dispose();
+        }
+
+        foreach (var fallback in _fallbacks.OfType<IDisposable>())
+        {
+            fallback.Dispose();
         }
 
         GitRepoIndex.ExtensionThreadPoster = null;

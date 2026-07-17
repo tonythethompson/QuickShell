@@ -178,7 +178,9 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             workspaceCount = repository.GetShortcuts().Count;
         }
 
-        using var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
+        var hostServices = new QuickShellHostServices(qsServices);
+        var pageContext = new QuickShellPageContext(hostServices, new CreateShortcutCommand(() => { }, qsServices), () => { });
+        using var page = new QuickShellPage(pageContext);
         try
         {
             var reload = Time(() => page.Reload());
@@ -230,7 +232,9 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         }
 
         // Reproduce exactly how the provider builds its home page.
-        using var page = new QuickShellPage(settings, new CreateShortcutCommand(() => { }, qsServices), qsServices);
+        var hostServices = new QuickShellHostServices(qsServices);
+        var pageContext = new QuickShellPageContext(hostServices, new CreateShortcutCommand(() => { }, qsServices), () => { });
+        using var page = new QuickShellPage(pageContext);
         var reload = Time(() => page.Reload());
         getItemsMs = Time(() => page.GetItems());
         // static locator removed; pages receive services via constructor

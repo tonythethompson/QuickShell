@@ -8,6 +8,7 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposable
 {
+    private readonly QuickShellPageContext _context;
     private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settings;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
@@ -20,16 +21,14 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private IReadOnlyList<GitRepoCandidate> _gitRepos = [];
     private bool _showDiscoverEntry;
 
-    public QuickShellFallbackPage(
-        QuickShellSettingsManager settings,
-        Action onReload,
-        IQuickShellServices? services = null)
+    public QuickShellFallbackPage(QuickShellPageContext context)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
-        _settings = settings;
-        _settings.Services = _services;
-        _onReload = onReload;
-        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(onReload, _services);
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
+        _services = context.Services;
+        _settings = context.Settings;
+        _onReload = context.ReloadRootPages;
+        _discoverGitReposCommand = new OpenDiscoverGitReposCommand(context);
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
         Icon = QuickShellBrandIcons.App;
         Title = "Saved workspace";
@@ -159,7 +158,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     {
         foreach (var candidate in gitRepos)
         {
-            yield return DiscoverGitRepoListItems.CreateNew(candidate, OnGitRepoAdded, title: $"Add {candidate.Name}", services: _services);
+            yield return DiscoverGitRepoListItems.CreateNew(_context, candidate, OnGitRepoAdded, title: $"Add {candidate.Name}");
         }
     }
 
@@ -172,13 +171,11 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private ListItem BuildShortcutItem(TerminalShortcut shortcut)
     {
         var item = ShortcutListItems.CreateOpen(
+            _context,
             shortcut,
-            _settings,
             _onReload,
-            createShortcutCommand: null,
             moveVisibility: default,
-            includeEdit: false,
-            services: _services);
+            includeEdit: false);
         if (ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return item;
@@ -189,5 +186,5 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     }
 
     private ListItem BuildTaskActionItem(WorkspaceTaskAction action) =>
-        ShortcutTaskActionListItems.Create(action, _settings, _onReload, services: _services);
+        ShortcutTaskActionListItems.Create(_context, action, _onReload);
 }

@@ -9,26 +9,23 @@ namespace QuickShell.Services;
 internal static class ShortcutListItems
 {
     public static ListItem CreateOpen(
+        QuickShellPageContext context,
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
         Action? onChanged = null,
-        CreateShortcutCommand? createShortcutCommand = null,
         PinnedMoveVisibility moveVisibility = default,
         bool includeEdit = true,
         Action? onFavoritesReordered = null,
-        bool useHomePinContextMenu = false,
-        IQuickShellServices? services = null)
+        bool useHomePinContextMenu = false)
     {
-        if (services is null)
-        {
-            throw new InvalidOperationException("IQuickShellServices is required.");
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
+        var services = context.Services;
+        var settings = context.Settings;
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
             ? new ShortcutFormPage(services, shortcut, onChanged)
-            : new OpenTerminalShortcutCommand(shortcut, settings, services: services);
+            : new OpenTerminalShortcutCommand(shortcut, services);
 
         var item = new ListItem(primaryCommand)
         {
@@ -49,25 +46,22 @@ internal static class ShortcutListItems
         if (onChanged is not null)
         {
             item.MoreCommands = needsRepair
-                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings, services)
+                ? ShortcutContextCommands.BuildRepairOnly(context, shortcut, onChanged)
                 : useHomePinContextMenu
                     ? ShortcutContextCommands.BuildForHomePin(
+                        context,
                         shortcut,
                         onChanged,
-                        settings,
-                        createShortcutCommand,
                         needsRepair,
-                        moveVisibility,
-                        services)
+                        moveVisibility)
                     : ShortcutContextCommands.Build(
+                        context,
                         shortcut,
                         onChanged,
-                        settings,
-                        createShortcutCommand,
                         includeEdit,
                         moveVisibility,
-                        onFavoritesReordered,
-                        services: services);
+                        onFavoritesReordered: onFavoritesReordered,
+                        includePageCommands: true);
         }
 
         return item;

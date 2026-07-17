@@ -11,9 +11,9 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
     private readonly IQuickShellServices _services;
     private readonly bool _stayOnSettings;
 
-    public ExportShortcutsCommand(bool stayOnSettings = true, IQuickShellServices? services = null)
+    public ExportShortcutsCommand(bool stayOnSettings, IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _stayOnSettings = stayOnSettings;
         Name = Strings.Command_ExportWorkspaces_Name;
         Icon = new IconInfo("\uE896");

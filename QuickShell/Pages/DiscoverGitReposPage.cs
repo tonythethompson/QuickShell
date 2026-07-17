@@ -20,6 +20,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
     /// </summary>
     private const int KeepSelectionRefresh = -2;
 
+    private readonly QuickShellPageContext _context;
     private readonly IQuickShellServices _services;
     private readonly Action _onReload;
     private readonly SynchronizationContext? _extensionSynchronizationContext;
@@ -34,10 +35,12 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
     private bool _hasPublishedResults;
     private bool _disposed;
 
-    protected DiscoverGitReposPage(Action onReload, IQuickShellServices? services = null)
+    protected DiscoverGitReposPage(QuickShellPageContext context)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
-        _onReload = onReload;
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
+        _services = context.Services;
+        _onReload = context.ReloadRootPages;
         _extensionSynchronizationContext = SynchronizationContext.Current ?? GitRepoIndex.ExtensionSynchronizationContext;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
 #if CMDPAL_HOVER_ACTIONS
@@ -201,8 +204,6 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
             _awaitingGitRefresh = false;
 
             var shortcutsByDirectory = DiscoverGitRepoListItems.GroupShortcutsByDirectory(shortcuts);
-            var settings = _services.Settings;
-
             if (!string.IsNullOrWhiteSpace(query))
             {
                 discovered = discovered
@@ -215,7 +216,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
             }
 
             var items = DiscoverGitRepoListItems
-                .BuildSectionedItems(discovered, _onReload, shortcutsByDirectory, settings, _itemCache, _services)
+                .BuildSectionedItems(_context, discovered, _onReload, shortcutsByDirectory, _itemCache)
                 .ToList();
 
             if (items.Count == 0)

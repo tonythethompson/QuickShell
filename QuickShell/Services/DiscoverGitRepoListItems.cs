@@ -14,13 +14,17 @@ internal static class DiscoverGitRepoListItems
     public static string SavedSectionTitle => Strings.Section_AlreadyWorkspaces;
 
     public static IEnumerable<IListItem> BuildSectionedItems(
+        QuickShellPageContext context,
         IEnumerable<GitRepoCandidate> discovered,
         Action onSaved,
         IReadOnlyDictionary<string, List<TerminalShortcut>> shortcutsByDirectory,
-        QuickShellSettingsManager? settings,
-        IDictionary<string, ListItem>? itemCache = null,
-        IQuickShellServices? services = null)
+        IDictionary<string, ListItem>? itemCache = null)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(discovered);
+        ArgumentNullException.ThrowIfNull(onSaved);
+        ArgumentNullException.ThrowIfNull(shortcutsByDirectory);
+
         var unsaved = new List<GitRepoCandidate>();
         var saved = new List<(GitRepoCandidate Candidate, IReadOnlyList<TerminalShortcut> Shortcuts)>();
 
@@ -45,7 +49,7 @@ internal static class DiscoverGitRepoListItems
                          NotSavedSectionTitle,
                          unsaved
                              .OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
-                             .Select(candidate => CreateNew(candidate, onSaved, itemCache: itemCache, usedKeys: usedKeys, services: services))))
+                             .Select(candidate => CreateNew(context, candidate, onSaved, itemCache: itemCache, usedKeys: usedKeys))))
             {
                 yield return item;
             }
@@ -58,13 +62,12 @@ internal static class DiscoverGitRepoListItems
                          saved
                              .OrderBy(entry => entry.Candidate.Name, StringComparer.OrdinalIgnoreCase)
                              .Select(entry => CreateSaved(
+                                 context,
                                  entry.Candidate,
                                  onSaved,
                                  entry.Shortcuts,
-                                 settings,
                                  itemCache: itemCache,
-                                 usedKeys: usedKeys,
-                                 services: services))))
+                                 usedKeys: usedKeys))))
             {
                 yield return item;
             }
@@ -80,14 +83,14 @@ internal static class DiscoverGitRepoListItems
     }
 
     public static ListItem CreateNew(
+        QuickShellPageContext context,
         GitRepoCandidate candidate,
         Action onSaved,
         string? title = null,
         IDictionary<string, ListItem>? itemCache = null,
-        ISet<string>? usedKeys = null,
-        IQuickShellServices? services = null)
+        ISet<string>? usedKeys = null)
     {
-        var requiredServices = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        ArgumentNullException.ThrowIfNull(context);
         var cacheKey = BuildCacheKey("new", candidate);
         usedKeys?.Add(cacheKey);
 
@@ -96,7 +99,7 @@ internal static class DiscoverGitRepoListItems
             return cached;
         }
 
-        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), requiredServices))
+        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), context.Services))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForNew(candidate),
@@ -113,16 +116,15 @@ internal static class DiscoverGitRepoListItems
     }
 
     public static ListItem CreateSaved(
+        QuickShellPageContext context,
         GitRepoCandidate candidate,
         Action onSaved,
         IReadOnlyList<TerminalShortcut> matchingShortcuts,
-        QuickShellSettingsManager? settings = null,
         string? title = null,
         IDictionary<string, ListItem>? itemCache = null,
-        ISet<string>? usedKeys = null,
-        IQuickShellServices? services = null)
+        ISet<string>? usedKeys = null)
     {
-        var requiredServices = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        ArgumentNullException.ThrowIfNull(context);
         var cacheKey = BuildCacheKey("saved", candidate, matchingShortcuts);
         usedKeys?.Add(cacheKey);
 
@@ -131,11 +133,11 @@ internal static class DiscoverGitRepoListItems
             return cached;
         }
 
-        var moreCommands = settings is not null && matchingShortcuts.Count > 0
-            ? BuildSavedWorkspaceCommands(candidate.Directory, matchingShortcuts, settings, onSaved, services)
+        var moreCommands = matchingShortcuts.Count > 0
+            ? BuildSavedWorkspaceCommands(context, candidate.Directory, matchingShortcuts, onSaved)
             : BuildDirectoryCommands(candidate.Directory);
 
-        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), requiredServices))
+        var item = new ListItem(new CreateShortcutCommand(onSaved, WorkspaceSeedFactory.FromGitRepo(candidate), context.Services))
         {
             Title = title ?? candidate.Name,
             Subtitle = BuildSubtitleForSaved(candidate, matchingShortcuts),
@@ -260,17 +262,11 @@ internal static class DiscoverGitRepoListItems
     ];
 
     private static CommandContextItem[] BuildSavedWorkspaceCommands(
+        QuickShellPageContext context,
         string directory,
         IReadOnlyList<TerminalShortcut> matchingShortcuts,
-        QuickShellSettingsManager settings,
-        Action onChanged,
-        IQuickShellServices? services = null)
+        Action onChanged)
     {
-        if (services is null)
-        {
-            throw new InvalidOperationException("IQuickShellServices is required.");
-        }
-
         var items = new List<CommandContextItem>(BuildDirectoryCommands(directory));
 #if CMDPAL_HOVER_ACTIONS
         var hoverOrder = 20;
@@ -281,7 +277,7 @@ internal static class DiscoverGitRepoListItems
             var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
             if (needsRepair)
             {
-                items.Add(new CommandContextItem(new ShortcutFormPage(services, shortcut, onChanged))
+                items.Add(new CommandContextItem(new ShortcutFormPage(context.Services, shortcut, onChanged))
                 {
                     Title = shortcut.Name,
                     Subtitle = Strings.RepairWorkspace,
@@ -294,7 +290,7 @@ internal static class DiscoverGitRepoListItems
                 continue;
             }
 
-            items.Add(new CommandContextItem(new OpenTerminalShortcutCommand(shortcut, settings, services: services))
+            items.Add(new CommandContextItem(new OpenTerminalShortcutCommand(shortcut, context.Services))
             {
                 Title = shortcut.Name,
                 Subtitle = Strings.OpenWorkspace,
@@ -305,7 +301,7 @@ internal static class DiscoverGitRepoListItems
 #endif
             });
 
-            items.Add(new CommandContextItem(new ShortcutFormPage(services, shortcut, onChanged))
+            items.Add(new CommandContextItem(new ShortcutFormPage(context.Services, shortcut, onChanged))
             {
                 Title = Strings.EditNamedFormat(shortcut.Name),
                 Icon = new IconInfo("\uE70F"),

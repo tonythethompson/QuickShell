@@ -10,20 +10,17 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
     private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly string _branch;
-    private readonly QuickShellSettingsManager _settings;
     private readonly Action _onChanged;
 
     public SelectWorktreeBranchCommand(
         string shortcutId,
         string branch,
-        QuickShellSettingsManager settings,
-        Action onChanged,
-        IQuickShellServices? services = null)
+        IQuickShellServices services,
+        Action onChanged)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
         _branch = branch;
-        _settings = settings;
         _onChanged = onChanged;
         Id = CommandDescriptor.WorktreeBranchSelect(shortcutId, branch).Id;
         Name = branch;
@@ -41,7 +38,7 @@ internal sealed partial class SelectWorktreeBranchCommand : InvokableCommand
         var result = WorkspaceGitLaunchGate.SelectTargetBranch(
             shortcut.Directory,
             _branch,
-            _settings.BlockDirtyBranchSwitch);
+            _services.Settings.BlockDirtyBranchSwitch);
 
         if (!result.CanProceed)
         {
@@ -63,9 +60,9 @@ internal sealed partial class UseCurrentWorktreeBranchCommand : InvokableCommand
     public UseCurrentWorktreeBranchCommand(
         string shortcutId,
         Action onChanged,
-        IQuickShellServices? services = null)
+        IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
         _onChanged = onChanged;
         Id = CommandDescriptor.WorktreeBranchClear(shortcutId).Id;
