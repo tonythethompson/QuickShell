@@ -1,0 +1,30 @@
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_6fad6f7a509527::t_91f643b97f91a1 1-4,9-10,12-42,47-84,86
+  s_6fad6f7a509527::t_732e85527ab31e 43-46
+  s_6fad6f7a509527::t_be1e48d16e674c 85
+  s_6fad6f7a509527::t_b44633969a4601 87-88
+QuickShell.Core.Tests/LaunchRowListEditorTests.cs
+  s_6fad6f7a509527::t_a250250845c9c1 156-184
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_6fad6f7a509527::t_edba7be8c640de 121-123,129
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_6fad6f7a509527::t_d64ebc1b2f28cf 12-28,98-101
+QuickShell/Services/ShortcutContextCommands.cs
+  s_6fad6f7a509527::t_73e06ce819372f 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "cbac90e4d5d752f496a2cf45dbe83b52cf4b382c",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
