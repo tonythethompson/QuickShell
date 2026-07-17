@@ -87,6 +87,9 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>Workspaces</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>Needs attention</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Favorite</value>
   </data>

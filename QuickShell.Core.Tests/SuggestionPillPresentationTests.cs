@@ -1,9 +1,91 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class SuggestionPillPresentationTests
+[Collection(AgentCliCatalogIsolation.Name)]
+public sealed class SuggestionPillPresentationTests : IDisposable
 {
+    private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IProjectClassificationCache _classificationCache;
+
+    public SuggestionPillPresentationTests()
+    {
+        _root = Path.Join(Path.GetTempPath(), "quickshell-pill-presentation-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        _classificationCache = _provider.GetRequiredService<IProjectClassificationCache>();
+    }
+
+    public void Dispose()
+    {
+        _provider.Dispose();
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void BuildDataFields_EmptyDirectory_StillShowsOpenToDirectoryPill()
+    {
+        CommandSuggestionService.ClearResultCache();
+
+        // Agent-CLI suggestions (claude, codex, etc. on PATH) are directory-content-independent,
+        // so an empty directory doesn't guarantee zero ranked pills on every machine — only that
+        // Open to Directory is always appended after whatever ranked pills exist.
+        var rankedCount = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache).Count;
+
+        var fields = SuggestionPillPresentation.BuildDataFields(
+            _root,
+            [],
+            _projectAnalysis,
+            _classificationCache,
+            expandSuggestionPills: false);
+
+        Assert.Equal("true", fields["ShowSuggestionPills"]);
+        Assert.Equal("true", fields[$"ShowPill_{rankedCount}"]);
+        Assert.Equal("Open to Directory", fields[$"PillTitle_{rankedCount}"]);
+        Assert.Equal(string.Empty, fields[$"PillCommand_{rankedCount}"]);
+        Assert.Equal(TaskTypeCatalog.None, fields[$"PillTaskType_{rankedCount}"]);
+    }
+
+    [Fact]
+    public void BuildDataFields_WithRealSuggestions_AppendsOpenToDirectoryAfterThem()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
+
+        var fields = SuggestionPillPresentation.BuildDataFields(
+            _root,
+            [],
+            _projectAnalysis,
+            _classificationCache,
+            expandSuggestionPills: false);
+
+        var rankedCount = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache).Count;
+        Assert.True(rankedCount > 0);
+        Assert.Equal("Open to Directory", fields[$"PillTitle_{rankedCount}"]);
+    }
+
+    [Fact]
+    public void TryFindPill_MatchesOpenToDirectoryPillByBlankCommand()
+    {
+        var pills = new[] { SuggestionPillPresentation.OpenToDirectoryPill };
+
+        var found = CommandSuggestionService.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
+
+        Assert.NotNull(found);
+        Assert.Equal("Open to Directory", found.DisplayTitle);
+    }
+
+
     [Fact]
     public void FormatDisplayTitle_UsesCommandOnlyAndTruncates()
     {

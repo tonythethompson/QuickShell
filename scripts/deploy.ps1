@@ -24,6 +24,12 @@
     After install, start a local PowerToys dev CmdPal build (sibling PowerToys checkout).
     Default is retail PowerToys.
 
+.PARAMETER RegenerateAssets
+    Regenerate MSIX logo/icon assets before building (runs generate-assets.ps1).
+    Off by default — icons rarely change and the npx/resvg pipeline adds real
+    time to every deploy. Run .\scripts\generate-assets.ps1 directly, or pass
+    this switch, when icon source SVGs actually changed.
+
 .EXAMPLE
     .\scripts\deploy.ps1
 
@@ -40,7 +46,8 @@ param(
     [switch]$RecreateCertificate,
     [switch]$UseLocalCmdPalSdk,
     [switch]$NoRestartCmdPal,
-    [switch]$UseDevCmdPal
+    [switch]$UseDevCmdPal,
+    [switch]$RegenerateAssets
 )
 
 $ErrorActionPreference = 'Stop'
@@ -327,8 +334,10 @@ try {
         Stop-CmdPalProcesses
     }
 
-    Write-Host 'Generating MSIX logo assets...'
-    & (Join-Path $PSScriptRoot 'generate-assets.ps1')
+    if ($RegenerateAssets) {
+        Write-Host 'Generating MSIX logo assets...'
+        & (Join-Path $PSScriptRoot 'generate-assets.ps1')
+    }
 
     $thumbprint = Ensure-DevCertificate
     Install-DevCertificateTrust -Thumbprint $thumbprint

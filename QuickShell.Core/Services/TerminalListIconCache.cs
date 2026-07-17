@@ -17,6 +17,17 @@ internal static class TerminalListIconCache
     /// <summary>Target edge length for home-list bitmap icons (host still scales; this reduces blur).</summary>
     public const int ListIconPixels = 24;
 
+    /// <summary>
+    /// Sources at or under this size skip the GDI+ resize entirely and go straight to the host.
+    /// Deliberately larger than ListIconPixels: Windows Terminal's bundled profile icons (e.g.
+    /// PowerShell, cmd) ship at 32x32, and a 32-to-24 downscale is small enough that the host's
+    /// own scaling looks fine — resizing it ourselves means every one of those icons pays a full
+    /// decode+composite+PNG-encode+disk-write under a single global lock on every cold start,
+    /// which is what caused the post-scale-reorder perf regression (icons + git discovery both
+    /// stalling behind that lock). Only genuinely large custom icons still get downsized.
+    /// </summary>
+    private const int SkipResizeThreshold = ListIconPixels * 2;
+
     private static readonly ConcurrentDictionary<string, string> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object DiskSync = new();
 
@@ -51,6 +62,16 @@ internal static class TerminalListIconCache
         }
 
         if (!Path.IsPathRooted(trimmed) || !File.Exists(trimmed))
+        {
+            return trimmed;
+        }
+
+        // .ico sources skip the GDI+ resize path entirely: some .ico encodings (PNG-compressed
+        // large frames in particular) decode via System.Drawing into a blank/transparent bitmap
+        // without throwing, so the catch below never catches it — the icon just silently goes
+        // blank. The host already scales whatever we hand it, so there's nothing to gain from
+        // resizing an .ico and real risk in doing it.
+        if (string.Equals(Path.GetExtension(trimmed), ".ico", StringComparison.OrdinalIgnoreCase))
         {
             return trimmed;
         }
@@ -115,7 +136,7 @@ internal static class TerminalListIconCache
                 Directory.CreateDirectory(cacheDir);
 
                 using var source = Image.FromFile(sourcePath);
-                if (source.Width <= pixels && source.Height <= pixels)
+                if (source.Width <= SkipResizeThreshold && source.Height <= SkipResizeThreshold)
                 {
                     return sourcePath;
                 }

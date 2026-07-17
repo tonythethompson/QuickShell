@@ -12,7 +12,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
     private readonly Action _onChanged;
     private readonly WorkspaceGitStatus? _knownStatus;
     private readonly string? _knownTargetBranch;
-    private IListItem[] _items = [];
+    private IListItem[]? _items;
 
     public WorktreeBranchPickerPage(
         IQuickShellServices services,
@@ -30,10 +30,12 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         Title = "Switch branch";
         Name = "Switch branch";
         Icon = new IconInfo("\uE8AB");
-        _items = BuildItems();
+        // BuildItems() runs git (status + branch list). Deferred to GetItems() \u2014 every
+        // home-list row constructs this page as part of its context menu, so doing that
+        // work in the constructor would run git once per visible row on every refresh.
     }
 
-    public override IListItem[] GetItems() => _items;
+    public override IListItem[] GetItems() => _items ??= BuildItems();
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
@@ -90,6 +92,16 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
                 Icon = new IconInfo("\uE8AB"),
             },
         };
+
+        if (!string.IsNullOrWhiteSpace(target))
+        {
+            items.Add(new ListItem(new UseCurrentWorktreeBranchCommand(_shortcutId, _onChanged, _services))
+            {
+                Title = "Use current branch",
+                Subtitle = $"Clear target \u2014 currently pinned to {target}",
+                Icon = new IconInfo("\uE894"),
+            });
+        }
 
         foreach (var branch in branches)
         {

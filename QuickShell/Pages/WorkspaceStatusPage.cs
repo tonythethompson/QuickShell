@@ -15,7 +15,6 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     private readonly QuickShellSettingsManager _settings;
     private readonly IQuickShellServices _services;
     private readonly Action _onChanged;
-    private bool _gitCommandsLoaded;
     private WorkspaceStatusForm? _form;
 
     public WorkspaceStatusPage(
@@ -31,59 +30,11 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         Name = "Workspace status";
         Title = shortcut.Name;
         Icon = new IconInfo("\ue799");
-        // Do not run git here. Every home-list row builds this page for the
-        // "Workspace status…" context command; eager TryGetStatus made open
-        // take tens of seconds with ~45 workspaces (and worse for WSL paths).
         Commands = [];
     }
 
-    public override IContent[] GetContent()
-    {
-        EnsureGitCommands();
-        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, _services, () => _form = null)];
-    }
-
-    private void EnsureGitCommands()
-    {
-        if (_gitCommandsLoaded)
-        {
-            return;
-        }
-
-        _gitCommandsLoaded = true;
-        Commands = BuildGitCommands(_shortcut, _onChanged);
-    }
-
-    private CommandContextItem[] BuildGitCommands(
-        TerminalShortcut shortcut,
-        Action onChanged)
-    {
-        if (!_services.GitOperations.TryGetStatus(shortcut.Directory, out var status))
-        {
-            return [];
-        }
-
-        var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, _services.GitOperations);
-        var items = new List<CommandContextItem>
-        {
-            new(new WorktreeBranchPickerPage(_services, shortcut.Id, onChanged, status, target))
-            {
-                Title = "Switch branch…",
-                Icon = new IconInfo("\ue6af"),
-            },
-        };
-
-        if (!string.IsNullOrWhiteSpace(target))
-        {
-            items.Add(new CommandContextItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, onChanged, _services))
-            {
-                Title = "Use current branch",
-                Icon = new IconInfo("\ue694"),
-            });
-        }
-
-        return items.ToArray();
-    }
+    public override IContent[] GetContent() =>
+        [_form ??= new WorkspaceStatusForm(_shortcut, _settings, _services, () => _form = null)];
 }
 
 internal sealed partial class WorkspaceStatusForm : FormContent

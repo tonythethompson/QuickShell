@@ -92,9 +92,9 @@ Name: "{group}\{#DisplayName}"; Filename: "{app}\{#ExtensionName}.exe"
 
 [Registry]
 
-Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}}"; ValueType: string; ValueName: ""; ValueData: "{#ExtensionName}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}"; ValueType: string; ValueName: ""; ValueData: "{#ExtensionName}"; Flags: uninsdeletekey
 
-Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}}\LocalServer32"; ValueType: string; ValueName: ""; ValueData: """{app}\{#ExtensionName}.exe"" -RegisterProcessAsComServer"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{{#Clsid}}\LocalServer32"; ValueType: string; ValueName: ""; ValueData: """{app}\{#ExtensionName}.exe"" -RegisterProcessAsComServer"; Flags: uninsdeletekey
 
 
 
