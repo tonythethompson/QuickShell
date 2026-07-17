@@ -81,7 +81,7 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
         {
             try
             {
-                listener?.Stop();
+                listener?.Dispose();
             }
             catch (SocketException)
             {
