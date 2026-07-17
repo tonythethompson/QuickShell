@@ -75,12 +75,14 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         }
 
         var allShortcuts = _context.Services.Shortcuts.GetShortcuts();
-        var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts);
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts).ToList();
         var savedDirectories = allShortcuts
             .Select(shortcut => shortcut.Directory)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var gitRepos = GitRepoIndex.Search(_context.Services.ProjectAnalysis, _lastQuery, extraRoots, savedDirectories).ToArray();
+        var gitRepos = _context.Services.GitRepos
+            .Search(_lastQuery, extraRoots, savedDirectories)
+            .ToArray();
         if (gitRepos.Length > 0)
         {
             var listPage = _listPage.Value;

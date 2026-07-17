@@ -44,7 +44,6 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         // Keep the provider's background git prewarm from scanning the real machine.
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
-        GitRepoIndex.ResetForTests();
 
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
@@ -64,14 +63,12 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         BuildGitRepoTree(scanRoot, repoCount: 25);
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [scanRoot];
-        GitRepoIndex.ResetForTests();
 
         var discoverCold = Time(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
         // Warm discover: reuses prior results within the same process walk.
         var discoverWarm = Time(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
 
         // --- Provider constructor --------------------------------------------
-        GitRepoIndex.ResetForTests();
         var ctorMs = Time(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
         var ctorTrace = _trace.Builder.ToString();
 
@@ -106,14 +103,11 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         // Use the real search roots (user profile common folders + all drives).
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
-        ProjectClassificationCache.Invalidate();
-        GitRepoIndex.ResetForTests();
 
         var discoverCold = Time(() => GitRepoDiscovery.Discover(_projectAnalysis));
         var discoverWarm = Time(() => GitRepoDiscovery.Discover(_projectAnalysis));
 
         // Provider ctor against an isolated settings store (real git roots still prewarm).
-        GitRepoIndex.ResetForTests();
         var ctorMs = Time(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
         var ctorTrace = _trace.Builder.ToString();
 
@@ -292,7 +286,6 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Environment.SetEnvironmentVariable("QUICKSHELL_STARTUP_TRACE", null);
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
-        GitRepoIndex.ResetForTests();
 
         if (_originalLocalAppData is null)
         {

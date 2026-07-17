@@ -13,12 +13,14 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
     private readonly QuickShellSettingsReader _settings;
     private readonly IShortcutRepository _shortcuts;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IProjectClassificationCache _classificationCache;
     private readonly IWorkspaceGitOperations _gitOperations;
 
     public QuickShellRunSettingsPanel(
         QuickShellSettingsReader settings,
         IShortcutRepository shortcuts,
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         IWorkspaceGitOperations gitOperations,
         Action<string, string> onDefaultsSaved)
     {
@@ -26,6 +28,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         _settings = settings;
         _shortcuts = shortcuts;
         _projectAnalysis = projectAnalysis;
+        _classificationCache = classificationCache ?? throw new ArgumentNullException(nameof(classificationCache));
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
 
         var root = new StackPanel { Margin = new Thickness(0, 12, 0, 8) };
@@ -72,7 +75,9 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
             FontWeight = FontWeights.SemiBold,
             Margin = new Thickness(0, 4, 0, 8),
         });
-        root.Children.Add(CreateButton("Create shortcut", () => ShortcutEditor.TryShowDialog(null, _shortcuts, _projectAnalysis, _gitOperations, out _)));
+        root.Children.Add(CreateButton(
+            "Create shortcut",
+            () => ShortcutEditor.TryShowDialog(null, _shortcuts, _projectAnalysis, _classificationCache, _gitOperations, out _)));
 
         Content = root;
     }

@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
@@ -224,8 +225,10 @@ internal static class ShortcutFormTemplateJson
     public static string BuildDataJson(
         DataPayload draft,
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)>? commands = null)
     {
+        ArgumentNullException.ThrowIfNull(classificationCache);
         commands ??= [];
         var commandFields = string.Join(
             ",\n",
@@ -238,7 +241,7 @@ internal static class ShortcutFormTemplateJson
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
-        var pillFields = BuildPillDataFields(draft, commands, projectAnalysis);
+        var pillFields = BuildPillDataFields(draft, commands, projectAnalysis, classificationCache);
         var pillSection = pillFields.Length > 0 ? ",\n" + pillFields : string.Empty;
         var companions = draft.Companions is { Count: > 0 }
             ? draft.Companions
@@ -274,7 +277,8 @@ internal static class ShortcutFormTemplateJson
     private static string BuildPillDataFields(
         DataPayload draft,
         IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache)
     {
         var launchRows = commands
             .Select(row => new LaunchRowDraft
@@ -291,6 +295,7 @@ internal static class ShortcutFormTemplateJson
                      draft.Directory,
                      launchRows.Select(row => row.Command),
                      projectAnalysis,
+                     classificationCache,
                      draft.ExpandSuggestionPills,
                      isScanningSuggestions: draft.SuggestionScanning))
         {

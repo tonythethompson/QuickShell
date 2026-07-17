@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Composition;
@@ -13,6 +14,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     private readonly string _root;
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IProjectClassificationCache _classificationCache;
 
     public CommandSuggestionServiceTests()
     {
@@ -20,6 +22,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         Directory.CreateDirectory(_root);
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        _classificationCache = _provider.GetRequiredService<IProjectClassificationCache>();
     }
 
     [Fact]
@@ -28,7 +31,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.Contains(pills, pill => pill.Command == "docker compose logs -f");
         Assert.Contains(pills, pill => pill.Command == "docker compose up");
@@ -46,9 +49,9 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        Assert.True(CommandSuggestionService.HasSuggestions(_root, [], _projectAnalysis));
-        Assert.False(CommandSuggestionService.HasSuggestions(Path.Join(_root, "missing"), [], _projectAnalysis));
-        Assert.False(CommandSuggestionService.HasSuggestions(null, [], _projectAnalysis));
+        Assert.True(CommandSuggestionService.HasSuggestions(_root, [], _projectAnalysis, _classificationCache));
+        Assert.False(CommandSuggestionService.HasSuggestions(Path.Join(_root, "missing"), [], _projectAnalysis, _classificationCache));
+        Assert.False(CommandSuggestionService.HasSuggestions(null, [], _projectAnalysis, _classificationCache));
     }
 
     [Fact]
@@ -57,9 +60,9 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        var full = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var full = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
         CommandSuggestionService.ClearResultCache();
-        var single = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, maxCount: 1);
+        var single = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache, maxCount: 1);
 
         Assert.NotEmpty(full);
         Assert.Single(single);
@@ -73,8 +76,8 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         CommandSuggestionService.ClearResultCache();
 
-        var first = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
-        var second = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var first = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
+        var second = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.Equal(first.Count, second.Count);
         Assert.Equal(
@@ -109,7 +112,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
             """);
         File.WriteAllText(Path.Join(_root, "tmp_serilog_probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
 
-        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.DoesNotContain(pills, pill => pill.Command.Contains("${workspaceFolder}", StringComparison.Ordinal));
         Assert.DoesNotContain(pills, pill => pill.Command.Contains("tmp_serilog_probe", StringComparison.OrdinalIgnoreCase));
@@ -120,7 +123,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     {
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
-        var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"], _projectAnalysis, _classificationCache);
 
         Assert.DoesNotContain(pills, pill => pill.Command == "docker compose logs -f");
     }
@@ -137,7 +140,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         var json = System.Text.Json.JsonSerializer.Serialize(new { scripts });
         File.WriteAllText(Path.Join(_root, "package.json"), json);
 
-        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.True(pills.Count <= CommandSuggestionService.MaxPills);
     }
@@ -153,7 +156,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
             new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
         };
 
-        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
         Assert.True(pills.Count >= 2);
 
         Assert.False(CommandSuggestionService.ApplyPill(rows, pills[0], "default"));
