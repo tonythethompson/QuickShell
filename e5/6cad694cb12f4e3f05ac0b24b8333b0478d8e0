@@ -3,6 +3,7 @@ QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
   s_6fad6f7a509527::t_732e85527ab31e 33-35
   s_6fad6f7a509527::t_be1e48d16e674c 70
   s_6fad6f7a509527::t_b44633969a4601 72
+  s_6fad6f7a509527::t_57e43ffb655865 12,32,49,57
 QuickShell.Core.Tests/LaunchRowListEditorTests.cs
   s_6fad6f7a509527::t_a250250845c9c1 156-184
 QuickShell.Core/Services/CommandSuggestionService.cs
