@@ -1,0 +1,19 @@
+QuickShell/Pages/ShortcutFormPage.cs
+  s_265ac3fcb9e78a::t_ae3253a599dd93 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9ff3dfca7eaae0a803b146df0d04d001db80c66a",
+  "prompts": {},
+  "sessions": {
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
