@@ -86,6 +86,56 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     }
 
     [Fact]
+    public void BuildSelectablePills_IncludesOpenToDirectory_AndBlankCommandResolves()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        _suggestions.ResetForTests();
+
+        var pills = SuggestionPillPresentation.BuildSelectablePills(
+            _root,
+            [],
+            _projectAnalysis,
+            _suggestions);
+
+        Assert.Contains(pills, pill => ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill));
+        Assert.Equal(
+            SuggestionPillPresentation.OpenToDirectoryPill.DisplayTitle,
+            pills[^1].DisplayTitle);
+
+        // Form apply path: same list + blank command from the Adaptive Card template.
+        var found = _suggestions.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
+        Assert.NotNull(found);
+        Assert.True(ReferenceEquals(found, SuggestionPillPresentation.OpenToDirectoryPill));
+    }
+
+    [Fact]
+    public void BuildSelectablePills_MatchesBuildDataFieldsSlotOrder()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        _suggestions.ResetForTests();
+
+        var pills = SuggestionPillPresentation.BuildSelectablePills(
+            _root,
+            [],
+            _projectAnalysis,
+            _suggestions);
+        var fields = SuggestionPillPresentation.BuildDataFields(
+            _root,
+            [],
+            _projectAnalysis,
+            _suggestions,
+            expandSuggestionPills: true);
+
+        for (var i = 0; i < pills.Count && i < SuggestionPillPresentation.MaxSlots; i++)
+        {
+            Assert.Equal("true", fields[$"ShowPill_{i}"]);
+            Assert.Equal(pills[i].DisplayTitle, fields[$"PillTitle_{i}"]);
+            Assert.Equal(pills[i].Command, fields[$"PillCommand_{i}"]);
+            Assert.Equal(pills[i].TaskType, fields[$"PillTaskType_{i}"]);
+        }
+    }
+
+    [Fact]
     public void FormatDisplayTitle_UsesCommandOnlyAndTruncates()
     {
         Assert.Equal("npm test", SuggestionPillPresentation.FormatDisplayTitle("npm test"));
