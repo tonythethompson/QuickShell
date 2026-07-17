@@ -27,13 +27,9 @@ internal interface IQuickShellServices
 
     WorkspaceGitLaunchGate GitLaunchGate { get; }
 
-<<<<<<< HEAD
-    IQuickShellLifetime Lifetime { get; }
-=======
     IGitRepoIndex GitRepos { get; }
 
     IProjectClassificationCache ClassificationCache { get; }
 
     IExtensionCallbackQueue CallbackQueue { get; }
->>>>>>> origin/master
 }
