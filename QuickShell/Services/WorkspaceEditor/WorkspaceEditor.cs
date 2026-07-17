@@ -789,7 +789,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         {
             cts?.Cancel();
         }
-        catch
+        catch (ObjectDisposedException)
         {
             // Best effort.
         }
