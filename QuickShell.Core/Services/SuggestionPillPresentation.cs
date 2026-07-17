@@ -23,7 +23,7 @@ internal static class SuggestionPillPresentation
         Command: string.Empty,
         TaskType: TaskTypeCatalog.None,
         TypeTitle: "Folder",
-        DisplayTitle: "Open to Directory",
+        DisplayTitle: "Open directory only",
         Tooltip: "Open this folder without running a command.",
         Score: 0,
         Source: "folder-only");

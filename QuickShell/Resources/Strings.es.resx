@@ -91,7 +91,7 @@
     <value>Requiere atención</value>
   </data>
   <data name="Pill_OpenToDirectory" xml:space="preserve">
-    <value>Abrir en la carpeta</value>
+    <value>Abrir solo el directorio</value>
   </data>
   <data name="Menu_SwitchBranch" xml:space="preserve">
     <value>Cambiar de rama</value>
@@ -101,6 +101,24 @@
   </data>
   <data name="Menu_UseCurrentBranch" xml:space="preserve">
     <value>Usar rama actual</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>Espacio de trabajo no encontrado</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>No es un repositorio de Git</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>No se encontraron ramas locales</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>Selecciona una rama local</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>Borrar destino: actualmente anclado a {0}</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>Rama actual</value>
   </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Favorito</value>

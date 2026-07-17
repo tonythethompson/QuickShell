@@ -88,10 +88,10 @@
     <value>Arbeitsbereiche</value>
   </data>
   <data name="Section_NeedsAttention" xml:space="preserve">
-    <value>Erfordert Aufmerksamkeit</value>
+    <value>Aufmerksamkeit erforderlich</value>
   </data>
   <data name="Pill_OpenToDirectory" xml:space="preserve">
-    <value>Zum Ordner öffnen</value>
+    <value>Nur Verzeichnis öffnen</value>
   </data>
   <data name="Menu_SwitchBranch" xml:space="preserve">
     <value>Branch wechseln</value>
@@ -101,6 +101,24 @@
   </data>
   <data name="Menu_UseCurrentBranch" xml:space="preserve">
     <value>Aktuellen Branch verwenden</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>Arbeitsbereich nicht gefunden</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>Kein Git-Repository</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>Keine lokalen Branches gefunden</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>Lokalen Branch auswählen</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>Ziel löschen: derzeit auf {0} festgelegt</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>Aktueller Branch</value>
   </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Favorit</value>

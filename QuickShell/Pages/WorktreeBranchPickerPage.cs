@@ -50,7 +50,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             [
                 new ListItem(new NoOpCommand())
                 {
-                    Title = "Workspace not found",
+                    Title = Strings.BranchPicker_WorkspaceNotFound,
                 },
             ];
         }
@@ -62,7 +62,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             [
                 new ListItem(new NoOpCommand())
                 {
-                    Title = "Not a git repository",
+                    Title = Strings.BranchPicker_NotAGitRepository,
                     Subtitle = shortcut.Directory,
                 },
             ];
@@ -77,7 +77,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             [
                 new ListItem(new NoOpCommand())
                 {
-                    Title = "No local branches found",
+                    Title = Strings.BranchPicker_NoLocalBranches,
                     Subtitle = WorkspaceGitOperations.FormatBranchContextLabel(status, target),
                 },
             ];
@@ -88,7 +88,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             new ListItem(new NoOpCommand())
             {
                 Title = WorkspaceGitOperations.FormatBranchContextLabel(status, target),
-                Subtitle = "Select a local branch",
+                Subtitle = Strings.BranchPicker_SelectLocalBranch,
                 Icon = new IconInfo("\uE8AB"),
             },
         };
@@ -98,7 +98,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             items.Add(new ListItem(new UseCurrentWorktreeBranchCommand(_shortcutId, _onChanged, _services))
             {
                 Title = Strings.Menu_UseCurrentBranch,
-                Subtitle = $"Clear target \u2014 currently pinned to {target}",
+                Subtitle = Strings.BranchPicker_ClearTargetPinnedFormat(target),
                 Icon = new IconInfo("\uE894"),
             });
         }
@@ -109,7 +109,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _services, _onChanged))
             {
                 Title = branch,
-                Subtitle = isCurrent ? "Current branch" : string.Empty,
+                Subtitle = isCurrent ? Strings.BranchPicker_CurrentBranch : string.Empty,
                 Icon = new IconInfo(isCurrent ? "\uE73E" : "\uE8AB"),
             });
         }

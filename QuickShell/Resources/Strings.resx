@@ -91,7 +91,7 @@
     <value>Needs attention</value>
   </data>
   <data name="Pill_OpenToDirectory" xml:space="preserve">
-    <value>Open to Directory</value>
+    <value>Open directory only</value>
   </data>
   <data name="Menu_SwitchBranch" xml:space="preserve">
     <value>Switch branch</value>
@@ -101,6 +101,24 @@
   </data>
   <data name="Menu_UseCurrentBranch" xml:space="preserve">
     <value>Use current branch</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>Workspace not found</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>Not a git repository</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>No local branches found</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>Select a local branch</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>Clear target: currently pinned to {0}</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>Current branch</value>
   </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Favorite</value>
