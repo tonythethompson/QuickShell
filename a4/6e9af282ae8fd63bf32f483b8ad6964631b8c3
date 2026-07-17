@@ -10,6 +10,7 @@ QuickShell.Core.Tests/WorkspaceStatusSnapshotTests.cs
   s_15a9af5697c977::t_cf0c6c44856545 308-309,356-357
 QuickShell.Core/Services/WorkspaceEnvironmentProbe.cs
   s_15a9af5697c977::t_ba4b33aa6b28e5 69,72,80-90,137-141,145-151,160
+  s_15a9af5697c977::t_18679db5d58fc1 53-61,107,180-183,196
 QuickShell.Run/RunWorkspaceSubtitle.cs
   s_15a9af5697c977::t_ca71dbb8aa4067 42-43
 QuickShell/Services/ShortcutListItems.cs
