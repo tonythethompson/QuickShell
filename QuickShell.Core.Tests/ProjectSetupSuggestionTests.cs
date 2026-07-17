@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
 using QuickShell.Models;
@@ -12,6 +13,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
     private readonly string _root;
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly GitRepoIndex _gitRepoIndex;
 
     public ProjectSetupSuggestionTests()
     {
@@ -19,6 +21,10 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         Directory.CreateDirectory(_root);
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        _gitRepoIndex = new GitRepoIndex(
+            _projectAnalysis,
+            _provider.GetRequiredService<IQuickShellLifetime>(),
+            new SyncExtensionThreadScheduler());
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
     }
@@ -268,7 +274,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         var repoPath = Path.Combine(_root, "api");
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
         File.WriteAllText(Path.Combine(repoPath, "go.mod"), "module example.com/api\n");
-        GitRepoIndex.Invalidate();
+        _gitRepoIndex.Invalidate();
 
         var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
 
@@ -276,10 +282,10 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         Assert.True(candidate.Classification.Has(ProjectStack.Go));
         Assert.Contains("Go", DiscoverGitRepoListItems.BuildSubtitleForNew(candidate), StringComparison.Ordinal);
 
-        _ = GitRepoIndex.Search(_projectAnalysis, "go", [_root], savedDirectories: null);
-        GitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
+        _ = _gitRepoIndex.Search("go", [_root], savedDirectories: null);
+        _gitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
 
-        var matches = GitRepoIndex.Search(_projectAnalysis, "go", [_root], savedDirectories: null);
+        var matches = _gitRepoIndex.Search("go", [_root], savedDirectories: null);
 
         Assert.Single(matches);
         Assert.Equal("api", matches[0].Name);
@@ -311,8 +317,8 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
 
     public void Dispose()
     {
+        _gitRepoIndex.Dispose();
         _provider.Dispose();
-        GitRepoIndex.Invalidate();
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try

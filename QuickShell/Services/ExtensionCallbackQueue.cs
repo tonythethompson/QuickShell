@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -6,19 +7,19 @@ namespace QuickShell.Services;
 /// CmdPal loads the extension on an MTA thread with no <see cref="SynchronizationContext"/>.
 /// Background work must queue UI callbacks here; list pages drain the queue from <c>GetItems</c>.
 /// </summary>
-internal static class ExtensionCallbackQueue
+internal sealed class ExtensionCallbackQueue : IExtensionCallbackQueue
 {
-    private static readonly ConcurrentQueue<Action> Pending = new();
+    private readonly ConcurrentQueue<Action> _pending = new();
 
-    internal static void Enqueue(Action callback)
+    public void Enqueue(Action callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
-        Pending.Enqueue(callback);
+        _pending.Enqueue(callback);
     }
 
-    internal static void Drain()
+    public void Drain()
     {
-        while (Pending.TryDequeue(out var callback))
+        while (_pending.TryDequeue(out var callback))
         {
             try
             {

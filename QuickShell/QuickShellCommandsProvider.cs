@@ -38,8 +38,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
         // #endregion
 
-        GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
-        GitRepoIndex.ExtensionThreadPoster = ExtensionCallbackQueue.Enqueue;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
@@ -172,7 +170,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     /// <summary>Immediate home-list rebuild (favorite moves, delete, undo, …).</summary>
     private void ReloadPages()
     {
-        GitRepoIndex.Invalidate();
+        _services.GetRequiredService<IGitRepoIndex>().Invalidate();
         _page.Reload();
         if (_fallbackPage.IsValueCreated)
         {
@@ -183,7 +181,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     /// <summary>Deferred list refresh after form/settings navigation (do not block GoBack).</summary>
     private void InvalidatePagesAfterNavigation()
     {
-        GitRepoIndex.Invalidate();
+        _services.GetRequiredService<IGitRepoIndex>().Invalidate();
         // _page may still be null while the provider ctor builds CreateShortcutCommand.
         if (_page is not null)
         {
@@ -287,7 +285,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             fallback.Dispose();
         }
 
-        GitRepoIndex.ExtensionThreadPoster = null;
         _services.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);

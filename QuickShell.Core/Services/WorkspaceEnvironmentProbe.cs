@@ -30,8 +30,8 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
             {
                 FileName = "where.exe",
                 Arguments = path,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
@@ -91,9 +91,20 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
     {
         try
         {
-            return Process.GetProcesses()
-                .Select(process => process.ProcessName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
+            var processes = Process.GetProcesses();
+            var names = new List<string>();
+
+            foreach (var rawProcess in processes)
+            {
+                using var process = rawProcess;
+                var name = process.ProcessName;
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    names.Add(name);
+                }
+            }
+
+            return names
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }

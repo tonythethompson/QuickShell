@@ -54,7 +54,7 @@ internal sealed partial class MultiLaunchSettingsForm : FormContent
         if (singleWindowTabs != !_settingsManager.SeparateWindowsForMultiLaunch)
         {
             _settingsManager.UpdateMultiLaunchPresentation(singleWindowTabs);
-            SettingsFormHelpers.SchedulePostNavigationRefresh(_onReload);
+            SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.Services.CallbackQueue, _onReload);
             SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
             QuickShellStatus.ShowToast(Strings.Saved_Toast);
         }

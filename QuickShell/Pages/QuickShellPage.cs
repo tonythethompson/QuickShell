@@ -107,7 +107,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public override IListItem[] GetItems()
     {
-        ExtensionCallbackQueue.Drain();
+        _services.CallbackQueue.Drain();
 
         // Host FetchItems awaits this return. Build on this COM/fetch thread so the
         // first result is the real workspace list. ThreadPool + RaiseItemsChanged left
@@ -547,7 +547,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 return;
             }
 
-            ExtensionCallbackQueue.Enqueue(() =>
+            _services.CallbackQueue.Enqueue(() =>
             {
                 if (_disposed)
                 {

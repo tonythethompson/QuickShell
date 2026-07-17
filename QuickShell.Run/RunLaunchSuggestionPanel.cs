@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Services;
@@ -168,11 +169,13 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
 
     public void Schedule(
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         string? directory,
         IEnumerable<string?> usedCommands,
         Action<int> onGenerationStarted,
         Func<IReadOnlyList<CommandSuggestionPill>, int, Task> onCompleted)
     {
+        ArgumentNullException.ThrowIfNull(classificationCache);
         CancellationTokenSource cancellation;
         CancellationTokenSource? previous;
         lock (_gate)
@@ -203,7 +206,11 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
                     return;
                 }
 
-                var pills = CommandSuggestionService.GetPills(directory, usedCommands, projectAnalysis);
+                var pills = CommandSuggestionService.GetPills(
+                    directory,
+                    usedCommands,
+                    projectAnalysis,
+                    classificationCache);
                 if (token.IsCancellationRequested)
                 {
                     return;

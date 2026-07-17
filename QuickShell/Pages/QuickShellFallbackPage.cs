@@ -143,12 +143,12 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private List<GitRepoCandidate> GetDiscoverPreviewRepos()
     {
-        var extraRoots = GitRepoSearchRoots.FromShortcuts(_services.Shortcuts.GetShortcuts());
+        var extraRoots = GitRepoSearchRoots.FromShortcuts(_services.Shortcuts.GetShortcuts()).ToList();
         var savedDirectories = _services.Shortcuts.GetShortcuts()
             .Select(shortcut => shortcut.Directory)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        return GitRepoIndex.GetAll(_services.ProjectAnalysis, extraRoots)
+        return _services.GitRepos.GetAll(extraRoots)
             .Where(candidate => !savedDirectories.Contains(candidate.Directory))
             .Take(8)
             .ToList();
@@ -164,7 +164,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private void OnGitRepoAdded()
     {
-        GitRepoIndex.Invalidate();
+        _services.GitRepos.Invalidate();
         _onReload();
     }
 

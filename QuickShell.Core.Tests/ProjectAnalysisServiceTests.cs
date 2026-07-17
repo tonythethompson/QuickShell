@@ -33,7 +33,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassificationCache.Classify(_root, service);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.Equal(viaLegacy.Labels, viaService.Labels);
@@ -55,7 +55,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassificationCache.Classify(_root, service);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.Contains("App.csproj", viaService.RunnableDotNetProjects);
@@ -82,7 +82,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassificationCache.Classify(_root, service);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.True(viaService.Has(ProjectStack.Rust));
@@ -95,7 +95,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassificationCache.Classify(_root, service);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.True(viaService.Has(ProjectStack.Python));
@@ -108,7 +108,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassificationCache.Classify(_root, service);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.True(viaService.Has(ProjectStack.Go));

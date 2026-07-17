@@ -1,23 +1,27 @@
 using System.Collections.Concurrent;
 using System.Text;
 
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
-using QuickShell.Classification;
 
 namespace QuickShell.Services;
 
-internal static class ProjectClassificationCache
+internal sealed class ProjectClassificationCache : IProjectClassificationCache
 {
     private const int MaxEntries = 64;
 
-    private static readonly ConcurrentDictionary<string, CacheEntry> Entries = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Queue<string> InsertionOrder = new();
-    private static readonly object EvictionLock = new();
+    private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly ConcurrentDictionary<string, CacheEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Queue<string> _insertionOrder = new();
+    private readonly object _evictionLock = new();
 
-    public static ProjectClassification Classify(string? directory, IProjectAnalysisService projectAnalysis)
+    public ProjectClassificationCache(IProjectAnalysisService projectAnalysis)
     {
-        ArgumentNullException.ThrowIfNull(projectAnalysis);
+        _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+    }
 
+    public ProjectClassification Classify(string? directory)
+    {
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
             return ProjectClassification.Empty;
@@ -27,61 +31,61 @@ internal static class ProjectClassificationCache
         // Cheap signature every call (markers + typed globs). Full project analysis only
         // when the signature changes — avoids SHA256 + top-level *.* walks on the hot path.
         var signature = BuildCheapSignature(normalized);
-        if (Entries.TryGetValue(normalized, out var cached)
+        if (_entries.TryGetValue(normalized, out var cached)
             && string.Equals(cached.Signature, signature, StringComparison.Ordinal))
         {
             return cached.Classification;
         }
 
-        var classification = projectAnalysis.Classify(normalized);
-        Entries[normalized] = new CacheEntry(signature, classification);
+        var classification = _projectAnalysis.Classify(normalized);
+        _entries[normalized] = new CacheEntry(signature, classification);
         TrackInsertion(normalized);
         return classification;
     }
 
-    public static void Invalidate(string? directory = null)
+    public void Invalidate(string? directory = null)
     {
         if (string.IsNullOrWhiteSpace(directory))
         {
-            lock (EvictionLock)
+            lock (_evictionLock)
             {
-                Entries.Clear();
-                InsertionOrder.Clear();
+                _entries.Clear();
+                _insertionOrder.Clear();
             }
 
             return;
         }
 
         var normalized = directory.Trim();
-        Entries.TryRemove(normalized, out _);
-        lock (EvictionLock)
+        _entries.TryRemove(normalized, out _);
+        lock (_evictionLock)
         {
             RemoveFromQueue(normalized);
         }
     }
 
-    private static void TrackInsertion(string normalized)
+    private void TrackInsertion(string normalized)
     {
-        lock (EvictionLock)
+        lock (_evictionLock)
         {
             RemoveFromQueue(normalized);
-            InsertionOrder.Enqueue(normalized);
-            while (Entries.Count > MaxEntries && InsertionOrder.TryDequeue(out var oldest))
+            _insertionOrder.Enqueue(normalized);
+            while (_entries.Count > MaxEntries && _insertionOrder.TryDequeue(out var oldest))
             {
-                Entries.TryRemove(oldest, out _);
+                _entries.TryRemove(oldest, out _);
             }
         }
     }
 
-    private static void RemoveFromQueue(string normalized)
+    private void RemoveFromQueue(string normalized)
     {
-        if (InsertionOrder.Count == 0)
+        if (_insertionOrder.Count == 0)
         {
             return;
         }
 
-        var retained = new Queue<string>(InsertionOrder.Count);
-        while (InsertionOrder.TryDequeue(out var entry))
+        var retained = new Queue<string>(_insertionOrder.Count);
+        while (_insertionOrder.TryDequeue(out var entry))
         {
             if (!string.Equals(entry, normalized, StringComparison.OrdinalIgnoreCase))
             {
@@ -91,7 +95,7 @@ internal static class ProjectClassificationCache
 
         while (retained.TryDequeue(out var entry))
         {
-            InsertionOrder.Enqueue(entry);
+            _insertionOrder.Enqueue(entry);
         }
     }
 

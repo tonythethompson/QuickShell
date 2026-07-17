@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
 using QuickShell.Services;
@@ -6,30 +7,35 @@ using System.Diagnostics;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(GitRepoIndexIsolation.Name)]
 public sealed class GitRepoIndexCacheTests : IDisposable
 {
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IQuickShellLifetime _lifetime;
+    private readonly IExtensionThreadScheduler _scheduler;
 
     public GitRepoIndexCacheTests()
     {
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
-        GitRepoIndex.ResetForTests();
+        _lifetime = _provider.GetRequiredService<IQuickShellLifetime>();
+        _scheduler = new SyncExtensionThreadScheduler();
     }
 
     public void Dispose()
     {
         _provider.Dispose();
-        GitRepoIndex.ResetForTests();
     }
+
+    private GitRepoIndex CreateIndex(
+        Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? discoverOverride = null) =>
+        new(_projectAnalysis, _lifetime, _scheduler, discoverOverride);
 
     [Fact]
     public void GetAll_ReturnsStaleCache_WithoutBlockingOnRefresh()
     {
         using var gate = new ManualResetEventSlim(false);
-        GitRepoIndex.DiscoverOverride = _ =>
+        using var index = CreateIndex(_ =>
         {
             gate.Wait();
             return
@@ -40,9 +46,9 @@ public sealed class GitRepoIndexCacheTests : IDisposable
                     Directory = @"C:\fresh",
                 },
             ];
-        };
+        });
 
-        GitRepoIndex.SeedCacheForTests(
+        index.SeedCacheForTests(
             [
                 new GitRepoCandidate
                 {
@@ -54,7 +60,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
             refreshedUtc: DateTime.UtcNow.AddMinutes(-20));
 
         var stopwatch = Stopwatch.StartNew();
-        var result = GitRepoIndex.GetAll(_projectAnalysis, []);
+        var result = index.GetAll([]);
         stopwatch.Stop();
 
         Assert.Single(result);
@@ -62,8 +68,8 @@ public sealed class GitRepoIndexCacheTests : IDisposable
         Assert.True(stopwatch.ElapsedMilliseconds < 500, $"Expected non-blocking stale read, took {stopwatch.ElapsedMilliseconds}ms.");
 
         gate.Set();
-        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
-        var refreshed = GitRepoIndex.GetAll(_projectAnalysis, []);
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        var refreshed = index.GetAll([]);
         Assert.Single(refreshed);
         Assert.Equal("Fresh", refreshed[0].Name);
     }
@@ -72,7 +78,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     public void Invalidate_PreventsServingStaleCacheUntilRefreshCompletes()
     {
         using var gate = new ManualResetEventSlim(false);
-        GitRepoIndex.DiscoverOverride = _ =>
+        using var index = CreateIndex(_ =>
         {
             gate.Wait();
             return
@@ -83,9 +89,9 @@ public sealed class GitRepoIndexCacheTests : IDisposable
                     Directory = @"C:\after",
                 },
             ];
-        };
+        });
 
-        GitRepoIndex.SeedCacheForTests(
+        index.SeedCacheForTests(
             [
                 new GitRepoCandidate
                 {
@@ -96,13 +102,13 @@ public sealed class GitRepoIndexCacheTests : IDisposable
             rootKey: string.Empty,
             refreshedUtc: DateTime.UtcNow);
 
-        GitRepoIndex.Invalidate();
+        index.Invalidate();
 
-        Assert.Empty(GitRepoIndex.GetAll(_projectAnalysis, []));
+        Assert.Empty(index.GetAll([]));
 
         gate.Set();
-        GitRepoIndex.WaitForPopulationForTests(string.Empty, TimeSpan.FromSeconds(5));
-        var refreshed = GitRepoIndex.GetAll(_projectAnalysis, []);
+        index.WaitForPopulationForTests(string.Empty, TimeSpan.FromSeconds(5));
+        var refreshed = index.GetAll([]);
         Assert.Single(refreshed);
         Assert.Equal("AfterInvalidate", refreshed[0].Name);
     }
@@ -112,7 +118,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     {
         var invoked = false;
         using var gate = new ManualResetEventSlim(false);
-        GitRepoIndex.DiscoverOverride = _ =>
+        using var index = CreateIndex(_ =>
         {
             gate.Wait();
             return
@@ -123,17 +129,17 @@ public sealed class GitRepoIndexCacheTests : IDisposable
                     Directory = @"C:\after-callback",
                 },
             ];
-        };
+        });
 
-        GitRepoIndex.Invalidate();
-        GitRepoIndex.RunAfterNextRefresh(() => invoked = true);
-        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
+        index.Invalidate();
+        index.RunAfterNextRefresh(() => invoked = true);
+        _ = index.GetAll([]);
 
         gate.Set();
         Assert.True(
             SpinWait.SpinUntil(() => invoked, TimeSpan.FromSeconds(5)),
             "Expected refresh completion callback to run.");
-        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
 
         Assert.True(invoked);
     }
@@ -142,16 +148,16 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     public void RunAfterNextRefresh_InvokesCallbackWhenRefreshFails()
     {
         var invoked = false;
-        GitRepoIndex.DiscoverOverride = _ => throw new InvalidOperationException("discovery failed");
+        using var index = CreateIndex(_ => throw new InvalidOperationException("discovery failed"));
 
-        GitRepoIndex.Invalidate();
-        GitRepoIndex.RunAfterNextRefresh(() => invoked = true);
-        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
+        index.Invalidate();
+        index.RunAfterNextRefresh(() => invoked = true);
+        _ = index.GetAll([]);
 
         Assert.True(
             SpinWait.SpinUntil(() => invoked, TimeSpan.FromSeconds(5)),
             "Expected refresh completion callback to run after a failed refresh.");
-        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
 
         Assert.True(invoked);
     }
@@ -159,7 +165,8 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     [Fact]
     public void GetAll_ReturnsEmpty_WhenRootKeyDoesNotMatchCachedData()
     {
-        GitRepoIndex.SeedCacheForTests(
+        using var index = CreateIndex();
+        index.SeedCacheForTests(
             [
                 new GitRepoCandidate
                 {
@@ -170,35 +177,35 @@ public sealed class GitRepoIndexCacheTests : IDisposable
             rootKey: @"C:\other-root",
             refreshedUtc: DateTime.UtcNow);
 
-        Assert.Empty(GitRepoIndex.GetAll(_projectAnalysis, [@"C:\different-root"]));
+        Assert.Empty(index.GetAll([@"C:\different-root"]));
     }
 
     [Fact]
     public void GetAll_DoesNotRescanImmediatelyAfterEmptyRefreshResult()
     {
         var refreshCount = 0;
-        GitRepoIndex.DiscoverOverride = _ =>
+        using var index = CreateIndex(_ =>
         {
             Interlocked.Increment(ref refreshCount);
             return [];
-        };
+        });
 
-        GitRepoIndex.Invalidate();
-        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
-        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        index.Invalidate();
+        _ = index.GetAll([]);
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
         Assert.Equal(1, Volatile.Read(ref refreshCount));
 
-        _ = GitRepoIndex.GetAll(_projectAnalysis, []);
-        GitRepoIndex.WaitForRefreshForTests(TimeSpan.FromSeconds(1));
+        _ = index.GetAll([]);
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(1));
         Assert.Equal(1, Volatile.Read(ref refreshCount));
-        Assert.Empty(GitRepoIndex.GetAll(_projectAnalysis, []));
+        Assert.Empty(index.GetAll([]));
     }
 
     [Fact]
     public void Prewarm_StartsBackgroundRefresh_WithoutThrowing()
     {
         var completed = new ManualResetEventSlim(false);
-        GitRepoIndex.DiscoverOverride = _ =>
+        using var index = CreateIndex(_ =>
         {
             completed.Set();
             return
@@ -209,10 +216,35 @@ public sealed class GitRepoIndexCacheTests : IDisposable
                     Directory = @"C:\prewarmed",
                 },
             ];
-        };
+        });
 
-        var exception = Record.Exception(() => GitRepoIndex.Prewarm(_projectAnalysis, []));
+        var exception = Record.Exception(() => index.Prewarm([]));
         Assert.Null(exception);
         Assert.True(completed.Wait(TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public void TwoServiceProviders_DoNotShareCacheState()
+    {
+        using var providerA = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        using var providerB = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+
+        var indexA = (GitRepoIndex)providerA.GetRequiredService<IGitRepoIndex>();
+        var indexB = (GitRepoIndex)providerB.GetRequiredService<IGitRepoIndex>();
+
+        indexA.SeedCacheForTests(
+            [
+                new GitRepoCandidate
+                {
+                    Name = "OnlyA",
+                    Directory = @"C:\only-a",
+                },
+            ],
+            rootKey: string.Empty,
+            refreshedUtc: DateTime.UtcNow);
+
+        Assert.Single(indexA.GetAll([]));
+        Assert.Empty(indexB.GetAll([]));
+        Assert.NotSame(indexA, indexB);
     }
 }

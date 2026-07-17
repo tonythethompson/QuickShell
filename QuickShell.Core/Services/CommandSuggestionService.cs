@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
@@ -41,8 +42,11 @@ internal static class CommandSuggestionService
     public static bool HasSuggestions(
         string? directory,
         IEnumerable<string?> usedCommands,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache)
     {
+        ArgumentNullException.ThrowIfNull(classificationCache);
+
         if (!TryNormalizeDirectory(directory, out var normalizedDir))
         {
             return false;
@@ -56,7 +60,7 @@ internal static class CommandSuggestionService
             return cached.Count > 0;
         }
 
-        if (AnyUsableSuggestion(normalizedDir, pickContext, projectAnalysis))
+        if (AnyUsableSuggestion(normalizedDir, pickContext, projectAnalysis, classificationCache))
         {
             return true;
         }
@@ -70,8 +74,11 @@ internal static class CommandSuggestionService
         string? directory,
         IEnumerable<string?> usedCommands,
         IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
         int maxCount = MaxPills)
     {
+        ArgumentNullException.ThrowIfNull(classificationCache);
+
         if (maxCount <= 0)
         {
             return [];
@@ -92,7 +99,7 @@ internal static class CommandSuggestionService
             return Slice(cached, maxCount);
         }
 
-        var ranked = BuildRankedPills(normalizedDir, pickContext, projectAnalysis);
+        var ranked = BuildRankedPills(normalizedDir, pickContext, projectAnalysis, classificationCache);
         StoreCache(normalizedDir, usedKey, ranked);
         return Slice(ranked, maxCount);
     }
@@ -147,7 +154,8 @@ internal static class CommandSuggestionService
     private static bool AnyUsableSuggestion(
         string directory,
         TaskTypePickContext pickContext,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache)
     {
         foreach (var agentPill in AgentCliSuggestion.BuildPills(directory, pickContext))
         {
@@ -157,15 +165,16 @@ internal static class CommandSuggestionService
             }
         }
 
-        return AnyUsableTaskTypeSuggestion(directory, pickContext, projectAnalysis);
+        return AnyUsableTaskTypeSuggestion(directory, pickContext, projectAnalysis, classificationCache);
     }
 
     private static bool AnyUsableTaskTypeSuggestion(
         string directory,
         TaskTypePickContext pickContext,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache)
     {
-        var classification = ProjectClassificationCache.Classify(directory, projectAnalysis);
+        var classification = classificationCache.Classify(directory);
         if (classification.Stacks == ProjectStack.None)
         {
             return false;
@@ -203,7 +212,8 @@ internal static class CommandSuggestionService
     private static List<CommandSuggestionPill> BuildRankedPills(
         string directory,
         TaskTypePickContext pickContext,
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache)
     {
         // Dedup by command (keep highest score). Sanity-filter once on insert.
         var merged = new Dictionary<string, CommandSuggestionPill>(StringComparer.OrdinalIgnoreCase);
@@ -218,7 +228,7 @@ internal static class CommandSuggestionService
             Consider(merged, agentPill);
         }
 
-        var classification = ProjectClassificationCache.Classify(directory, projectAnalysis);
+        var classification = classificationCache.Classify(directory);
         if (classification.Stacks != ProjectStack.None)
         {
             var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
