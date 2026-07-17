@@ -194,7 +194,7 @@ public sealed class ProjectClassificationCacheTests : IDisposable
     [Fact]
     public void TwoCaches_DoNotShareState()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         var other = new ProjectClassificationCache(_projectAnalysis);
 
         _ = _cache.Classify(_root);
