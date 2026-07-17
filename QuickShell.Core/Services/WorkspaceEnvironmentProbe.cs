@@ -81,7 +81,15 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
-        catch
+        catch (InvalidOperationException)
+        {
+            return [];
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return [];
+        }
+        catch (SystemException)
         {
             return [];
         }
