@@ -26,4 +26,6 @@ internal interface IQuickShellServices
     IWorkspaceHealthChecker HealthChecker { get; }
 
     WorkspaceGitLaunchGate GitLaunchGate { get; }
+
+    IQuickShellLifetime Lifetime { get; }
 }

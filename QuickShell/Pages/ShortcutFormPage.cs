@@ -5,29 +5,34 @@ using QuickShell.Models;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Services;
+using QuickShell.Services.WorkspaceEditor;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuickShell.Pages;
 
-internal partial class ShortcutFormPage : ContentPage
+internal partial class ShortcutFormPage : ContentPage, IDisposable
 {
-    private readonly QuickShell.Services.IQuickShellServices _services;
+    private readonly IQuickShellServices _services;
     private readonly TerminalShortcut? _existing;
     private readonly TerminalShortcut? _createSeed;
     private readonly Action? _onSaved;
     private readonly object _formSync = new();
+    private IWorkspaceEditor? _editor;
+    private ShortcutForm? _form;
+    private bool _formNeedsReset;
+    private bool _disposed;
 
     public ShortcutFormPage(
-        QuickShell.Services.IQuickShellServices services,
+        IQuickShellServices services,
         TerminalShortcut? existing = null,
         Action? onSaved = null,
         TerminalShortcut? createSeed = null)
     {
         _services = services;
         _existing = existing is null ? null : CloneShortcut(existing);
-        _createSeed = existing is null ? createSeed ?? ShortcutCreateNavigationState.TryTakeSeed() : null;
+        _createSeed = existing is null ? createSeed : null;
         _onSaved = onSaved;
         var isCreate = _existing is null;
         Id = isCreate
@@ -43,12 +48,12 @@ internal partial class ShortcutFormPage : ContentPage
                 () =>
                 {
                     EnsureFormBuilt();
-                    return _form!.TryUndoEdit();
+                    return _editor!.TryUndo();
                 },
                 () =>
                 {
                     EnsureFormBuilt();
-                    return _form!.TryRedoEdit();
+                    return _editor!.TryRedo();
                 },
                 onSaved,
                 _services);
@@ -61,28 +66,23 @@ internal partial class ShortcutFormPage : ContentPage
         return [_form!];
     }
 
-    private ShortcutForm? _form;
-    private bool _formNeedsReset;
-
     private void EnsureFormBuilt()
     {
         lock (_formSync)
         {
-            if (_form is null)
+            if (_disposed)
             {
-                _form = new ShortcutForm(_services, _existing, _createSeed, _onSaved, MarkFormNeedsReset);
-                _formNeedsReset = false;
                 return;
             }
 
-            // Reuse the form instance (Create workspace is a long-lived page). Rebuild only when
-            // we left the form so the next open is a clean draft without cold catalog work.
-            if (_formNeedsReset)
+            if (_form is null || _formNeedsReset)
             {
-                var seed = _existing is null
-                    ? _createSeed ?? ShortcutCreateNavigationState.TryTakeSeed()
-                    : null;
-                _form.ResetForOpen(_existing, seed);
+                _editor?.Dispose();
+                _form?.Dispose();
+
+                _editor = new WorkspaceEditor(_services, _services.Lifetime, _onSaved);
+                _editor.ResetForOpen(_existing, _existing is null ? _createSeed : null);
+                _form = new ShortcutForm(_editor, _services, MarkFormNeedsReset);
                 _formNeedsReset = false;
             }
         }
@@ -94,6 +94,25 @@ internal partial class ShortcutFormPage : ContentPage
         {
             _formNeedsReset = true;
         }
+    }
+
+    public void Dispose()
+    {
+        lock (_formSync)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _form?.Dispose();
+            _editor?.Dispose();
+            _form = null;
+            _editor = null;
+        }
+
+        GC.SuppressFinalize(this);
     }
 
     private static TerminalShortcut CloneShortcut(TerminalShortcut shortcut) => new()
@@ -120,6 +139,7 @@ internal partial class ShortcutFormPage : ContentPage
     };
 }
 
+#if false
 internal sealed partial class ShortcutForm : FormContent
 {
     private readonly QuickShell.Services.IQuickShellServices _services;
@@ -1818,4 +1838,4 @@ internal sealed partial class ShortcutForm : FormContent
             "false" => false,
             _ => fallback,
         };
-}
+#endif
