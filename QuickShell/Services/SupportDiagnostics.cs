@@ -174,11 +174,6 @@ internal static class SupportDiagnostics
             error = Strings.Diagnostics_LogFolderOpenFailed;
             return false;
         }
-        catch (ObjectDisposedException)
-        {
-            error = Strings.Diagnostics_LogFolderOpenFailed;
-            return false;
-        }
         catch (ArgumentException)
         {
             error = Strings.Diagnostics_LogFolderOpenFailed;
