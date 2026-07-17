@@ -1,0 +1,21 @@
+QuickShell.Core/Services/TerminalListIconCache.cs
+  s_6fad6f7a509527::t_91a2648185bb8f 58-67
+QuickShell.Core/Services/TerminalProfileIconResolver.cs
+  s_6fad6f7a509527::t_0c4ee704939752 5-8,12-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ab4a46b904fa5a1e8eb01d23df3b4c630f4aecd2",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
