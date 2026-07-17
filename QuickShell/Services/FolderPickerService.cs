@@ -24,7 +24,12 @@ internal static class FolderPickerService
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
 
-        return thread.Join(DialogTimeout) ? selected : null;
+        // Wait for the dialog thread to exit. PickFolderOnStaThread auto-closes the modal
+        // dialog via a timer at DialogTimeout, so this returns at most DialogTimeout after the
+        // dialog opens and never leaves an orphaned native dialog behind (which would otherwise
+        // let repeated calls stack up open dialogs).
+        thread.Join();
+        return selected;
     }
 
     private static string? PickFolderOnStaThread(string? initialDirectory, nint ownerHandle)
@@ -53,12 +58,60 @@ internal static class FolderPickerService
             }
         }
 
+        // Auto-close the modal dialog if it is left open past the timeout. Without this the
+        // background STA thread keeps the native dialog alive after the caller gives up, and
+        // repeated calls stack orphaned dialogs. The Timer ticks on this thread's ShowDialog
+        // message loop; WM_CLOSE dismisses the dialog and lets the thread exit.
+        using var autoClose = new System.Windows.Forms.Timer
+        {
+            Interval = (int)DialogTimeout.TotalMilliseconds,
+        };
+        autoClose.Tick += (_, _) => DismissOpenDialog(ownerHandle);
+        autoClose.Start();
+
         var owner = ownerHandle != 0 ? new NativeWindowWrapper(ownerHandle) : null;
-        return dialog.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK ? dialog.SelectedPath : null;
+        var result = dialog.ShowDialog(owner);
+        autoClose.Stop();
+        return result == System.Windows.Forms.DialogResult.OK
+            ? dialog.SelectedPath
+            : null;
     }
 
     [DllImport("user32.dll")]
     private static extern nint GetForegroundWindow();
+
+    private const int WM_CLOSE = 0x0010;
+
+    [DllImport("user32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumThreadWindows(uint dwThreadId, EnumThreadWindowsProc lpfn, nint lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);
+
+    private delegate bool EnumThreadWindowsProc(nint hWnd, nint lParam);
+
+    /// <summary>
+    /// Posts <see cref="WM_CLOSE"/> to the modal dialog window owned by this thread (the
+    /// <paramref name="ownerHandle"/> window is skipped). Used by the auto-close timer so the
+    /// native folder dialog is actually dismissed at the timeout instead of being abandoned.
+    /// </summary>
+    private static void DismissOpenDialog(nint ownerHandle)
+    {
+        EnumThreadWindows(GetCurrentThreadId(), (hWnd, _) =>
+        {
+            if (hWnd != ownerHandle)
+            {
+                PostMessage(hWnd, WM_CLOSE, nint.Zero, nint.Zero);
+            }
+
+            return true;
+        }, nint.Zero);
+    }
 
     private sealed class NativeWindowWrapper(nint handle) : System.Windows.Forms.IWin32Window
     {
