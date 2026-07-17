@@ -1,0 +1,26 @@
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditorFactory.cs
+  s_f7785fd078a403::t_cfd07e24b7d957 5
+QuickShell/Pages/ShortcutFormPage.cs
+  s_f7785fd078a403::t_c76fca3fb3bf26 1
+QuickShell/Services/WorkspaceEditor/WorkspaceEditorFactory.cs
+  s_f7785fd078a403::t_eac4fb0312262f 16
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_f7785fd078a403::t_4a501c0ecd4d27 666-667,676,687-688,695,746,856,863,865,873,1001,1035,1038,1041,1121,1130,1145-1146,1165-1166,1207,1215,1220
+  s_f7785fd078a403::t_566d11f31d61e1 10,12-15,71,97,877,922,1019
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "60bebe8e1446f31b5cbaa9b69cc171239d272e94",
+  "prompts": {},
+  "sessions": {
+    "s_f7785fd078a403": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b449954d-aab6-4c38-bb4e-fa535a69a41b",
+        "model": "SWE-1.7 Max"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
