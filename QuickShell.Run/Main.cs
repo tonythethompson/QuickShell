@@ -40,11 +40,12 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private PluginInitContext? _context;
     private string _iconPath = string.Empty;
-    private ServiceProvider? _services;
+    private ServiceProvider? _serviceProvider;
     private IQuickShellLifetime? _lifetime;
     private IShortcutRepository? _shortcuts;
     private QuickShellSettingsReader? _settings;
     private QuickShellRunSettingsPanel? _settingsPanel;
+    private IProjectAnalysisService? _projectAnalysis;
     private string _lastQuery = string.Empty;
     private bool _disposed;
 
@@ -63,10 +64,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         {
             var collection = new ServiceCollection();
             collection.AddQuickShellCore(lifetime: new QuickShellLifetime());
-            _services = collection.BuildServiceProvider();
-            _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
-            _shortcuts = _services.GetRequiredService<IShortcutRepository>();
-            ProjectAnalysisAccessor.Instance = _services.GetRequiredService<IProjectAnalysisService>();
+            _serviceProvider = collection.BuildServiceProvider();
+            _lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
+            _shortcuts = _serviceProvider.GetRequiredService<IShortcutRepository>();
+            _projectAnalysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
             _settings = new QuickShellSettingsReader();
             _context = context;
             UpdateIconPath(context.API.GetCurrentTheme());
@@ -112,8 +113,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             _context.API.ThemeChanged -= OnThemeChanged;
         }
 
-        _services?.Dispose();
-        _services = null;
+        _serviceProvider?.Dispose();
+        _serviceProvider = null;
         _lifetime = null;
         _shortcuts = null;
         GC.SuppressFinalize(this);
@@ -130,6 +131,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         _settingsPanel ??= new QuickShellRunSettingsPanel(
             Settings,
             Shortcuts,
+            _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
             (_, _) => { });
         _settingsPanel.Reload();
         return _settingsPanel;
@@ -264,7 +266,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
                     return false;
                 }
 
-                if (ShortcutEditor.TryShowDialog(duplicate, Shortcuts, out var message))
+                if (ShortcutEditor.TryShowDialog(duplicate, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), out var message))
                 {
                     NotifyStatus(message);
                     RefreshResults();
@@ -339,11 +341,11 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         switch (action)
         {
             case RunManageAction.OpenQuickShellSettings:
-                QuickShellRunSettingsDialog.Show(Settings, Shortcuts);
+                QuickShellRunSettingsDialog.Show(Settings, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."));
                 _settingsPanel?.Reload();
                 break;
             case RunManageAction.CreateShortcut:
-                if (ShortcutEditor.TryShowDialog(null, Shortcuts, out var createMessage))
+                if (ShortcutEditor.TryShowDialog(null, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), out var createMessage))
                 {
                     NotifyStatus(createMessage);
                     RefreshResults();
@@ -388,7 +390,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private void ExecuteManageShortcutEdit(TerminalShortcut shortcut)
     {
-        if (ShortcutEditor.TryShowDialog(shortcut, Shortcuts, out var message))
+        if (ShortcutEditor.TryShowDialog(shortcut, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), out var message))
         {
             NotifyStatus(message);
             RefreshResults();

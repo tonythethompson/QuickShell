@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -12,15 +13,15 @@ internal static class TaskTypeCommandSuggestion
     public const string PickerTooltip =
         "Adds a new command row with a project-aware suggestion.";
 
-    public static bool HasAvailableTypes(string? directory) =>
-        GetAvailableTaskTypes(directory).Count > 0;
+    public static bool HasAvailableTypes(string? directory, IProjectAnalysisService projectAnalysis) =>
+        GetAvailableTaskTypes(directory, TaskTypePickContext.Empty, projectAnalysis).Count > 0;
 
-    public static IReadOnlyList<string> GetAvailableTaskTypes(string? directory) =>
-        GetAvailableTaskTypes(directory, TaskTypePickContext.Empty);
-
-    public static IReadOnlyList<string> GetAvailableTaskTypes(string? directory, TaskTypePickContext pickContext)
+    public static IReadOnlyList<string> GetAvailableTaskTypes(
+        string? directory,
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
-        if (!TryBuildContext(directory, out var context))
+        if (!TryBuildContext(directory, projectAnalysis, out var context))
         {
             return [];
         }
@@ -31,12 +32,13 @@ internal static class TaskTypeCommandSuggestion
             .ToList();
     }
 
-    public static bool IsAvailable(string? directory, string? taskType) =>
-        IsAvailable(directory, taskType, TaskTypePickContext.Empty);
-
-    public static bool IsAvailable(string? directory, string? taskType, TaskTypePickContext pickContext)
+    public static bool IsAvailable(
+        string? directory,
+        string? taskType,
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
-        if (!TryBuildContext(directory, out var context))
+        if (!TryBuildContext(directory, projectAnalysis, out var context))
         {
             return false;
         }
@@ -47,9 +49,10 @@ internal static class TaskTypeCommandSuggestion
     public static IReadOnlyList<TaskTypeCandidate> GetCandidates(
         string? directory,
         string? taskType,
-        TaskTypePickContext? pickContext = null)
+        TaskTypePickContext? pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
-        if (!TryBuildContext(directory, out var context))
+        if (!TryBuildContext(directory, projectAnalysis, out var context))
         {
             return [];
         }
@@ -63,22 +66,24 @@ internal static class TaskTypeCommandSuggestion
         return TaskTypeCandidateBuilder.Build(normalized, context, pickContext ?? TaskTypePickContext.Empty);
     }
 
-    public static string? TrySuggest(string? directory, string? taskType) =>
-        TrySuggest(directory, taskType, TaskTypePickContext.Empty);
-
-    public static string? TrySuggest(string? directory, string? taskType, TaskTypePickContext pickContext)
+    public static string? TrySuggest(
+        string? directory,
+        string? taskType,
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
-        var candidates = GetCandidates(directory, taskType, pickContext);
+        var candidates = GetCandidates(directory, taskType, pickContext, projectAnalysis);
         return candidates.Count > 0 ? candidates[0].Command : null;
     }
 
-    public static string GetChoiceTooltip(string? directory, string? taskType) =>
-        GetChoiceTooltip(directory, taskType, TaskTypePickContext.Empty);
-
-    public static string GetChoiceTooltip(string? directory, string? taskType, TaskTypePickContext pickContext)
+    public static string GetChoiceTooltip(
+        string? directory,
+        string? taskType,
+        TaskTypePickContext pickContext,
+        IProjectAnalysisService projectAnalysis)
     {
         var normalized = TaskTypeCatalog.Normalize(taskType);
-        var candidates = GetCandidates(directory, normalized, pickContext);
+        var candidates = GetCandidates(directory, normalized, pickContext, projectAnalysis);
         if (candidates.Count == 0)
         {
             return GetStaticChoiceTooltip(normalized);
@@ -102,15 +107,19 @@ internal static class TaskTypeCommandSuggestion
         TaskTypePickContext pickContext) =>
         TaskTypeCandidateBuilder.Build(taskType, context, pickContext).Count > 0;
 
-    private static bool TryBuildContext(string? directory, out TaskTypeCandidateBuilder.SuggestionContext context)
+    private static bool TryBuildContext(
+        string? directory,
+        IProjectAnalysisService projectAnalysis,
+        out TaskTypeCandidateBuilder.SuggestionContext context)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         context = default!;
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
             return false;
         }
 
-        var projectAnalysis = ProjectAnalysisAccessor.Instance;
         var classification = projectAnalysis.Classify(directory);
         var suggestions = WorkspaceSetupSuggestion.Build(directory, classification, projectAnalysis);
         context = new TaskTypeCandidateBuilder.SuggestionContext(directory, suggestions, classification, projectAnalysis);

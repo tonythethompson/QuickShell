@@ -1,6 +1,7 @@
 using System.Threading;
 
 using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
 
@@ -27,23 +28,30 @@ internal sealed class GitRepoIndex : IGitRepoIndex
 
     internal static Action<Action>? ExtensionThreadPoster { get; set; }
 
+    private readonly IProjectAnalysisService _projectAnalysis;
+
+    public GitRepoIndex(IProjectAnalysisService projectAnalysis)
+    {
+        _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+    }
+
     bool IGitRepoIndex.IsRefreshInFlight => IsRefreshInFlight;
 
     void IGitRepoIndex.Invalidate() => Invalidate();
 
     void IGitRepoIndex.Prewarm(IReadOnlyList<string> searchRoots, CancellationToken cancellationToken) =>
-        Prewarm(searchRoots, cancellationToken);
+        Prewarm(_projectAnalysis, searchRoots, cancellationToken);
 
     IReadOnlyList<GitRepoCandidate> IGitRepoIndex.Search(
         string query,
         IReadOnlyList<string> searchRoots,
         CancellationToken cancellationToken) =>
-        Search(query, searchRoots, cancellationToken: cancellationToken);
+        Search(_projectAnalysis, query, searchRoots, cancellationToken: cancellationToken);
 
     IReadOnlyList<GitRepoCandidate> IGitRepoIndex.GetAll(
         IReadOnlyList<string>? extraRoots,
         CancellationToken cancellationToken) =>
-        GetAll(extraRoots, cancellationToken);
+        GetAll(_projectAnalysis, extraRoots, cancellationToken);
 
     void IGitRepoIndex.RunAfterNextRefresh(Action callback) =>
         RunAfterNextRefresh(callback);
@@ -90,12 +98,15 @@ internal sealed class GitRepoIndex : IGitRepoIndex
     }
 
     public static IReadOnlyList<GitRepoCandidate> Search(
+        IProjectAnalysisService projectAnalysis,
         string query,
         IEnumerable<string>? extraRoots = null,
         IReadOnlySet<string>? savedDirectories = null,
         int maxResults = 8,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var trimmed = query.Trim();
         if (string.IsNullOrWhiteSpace(trimmed))
         {
@@ -103,7 +114,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex
         }
 
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots, cancellationToken);
+        EnsureFresh(projectAnalysis, extraRoots, cancellationToken);
         savedDirectories ??= EmptySet.Instance;
 
         // Single linear pass with early exit — index size is bounded by discovery, not workspaces.
@@ -139,16 +150,22 @@ internal sealed class GitRepoIndex : IGitRepoIndex
     }
 
     public static IReadOnlyList<GitRepoCandidate> GetAll(
+        IProjectAnalysisService projectAnalysis,
         IEnumerable<string>? extraRoots = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots, cancellationToken);
+        EnsureFresh(projectAnalysis, extraRoots, cancellationToken);
         return GetCacheForRootKey(rootKey);
     }
 
-    public static void Prewarm(IEnumerable<string>? extraRoots = null, CancellationToken cancellationToken = default) =>
-        EnsureFresh(extraRoots, cancellationToken);
+    public static void Prewarm(
+        IProjectAnalysisService projectAnalysis,
+        IReadOnlyList<string> searchRoots,
+        CancellationToken cancellationToken = default) =>
+        EnsureFresh(projectAnalysis, searchRoots, cancellationToken);
 
     public static void Invalidate() =>
         WithLock(() =>
@@ -273,8 +290,13 @@ internal sealed class GitRepoIndex : IGitRepoIndex
         || (candidate.RemoteUrl?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
         || candidate.Classification.Labels.Any(label => label.Contains(query, StringComparison.OrdinalIgnoreCase));
 
-    private static void EnsureFresh(IEnumerable<string>? extraRoots, CancellationToken cancellationToken = default)
+    private static void EnsureFresh(
+        IProjectAnalysisService projectAnalysis,
+        IEnumerable<string>? extraRoots,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var rootSnapshot = SnapshotRoots(extraRoots);
         var rootKey = BuildRootKey(rootSnapshot);
 
@@ -285,7 +307,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex
                 return;
             }
 
-            StartRefreshLocked(rootKey, rootSnapshot, cancellationToken);
+            StartRefreshLocked(projectAnalysis, rootKey, rootSnapshot, cancellationToken);
         }
     }
 
@@ -294,7 +316,11 @@ internal sealed class GitRepoIndex : IGitRepoIndex
         && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
 
-    private static void StartRefreshLocked(string rootKey, string[] rootSnapshot, CancellationToken cancellationToken)
+    private static void StartRefreshLocked(
+        IProjectAnalysisService projectAnalysis,
+        string rootKey,
+        string[] rootSnapshot,
+        CancellationToken cancellationToken)
     {
         if (_refreshInFlight is not null
             && string.Equals(_refreshInFlight.RootKey, rootKey, StringComparison.Ordinal))
@@ -304,7 +330,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex
 
         var inFlight = new RefreshInFlight(
             rootKey,
-            Task.Run(() => DiscoverForRefresh(rootSnapshot, cancellationToken), cancellationToken));
+            Task.Run(() => DiscoverForRefresh(projectAnalysis, rootSnapshot, cancellationToken), cancellationToken));
 
         _ = inFlight.Task.ContinueWith(
             task => CompleteRefresh(inFlight, task, cancellationToken),
@@ -315,8 +341,11 @@ internal sealed class GitRepoIndex : IGitRepoIndex
         _refreshInFlight = inFlight;
     }
 
-    private static IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(IReadOnlyList<string> rootSnapshot, CancellationToken cancellationToken) =>
-        DiscoverOverride?.Invoke(rootSnapshot) ?? GitRepoDiscovery.Discover(rootSnapshot, cancellationToken: cancellationToken);
+    private static IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(
+        IProjectAnalysisService projectAnalysis,
+        IReadOnlyList<string> rootSnapshot,
+        CancellationToken cancellationToken) =>
+        DiscoverOverride?.Invoke(rootSnapshot) ?? GitRepoDiscovery.Discover(projectAnalysis, rootSnapshot, cancellationToken: cancellationToken);
 
     private static void CompleteRefresh(RefreshInFlight inFlight, Task<IReadOnlyList<GitRepoCandidate>> task, CancellationToken cancellationToken)
     {

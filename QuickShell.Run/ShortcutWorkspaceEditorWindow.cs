@@ -1,7 +1,6 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
-
 using QuickShell.Classification;
-
 using QuickShell.Services;
 
 using System.IO;
@@ -57,6 +56,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private readonly RunDirectorySuggestionLoader _suggestionLoader;
 
+    private readonly IProjectAnalysisService _projectAnalysis;
+
     private int _activeSuggestionGeneration;
 
 
@@ -65,13 +66,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    public ShortcutWorkspaceEditorWindow(TerminalShortcut? existing, IShortcutRepository shortcuts)
+    public ShortcutWorkspaceEditorWindow(TerminalShortcut? existing, IShortcutRepository shortcuts, IProjectAnalysisService projectAnalysis)
 
     {
 
         _existing = existing;
 
         _shortcuts = shortcuts;
+
+        _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
 
         _working = existing is null ? new TerminalShortcut() : CloneShortcut(existing);
 
@@ -448,7 +451,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         {
 
-            _devServerUrlBox.Text = ProjectAnalysisAccessor.Instance.TryDetectDevServerUrl(directory) ?? string.Empty;
+            _devServerUrlBox.Text = _projectAnalysis.TryDetectDevServerUrl(directory) ?? string.Empty;
 
         }
 
@@ -625,6 +628,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         var usedCommands = _launchRows.Select(row => row.CommandText).ToList();
 
         _suggestionLoader.Schedule(
+
+            _projectAnalysis,
 
             directory,
 
@@ -1703,7 +1708,7 @@ internal static class ShortcutEditor
 
 {
 
-    public static bool TryShowDialog(TerminalShortcut? existing, IShortcutRepository shortcuts, out string message)
+    public static bool TryShowDialog(TerminalShortcut? existing, IShortcutRepository shortcuts, IProjectAnalysisService projectAnalysis, out string message)
 
     {
 
@@ -1719,7 +1724,7 @@ internal static class ShortcutEditor
 
         {
 
-            var window = new ShortcutWorkspaceEditorWindow(existing, shortcuts);
+            var window = new ShortcutWorkspaceEditorWindow(existing, shortcuts, projectAnalysis);
 
             if (window.ShowDialog() == true)
 

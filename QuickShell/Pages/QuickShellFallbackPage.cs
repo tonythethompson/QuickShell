@@ -148,7 +148,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
             .Select(shortcut => shortcut.Directory)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        return GitRepoIndex.GetAll(extraRoots)
+        return GitRepoIndex.GetAll(_services.ProjectAnalysis, extraRoots)
             .Where(candidate => !savedDirectories.Contains(candidate.Directory))
             .Take(8)
             .ToList();

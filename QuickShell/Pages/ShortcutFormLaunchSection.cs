@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -70,10 +71,13 @@ internal static class ShortcutFormLaunchSection
             terminalChoices);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(
+        IProjectAnalysisService projectAnalysis,
         string? directory,
         string? taskType,
         IEnumerable<string?>? existingCommands = null)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var normalized = TaskTypeCatalog.Normalize(taskType);
         if (normalized == TaskTypeCatalog.None)
         {
@@ -87,7 +91,8 @@ internal static class ShortcutFormLaunchSection
         var suggestion = TaskTypeCommandSuggestion.TrySuggest(
             directory,
             normalized,
-            pickContext);
+            pickContext,
+            projectAnalysis);
         if (string.IsNullOrWhiteSpace(suggestion))
         {
             return null;
