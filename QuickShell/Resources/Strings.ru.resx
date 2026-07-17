@@ -87,6 +87,21 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>Рабочие пространства</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>Требует внимания</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>Открыть папку</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>Переключить ветку</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>Переключить ветку…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>Использовать текущую ветку</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Избранное</value>
   </data>

@@ -188,7 +188,7 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
             status,
             target))
         {
-            Title = "Switch branch",
+            Title = Strings.Menu_SwitchBranch,
             Icon = new IconInfo("\uE8AB"),
         };
     }
@@ -229,7 +229,7 @@ internal sealed class WorktreeBranchClearCommandHandler : ICommandItemHandler
             ? null
             : new CommandItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, context.ReloadRootPages, context.Services))
             {
-                Title = "Use current branch",
+                Title = Strings.Menu_UseCurrentBranch,
                 Icon = new IconInfo("\uE894"),
             };
     }

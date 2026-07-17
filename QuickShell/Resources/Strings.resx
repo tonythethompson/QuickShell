@@ -90,6 +90,18 @@
   <data name="Section_NeedsAttention" xml:space="preserve">
     <value>Needs attention</value>
   </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>Open to Directory</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>Switch branch</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>Switch branch…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>Use current branch</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Favorite</value>
   </data>

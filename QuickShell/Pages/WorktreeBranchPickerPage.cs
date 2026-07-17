@@ -27,8 +27,8 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         _knownStatus = knownStatus;
         _knownTargetBranch = knownTargetBranch;
         Id = CommandDescriptor.WorktreeBranchPicker(shortcutId).Id;
-        Title = "Switch branch";
-        Name = "Switch branch";
+        Title = Strings.Menu_SwitchBranch;
+        Name = Strings.Menu_SwitchBranch;
         Icon = new IconInfo("\uE8AB");
         // BuildItems() runs git (status + branch list). Deferred to GetItems() \u2014 every
         // home-list row constructs this page as part of its context menu, so doing that
@@ -97,7 +97,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         {
             items.Add(new ListItem(new UseCurrentWorktreeBranchCommand(_shortcutId, _onChanged, _services))
             {
-                Title = "Use current branch",
+                Title = Strings.Menu_UseCurrentBranch,
                 Subtitle = $"Clear target \u2014 currently pinned to {target}",
                 Icon = new IconInfo("\uE894"),
             });

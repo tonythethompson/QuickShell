@@ -87,6 +87,21 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>Espaços de trabalho</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>Requer atenção</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>Abrir na pasta</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>Trocar de branch</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>Trocar de branch…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>Usar branch atual</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Favorito</value>
   </data>

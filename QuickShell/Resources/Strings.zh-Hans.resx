@@ -87,6 +87,21 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>工作区</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>需要注意</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>仅打开文件夹</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>切换分支</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>切换分支…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>使用当前分支</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>收藏</value>
   </data>
