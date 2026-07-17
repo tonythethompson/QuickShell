@@ -75,9 +75,10 @@ public sealed class AtomicFileWriterTests : IDisposable
                 Directory.Delete(_directory, recursive: true);
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort.
+            GC.KeepAlive(ex);
         }
     }
 }

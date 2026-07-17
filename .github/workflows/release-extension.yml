@@ -30,6 +30,10 @@ env:
   WINGET_RUN_PACKAGE_ID: tonythethompson.QuickShellforRun
   WINGET_RAYCAST_PACKAGE_ID: tonythethompson.QuickShellforRaycast
 
+# Default-deny workflow permissions. Jobs opt into only the scopes they need.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: windows-2022
