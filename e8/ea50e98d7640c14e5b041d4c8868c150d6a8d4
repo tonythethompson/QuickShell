@@ -1,0 +1,23 @@
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_51a1c9d129d830::t_941cb4547d751e 88-137
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_51a1c9d129d830::t_b46a03a646f7ab 100-101,120-149
+QuickShell/Pages/ShortcutFormPage.cs
+  s_51a1c9d129d830::t_b6cd7be4d21cc3 593-595,619-622
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e8ea50e98d7640c14e5b041d4c8868c150d6a8d4",
+  "prompts": {},
+  "sessions": {
+    "s_51a1c9d129d830": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e79dff3e-130e-4e69-9c6e-57daaea42589",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
