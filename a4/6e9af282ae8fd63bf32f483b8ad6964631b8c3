@@ -1,0 +1,33 @@
+QuickShell/Services/ShortcutDisplayTags.cs
+  s_15a9af5697c977::t_61f768d3ad93d3 2
+  s_15a9af5697c977::t_568b3cdfb3261e 13-15,21-22
+QuickShell.Core/Services/WorkspaceStatusSnapshot.cs
+  s_15a9af5697c977::t_3e246a21a5557e 2
+  s_15a9af5697c977::t_073a154363af1a 128-129,132-140,155-162,346-348,353-359
+QuickShell.Core.Tests/WorkspaceHealthCheckTests.cs
+  s_15a9af5697c977::t_7bfe3575c62f0c 327-329,358-360
+QuickShell.Core.Tests/WorkspaceStatusSnapshotTests.cs
+  s_15a9af5697c977::t_cf0c6c44856545 308-309,356-357
+QuickShell.Core/Services/WorkspaceEnvironmentProbe.cs
+  s_15a9af5697c977::t_ba4b33aa6b28e5 69,72,80-90,137-141,145-151,160
+QuickShell.Run/RunWorkspaceSubtitle.cs
+  s_15a9af5697c977::t_ca71dbb8aa4067 42-43
+QuickShell/Services/ShortcutListItems.cs
+  s_15a9af5697c977::t_55089b3da6028d 40-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a46e9af282ae8fd63bf32f483b8ad6964631b8c3",
+  "prompts": {},
+  "sessions": {
+    "s_15a9af5697c977": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_091335512ffeS7YvSswG7kFHhd",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
