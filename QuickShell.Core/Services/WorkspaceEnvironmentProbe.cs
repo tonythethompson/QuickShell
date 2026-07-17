@@ -30,8 +30,8 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
             {
                 FileName = "where.exe",
                 Arguments = path,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
