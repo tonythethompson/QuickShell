@@ -1,0 +1,27 @@
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_265ac3fcb9e78a::t_ee14f81d76be22 195-225
+QuickShell.Core.Tests/WorkspaceFormActionParserTests.cs
+  s_265ac3fcb9e78a::t_ab96f3b412a6c9 32,36-44
+QuickShell/Pages/ShortcutForm.cs
+  s_265ac3fcb9e78a::t_bf9649b2ee8eff 159-165
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_265ac3fcb9e78a::t_f8afd45d99f1e4 727
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionParser.cs
+  s_265ac3fcb9e78a::t_5a43c79af1c9de 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "124054409dafb677c1e56476e9e4d8f7e308013f",
+  "prompts": {},
+  "sessions": {
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
