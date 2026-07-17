@@ -248,7 +248,11 @@ public sealed class WorkspaceEditorTests : IDisposable
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch
+            catch (System.IO.IOException)
+            {
+                // Best-effort cleanup.
+            }
+            catch (UnauthorizedAccessException)
             {
                 // Best-effort cleanup.
             }
