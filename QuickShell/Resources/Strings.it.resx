@@ -87,6 +87,39 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>Aree di lavoro</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>Richiede attenzione</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>Apri solo la directory</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>Cambia branch</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>Cambia branch…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>Usa il branch corrente</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>Area di lavoro non trovata</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>Non è un repository Git</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>Nessun branch locale trovato</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>Seleziona un branch locale</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>Cancella destinazione: attualmente fissato su {0}</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>Branch corrente</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Preferito</value>
   </data>

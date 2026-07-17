@@ -38,8 +38,8 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         _suggestions.ResetForTests();
 
         // Agent-CLI suggestions (claude, codex, etc. on PATH) are directory-content-independent,
-        // so an empty directory doesn't guarantee zero ranked pills on every machine — only that
-        // Open to Directory is always appended after whatever ranked pills exist.
+        // so an empty directory doesn't guarantee zero ranked pills on every machine - only that
+        // Open directory only is always appended after whatever ranked pills exist.
         var rankedCount = _suggestions.GetPills(_root, [], _projectAnalysis).Count;
 
         var fields = SuggestionPillPresentation.BuildDataFields(
@@ -51,7 +51,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
 
         Assert.Equal("true", fields["ShowSuggestionPills"]);
         Assert.Equal("true", fields[$"ShowPill_{rankedCount}"]);
-        Assert.Equal("Open to Directory", fields[$"PillTitle_{rankedCount}"]);
+        Assert.Equal("Open directory only", fields[$"PillTitle_{rankedCount}"]);
         Assert.Equal(string.Empty, fields[$"PillCommand_{rankedCount}"]);
         Assert.Equal(TaskTypeCatalog.None, fields[$"PillTaskType_{rankedCount}"]);
     }
@@ -71,7 +71,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
 
         var rankedCount = _suggestions.GetPills(_root, [], _projectAnalysis).Count;
         Assert.True(rankedCount > 0);
-        Assert.Equal("Open to Directory", fields[$"PillTitle_{rankedCount}"]);
+        Assert.Equal("Open directory only", fields[$"PillTitle_{rankedCount}"]);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         var found = _suggestions.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
 
         Assert.NotNull(found);
-        Assert.Equal("Open to Directory", found.DisplayTitle);
+        Assert.Equal("Open directory only", found.DisplayTitle);
     }
 
     [Fact]

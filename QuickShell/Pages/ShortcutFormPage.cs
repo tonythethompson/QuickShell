@@ -590,7 +590,7 @@ internal sealed partial class ShortcutForm : FormContent
     {
         MergeDraftFromInputs(payload, out _);
 
-        // Must match BuildDataFields / BuildSelectablePills so Open to Directory (blank command)
+        // Must match BuildDataFields / BuildSelectablePills so Open directory only (blank command)
         // and pillIndex slots resolve the same list the Adaptive Card rendered.
         var pills = SuggestionPillPresentation.BuildSelectablePills(
             _draft.Directory,
@@ -617,7 +617,7 @@ internal sealed partial class ShortcutForm : FormContent
 
         ApplyDraft(_draft, forceTemplateRebuild: rowAdded);
         var toast = ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill)
-            ? "Added Open to Directory."
+            ? "Added Open directory only."
             : $"Added {pill.TypeTitle} command.";
         return QuickShellNavigation.StayOpen(toast);
     }
@@ -1510,7 +1510,7 @@ internal sealed partial class ShortcutForm : FormContent
 
             // Backspacing a row's command back to blank in the text field is "make this row
             // available again", not "mark it intentionally folder-only" -- that's what the
-            // Open to Directory pill is for. Without this, a row that had real content and got
+            // Open directory only pill is for. Without this, a row that had real content and got
             // manually cleared kept IsEditorPlaceholder=false from its prior non-blank state,
             // so ApplyPill's FindFirstEmptyCommandIndex would skip it forever (indistinguishable
             // from a deliberately-blank row) until the dedicated Clear button was used instead.
@@ -1647,9 +1647,9 @@ internal sealed partial class ShortcutForm : FormContent
         }
 
         // action already matched "addSuggestedCommand" above -- that's sufficient signal on
-        // its own. pillCommand is legitimately blank for the Open to Directory pill, and the
+        // its own. pillCommand is legitimately blank for the Open directory only pill, and the
         // pill template never sends pillIndex at all, so requiring either non-blank pillCommand
-        // or pillIndex >= 0 here made Open to Directory unrecognized and fall through to
+        // or pillIndex >= 0 here made Open directory only unrecognized and fall through to
         // default (save) handling.
         return true;
     }

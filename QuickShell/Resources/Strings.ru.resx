@@ -87,6 +87,39 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>Рабочие пространства</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>Требует внимания</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>Открыть только каталог</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>Переключить ветку</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>Переключить ветку…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>Использовать текущую ветку</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>Рабочее пространство не найдено</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>Это не репозиторий Git</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>Локальные ветки не найдены</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>Выберите локальную ветку</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>Сбросить цель: сейчас закреплено на {0}</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>Текущая ветка</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>Избранное</value>
   </data>
