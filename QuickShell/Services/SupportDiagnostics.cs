@@ -154,7 +154,7 @@ internal static class SupportDiagnostics
 
     private static string GetLogDirectory() =>
         LogDirectoryOverride
-        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QuickShell", "logs");
+        ?? Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QuickShell", "logs");
 
     private static int GetMaximumLogFileBytes() =>
         MaximumLogFileBytesOverride is > 0 ? MaximumLogFileBytesOverride.Value : DefaultMaximumLogFileBytes;
