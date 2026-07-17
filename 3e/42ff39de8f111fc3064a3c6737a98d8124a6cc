@@ -1,0 +1,57 @@
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_265ac3fcb9e78a::t_821996e4d687dc 42,54,74,85-135
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_265ac3fcb9e78a::t_7fddf03520361b 121
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_265ac3fcb9e78a::t_5007fe8ec413dc 26,100-101,120-149
+QuickShell/Commands/WorktreeBranchCommands.cs
+  s_265ac3fcb9e78a::t_5e8c66365c114e 69
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_265ac3fcb9e78a::t_1fb30406f659ef 30-31,53,65,80,91,100-101,112
+QuickShell/Resources/Strings.cs
+  s_265ac3fcb9e78a::t_f6f683f2b00441 32-41
+QuickShell/Resources/Strings.de.resx
+  s_265ac3fcb9e78a::t_c2d7ebf7909280 90-122
+QuickShell/Resources/Strings.es.resx
+  s_265ac3fcb9e78a::t_445a98486f587a 90-122
+QuickShell/Resources/Strings.fr.resx
+  s_265ac3fcb9e78a::t_9e63aadac142c8 90-122
+QuickShell/Resources/Strings.it.resx
+  s_265ac3fcb9e78a::t_d13294dec3bcbd 90-122
+QuickShell/Resources/Strings.ja.resx
+  s_265ac3fcb9e78a::t_f2f47b598312d0 90-122
+QuickShell/Resources/Strings.ko.resx
+  s_265ac3fcb9e78a::t_5b0c4107205b73 90-122
+QuickShell/Resources/Strings.pt-BR.resx
+  s_265ac3fcb9e78a::t_2aa58b965c0a5c 90-122
+QuickShell/Resources/Strings.resx
+  s_265ac3fcb9e78a::t_d41827a415fad6 93-122
+QuickShell/Resources/Strings.ru.resx
+  s_265ac3fcb9e78a::t_e14c9d38685567 90-122
+QuickShell/Resources/Strings.zh-Hans.resx
+  s_265ac3fcb9e78a::t_f13f24569cd617 90-122
+QuickShell/Resources/Strings.zh-Hant.resx
+  s_265ac3fcb9e78a::t_e3f57589e9a3b3 90-122
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_265ac3fcb9e78a::t_96475a98648e75 191,232
+QuickShell/Services/ShortcutContextCommands.cs
+  s_265ac3fcb9e78a::t_eff9f47c830e09 444
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_265ac3fcb9e78a::t_71dfb4a8e8c76e 126-128,148-151,1041,1060,1065-1070,1074,1077-1078,1080
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3e42ff39de8f111fc3064a3c6737a98d8124a6cc",
+  "prompts": {},
+  "sessions": {
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
