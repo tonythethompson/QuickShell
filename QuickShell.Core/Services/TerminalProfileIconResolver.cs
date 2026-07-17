@@ -2,12 +2,16 @@ namespace QuickShell.Services;
 
 internal static class TerminalProfileIconResolver
 {
+    // Highest scale first: the host (and our own list-icon cache) downsamples for display,
+    // so a larger source always looks at least as good. Picking .scale-100 first handed out
+    // 16x16 sources that got upscaled instead of downsampled, which is why bundled icons
+    // (PowerShell, Windows PowerShell, cmd) rendered blurry in the shortcut list.
     private static readonly string[] ScaleSuffixes =
     [
-        ".scale-100",
-        ".scale-125",
-        ".scale-150",
         ".scale-200",
+        ".scale-150",
+        ".scale-125",
+        ".scale-100",
         "",
     ];
 

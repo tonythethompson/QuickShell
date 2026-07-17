@@ -26,7 +26,8 @@ param(
     [switch]$UseLocalCmdPalSdk,
     [switch]$UseDevCmdPal,
     [switch]$SkipElevation,
-    [switch]$RecreateCertificate
+    [switch]$RecreateCertificate,
+    [switch]$RegenerateAssets
 )
 
 $deployAll = Join-Path $PSScriptRoot 'deploy-all.ps1'

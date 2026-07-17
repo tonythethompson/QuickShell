@@ -154,6 +154,35 @@ public sealed class LaunchRowListEditorTests
     }
 
     [Fact]
+    public void ApplyPill_OpenToDirectoryPill_MarksRowIntentionallyBlankNotPlaceholder()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { LaunchTarget = "default", IsEditorPlaceholder = true },
+            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
+            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
+        };
+
+        Assert.False(LaunchRowListEditor.ApplyPill(rows, SuggestionPillPresentation.OpenToDirectoryPill, "default"));
+        Assert.Equal(string.Empty, rows[0].Command);
+        Assert.False(rows[0].IsEditorPlaceholder);
+
+        // A second pill click now correctly skips row 0 (intentionally blank) and fills row 1,
+        // instead of re-matching row 0 or failing — this was the "first slot misfires" bug.
+        var docker = new CommandSuggestionPill(
+            "docker compose up",
+            TaskTypeCatalog.Services,
+            "Services",
+            "docker compose up",
+            "Services · docker compose up",
+            10,
+            "docker");
+        Assert.False(LaunchRowListEditor.ApplyPill(rows, docker, "default"));
+        Assert.Equal(string.Empty, rows[0].Command);
+        Assert.Equal("docker compose up", rows[1].Command);
+    }
+
+    [Fact]
     public void ApplyPill_AfterClear_RefillsCompactedEmptySlot()
     {
         var rows = new List<LaunchRowDraft>
