@@ -1,4 +1,5 @@
 using QuickShell.Services;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
@@ -120,11 +121,13 @@ public sealed class SupportDiagnosticsTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
-        catch (IOException)
+        catch (IOException exception)
         {
+            Debug.WriteLine($"Cleanup failed for '{_root}' due to IO error: {exception}");
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException exception)
         {
+            Debug.WriteLine($"Cleanup failed for '{_root}' due to access error: {exception}");
         }
     }
 }
