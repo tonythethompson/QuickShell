@@ -101,10 +101,6 @@ internal static class LaunchTestServices
         {
             // Best effort.
         }
-        catch (System.IO.PathTooLongException)
-        {
-            // Best effort.
-        }
 
         _settingsDirectory = null;
     }
