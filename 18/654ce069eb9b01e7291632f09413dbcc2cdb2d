@@ -1,0 +1,55 @@
+QuickShell.Core/Abstractions/Classification/IProjectAnalysisService.cs
+  s_6fad6f7a509527::t_c77a0684ab8001 19-20
+QuickShell.Core/Abstractions/Classification/ITaskSuggestionProvider.cs
+  s_6fad6f7a509527::t_57754fd303b0ef 1-3,10-11,13-20
+QuickShell.Core/Classification/ProjectAnalysisService.cs
+  s_6fad6f7a509527::t_6bda4100be9654 12,14,16-20,23-28,30,32-38,41-45,47-49
+QuickShell.Core/Classification/Suggestions/DockerComposeTaskSuggestionProvider.cs
+  s_6fad6f7a509527::t_08e38fc8f439f8 8,10,12-14
+QuickShell.Core/Classification/Suggestions/WorkspaceSetupTaskSuggestionProvider.cs
+  s_6fad6f7a509527::t_f36a4ec0c16301 2,9,11-25
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_6fad6f7a509527::t_82d1055197aa33 79-80
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_6fad6f7a509527::t_be6e276c8cfb91 3-4,8,15-17,19,21,23,26,28-30,32-36,40,42,44-46,49,51,53-55,57-59,64-73
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_6fad6f7a509527::t_8c5270c181223b 228,231,244,281,298
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_6fad6f7a509527::t_ee89d1d7637dd7 46
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_6fad6f7a509527::t_8550bd792409c2 50,54,81
+QuickShell.Core/Services/TaskTypeCandidateBuilder.cs
+  s_6fad6f7a509527::t_8f208a6ddfe4c2 477-507
+QuickShell.Core/Services/TaskTypeCatalog.cs
+  s_6fad6f7a509527::t_098a405067c3ea 18,21-22,24-26
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_6fad6f7a509527::t_5e2391704f9d61 74,172,178,209,212
+QuickShell.Suggest/Program.cs
+  s_6fad6f7a509527::t_f464b092dd7e3d 15,17
+QuickShell/Pages/ShortcutFormLaunchSection.cs
+  s_6fad6f7a509527::t_1c9c2e88c424a5 91,94
+QuickShell/Pages/ShortcutFormPage.cs
+  s_6fad6f7a509527::t_74ae524cb3c10d 593,596,598,610,1172,1196,1199
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_6fad6f7a509527::t_e3e8c357224154 28
+QuickShell/Services/IQuickShellServices.cs
+  s_6fad6f7a509527::t_c977d7d7a37e61 20-21
+QuickShell/Services/QuickShellServices.cs
+  s_6fad6f7a509527::t_68c3bb4779f122 14,30,45,63-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "18654ce069eb9b01e7291632f09413dbcc2cdb2d",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
