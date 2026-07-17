@@ -104,7 +104,7 @@ public sealed class SupportDiagnosticsTests : IDisposable
     [Fact]
     public void Write_DoesNotThrowWhenLogDirectoryCannotBeCreated()
     {
-        var blockedPath = Path.Combine(_root, "not-a-directory");
+        var blockedPath = Path.Join(_root, "not-a-directory");
         File.WriteAllText(blockedPath, "file");
         SupportDiagnostics.LogDirectoryOverride = blockedPath;
 
