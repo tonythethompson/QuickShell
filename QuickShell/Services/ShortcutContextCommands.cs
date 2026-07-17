@@ -442,7 +442,7 @@ internal static class ShortcutContextCommands
         items.Add(new CommandContextItem(new WorktreeBranchPickerPage(context.Services, shortcut.Id, onChanged))
         {
             Title = "Switch branch…",
-            Icon = new IconInfo(""),
+            Icon = new IconInfo(""),
         });
     }
 
