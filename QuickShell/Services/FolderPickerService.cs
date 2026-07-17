@@ -6,6 +6,7 @@ namespace QuickShell.Services;
 internal static class FolderPickerService
 {
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan JoinGracePeriod = TimeSpan.FromSeconds(5);
 
     public static string? PickFolder(string? initialDirectory = null)
     {
@@ -17,19 +18,32 @@ internal static class FolderPickerService
         }
 
         string? selected = null;
-        var thread = new Thread(() => selected = PickFolderOnStaThread(initialDirectory, ownerHandle))
+        uint staThreadId = 0;
+        using var threadIdReady = new ManualResetEventSlim(false);
+        var thread = new Thread(() =>
+        {
+            staThreadId = GetCurrentThreadId();
+            threadIdReady.Set();
+            selected = PickFolderOnStaThread(initialDirectory, ownerHandle);
+        })
         {
             IsBackground = true,
         };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
+        threadIdReady.Wait();
 
-        // Wait for the dialog thread to exit. PickFolderOnStaThread auto-closes the modal dialog
-        // via a timer at DialogTimeout, so the thread normally exits at or shortly after that
-        // timeout. Join is bounded to DialogTimeout plus a small grace period so shutdown can
-        // finish after the close is posted; if the thread is still alive after that, treat the
-        // pick as cancelled (return null) instead of blocking forever or returning a partial result.
-        return thread.Join(DialogTimeout + TimeSpan.FromSeconds(5)) ? selected : null;
+        // Happy path: PickFolderOnStaThread auto-closes at DialogTimeout and the STA thread
+        // exits soon after. JoinGracePeriod covers dismiss + ShowDialog unwind. If the thread
+        // is still alive, force another cross-thread dismiss, wait briefly, then cancel so the
+        // caller never hangs and we do not return while leaving a live orphan dialog behind.
+        if (thread.Join(DialogTimeout + JoinGracePeriod))
+        {
+            return selected;
+        }
+
+        DismissOpenDialogOnThread(staThreadId, ownerHandle);
+        return thread.Join(JoinGracePeriod) ? selected : null;
     }
 
     private static string? PickFolderOnStaThread(string? initialDirectory, nint ownerHandle)
@@ -66,7 +80,7 @@ internal static class FolderPickerService
         {
             Interval = (int)DialogTimeout.TotalMilliseconds,
         };
-        autoClose.Tick += (_, _) => DismissOpenDialog(ownerHandle);
+        autoClose.Tick += (_, _) => DismissOpenDialogOnThread(GetCurrentThreadId(), ownerHandle);
         autoClose.Start();
 
         var owner = ownerHandle != 0 ? new NativeWindowWrapper(ownerHandle) : null;
@@ -96,13 +110,13 @@ internal static class FolderPickerService
     private delegate bool EnumThreadWindowsProc(nint hWnd, nint lParam);
 
     /// <summary>
-    /// Posts <see cref="WM_CLOSE"/> to the modal dialog window owned by this thread (the
-    /// <paramref name="ownerHandle"/> window is skipped). Used by the auto-close timer so the
-    /// native folder dialog is actually dismissed at the timeout instead of being abandoned.
+    /// Posts <see cref="WM_CLOSE"/> to modal dialog windows owned by
+    /// <paramref name="threadId"/> (the <paramref name="ownerHandle"/> window is skipped).
+    /// Used by the auto-close timer and by the caller-side safety-net dismiss.
     /// </summary>
-    private static void DismissOpenDialog(nint ownerHandle)
+    private static void DismissOpenDialogOnThread(uint threadId, nint ownerHandle)
     {
-        EnumThreadWindows(GetCurrentThreadId(), (hWnd, _) =>
+        EnumThreadWindows(threadId, (hWnd, _) =>
         {
             if (hWnd != ownerHandle)
             {
