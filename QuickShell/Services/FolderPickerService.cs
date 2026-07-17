@@ -14,39 +14,32 @@ internal static class FolderPickerService
 
         if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
         {
-            return PickFolderOnStaThread(initialDirectory, ownerHandle);
+            return PickFolderOnStaThread(initialDirectory, ownerHandle, dialogHwnd: null);
         }
 
         string? selected = null;
-        uint staThreadId = 0;
-        using var threadIdReady = new ManualResetEventSlim(false);
-        var thread = new Thread(() =>
-        {
-            staThreadId = GetCurrentThreadId();
-            threadIdReady.Set();
-            selected = PickFolderOnStaThread(initialDirectory, ownerHandle);
-        })
+        var dialogHwnd = new DialogHwndBox();
+        var thread = new Thread(() => selected = PickFolderOnStaThread(initialDirectory, ownerHandle, dialogHwnd))
         {
             IsBackground = true,
         };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        threadIdReady.Wait();
 
         // Happy path: PickFolderOnStaThread auto-closes at DialogTimeout and the STA thread
         // exits soon after. JoinGracePeriod covers dismiss + ShowDialog unwind. If the thread
-        // is still alive, force another cross-thread dismiss, wait briefly, then cancel so the
-        // caller never hangs and we do not return while leaving a live orphan dialog behind.
+        // is still alive, force another WM_CLOSE to the captured dialog hwnd, wait briefly,
+        // then cancel so the caller never hangs and we do not leave a live orphan dialog behind.
         if (thread.Join(DialogTimeout + JoinGracePeriod))
         {
             return selected;
         }
 
-        DismissOpenDialogOnThread(staThreadId, ownerHandle);
+        TryCloseDialog(dialogHwnd.Value, ownerHandle);
         return thread.Join(JoinGracePeriod) ? selected : null;
     }
 
-    private static string? PickFolderOnStaThread(string? initialDirectory, nint ownerHandle)
+    private static string? PickFolderOnStaThread(string? initialDirectory, nint ownerHandle, DialogHwndBox? dialogHwnd)
     {
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
@@ -72,6 +65,29 @@ internal static class FolderPickerService
             }
         }
 
+        // Capture the dialog hwnd once it becomes foreground (same STA message loop as
+        // ShowDialog) so auto-close and the caller-side safety net can PostMessage WM_CLOSE
+        // without EnumThreadWindows / GetCurrentThreadId.
+        using var captureHwnd = new System.Windows.Forms.Timer
+        {
+            Interval = 50,
+        };
+        captureHwnd.Tick += (_, _) =>
+        {
+            var hwnd = GetForegroundWindow();
+            if (hwnd == 0 || hwnd == ownerHandle)
+            {
+                return;
+            }
+
+            if (dialogHwnd is not null)
+            {
+                dialogHwnd.Value = hwnd;
+            }
+
+            captureHwnd.Stop();
+        };
+
         // Auto-close the modal dialog if it is left open past the timeout. Without this the
         // background STA thread keeps the native dialog alive after the caller gives up, and
         // repeated calls stack orphaned dialogs. The Timer ticks on this thread's ShowDialog
@@ -80,15 +96,33 @@ internal static class FolderPickerService
         {
             Interval = (int)DialogTimeout.TotalMilliseconds,
         };
-        autoClose.Tick += (_, _) => DismissOpenDialogOnThread(GetCurrentThreadId(), ownerHandle);
+        autoClose.Tick += (_, _) =>
+        {
+            autoClose.Stop();
+            var captured = dialogHwnd?.Value ?? 0;
+            TryCloseDialog(captured != 0 ? captured : GetForegroundWindow(), ownerHandle);
+        };
+
+        captureHwnd.Start();
         autoClose.Start();
 
         var owner = ownerHandle != 0 ? new NativeWindowWrapper(ownerHandle) : null;
         var result = dialog.ShowDialog(owner);
+        captureHwnd.Stop();
         autoClose.Stop();
         return result == System.Windows.Forms.DialogResult.OK
             ? dialog.SelectedPath
             : null;
+    }
+
+    private static void TryCloseDialog(nint hwnd, nint ownerHandle)
+    {
+        if (hwnd == 0 || hwnd == ownerHandle)
+        {
+            return;
+        }
+
+        PostMessage(hwnd, WM_CLOSE, nint.Zero, nint.Zero);
     }
 
     [DllImport("user32.dll")]
@@ -97,34 +131,18 @@ internal static class FolderPickerService
     private const int WM_CLOSE = 0x0010;
 
     [DllImport("user32.dll")]
-    private static extern uint GetCurrentThreadId();
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool EnumThreadWindows(uint dwThreadId, EnumThreadWindowsProc lpfn, nint lParam);
-
-    [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);
 
-    private delegate bool EnumThreadWindowsProc(nint hWnd, nint lParam);
-
-    /// <summary>
-    /// Posts <see cref="WM_CLOSE"/> to modal dialog windows owned by
-    /// <paramref name="threadId"/> (the <paramref name="ownerHandle"/> window is skipped).
-    /// Used by the auto-close timer and by the caller-side safety-net dismiss.
-    /// </summary>
-    private static void DismissOpenDialogOnThread(uint threadId, nint ownerHandle)
+    private sealed class DialogHwndBox
     {
-        EnumThreadWindows(threadId, (hWnd, _) =>
-        {
-            if (hWnd != ownerHandle)
-            {
-                PostMessage(hWnd, WM_CLOSE, nint.Zero, nint.Zero);
-            }
+        private nint _value;
 
-            return true;
-        }, nint.Zero);
+        public nint Value
+        {
+            get => Volatile.Read(ref _value);
+            set => Volatile.Write(ref _value, value);
+        }
     }
 
     private sealed class NativeWindowWrapper(nint handle) : System.Windows.Forms.IWin32Window
