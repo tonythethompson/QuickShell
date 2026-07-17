@@ -55,6 +55,16 @@ internal static class TerminalListIconCache
             return trimmed;
         }
 
+        // .ico sources skip the GDI+ resize path entirely: some .ico encodings (PNG-compressed
+        // large frames in particular) decode via System.Drawing into a blank/transparent bitmap
+        // without throwing, so the catch below never catches it — the icon just silently goes
+        // blank. The host already scales whatever we hand it, so there's nothing to gain from
+        // resizing an .ico and real risk in doing it.
+        if (string.Equals(Path.GetExtension(trimmed), ".ico", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+
         try
         {
             var version = $"{File.GetLastWriteTimeUtc(trimmed).Ticks}:{new FileInfo(trimmed).Length}";
