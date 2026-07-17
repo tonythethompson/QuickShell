@@ -31,7 +31,7 @@ internal sealed class QuickShellSettingsManager
         get => _quickShellServices ?? throw new InvalidOperationException("IQuickShellServices must be set before accessing settings UI.");
         private set
         {
-            if (_servicesInitialized && _quickShellServices != value)
+            if (_servicesInitialized && !ReferenceEquals(_services, value))
             {
                 throw new InvalidOperationException("IQuickShellServices has already been initialized and cannot be reassigned.");
             }
