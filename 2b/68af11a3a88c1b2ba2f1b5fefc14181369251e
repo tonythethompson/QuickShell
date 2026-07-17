@@ -1,0 +1,19 @@
+.github/workflows/release-extension.yml
+  s_6fad6f7a509527::t_70ded0334e4048 187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "2b68af11a3a88c1b2ba2f1b5fefc14181369251e",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
