@@ -250,9 +250,13 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
             {
                 Debug.WriteLine($"OnEditorChanged ignored COMException during rebuild: {ex}");
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                Debug.WriteLine($"OnEditorChanged ignored unexpected exception during rebuild: {ex}");
+                Debug.WriteLine($"OnEditorChanged ignored InvalidOperationException during rebuild: {ex}");
+            }
+            catch (ArgumentException ex)
+            {
+                Debug.WriteLine($"OnEditorChanged ignored ArgumentException during rebuild: {ex}");
             }
         }
     }
