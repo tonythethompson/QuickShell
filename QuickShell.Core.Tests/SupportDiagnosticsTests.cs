@@ -120,7 +120,10 @@ public sealed class SupportDiagnosticsTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
-        catch
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
         {
         }
     }
