@@ -662,7 +662,7 @@ public sealed class CompanionAppTests : IDisposable
     public void TrySuggestFromDirectory_PrefersCursorOverTrae()
     {
         Directory.CreateDirectory(Path.Combine(_root, ".cursor"));
-        Directory.CreateDirectory(Path.Combine(_root, ".trae"));
+        Directory.CreateDirectory(Path.Join(_root, ".trae"));
         CompanionAppCatalog.TryResolveExecutableOverride = preset =>
             preset is CompanionAppCatalog.PresetCursor or CompanionAppCatalog.PresetTrae
                 ? $@"C:\fake\{preset}.exe"
