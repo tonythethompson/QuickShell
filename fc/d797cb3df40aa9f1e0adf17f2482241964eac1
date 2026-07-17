@@ -1,0 +1,25 @@
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_7cacaa318abe5a::t_6f28267332a7b5 327-336,339-344,353,357,362
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_7cacaa318abe5a::t_2c596562bbb481 1439,1443-1464,2191-2198
+QuickShell.Run/Main.cs
+  s_7cacaa318abe5a::t_a941b69c6c0364 189-201
+QuickShell/QuickShellFallback.cs
+  s_7cacaa318abe5a::t_856db0d01219b3 46,48-49,51-59,63-70,72-77,79-83,85-96,98-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "fcd797cb3df40aa9f1e0adf17f2482241964eac1",
+  "prompts": {},
+  "sessions": {
+    "s_7cacaa318abe5a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7767d51-6999-4078-80d3-7741accbd322",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
