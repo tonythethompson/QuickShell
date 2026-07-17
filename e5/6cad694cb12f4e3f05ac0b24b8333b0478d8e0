@@ -1,0 +1,28 @@
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_6fad6f7a509527::t_91f643b97f91a1 5-6,8,9-11,13,14-17,18-31,36,37-48,50-54,55-56,58-69,71
+  s_6fad6f7a509527::t_732e85527ab31e 33-35
+  s_6fad6f7a509527::t_be1e48d16e674c 70
+  s_6fad6f7a509527::t_b44633969a4601 72
+QuickShell.Core.Tests/LaunchRowListEditorTests.cs
+  s_6fad6f7a509527::t_a250250845c9c1 156-184
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_6fad6f7a509527::t_edba7be8c640de 108-110,116
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_6fad6f7a509527::t_d64ebc1b2f28cf 9-25,92-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e56cad694cb12f4e3f05ac0b24b8333b0478d8e0",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
