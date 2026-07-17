@@ -66,27 +66,24 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
 
     public bool PortInUse(int port)
     {
-        TcpListener? listener = null;
         try
-        {
-            listener = new TcpListener(IPAddress.Loopback, port);
-            listener.Start();
-            return false;
-        }
-        catch (SocketException)
-        {
-            return true;
-        }
-        finally
         {
             try
             {
-                listener?.Dispose();
+                using var listener = new TcpListener(IPAddress.Loopback, port);
+                listener.Start();
+                return false;
             }
             catch (SocketException)
             {
                 // Best effort cleanup.
             }
+
+            return false;
+        }
+        catch (SocketException)
+        {
+            return true;
         }
     }
 
