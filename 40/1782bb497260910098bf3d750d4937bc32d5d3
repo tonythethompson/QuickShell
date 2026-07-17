@@ -1,0 +1,25 @@
+QuickShell/Pages/QuickShellPage.cs
+  s_6fad6f7a509527::t_7a23b8dd943920 567-568,570-578,580-593,595-598,603,621-622,626-635
+QuickShell/Pages/ShortcutFormPage.cs
+  s_6fad6f7a509527::t_de5ab304ca28f8 1505-1514,1518,1524,1645-1650
+QuickShell/Resources/Strings.cs
+  s_6fad6f7a509527::t_7d93289f781f32 31
+QuickShell/Resources/Strings.resx
+  s_6fad6f7a509527::t_ca09d483532510 90-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "401782bb497260910098bf3d750d4937bc32d5d3",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
