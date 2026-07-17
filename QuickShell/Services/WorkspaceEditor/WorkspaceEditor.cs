@@ -123,7 +123,9 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            var pills = CommandSuggestionService.GetPills(
+            // Must match BuildDataFields / BuildSelectablePills so Open to Directory (blank command)
+            // and pillIndex slots resolve the same list the Adaptive Card rendered.
+            var pills = SuggestionPillPresentation.BuildSelectablePills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
                 _services.ProjectAnalysis,
@@ -143,7 +145,10 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             PushEditSnapshot();
             _ = CommandSuggestionService.ApplyPill(_draft.Commands, pill, GetDefaultRowLaunchTarget());
             ApplyDraft();
-            return WorkspaceEditResult.StayOpen($"Added {pill.TypeTitle} command.");
+            var toast = ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill)
+                ? "Added Open to Directory."
+                : $"Added {pill.TypeTitle} command.";
+            return WorkspaceEditResult.StayOpen(toast);
         }
     }
 
@@ -1033,7 +1038,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         return merged;
     }
 
-    private static List<LaunchRowDraft> MergeCommandsFromInputs(
+    private List<LaunchRowDraft> MergeCommandsFromInputs(
         JsonObject data,
         List<LaunchRowDraft> existing)
     {
@@ -1052,19 +1057,27 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
             return [.. existing];
         }
 
+        var fallbackLaunchTarget = GetDefaultRowLaunchTarget();
         List<LaunchRowDraft> merged = [];
         for (var i = 0; i < count; i++)
         {
             var prior = i < existing.Count ? existing[i] : new();
+            var mergedCommand = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command;
+
+            // Backspacing a row's command to blank makes the row available for pills again;
+            // without this, ApplyPill skips it forever (same as intentionally blank Open to Directory).
+            var becameBlankViaEdit = !string.IsNullOrWhiteSpace(prior.Command) && string.IsNullOrWhiteSpace(mergedCommand);
+
             merged.Add(new LaunchRowDraft
             {
                 Id = prior.Id,
-                Command = data[$"LaunchCommand_{i}"]?.ToString() ?? prior.Command,
+                Command = mergedCommand,
                 TaskType = TaskTypeCatalog.Normalize(data[$"LaunchType_{i}"]?.ToString() ?? prior.TaskType),
                 LaunchTarget = data[$"LaunchTarget_{i}"]?.ToString()
-                    ?? prior.LaunchTarget,
+                    ?? prior.LaunchTarget
+                    ?? fallbackLaunchTarget,
                 RunAsAdmin = ParseToggleBool(data[$"LaunchRunAsAdmin_{i}"]?.ToString(), prior.RunAsAdmin),
-                IsEditorPlaceholder = prior.IsEditorPlaceholder,
+                IsEditorPlaceholder = becameBlankViaEdit || prior.IsEditorPlaceholder,
             });
         }
 

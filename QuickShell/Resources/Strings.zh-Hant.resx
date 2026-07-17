@@ -87,6 +87,39 @@
   <data name="Section_Workspaces" xml:space="preserve">
     <value>工作區</value>
   </data>
+  <data name="Section_NeedsAttention" xml:space="preserve">
+    <value>需要注意</value>
+  </data>
+  <data name="Pill_OpenToDirectory" xml:space="preserve">
+    <value>僅開啟目錄</value>
+  </data>
+  <data name="Menu_SwitchBranch" xml:space="preserve">
+    <value>切換分支</value>
+  </data>
+  <data name="Menu_SwitchBranchEllipsis" xml:space="preserve">
+    <value>切換分支…</value>
+  </data>
+  <data name="Menu_UseCurrentBranch" xml:space="preserve">
+    <value>使用目前分支</value>
+  </data>
+  <data name="BranchPicker_WorkspaceNotFound" xml:space="preserve">
+    <value>找不到工作區</value>
+  </data>
+  <data name="BranchPicker_NotAGitRepository" xml:space="preserve">
+    <value>不是 Git 存放庫</value>
+  </data>
+  <data name="BranchPicker_NoLocalBranches" xml:space="preserve">
+    <value>找不到本機分支</value>
+  </data>
+  <data name="BranchPicker_SelectLocalBranch" xml:space="preserve">
+    <value>選取本機分支</value>
+  </data>
+  <data name="BranchPicker_ClearTargetPinnedFormat" xml:space="preserve">
+    <value>清除目標：目前固定為 {0}</value>
+  </data>
+  <data name="BranchPicker_CurrentBranch" xml:space="preserve">
+    <value>目前分支</value>
+  </data>
   <data name="Tooltip_Favorite" xml:space="preserve">
     <value>收藏</value>
   </data>
