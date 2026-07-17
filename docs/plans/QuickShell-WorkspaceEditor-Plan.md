@@ -1,7 +1,3 @@
-Here’s my version: tighter scope, clearer ownership, and less chance of accidentally creating another giant “form refactor plus everything else” PR. It keeps the intent of your uploaded plan: preserve the in-palette create/edit UX, extract a bounded editor session, keep new form state in the CmdPal host, and remove only the directly related static hazards. 
-
-
-
 \# QuickShell 4.6 Plan — Extract CmdPal Workspace Editor Session
 
 
