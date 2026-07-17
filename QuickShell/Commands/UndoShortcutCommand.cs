@@ -8,9 +8,9 @@ internal sealed partial class UndoShortcutCommand : InvokableCommand
     private readonly IQuickShellServices _services;
     private readonly Action _onChanged;
 
-    public UndoShortcutCommand(Action onChanged, IQuickShellServices? services = null)
+    public UndoShortcutCommand(Action onChanged, IQuickShellServices services)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onChanged = onChanged;
         Name = Strings.Command_Undo_Name;
         Icon = new IconInfo("\uE7A7");

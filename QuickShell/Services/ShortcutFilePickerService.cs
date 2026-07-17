@@ -8,10 +8,11 @@ internal static class ShortcutFilePickerService
     private const string JsonFilter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromMinutes(2);
 
-    public static string? PickExportFile(IQuickShellServices? services = null)
+    public static string? PickExportFile(IQuickShellServices services)
     {
+        ArgumentNullException.ThrowIfNull(services);
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
+        var initialDirectory = services.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {
@@ -34,9 +35,10 @@ internal static class ShortcutFilePickerService
         });
     }
 
-    public static string? PickImportFile(IQuickShellServices? services = null)
+    public static string? PickImportFile(IQuickShellServices services)
     {
-        var initialDirectory = (services ?? throw new InvalidOperationException("IQuickShellServices is required.")).Shortcuts.ConfigDirectory;
+        ArgumentNullException.ThrowIfNull(services);
+        var initialDirectory = services.Shortcuts.ConfigDirectory;
 
         return RunOnStaThread(() =>
         {

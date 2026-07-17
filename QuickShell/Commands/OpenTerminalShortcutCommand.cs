@@ -8,20 +8,17 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 {
     private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
-    private readonly QuickShellSettingsManager _settings;
     private readonly bool _runAsAdmin;
     private readonly bool _runAsStandard;
 
     public OpenTerminalShortcutCommand(
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
+        IQuickShellServices services,
         bool runAsAdmin = false,
-        bool runAsStandard = false,
-        IQuickShellServices? services = null)
+        bool runAsStandard = false)
     {
-        _services = services ?? throw new InvalidOperationException("IQuickShellServices is required.");
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcut.Id;
-        _settings = settings;
         _runAsAdmin = runAsAdmin;
         _runAsStandard = runAsStandard;
         Id = CommandDescriptor.OpenWorkspace(shortcut.Id, runAsAdmin, runAsStandard).Id;
@@ -61,15 +58,16 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
+        var settings = _services.Settings;
         var result = ShortcutLaunchExecutor.Launch(
             shortcut,
-            _settings.TerminalApplicationId,
-            _settings.DefaultProfileId,
+            settings.TerminalApplicationId,
+            settings.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,
-                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch,
-                SeparateWindowsForMultiLaunch: _settings.SeparateWindowsForMultiLaunch));
+                BlockDirtyBranchSwitch: settings.BlockDirtyBranchSwitch,
+                SeparateWindowsForMultiLaunch: settings.SeparateWindowsForMultiLaunch));
 
         return ToCommandResult(result);
     }

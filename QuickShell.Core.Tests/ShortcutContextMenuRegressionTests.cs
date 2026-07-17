@@ -24,6 +24,7 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     private readonly QuickShellSettingsManager _settings;
     private readonly CreateShortcutCommand _createCommand;
     private readonly IQuickShellServices _quickShellServices;
+    private readonly QuickShellPageContext _context;
 
     public ShortcutContextMenuRegressionTests()
     {
@@ -43,6 +44,10 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         var lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
         _quickShellServices = new QuickShellServices(_repository, drafts, _settings, analysis, lifetime);
         _createCommand = new CreateShortcutCommand(() => { }, _quickShellServices);
+        _context = new QuickShellPageContext(
+            new QuickShellHostServices(_quickShellServices),
+            _createCommand,
+            () => { });
     }
 
     public void Dispose()
@@ -67,11 +72,10 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     {
         var shortcut = CreateHealthyShortcut("Alpha");
         var titles = GetTitles(ShortcutContextCommands.Build(
+            _context,
             shortcut,
             onChanged: () => { },
-            _settings,
-            _createCommand,
-            services: _quickShellServices));
+            includePageCommands: true));
 
         AssertContainsAll(
             titles,
@@ -93,17 +97,14 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     {
         var shortcut = CreateHealthyShortcut("HomePin");
         var full = GetTitles(ShortcutContextCommands.Build(
+            _context,
             shortcut,
             onChanged: () => { },
-            _settings,
-            _createCommand,
-            services: _quickShellServices));
+            includePageCommands: true));
         var home = GetTitles(ShortcutContextCommands.BuildForHomePin(
+            _context,
             shortcut,
-            onChanged: () => { },
-            _settings,
-            _createCommand,
-            services: _quickShellServices));
+            onChanged: () => { }));
 
         Assert.Contains(Strings.Menu_Undo, full);
         Assert.Contains(Strings.Menu_Redo, full);
@@ -118,11 +119,9 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     {
         var shortcut = CreateHealthyShortcut("ListItem");
         var item = ShortcutListItems.CreateOpen(
+            _context,
             shortcut,
-            _settings,
-            onChanged: () => { },
-            _createCommand,
-            services: _quickShellServices);
+            onChanged: () => { });
 
         Assert.NotNull(item.MoreCommands);
         var titles = GetTitles(item.MoreCommands!);
@@ -142,7 +141,7 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     public void CreateOpen_WithoutOnChanged_LeavesMoreCommandsEmpty()
     {
         var shortcut = CreateHealthyShortcut("NoContext");
-        var item = ShortcutListItems.CreateOpen(shortcut, _settings, services: _quickShellServices);
+        var item = ShortcutListItems.CreateOpen(_context, shortcut);
 
         Assert.True(item.MoreCommands is null || item.MoreCommands.Length == 0);
     }
@@ -162,11 +161,10 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         Assert.True(visibility.ShowToTop);
 
         var titles = GetTitles(ShortcutContextCommands.Build(
+            _context,
             second,
             onChanged: () => { },
-            _settings,
-            moveVisibility: visibility,
-            services: _quickShellServices));
+            moveVisibility: visibility));
 
         Assert.Contains("Move up", titles);
         Assert.Contains("Move to top", titles);
@@ -197,10 +195,9 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         ];
 
         var titles = GetTitles(ShortcutContextCommands.Build(
+            _context,
             shortcut,
-            onChanged: () => { },
-            _settings,
-            services: _quickShellServices));
+            onChanged: () => { }));
 
         Assert.Contains("npm run dev", titles);
         Assert.Contains("dotnet watch", titles);
