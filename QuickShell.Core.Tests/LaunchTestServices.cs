@@ -81,7 +81,27 @@ internal static class LaunchTestServices
                 Directory.Delete(_settingsDirectory, recursive: true);
             }
         }
-        catch
+        catch (IOException)
+        {
+            // Best effort.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Best effort.
+        }
+        catch (ArgumentException)
+        {
+            // Best effort.
+        }
+        catch (NotSupportedException)
+        {
+            // Best effort.
+        }
+        catch (System.Security.SecurityException)
+        {
+            // Best effort.
+        }
+        catch (System.IO.PathTooLongException)
         {
             // Best effort.
         }
