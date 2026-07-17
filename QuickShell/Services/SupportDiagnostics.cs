@@ -161,7 +161,7 @@ internal static class SupportDiagnostics
 
     private static void RotateLogs(string directory, string activePath)
     {
-        var oldest = Path.Combine(directory, $"support.{MaximumLogFileCount - 1}.jsonl");
+        var oldest = Path.Join(directory, $"support.{MaximumLogFileCount - 1}.jsonl");
         if (File.Exists(oldest))
         {
             File.Delete(oldest);
@@ -169,10 +169,10 @@ internal static class SupportDiagnostics
 
         for (var index = MaximumLogFileCount - 2; index >= 1; index--)
         {
-            var source = Path.Combine(directory, $"support.{index}.jsonl");
+            var source = Path.Join(directory, $"support.{index}.jsonl");
             if (File.Exists(source))
             {
-                File.Move(source, Path.Combine(directory, $"support.{index + 1}.jsonl"));
+                File.Move(source, Path.Join(directory, $"support.{index + 1}.jsonl"));
             }
         }
 
