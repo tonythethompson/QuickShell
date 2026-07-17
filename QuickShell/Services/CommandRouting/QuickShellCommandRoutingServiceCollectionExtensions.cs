@@ -4,6 +4,7 @@ using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
 using QuickShell.Services;
+using QuickShell.Services.WorkspaceEditor;
 
 namespace QuickShell.Services.CommandRouting;
 
@@ -36,6 +37,7 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<IProjectClassificationCache>(),
             sp.GetRequiredService<IExtensionCallbackQueue>()));
         services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
+        services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
 
         services.AddSingleton<ICommandItemHandler, OpenSettingsCommandHandler>();
         services.AddSingleton<ICommandItemHandler, ImportConflictCommandHandler>();

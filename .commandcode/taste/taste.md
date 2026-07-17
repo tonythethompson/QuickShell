@@ -1,6 +1,7 @@
 # Taste (Continuously Learned by [CommandCode][cmd])
 
 [cmd]: https://commandcode.ai/
+
 
 # glyph-naming
 - Use `*Label` suffix for glyph constants that are display strings (e.g., `RefreshLabel`, `BrowseLabel`, `PasteLabel`), reserving bare action verbs for command/event identifiers. Confidence: 0.90

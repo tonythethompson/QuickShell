@@ -34,4 +34,6 @@ internal interface IQuickShellServices
     IProjectClassificationCache ClassificationCache { get; }
 
     IExtensionCallbackQueue CallbackQueue { get; }
+
+    IQuickShellLifetime Lifetime { get; }
 }

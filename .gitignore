@@ -22,6 +22,7 @@ QuickShell/bin/
 QuickShell/obj/
 QuickShell/setup-x64.iss
 QuickShell/setup-arm64.iss
+.commandcode/taste
 
 # Store screenshot scratch (raw/prepared captures, local backup); README Screenshot_1-3 stay in Assets/
 QuickShell/Assets/StoreScreenshots/
@@ -79,3 +80,4 @@ diag.txt
 pr65_ic2.json
 pr65_rc2.json
 pr65_rev2.json
+.commandcode/taste/taste.md
