@@ -1,49 +1,37 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Diagnostics;
 
 namespace QuickShell.Services;
 
-internal static class CompanionAppLauncher
+internal sealed class CompanionAppLauncher : ICompanionAppLauncher
 {
-    public static bool IsConfigured(TerminalShortcut shortcut) =>
-        CompanionAppNormalization.GetConfigured(shortcut).Count > 0;
+    private readonly IProcessStarter _processStarter;
 
-    public static bool ShouldLaunchOnWorkspaceOpen(TerminalShortcut shortcut) =>
-        CompanionAppNormalization.GetOpenOnLaunch(shortcut).Count > 0;
+    public CompanionAppLauncher(IProcessStarter processStarter)
+    {
+        _processStarter = processStarter ?? throw new ArgumentNullException(nameof(processStarter));
+    }
 
-    /// <summary>Test hook: when set, invoked instead of <see cref="Process.Start"/>.</summary>
-    internal static Func<string, string, string, bool>? StartProcessOverride { get; set; }
-
-    /// <summary>Legacy full-shortcut override used by existing tests.</summary>
-    internal static Func<TerminalShortcut, bool, bool>? TryLaunchOverride { get; set; }
-
-    internal static bool LastLaunchAttempted { get; private set; }
+    /// <summary>Whether the last <see cref="TryLaunch"/> attempted to start a companion process.</summary>
+    internal bool LastLaunchAttempted { get; private set; }
 
     /// <summary>Number of companion processes started by the last <see cref="TryLaunch"/> call.</summary>
-    internal static int LastLaunchCount { get; private set; }
+    internal int LastLaunchCount { get; private set; }
 
-    public static bool TryLaunch(TerminalShortcut shortcut, bool onDemand, out string? error)
+    public bool IsConfigured(TerminalShortcut shortcut) =>
+        CompanionAppNormalization.GetConfigured(shortcut).Count > 0;
+
+    public bool ShouldLaunchOnWorkspaceOpen(TerminalShortcut shortcut) =>
+        CompanionAppNormalization.GetOpenOnLaunch(shortcut).Count > 0;
+
+    public bool TryLaunch(TerminalShortcut shortcut, bool onDemand, out string? error)
     {
         error = null;
         // Always clear first so callers can observe "was this TryLaunch invoked?"
-        // even when a prior test left LastLaunchAttempted true.
+        // even when a prior call left LastLaunchAttempted true.
         LastLaunchAttempted = false;
         LastLaunchCount = 0;
-
-        if (TryLaunchOverride is { } tryLaunchOverride)
-        {
-            // Only mark attempted when the override is actually asked to launch
-            // (auto path with no open-on-launch companions is a no-op).
-            CompanionAppNormalization.EnsureCompanionsFromLegacy(shortcut);
-            if (!onDemand && CompanionAppNormalization.GetOpenOnLaunch(shortcut).Count == 0)
-            {
-                return true;
-            }
-
-            LastLaunchAttempted = true;
-            LastLaunchCount = 1;
-            return tryLaunchOverride(shortcut, onDemand);
-        }
 
         CompanionAppNormalization.EnsureCompanionsFromLegacy(shortcut);
 
@@ -95,7 +83,7 @@ internal static class CompanionAppLauncher
         return false;
     }
 
-    internal static bool TryLaunchEntry(CompanionAppEntry entry, string workspaceDirectory, out string? error)
+    internal bool TryLaunchEntry(CompanionAppEntry entry, string workspaceDirectory, out string? error)
     {
         error = null;
         if (string.IsNullOrWhiteSpace(entry.Path))
@@ -119,17 +107,6 @@ internal static class CompanionAppLauncher
         try
         {
             var arguments = ExpandArguments(entry.Arguments, workspaceDirectory);
-            if (StartProcessOverride is { } startOverride)
-            {
-                if (!startOverride(executablePath, arguments, workspaceDirectory))
-                {
-                    error = "Companion app could not be launched.";
-                    return false;
-                }
-
-                return true;
-            }
-
             var startInfo = new ProcessStartInfo
             {
                 FileName = executablePath,
@@ -138,7 +115,12 @@ internal static class CompanionAppLauncher
                 UseShellExecute = true,
             };
 
-            Process.Start(startInfo);
+            if (!_processStarter.TryStart(startInfo))
+            {
+                error = "Companion app could not be launched.";
+                return false;
+            }
+
             return true;
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
@@ -148,7 +130,7 @@ internal static class CompanionAppLauncher
         }
     }
 
-    internal static string ExpandArguments(string? arguments, string workspaceDirectory)
+    public static string ExpandArguments(string? arguments, string workspaceDirectory)
     {
         if (string.IsNullOrWhiteSpace(arguments))
         {
@@ -173,7 +155,7 @@ internal static class CompanionAppLauncher
     }
 
     /// <summary>Display label for status/context UI (primary name, or "A + B" / "N companions").</summary>
-    public static string BuildDisplaySummary(TerminalShortcut shortcut)
+    public string BuildDisplaySummary(TerminalShortcut shortcut)
     {
         var configured = CompanionAppNormalization.GetConfigured(shortcut);
         if (configured.Count == 0)

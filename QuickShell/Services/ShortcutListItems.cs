@@ -37,7 +37,9 @@ internal static class ShortcutListItems
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
             settings.TerminalApplicationId,
-            settings.DefaultProfileId);
+            settings.DefaultProfileId,
+            services.HealthChecker,
+            services.GitOperations);
         if (tags is not null)
         {
             item.Tags = tags;

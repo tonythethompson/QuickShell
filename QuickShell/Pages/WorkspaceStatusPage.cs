@@ -40,7 +40,7 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
     public override IContent[] GetContent()
     {
         EnsureGitCommands();
-        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, () => _form = null)];
+        return [_form ??= new WorkspaceStatusForm(_shortcut, _settings, _services, () => _form = null)];
     }
 
     private void EnsureGitCommands()
@@ -58,12 +58,12 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         TerminalShortcut shortcut,
         Action onChanged)
     {
-        if (!WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var status))
+        if (!_services.GitOperations.TryGetStatus(shortcut.Directory, out var status))
         {
             return [];
         }
 
-        var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
+        var target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, _services.GitOperations);
         var items = new List<CommandContextItem>
         {
             new(new WorktreeBranchPickerPage(_services, shortcut.Id, onChanged, status, target))
@@ -90,15 +90,18 @@ internal sealed partial class WorkspaceStatusForm : FormContent
 {
     private readonly TerminalShortcut _shortcut;
     private readonly QuickShellSettingsManager _settings;
+    private readonly IQuickShellServices _services;
     private readonly Action _releaseForm;
 
     public WorkspaceStatusForm(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
+        IQuickShellServices services,
         Action releaseForm)
     {
         _shortcut = shortcut;
         _settings = settings;
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _releaseForm = releaseForm;
         TemplateJson = BuildTemplate();
         Refresh(forceRefresh: true);
@@ -141,10 +144,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
             _shortcut,
             _settings.TerminalApplicationId,
             _settings.DefaultProfileId,
+            _services.HealthChecker,
+            _services.GitOperations,
             forceRefresh);
         DataJson = new JsonObject
         {
-            ["Launches"] = BuildLaunchSummary(_shortcut),
+            ["Launches"] = BuildLaunchSummary(_shortcut, _services),
             ["Git"] = BuildGitSummary(snapshot),
             ["Runtime"] = snapshot.ActivitySummary,
             ["Attention"] = snapshot.AttentionEvidence,
@@ -170,12 +175,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         return $"Current: {current} · Target: {target} · {workingTree}";
     }
 
-    private static string BuildLaunchSummary(TerminalShortcut shortcut)
+    private static string BuildLaunchSummary(TerminalShortcut shortcut, IQuickShellServices services)
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
         var count = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut).Count;
-        var companion = CompanionAppLauncher.IsConfigured(shortcut)
-            ? $" · Companion: {CompanionAppLauncher.BuildDisplaySummary(shortcut)}"
+        var companion = services.CompanionApps.IsConfigured(shortcut)
+            ? $" · Companion: {services.CompanionApps.BuildDisplaySummary(shortcut)}"
             : string.Empty;
         return count == 1
             ? $"1 enabled launch{companion}"

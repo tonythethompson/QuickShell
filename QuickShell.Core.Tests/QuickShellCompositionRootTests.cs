@@ -74,8 +74,15 @@ public sealed class QuickShellCompositionRootTests : IDisposable
         Assert.IsType<TerminalProfileResolver>(_services.GetRequiredService<ITerminalProfileResolver>());
         Assert.IsType<WorkspaceMapper>(_services.GetRequiredService<IWorkspaceMapper>());
         Assert.IsType<GitRepoIndex>(_services.GetRequiredService<IGitRepoIndex>());
+        Assert.IsType<ProjectClassificationCache>(_services.GetRequiredService<IProjectClassificationCache>());
+        Assert.IsType<SyncExtensionThreadScheduler>(_services.GetRequiredService<IExtensionThreadScheduler>());
         Assert.IsType<WorkspaceGitOperations>(_services.GetRequiredService<IWorkspaceGitOperations>());
         Assert.IsType<WorkspaceHealthCheck>(_services.GetRequiredService<IWorkspaceHealthChecker>());
+        Assert.IsType<ProcessStarter>(_services.GetRequiredService<IProcessStarter>());
+        Assert.IsType<CompanionAppLauncher>(_services.GetRequiredService<ICompanionAppLauncher>());
+        Assert.IsType<ShortcutLaunchExecutor>(_services.GetRequiredService<IShortcutLaunchExecutor>());
+        Assert.IsType<WorkspaceGitLaunchGate>(_services.GetRequiredService<WorkspaceGitLaunchGate>());
+        Assert.IsType<WorkspaceEnvironmentProbe>(_services.GetRequiredService<IWorkspaceEnvironmentProbe>());
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
 using QuickShell.Classification;
@@ -58,6 +59,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private readonly IProjectAnalysisService _projectAnalysis;
 
+    private readonly IProjectClassificationCache _classificationCache;
+
+    private readonly IWorkspaceGitOperations _gitOperations;
+
     private int _activeSuggestionGeneration;
 
 
@@ -66,7 +71,12 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    public ShortcutWorkspaceEditorWindow(TerminalShortcut? existing, IShortcutRepository shortcuts, IProjectAnalysisService projectAnalysis)
+    public ShortcutWorkspaceEditorWindow(
+        TerminalShortcut? existing,
+        IShortcutRepository shortcuts,
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
+        IWorkspaceGitOperations gitOperations)
 
     {
 
@@ -75,6 +85,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         _shortcuts = shortcuts;
 
         _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+
+        _classificationCache = classificationCache ?? throw new ArgumentNullException(nameof(classificationCache));
+
+        _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
 
         _working = existing is null ? new TerminalShortcut() : CloneShortcut(existing);
 
@@ -162,7 +176,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         general.Children.Add(_targetBranchBox);
 
-        ReloadBranchChoices(_working.Directory, WorktreeBranchTargetStore.GetTargetForDirectory(_working.Directory));
+        ReloadBranchChoices(_working.Directory, WorktreeBranchTargetStore.GetTargetForDirectory(_working.Directory, _gitOperations));
 
 
 
@@ -363,7 +377,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         _targetBranchBox.Items.Clear();
 
-        foreach (var branch in WorkspaceGitOperations.ListLocalBranches(directory))
+        foreach (var branch in _gitOperations.ListLocalBranches(directory))
 
         {
 
@@ -457,7 +471,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-        ReloadBranchChoices(directory, WorktreeBranchTargetStore.GetTargetForDirectory(directory));
+        ReloadBranchChoices(directory, WorktreeBranchTargetStore.GetTargetForDirectory(directory, _gitOperations));
 
         RefreshSuggestionPanel();
 
@@ -630,6 +644,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         _suggestionLoader.Schedule(
 
             _projectAnalysis,
+
+            _classificationCache,
 
             directory,
 
@@ -953,11 +969,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         if (!string.IsNullOrWhiteSpace(targetBranch)
 
-            && WorkspaceGitOperations.TryResolveWorktreeKey(_working.Directory, out _))
+            && _gitOperations.TryResolveWorktreeKey(_working.Directory, out _))
 
         {
 
-            var branches = WorkspaceGitOperations.ListLocalBranches(_working.Directory);
+            var branches = _gitOperations.ListLocalBranches(_working.Directory);
 
             if (branches.Count > 0
 
@@ -996,6 +1012,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
                 _working.Directory,
 
                 string.IsNullOrWhiteSpace(targetBranch) ? null : targetBranch,
+
+                _gitOperations,
 
                 out var branchError))
 
@@ -1708,7 +1726,13 @@ internal static class ShortcutEditor
 
 {
 
-    public static bool TryShowDialog(TerminalShortcut? existing, IShortcutRepository shortcuts, IProjectAnalysisService projectAnalysis, out string message)
+    public static bool TryShowDialog(
+        TerminalShortcut? existing,
+        IShortcutRepository shortcuts,
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
+        IWorkspaceGitOperations gitOperations,
+        out string message)
 
     {
 
@@ -1724,7 +1748,12 @@ internal static class ShortcutEditor
 
         {
 
-            var window = new ShortcutWorkspaceEditorWindow(existing, shortcuts, projectAnalysis);
+            var window = new ShortcutWorkspaceEditorWindow(
+                existing,
+                shortcuts,
+                projectAnalysis,
+                classificationCache,
+                gitOperations);
 
             if (window.ShowDialog() == true)
 

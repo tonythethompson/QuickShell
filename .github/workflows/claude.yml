@@ -26,15 +26,16 @@ jobs:
       actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
+
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.sha }}
           fetch-depth: 1
+
 
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 

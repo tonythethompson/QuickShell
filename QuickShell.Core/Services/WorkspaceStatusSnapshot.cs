@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -108,16 +110,34 @@ internal static class WorkspaceStatusService
     public static WorkspaceStatusSnapshot CaptureForList(
         TerminalShortcut shortcut,
         string terminalApplicationId,
-        string defaultProfileId) =>
-        Capture(shortcut, terminalApplicationId, defaultProfileId, forceRefresh: false);
+        string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations) =>
+        Capture(
+            shortcut,
+            terminalApplicationId,
+            defaultProfileId,
+            healthChecker,
+            gitOperations,
+            forceRefresh: false);
 
     public static bool TryGetCached(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations,
         out WorkspaceStatusSnapshot snapshot)
     {
-        var key = BuildCacheKey(shortcut.Directory, terminalApplicationId, defaultProfileId);
+        ArgumentNullException.ThrowIfNull(healthChecker);
+        ArgumentNullException.ThrowIfNull(gitOperations);
+
+        var key = BuildCacheKey(
+            shortcut.Directory,
+            terminalApplicationId,
+            defaultProfileId,
+            healthChecker,
+            gitOperations);
         return TryGetFresh(key, out snapshot);
     }
 
@@ -125,26 +145,38 @@ internal static class WorkspaceStatusService
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations,
         bool forceRefresh = false)
     {
-        var key = BuildCacheKey(shortcut.Directory, terminalApplicationId, defaultProfileId);
+        ArgumentNullException.ThrowIfNull(healthChecker);
+        ArgumentNullException.ThrowIfNull(gitOperations);
+
+        // Scope cache entries to the concrete health/git service instances so two hosts
+        // (or test fakes vs production) never reuse each other's snapshots.
+        var key = BuildCacheKey(
+            shortcut.Directory,
+            terminalApplicationId,
+            defaultProfileId,
+            healthChecker,
+            gitOperations);
         if (!forceRefresh && TryGetFresh(key, out var cached))
         {
             return cached;
         }
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = healthChecker.Check(
             shortcut,
             terminalApplicationId,
             defaultProfileId,
             includeVolatile: true,
             includeGit: false);
-        var git = WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var current)
+        var git = gitOperations.TryGetStatus(shortcut.Directory, out var current)
             ? current
             : null;
         var target = git is null
             ? null
-            : WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
+            : WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, gitOperations);
         var snapshot = new WorkspaceStatusSnapshot(
             health,
             git,
@@ -311,12 +343,20 @@ internal static class WorkspaceStatusService
     private static string BuildCacheKey(
         string directory,
         string terminalApplicationId,
-        string defaultProfileId)
+        string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations)
     {
         var normalized = WorkspacePath.TryNormalizeLexical(directory, out var path, out _)
             ? path
             : directory.Trim();
-        return string.Join("\u001F", normalized, terminalApplicationId, defaultProfileId);
+        return string.Join(
+            "\u001F",
+            normalized,
+            terminalApplicationId,
+            defaultProfileId,
+            RuntimeHelpers.GetHashCode(healthChecker).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            RuntimeHelpers.GetHashCode(gitOperations).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private sealed record CacheEntry(WorkspaceStatusSnapshot Snapshot);

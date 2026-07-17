@@ -8,26 +8,25 @@ namespace QuickShell.Core.Tests;
 public sealed class WorkspaceHealthCheckTests : IDisposable
 {
     private readonly string _root;
+    private readonly FakeWorkspaceEnvironmentProbe _probe = FakeWorkspaceEnvironmentProbe.Healthy();
+    private WorkspaceGitOperations _git = LaunchTestServices.CreateGit(getStatus: _ => null);
 
     public WorkspaceHealthCheckTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-health-check-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
-        WorkspaceHealthCheck.ExecutableExistsOverride = executable =>
+        _probe.ExecutableExistsHandler = executable =>
             !executable.Equals("missing-tool", StringComparison.OrdinalIgnoreCase);
-        WorkspaceHealthCheck.PortInUseOverride = _ => false;
-        WorkspaceHealthCheck.ProcessNamesOverride = () => [];
-        WorkspaceHealthCheck.WslDistroNamesOverride = () => ["Ubuntu"];
-        WorkspaceHealthCheck.GitStatusOverride = _ => null;
-        WorkspaceHealthCheck.GitCommandOverride = null;
     }
+
+    private WorkspaceHealthCheck CreateHealth() => new(_probe, _git);
 
     [Fact]
     public void Check_MissingFolderIsBlocking()
     {
         var shortcut = BuildShortcut(@"C:\missing-quickshell-health-test");
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -43,7 +42,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         var shortcut = BuildShortcut(_root);
         shortcut.Launches[0].IsEnabled = false;
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -57,7 +56,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     {
         var shortcut = BuildShortcut(_root, "missing-tool run");
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -74,7 +73,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         shortcut.Launches[0].Terminal = "wsl";
         shortcut.Launches[0].WtProfile = "Debian";
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -86,12 +85,12 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_FirstSameAsPreviousLaunch_ValidatesConfiguredDefaultTarget()
     {
-        WorkspaceHealthCheck.ExecutableExistsOverride = executable =>
+        _probe.ExecutableExistsHandler = executable =>
             !executable.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase);
         var shortcut = BuildShortcut(_root);
         shortcut.Launches[0].Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId;
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -127,7 +126,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
             },
         ];
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -139,7 +138,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_SameAsPreviousIgnoresDisabledPriorLaunches()
     {
-        WorkspaceHealthCheck.ExecutableExistsOverride = executable =>
+        _probe.ExecutableExistsHandler = executable =>
             !executable.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase);
         var shortcut = BuildShortcut(_root);
         shortcut.Launches =
@@ -163,7 +162,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
             },
         ];
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -177,12 +176,12 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_PortInUseCreatesRunningWarning()
     {
-        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        _probe.PortInUseHandler = port => port == 5173;
         var shortcut = BuildShortcut(_root);
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = true;
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -195,12 +194,12 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_PortInUseWithoutOpenDevServer_DoesNotCreateRunningWarning()
     {
-        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        _probe.PortInUseHandler = port => port == 5173;
         var shortcut = BuildShortcut(_root);
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = false;
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -212,10 +211,10 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_ExistingProcessCreatesRunningWarning()
     {
-        WorkspaceHealthCheck.ProcessNamesOverride = () => ["node"];
+        _probe.ProcessNamesHandler = () => ["node"];
         var shortcut = BuildShortcut(_root, $"node \"{Path.Combine(_root, "server.js")}\"");
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -228,10 +227,11 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_GitStatusIsInformational()
     {
-        WorkspaceHealthCheck.GitStatusOverride = _ => new WorkspaceGitStatus("main", IsDirty: true, IsDetached: false);
+        _git = LaunchTestServices.CreateGit(
+            getStatus: _ => new WorkspaceGitStatus("main", IsDirty: true, IsDetached: false));
         var shortcut = BuildShortcut(_root);
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -247,17 +247,17 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void Check_GitStatusSupportsWorktreesWithoutGitDirectory()
     {
-        WorkspaceHealthCheck.GitStatusOverride = null;
-        WorkspaceHealthCheck.GitCommandOverride = (_, arguments) => arguments switch
-        {
-            "rev-parse --is-inside-work-tree" => "true",
-            "rev-parse --abbrev-ref HEAD" => "feature/worktree",
-            "status --porcelain" => " M app.cs",
-            _ => null,
-        };
+        _git = LaunchTestServices.CreateGit(
+            runGit: (_, arguments) => arguments switch
+            {
+                ["rev-parse", "--is-inside-work-tree"] => GitSuccess("true"),
+                ["rev-parse", "--abbrev-ref", "HEAD"] => GitSuccess("feature/worktree"),
+                ["status", "--porcelain"] => GitSuccess(" M app.cs"),
+                _ => GitCommandResult.Failed,
+            });
         var shortcut = BuildShortcut(_root);
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = CreateHealth().Check(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -274,33 +274,28 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     public void Launch_BlocksBeforeStartingProcessWhenExecutableMissing()
     {
         var shortcut = BuildShortcut(_root, "missing-tool run");
-        var started = false;
-        TerminalLauncher.StartProcessOverride = _ =>
-        {
-            started = true;
-            return true;
-        };
+        var bundle = LaunchTestServices.CreateBundle(probe: _probe, git: _git);
 
-        var result = ShortcutLaunchExecutor.Launch(
+        var result = bundle.Executor.Launch(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
 
         Assert.False(result.Dismiss);
-        Assert.False(started);
+        Assert.Empty(bundle.ProcessStarter.Started);
         Assert.Contains("missing-tool", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Launch_AllowsPortWarningAndReportsItAfterLaunch()
     {
-        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        _probe.PortInUseHandler = port => port == 5173;
         var shortcut = BuildShortcut(_root);
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = true;
-        TerminalLauncher.StartProcessOverride = _ => true;
+        var bundle = LaunchTestServices.CreateBundle(probe: _probe, git: _git);
 
-        var result = ShortcutLaunchExecutor.Launch(
+        var result = bundle.Executor.Launch(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd");
@@ -313,17 +308,25 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void DisplayTags_AddsRunningAndWarningWithoutSubtitleChanges()
     {
-        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        _probe.PortInUseHandler = port => port == 5173;
         var shortcut = BuildShortcut(_root, "npm run dev");
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = true;
         var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
-        WorkspaceStatusService.CaptureForList(shortcut, TerminalHostIds.WindowsConsoleHost, "cmd");
+        var health = CreateHealth();
+        WorkspaceStatusService.CaptureForList(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd",
+            health,
+            _git);
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
-            "cmd");
+            "cmd",
+            health,
+            _git);
 
         Assert.NotNull(tags);
         var warningTag = Assert.Single(tags, tag => tag.ToolTip == "Workspace health warning");
@@ -335,18 +338,26 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     [Fact]
     public void DisplayTags_NeverExceedsTwoEvenWithAdminFavoriteWarningAndRunning()
     {
-        WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+        _probe.PortInUseHandler = port => port == 5173;
         var shortcut = BuildShortcut(_root, "npm run dev");
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = true;
         shortcut.RunAsAdmin = true;
         shortcut.IsPinned = true;
-        WorkspaceStatusService.CaptureForList(shortcut, TerminalHostIds.WindowsConsoleHost, "cmd");
+        var health = CreateHealth();
+        WorkspaceStatusService.CaptureForList(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd",
+            health,
+            _git);
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
             TerminalHostIds.WindowsConsoleHost,
-            "cmd");
+            "cmd",
+            health,
+            _git);
 
         Assert.NotNull(tags);
         Assert.True(tags.Length <= 2, $"Expected at most 2 tags, found {tags.Length}.");
@@ -374,15 +385,11 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
             ],
         };
 
+    private static GitCommandResult GitSuccess(string output) =>
+        new(0, output, string.Empty, TimedOut: false);
+
     public void Dispose()
     {
-        TerminalLauncher.StartProcessOverride = null;
-        WorkspaceHealthCheck.ExecutableExistsOverride = null;
-        WorkspaceHealthCheck.PortInUseOverride = null;
-        WorkspaceHealthCheck.ProcessNamesOverride = null;
-        WorkspaceHealthCheck.WslDistroNamesOverride = null;
-        WorkspaceHealthCheck.GitStatusOverride = null;
-        WorkspaceHealthCheck.GitCommandOverride = null;
         WorkspaceStatusService.ResetCacheForTests();
         try
         {

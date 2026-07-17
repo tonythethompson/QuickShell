@@ -43,12 +43,20 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
 
-        services.AddSingleton<ITerminalLauncher, TerminalLauncher>();
+        services.AddSingleton<IProcessStarter, ProcessStarter>();
+        services.AddSingleton<QuickShellSettingsReader>(_ => new QuickShellSettingsReader());
         services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolver>();
-        services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
-        services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
+        services.AddSingleton<ITerminalLauncher, TerminalLauncher>();
+        services.AddSingleton<IWorkspaceEnvironmentProbe, WorkspaceEnvironmentProbe>();
         services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperations>();
-        services.AddSingleton<IWorkspaceHealthChecker>(_ => WorkspaceHealthCheck.Default);
+        services.AddSingleton<IWorkspaceHealthChecker, WorkspaceHealthCheck>();
+        services.AddSingleton<WorkspaceGitLaunchGate>();
+        services.AddSingleton<ICompanionAppLauncher, CompanionAppLauncher>();
+        services.AddSingleton<IShortcutLaunchExecutor, ShortcutLaunchExecutor>();
+        services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
+        services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
+        services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
+        services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();

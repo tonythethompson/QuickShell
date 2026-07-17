@@ -4,6 +4,13 @@ namespace QuickShell.Services;
 
 internal static class TerminalLaunchGlyphs
 {
+    /// <summary>
+    /// Glyph path uses a process-local profile resolver (settings file reader only).
+    /// Launch/health services use the DI-registered terminal profile resolver.
+    /// </summary>
+    private static readonly TerminalProfileResolver GlyphProfileResolver =
+        new(new QuickShellSettingsReader());
+
     public static string GetForShortcut(TerminalShortcut shortcut)
     {
         var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
@@ -38,7 +45,7 @@ internal static class TerminalLaunchGlyphs
 
     public static string GetForLaunch(WorkspaceEntry launch)
     {
-        var profile = TerminalProfileResolver.ResolveForLaunch(launch);
+        var profile = GlyphProfileResolver.ResolveForLaunch(launch);
 
         if (profile is not null && IsWslProfile(profile))
         {

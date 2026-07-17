@@ -1,8 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Models;
-using System.Diagnostics;
 using System.Net;
-using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
 namespace QuickShell.Services;
@@ -60,17 +58,10 @@ internal sealed class WorkspaceHealthResult
 }
 
 /// <summary>
-/// Production health checks for a workspace. The public static API is still the primary
-/// entry point for callers and test seams, but the mutable override state now lives on
-/// a singleton instance so the service lifetime matches the global state.
+/// Production health checks for a workspace. Environment and git IO are injected.
 /// </summary>
 internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
 {
-    /// <summary>
-    /// Singleton instance used by the public static API and registered in DI.
-    /// </summary>
-    internal static WorkspaceHealthCheck Default { get; } = new WorkspaceHealthCheck();
-
     private static readonly string[] ShellBuiltins =
     [
         "cd",
@@ -91,73 +82,23 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         "type",
     ];
 
-    // Test-seam overrides stored on the singleton instance so mutable state is scoped
-    // to the service lifetime rather than spread across static fields.
-    private Func<string, bool>? _executableExistsOverride;
-    private Func<int, bool>? _portInUseOverride;
-    private Func<IReadOnlyList<string>>? _processNamesOverride;
-    private Func<IReadOnlyList<string>>? _wslDistroNamesOverride;
-    private Func<string, WorkspaceGitStatus?>? _gitStatusOverride;
-    private Func<string, string, string?>? _gitCommandOverride;
+    private readonly IWorkspaceEnvironmentProbe _environmentProbe;
+    private readonly IWorkspaceGitOperations _gitOperations;
 
-    internal static Func<string, bool>? ExecutableExistsOverride
+    public WorkspaceHealthCheck(
+        IWorkspaceEnvironmentProbe environmentProbe,
+        IWorkspaceGitOperations gitOperations)
     {
-        get => Default._executableExistsOverride;
-        set => Default._executableExistsOverride = value;
+        _environmentProbe = environmentProbe ?? throw new ArgumentNullException(nameof(environmentProbe));
+        _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
     }
-
-    internal static Func<int, bool>? PortInUseOverride
-    {
-        get => Default._portInUseOverride;
-        set => Default._portInUseOverride = value;
-    }
-
-    internal static Func<IReadOnlyList<string>>? ProcessNamesOverride
-    {
-        get => Default._processNamesOverride;
-        set => Default._processNamesOverride = value;
-    }
-
-    internal static Func<IReadOnlyList<string>>? WslDistroNamesOverride
-    {
-        get => Default._wslDistroNamesOverride;
-        set => Default._wslDistroNamesOverride = value;
-    }
-
-    internal static Func<string, WorkspaceGitStatus?>? GitStatusOverride
-    {
-        get => Default._gitStatusOverride;
-        set => Default._gitStatusOverride = value;
-    }
-
-    internal static Func<string, string, string?>? GitCommandOverride
-    {
-        get => Default._gitCommandOverride;
-        set => Default._gitCommandOverride = value;
-    }
-
-    WorkspaceHealthResult IWorkspaceHealthChecker.Check(
-        TerminalShortcut shortcut,
-        string terminalApplicationId,
-        string defaultProfileId,
-        bool includeVolatile,
-        bool includeGit) =>
-        Check(shortcut, terminalApplicationId, defaultProfileId, includeVolatile, includeGit);
-
-    WorkspaceHealthResult IWorkspaceHealthChecker.CheckEntry(
-        TerminalShortcut shortcut,
-        WorkspaceEntry entry,
-        string terminalApplicationId,
-        string defaultProfileId,
-        bool includeVolatile) =>
-        CheckEntry(shortcut, entry, terminalApplicationId, defaultProfileId, includeVolatile);
 
     /// <summary>
     /// Launch-safety / status snapshot path. Can fan into directory, launch, git, ports, and
     /// process checks. Keep <paramref name="includeVolatile"/> and git off the typing/search
     /// list rebuild path — CmdPal list tags use <see cref="WorkspaceStatusService.TryGetCached"/> only.
     /// </summary>
-    public static WorkspaceHealthResult Check(
+    public WorkspaceHealthResult Check(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
@@ -183,7 +124,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         return new WorkspaceHealthResult(Deduplicate(findings));
     }
 
-    public static WorkspaceHealthResult CheckEntry(
+    public WorkspaceHealthResult CheckEntry(
         TerminalShortcut shortcut,
         WorkspaceEntry launch,
         string terminalApplicationId,
@@ -261,7 +202,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         }
     }
 
-    private static void CheckLaunches(
+    private void CheckLaunches(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
@@ -296,7 +237,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         }
     }
 
-    private static void CheckLaunchTarget(
+    private void CheckLaunchTarget(
         WorkspaceEntry launch,
         string terminalApplicationId,
         string defaultProfileId,
@@ -361,7 +302,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         }
     }
 
-    private static void CheckDefaultLaunchTarget(
+    private void CheckDefaultLaunchTarget(
         string terminalApplicationId,
         string defaultProfileId,
         List<WorkspaceHealthFinding> findings)
@@ -417,7 +358,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         }
     }
 
-    private static void CheckWsl(string? distro, List<WorkspaceHealthFinding> findings)
+    private void CheckWsl(string? distro, List<WorkspaceHealthFinding> findings)
     {
         if (!ExecutableExists("wsl.exe"))
         {
@@ -442,7 +383,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         }
     }
 
-    private static void CheckCommandExecutable(WorkspaceEntry launch, List<WorkspaceHealthFinding> findings)
+    private void CheckCommandExecutable(WorkspaceEntry launch, List<WorkspaceHealthFinding> findings)
     {
         var executable = TryReadCommandExecutable(launch.Command);
         if (executable is null || ShellBuiltins.Contains(executable, StringComparer.OrdinalIgnoreCase))
@@ -460,10 +401,9 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         }
     }
 
-    private static void CheckGit(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
+    private void CheckGit(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
     {
-        var status = TryReadGitStatus(shortcut.Directory);
-        if (status is null)
+        if (!_gitOperations.TryGetStatus(shortcut.Directory, out var status))
         {
             return;
         }
@@ -478,7 +418,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             detail));
     }
 
-    private static void CheckPorts(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
+    private void CheckPorts(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
     {
         foreach (var port in DetectPorts(shortcut).Distinct().Where(port => port is > 0 and <= 65535))
         {
@@ -524,7 +464,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         return false;
     }
 
-    private static void CheckProcesses(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
+    private void CheckProcesses(TerminalShortcut shortcut, List<WorkspaceHealthFinding> findings)
     {
         var processNames = GetProcessNames();
         if (processNames.Count == 0)
@@ -680,198 +620,13 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             || name.Equals("git", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool ExecutableExists(string executable)
-    {
-        if (ExecutableExistsOverride is { } existsOverride)
-        {
-            return existsOverride(executable);
-        }
+    private bool ExecutableExists(string executable) => _environmentProbe.ExecutableExists(executable);
 
-        if (File.Exists(executable))
-        {
-            return true;
-        }
+    private bool IsPortInUse(int port) => _environmentProbe.PortInUse(port);
 
-        try
-        {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "where.exe",
-                Arguments = executable,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+    private IReadOnlyList<string> GetProcessNames() => _environmentProbe.ProcessNames();
 
-            using var process = Process.Start(startInfo);
-            if (process is null)
-            {
-                return false;
-            }
-
-            if (!process.WaitForExit(1500))
-            {
-                TryKill(process);
-                return false;
-            }
-
-            return process.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool IsPortInUse(int port)
-    {
-        if (PortInUseOverride is { } portOverride)
-        {
-            return portOverride(port);
-        }
-
-        try
-        {
-            var listener = new TcpListener(IPAddress.Loopback, port);
-            listener.Start();
-            listener.Stop();
-            return false;
-        }
-        catch (SocketException)
-        {
-            return true;
-        }
-    }
-
-    private static IReadOnlyList<string> GetProcessNames()
-    {
-        if (ProcessNamesOverride is { } processOverride)
-        {
-            return processOverride();
-        }
-
-        try
-        {
-            return Process.GetProcesses()
-                .Select(process => process.ProcessName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    private static IReadOnlyList<string> GetWslDistroNames()
-    {
-        if (WslDistroNamesOverride is { } wslOverride)
-        {
-            return wslOverride();
-        }
-
-        try
-        {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "wsl.exe",
-                Arguments = "-l -q",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process is null)
-            {
-                return [];
-            }
-
-            var output = process.StandardOutput.ReadToEnd();
-            if (!process.WaitForExit(3000))
-            {
-                TryKill(process);
-                return [];
-            }
-
-            if (process.ExitCode != 0)
-            {
-                return [];
-            }
-
-            return output
-                .Replace("\0", string.Empty, StringComparison.Ordinal)
-                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim())
-                .Where(line => line.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    private static WorkspaceGitStatus? TryReadGitStatus(string directory)
-    {
-        if (GitStatusOverride is { } gitOverride)
-        {
-            return gitOverride(directory);
-        }
-
-        if (GitCommandOverride is { } gitCommandOverride)
-        {
-            return TryReadGitStatusViaLegacyOverride(directory, gitCommandOverride);
-        }
-
-        return WorkspaceGitOperations.TryGetStatus(directory, out var status) ? status : null;
-    }
-
-    private static WorkspaceGitStatus? TryReadGitStatusViaLegacyOverride(
-        string directory,
-        Func<string, string, string?> gitCommandOverride)
-    {
-        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
-        {
-            return null;
-        }
-
-        var insideWorkTree = gitCommandOverride(directory, "rev-parse --is-inside-work-tree");
-        if (!string.Equals(insideWorkTree?.Trim(), "true", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var branch = gitCommandOverride(directory, "rev-parse --abbrev-ref HEAD");
-        if (string.IsNullOrWhiteSpace(branch))
-        {
-            return null;
-        }
-
-        var branchName = branch.Trim();
-        var isDetached = branchName.Equals("HEAD", StringComparison.Ordinal);
-        var status = gitCommandOverride(directory, "status --porcelain");
-        return new WorkspaceGitStatus(
-            isDetached ? "(detached)" : branchName,
-            !string.IsNullOrWhiteSpace(status),
-            isDetached);
-    }
-
-    private static string? RunGit(string directory, string arguments)
-    {
-        if (GitCommandOverride is { } gitCommandOverride)
-        {
-            return gitCommandOverride(directory, arguments);
-        }
-
-        var splitArguments = arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var result = WorkspaceGitOperations.RunGit(directory, splitArguments);
-        return result.Succeeded ? result.StandardOutput : null;
-    }
+    private IReadOnlyList<string> GetWslDistroNames() => _environmentProbe.WslDistroNames();
 
     private static string FormatFindings(string prefix, IReadOnlyList<WorkspaceHealthFinding> findings)
     {
@@ -887,18 +642,6 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         string.IsNullOrWhiteSpace(finding.Detail)
             ? finding.Title
             : $"{finding.Title} {finding.Detail}";
-
-    private static void TryKill(Process process)
-    {
-        try
-        {
-            process.Kill(entireProcessTree: true);
-        }
-        catch
-        {
-            // Best effort.
-        }
-    }
 
     [GeneratedRegex(@"(?:localhost:|--port\s+|-p\s+|=)(\d{2,5})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex CommandPortRegex();

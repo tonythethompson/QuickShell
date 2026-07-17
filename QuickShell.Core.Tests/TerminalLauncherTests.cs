@@ -5,37 +5,18 @@ using QuickShell.Services;
 namespace QuickShell.Core.Tests;
 
 /// <summary>
-/// Groups every test class that mutates the process-wide static
-/// <see cref="TerminalLauncher.StartProcessOverride"/> seam so xUnit never
-/// runs two of them concurrently — by default, each test *class* is its own
-/// parallel collection, and two classes racing to set/reset the same static
-/// field can capture (or fail to reset) each other's override.
+/// Groups launch-related tests that share terminal-discovery stubs
+/// (<see cref="WtProfilesService.TestLocationsOverride"/>).
 /// </summary>
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class TerminalLauncherOverrideIsolation
 {
-    public const string Name = "TerminalLauncher.StartProcessOverride";
+    public const string Name = "WtProfilesService.TestLocationsOverride";
 }
 
 /// <summary>
-/// End-to-end coverage for <see cref="TerminalLauncher.Open"/>: the full
-/// resolve-target -> build-ProcessStartInfo -> (would-be) launch pipeline,
-/// using <see cref="TerminalLauncher.StartProcessOverride"/> to capture the
-/// resulting <see cref="ProcessStartInfo"/> instead of actually spawning a
-/// process. <see cref="TerminalLauncherArgsTests"/> covers the string-builder
-/// helpers in isolation; this file covers the dispatch + elevation logic that
-/// wraps them, which is where the "silently resets/falls back" class of bugs
-/// tends to live.
-///
-/// Scenarios are deliberately restricted to targets that resolve
-/// deterministically regardless of what's actually installed on the machine
-/// running the tests (cmd.exe/powershell.exe are always under
-/// %SystemRoot%\System32 on any Windows box; a "Windows Terminal, default
-/// profile" target is synthesized from a hardcoded id without touching live
-/// executable discovery). WSL/pwsh/custom-profile argument construction is
-/// covered at the <see cref="TerminalLauncherArgs"/>/<see cref="WslPathResolver"/>
-/// level instead, since resolving those end-to-end depends on what's actually
-/// installed on the CI runner.
+/// End-to-end coverage for <see cref="TerminalLauncher.Open"/> using a capturing
+/// <see cref="FakeProcessStarter"/> instead of process-wide static overrides.
 /// </summary>
 [Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class TerminalLauncherTests
@@ -49,17 +30,12 @@ public sealed class TerminalLauncherTests
             Directory = @"C:\this-directory-should-not-exist-quickshell-test",
         };
 
-        var captured = false;
-        TerminalLauncher.StartProcessOverride = _ => { captured = true; return true; };
-        try
-        {
-            Assert.Throws<DirectoryNotFoundException>(() => TerminalLauncher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile));
-            Assert.False(captured, "No process should be started when the directory doesn't exist.");
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        var starter = new FakeProcessStarter { Succeed = true };
+        var launcher = new TerminalLauncher(starter);
+
+        Assert.Throws<DirectoryNotFoundException>(() =>
+            launcher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile));
+        Assert.Empty(starter.Started);
     }
 
     [Fact]
@@ -68,7 +44,8 @@ public sealed class TerminalLauncherTests
         using var directory = new TempDataDirectory();
         var shortcut = new TerminalShortcut { Name = "Elevated", Directory = directory.Path, RunAsAdmin = true };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, "wt", TerminalHostIds.DefaultProfile));
 
         Assert.Equal("runas", startInfo.Verb);
     }
@@ -79,7 +56,8 @@ public sealed class TerminalLauncherTests
         using var directory = new TempDataDirectory();
         var shortcut = new TerminalShortcut { Name = "NotFlagged", Directory = directory.Path, RunAsAdmin = false };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile, runAsAdmin: true));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, "wt", TerminalHostIds.DefaultProfile, runAsAdmin: true));
 
         Assert.Equal("runas", startInfo.Verb);
     }
@@ -90,7 +68,8 @@ public sealed class TerminalLauncherTests
         using var directory = new TempDataDirectory();
         var shortcut = new TerminalShortcut { Name = "ForcedStandard", Directory = directory.Path, RunAsAdmin = true };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile, runAsStandard: true));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, "wt", TerminalHostIds.DefaultProfile, runAsStandard: true));
 
         Assert.NotEqual("runas", startInfo.Verb);
     }
@@ -101,7 +80,8 @@ public sealed class TerminalLauncherTests
         using var directory = new TempDataDirectory();
         var shortcut = new TerminalShortcut { Name = "Plain", Directory = directory.Path };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, "wt", TerminalHostIds.DefaultProfile));
 
         Assert.NotEqual("runas", startInfo.Verb);
     }
@@ -112,7 +92,8 @@ public sealed class TerminalLauncherTests
         using var directory = new TempDataDirectory("My Projects App");
         var shortcut = new TerminalShortcut { Name = "Spaced", Directory = directory.Path, Command = "npm run dev" };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, TerminalHostIds.WindowsTerminal, TerminalHostIds.DefaultProfile));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, TerminalHostIds.WindowsTerminal, TerminalHostIds.DefaultProfile));
 
         Assert.Equal("wt.exe", startInfo.FileName);
         Assert.Contains($"-d \"{directory.Path}\"", startInfo.Arguments, StringComparison.Ordinal);
@@ -130,7 +111,8 @@ public sealed class TerminalLauncherTests
             Command = "echo \"hello world\"",
         };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, TerminalHostIds.WindowsConsoleHost, "cmd"));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, TerminalHostIds.WindowsConsoleHost, "cmd"));
 
         Assert.Equal("cmd.exe", startInfo.FileName);
         Assert.Contains($"cd /d \"\"{directory.Path}\"\"", startInfo.Arguments, StringComparison.Ordinal);
@@ -148,30 +130,24 @@ public sealed class TerminalLauncherTests
             Command = "git status",
         };
 
-        var startInfo = Capture(() => TerminalLauncher.Open(shortcut, TerminalHostIds.WindowsConsoleHost, "powershell"));
+        var startInfo = Capture(shortcut, (launcher, s) =>
+            launcher.Open(s, TerminalHostIds.WindowsConsoleHost, "powershell"));
 
         Assert.Equal("powershell.exe", startInfo.FileName);
         Assert.Contains("Set-Location -LiteralPath", startInfo.Arguments, StringComparison.Ordinal);
-        // A literal single quote in the path must be doubled for PowerShell's single-quoted string.
         Assert.Contains("O''Malley''s Project", startInfo.Arguments, StringComparison.Ordinal);
         Assert.Contains("git status", startInfo.Arguments, StringComparison.Ordinal);
     }
 
-    private static ProcessStartInfo Capture(Action open)
+    private static ProcessStartInfo Capture(
+        TerminalShortcut shortcut,
+        Action<TerminalLauncher, TerminalShortcut> open)
     {
-        ProcessStartInfo? captured = null;
-        TerminalLauncher.StartProcessOverride = info => { captured = info; return true; };
-        try
-        {
-            open();
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
-
-        Assert.NotNull(captured);
-        return captured;
+        var starter = new FakeProcessStarter { Succeed = true };
+        var launcher = new TerminalLauncher(starter);
+        open(launcher, shortcut);
+        Assert.Single(starter.Started);
+        return starter.Started[0];
     }
 
     private sealed class TempDataDirectory : IDisposable

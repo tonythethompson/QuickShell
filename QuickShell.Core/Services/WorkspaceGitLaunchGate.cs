@@ -1,3 +1,5 @@
+using QuickShell.Abstractions;
+
 namespace QuickShell.Services;
 
 internal sealed record WorkspaceGitLaunchGateResult(bool CanProceed, string? StayOpenMessage)
@@ -7,15 +9,22 @@ internal sealed record WorkspaceGitLaunchGateResult(bool CanProceed, string? Sta
     public static WorkspaceGitLaunchGateResult StayOpen(string message) => new(false, message);
 }
 
-internal static class WorkspaceGitLaunchGate
+internal sealed class WorkspaceGitLaunchGate
 {
-    internal static int SwitchAttemptCount { get; private set; }
+    private readonly IWorkspaceGitOperations _git;
 
-    public static WorkspaceGitLaunchGateResult EvaluateBeforeLaunch(
+    public WorkspaceGitLaunchGate(IWorkspaceGitOperations git)
+    {
+        _git = git ?? throw new ArgumentNullException(nameof(git));
+    }
+
+    internal int SwitchAttemptCount { get; private set; }
+
+    public WorkspaceGitLaunchGateResult EvaluateBeforeLaunch(
         string directory,
         bool blockDirtyBranchSwitch)
     {
-        var target = WorktreeBranchTargetStore.GetTargetForDirectory(directory);
+        var target = WorktreeBranchTargetStore.GetTargetForDirectory(directory, _git);
         if (string.IsNullOrWhiteSpace(target))
         {
             return WorkspaceGitLaunchGateResult.Proceed();
@@ -24,12 +33,12 @@ internal static class WorkspaceGitLaunchGate
         return TryEnsureTargetBranch(directory, target, blockDirtyBranchSwitch, persistTargetOnFailure: false);
     }
 
-    public static WorkspaceGitLaunchGateResult SelectTargetBranch(
+    public WorkspaceGitLaunchGateResult SelectTargetBranch(
         string directory,
         string branch,
         bool blockDirtyBranchSwitch)
     {
-        if (!WorktreeBranchTargetStore.TrySetTargetForDirectory(directory, branch, out var storeError))
+        if (!WorktreeBranchTargetStore.TrySetTargetForDirectory(directory, branch, _git, out var storeError))
         {
             return WorkspaceGitLaunchGateResult.StayOpen(storeError ?? "Could not save branch target.");
         }
@@ -37,19 +46,19 @@ internal static class WorkspaceGitLaunchGate
         return TryEnsureTargetBranch(directory, branch, blockDirtyBranchSwitch, persistTargetOnFailure: true);
     }
 
-    public static WorkspaceGitLaunchGateResult ClearTargetBranch(string directory)
+    public WorkspaceGitLaunchGateResult ClearTargetBranch(string directory)
     {
-        WorktreeBranchTargetStore.ClearTargetForDirectory(directory);
+        WorktreeBranchTargetStore.ClearTargetForDirectory(directory, _git);
         return WorkspaceGitLaunchGateResult.Proceed();
     }
 
-    private static WorkspaceGitLaunchGateResult TryEnsureTargetBranch(
+    private WorkspaceGitLaunchGateResult TryEnsureTargetBranch(
         string directory,
         string target,
         bool blockDirtyBranchSwitch,
         bool persistTargetOnFailure)
     {
-        if (!WorkspaceGitOperations.TryGetStatus(directory, out var status))
+        if (!_git.TryGetStatus(directory, out var status))
         {
             return WorkspaceGitLaunchGateResult.StayOpen(
                 persistTargetOnFailure
@@ -71,7 +80,7 @@ internal static class WorkspaceGitLaunchGate
         }
 
         SwitchAttemptCount++;
-        if (!WorkspaceGitOperations.TrySwitchBranch(directory, target, out var switchError))
+        if (!_git.TrySwitchBranch(directory, target, out var switchError))
         {
             return WorkspaceGitLaunchGateResult.StayOpen(
                 persistTargetOnFailure
@@ -80,10 +89,5 @@ internal static class WorkspaceGitLaunchGate
         }
 
         return WorkspaceGitLaunchGateResult.Proceed();
-    }
-
-    internal static void ResetForTests()
-    {
-        SwitchAttemptCount = 0;
     }
 }
