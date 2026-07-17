@@ -230,7 +230,7 @@ public sealed class WorkspaceEditorTests : IDisposable
     {
         public TempDataDirectory()
         {
-            Path = System.IO.Path.Combine(
+            Path = System.IO.Path.Join(
                 System.IO.Path.GetTempPath(),
                 "quickshell-workspace-editor-tests",
                 Guid.NewGuid().ToString("N"));
