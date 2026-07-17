@@ -72,7 +72,7 @@ internal static class SupportDiagnostics
             {
                 var directory = GetLogDirectory();
                 Directory.CreateDirectory(directory);
-                var path = Path.Combine(directory, ActiveLogFileName);
+                var path = Path.Join(directory, ActiveLogFileName);
                 var json = JsonSerializer.Serialize(new SupportLogEvent(
                     DateTimeOffset.UtcNow,
                     eventCode,
