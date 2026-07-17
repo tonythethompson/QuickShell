@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -180,12 +181,9 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            foreach (var command in _draft.Commands)
+            foreach (var command in _draft.Commands.Where(command => !availableTargetIds.Any(t => t.Equals(command.LaunchTarget, StringComparison.OrdinalIgnoreCase))))
             {
-                if (!availableTargetIds.Any(t => t.Equals(command.LaunchTarget, StringComparison.OrdinalIgnoreCase)))
-                {
-                    command.LaunchTarget = defaultTargetId;
-                }
+                command.LaunchTarget = defaultTargetId;
             }
 
             SyncDraftLaunchTargetFromCommands();
