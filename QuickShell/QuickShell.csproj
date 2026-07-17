@@ -70,6 +70,7 @@
     <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\QuickShell.Core\Services\TerminalListIconCache.cs" Link="Services\TerminalListIconCache.cs" />
     <ProjectReference Include="..\QuickShell.Core\QuickShell.Core.csproj" />
   </ItemGroup>
 

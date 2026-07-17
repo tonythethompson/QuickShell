@@ -54,9 +54,7 @@ internal static class FolderPickerService
         }
 
         var owner = ownerHandle != 0 ? new NativeWindowWrapper(ownerHandle) : null;
-        return dialog.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK
-            ? dialog.SelectedPath
-            : null;
+        return dialog.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK ? dialog.SelectedPath : null;
     }
 
     [DllImport("user32.dll")]
