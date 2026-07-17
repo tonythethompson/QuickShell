@@ -49,6 +49,7 @@ try {
         /p:Platform=x64 `
         /p:UseLocalCmdPalSdk=false `
         /p:StoreBuild=true `
+        /p:GenerateSatelliteAssembliesForCore=true `
         /p:PackageCertificateKeyFile= `
         /p:PackageCertificateThumbprint= `
         /p:PackageCertificatePassword= `
