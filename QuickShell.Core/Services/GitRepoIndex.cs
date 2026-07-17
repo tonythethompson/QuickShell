@@ -281,6 +281,8 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             }
             catch (ObjectDisposedException)
             {
+                // Another thread may have already disposed the linked CTS during teardown.
+                // Safe to ignore here because Dispose() is best-effort cleanup.
             }
 
             DisposeLinkedCts(inFlight);
