@@ -1,0 +1,29 @@
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_6fad6f7a509527::t_26f728bcdc5262 10,16,19,25,29-41
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_6fad6f7a509527::t_072bbfd916ff2f 15-16,20-21,26-36
+QuickShell.Core.Tests/FakeProjectAnalysisService.cs
+  s_6fad6f7a509527::t_7394b31608911e 34-35
+QuickShell.Core.Tests/ProjectClassificationCacheTests.cs
+  s_6fad6f7a509527::t_1016a1f895a00c 65
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_6fad6f7a509527::t_de7351e67226c5 14,20
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_6fad6f7a509527::t_5f6a0d9f8d1bdb 4,11,15,17,20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "0edb3c9990453a65cd02b411a4b8ad4a030abbf0",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
