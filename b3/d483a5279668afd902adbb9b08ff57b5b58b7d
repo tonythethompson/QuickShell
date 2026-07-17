@@ -1,0 +1,51 @@
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditorFactory.cs
+  s_f7785fd078a403::t_4f7f3b794b603d 1-4,6
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditor.cs
+  s_f7785fd078a403::t_dad0a957a37b3f 1-52
+QuickShell/Services/WorkspaceEditor/WorkspaceEditState.cs
+  s_f7785fd078a403::t_9d924c06960462 1-22
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionParser.cs
+  s_f7785fd078a403::t_bd270f832a09c7 1-150
+QuickShell/Services/WorkspaceEditor/WorkspaceEditChangedEventArgs.cs
+  s_f7785fd078a403::t_489edef739a33c 1-11
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionKind.cs
+  s_f7785fd078a403::t_83fd6511eb6689 1-21
+QuickShell/Services/WorkspaceEditor/WorkspaceEditorFactory.cs
+  s_f7785fd078a403::t_4c444ef2c0784d 1-15,17-18
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_f7785fd078a403::t_c36eae11f5b9a8 103,402-404
+  s_f7785fd078a403::t_4c7850ab6427b7 363
+  s_f7785fd078a403::t_202a3d7e7aa43b 447,449,464-465
+  s_f7785fd078a403::t_becd99b033cc9a 1-3,5,7-9,11,16-32,33-70,72-96,98-102,104-141,143-159,161-191,193-211,213-229,231-362,364-401,405-446,448,450-463,466-665,668-675,677-686,689-694,696-745,747-810,812-855,857-862,864,866-872,874-876,878,879-921,923-1000,1002-1018,1020-1034,1036-1037,1039-1040,1042-1047,1049-1120,1122-1129,1131-1137,1139-1144,1147-1164,1167-1206,1208-1214,1216-1219,1221-1315
+  s_f7785fd078a403::t_cf8da9243453de 4,6
+  s_f7785fd078a403::t_0983147232ff2d 142,160,192,212,230,811,1048
+  s_f7785fd078a403::t_1522cc7c92e65f 1138
+QuickShell/Services/WorkspaceEditor/WorkspaceEditResult.cs
+  s_f7785fd078a403::t_1daf5c68e7320a 1-30
+QuickShell/Services/WorkspaceEditor/WorkspaceFormAction.cs
+  s_f7785fd078a403::t_cf820ec771e934 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b3d483a5279668afd902adbb9b08ff57b5b58b7d",
+  "prompts": {},
+  "sessions": {
+    "s_7f50c38fe81888": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "969032fc-5bae-4065-b467-2274fc866564",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_f7785fd078a403": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b449954d-aab6-4c38-bb4e-fa535a69a41b",
+        "model": "SWE-1.7 Max"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
