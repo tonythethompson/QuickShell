@@ -13,6 +13,6 @@ internal sealed class WorkspaceEditorFactory : IWorkspaceEditorFactory
         _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
     }
 
-    public IWorkspaceEditor Create(Action? onSaved = null) =>
+    public WorkspaceEditor Create(Action? onSaved = null) =>
         new WorkspaceEditor(_services, _lifetime, onSaved);
 }

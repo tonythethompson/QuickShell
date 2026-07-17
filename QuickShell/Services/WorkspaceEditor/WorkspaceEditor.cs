@@ -1,22 +1,18 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using QuickShell.Abstractions;
-using QuickShell.Abstractions.Classification;
-using QuickShell.Classification;
 using QuickShell.Models;
 using QuickShell.Pages;
-using QuickShell.Services;
 
 namespace QuickShell.Services.WorkspaceEditor;
 
-internal sealed partial class WorkspaceEditor : IWorkspaceEditor
+internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQuickShellLifetime lifetime, Action? onSaved = null) : IWorkspaceEditor
 {
-    private readonly IQuickShellServices _services;
-    private readonly IQuickShellLifetime _lifetime;
-    private readonly Action? _onSaved;
-    private readonly object _sync = new();
+    private readonly IQuickShellServices _services = services ?? throw new ArgumentNullException(nameof(services));
+    private readonly IQuickShellLifetime _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+    private readonly Action? _onSaved = onSaved;
+    private readonly Lock _sync = new();
     private readonly FormEditHistory<FormEditSnapshot> _editHistory = new(snapshot => snapshot.Clone());
 
     private CancellationTokenSource? _scanCts;
@@ -33,13 +29,6 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
     private string _saveError = string.Empty;
     private FormDraft _draft = new();
     private FormDraft _baselineDraft = new();
-
-    public WorkspaceEditor(IQuickShellServices services, IQuickShellLifetime lifetime, Action? onSaved = null)
-    {
-        _services = services ?? throw new ArgumentNullException(nameof(services));
-        _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
-        _onSaved = onSaved;
-    }
 
     public WorkspaceEditState GetState()
     {
@@ -79,7 +68,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
             ObjectDisposedException.ThrowIf(_disposed, this);
             UnsubscribeFromDraftCleared();
             CancelScan();
-            _scanCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.CancellationToken, default);
+            _scanCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.CancellationToken, CancellationToken.None);
             _saveError = string.Empty;
             _showRestoredDraftNote = false;
             _nameCustomized = false;
@@ -105,7 +94,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
                 return false;
             }
 
-            if (!MergeDraftFromInputs(payload, out _, excludeDirectory))
+            if (!MergeDraftFromInputs(payload, excludeDirectory))
             {
                 return false;
             }
@@ -674,8 +663,8 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
 
         var restored = ShortcutFormDraftData.FromPersisted(persisted);
         _showRestoredDraftNote = true;
-        var commands = restored.Launches.Count > 0
-            ? restored.Launches.Select(launch => new LaunchRowDraft
+        List<LaunchRowDraft> commands = restored.Launches.Count > 0
+            ? [.. restored.Launches.Select(launch => new LaunchRowDraft
             {
                 Id = string.IsNullOrWhiteSpace(launch.Id) ? Guid.NewGuid().ToString("N") : launch.Id,
                 Command = launch.Command,
@@ -684,7 +673,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
                     ? restored.LaunchTarget
                     : launch.LaunchTarget,
                 RunAsAdmin = launch.RunAsAdmin,
-            }).ToList()
+            })]
             : ShortcutFormLaunchSection.CommandsFromShortcut(null, restored.LaunchTarget);
 
         LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, restored.LaunchTarget);
@@ -695,15 +684,15 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
             commands[0].RunAsAdmin = restored.RunAsAdmin;
         }
 
-        var companions = restored.Companions.Count > 0
-            ? restored.Companions.Select(c => new CompanionAppFormRow
+        List<CompanionAppFormRow> companions = restored.Companions.Count > 0
+            ? [.. restored.Companions.Select(c => new CompanionAppFormRow
             {
                 Id = string.IsNullOrWhiteSpace(c.Id) ? Guid.NewGuid().ToString("N") : c.Id,
                 Preset = c.Preset,
                 Path = c.Path,
                 Arguments = c.Arguments,
                 OpenOnLaunch = c.OpenOnLaunch,
-            }).ToList()
+            })]
             : CompanionAppFormEditor.FromShortcut(new TerminalShortcut
             {
                 OpenCompanionAppOnLaunch = restored.OpenCompanionAppOnLaunch,
@@ -754,7 +743,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
 
         var generation = Interlocked.Increment(ref _scanGeneration);
         var usedCommands = _draft.Commands.Select(command => command.Command).ToArray();
-        var token = _scanCts?.Token ?? default;
+        var token = _scanCts?.Token ?? CancellationToken.None;
 
         _ = Task.Run(() =>
         {
@@ -864,16 +853,16 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
             CompanionAppArguments = draft.CompanionAppArguments,
-            Companions = draft.Companions.Select(row => new ShortcutFormCompanionDraftData
+            Companions = [.. draft.Companions.Select(row => new ShortcutFormCompanionDraftData
             {
                 Id = row.Id,
                 Preset = row.Preset,
                 Path = row.Path,
                 Arguments = row.Arguments,
                 OpenOnLaunch = row.OpenOnLaunch,
-            }).ToList(),
+            })],
             RunAsAdmin = first?.RunAsAdmin ?? draft.RunAsAdmin,
-            Launches = draft.Commands.Select(command => new ShortcutFormLaunchDraftData
+            Launches = [.. draft.Commands.Select(command => new ShortcutFormLaunchDraftData
             {
                 Id = command.Id,
                 Command = command.Command,
@@ -881,13 +870,12 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
                 RunAsAdmin = command.RunAsAdmin,
                 IsEnabled = true,
                 TaskType = command.TaskType,
-            }).ToList(),
+            })],
         };
     }
 
-    private bool MergeDraftFromInputs(string payload, out bool refreshForm, bool excludeDirectory = false)
+    private bool MergeDraftFromInputs(string payload, bool excludeDirectory = false)
     {
-        refreshForm = false;
         var data = JsonNode.Parse(payload)?.AsObject();
         if (data is null)
         {
@@ -931,7 +919,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
         };
 
         SyncDraftRunAsAdminFromCommands();
-        refreshForm = ApplyCompanionPresetChanges(previousCompanions, mergedCompanions);
+        _ = ApplyCompanionPresetChanges(previousCompanions, mergedCompanions);
         SyncCompanionLegacyScalars();
 
         return true;
@@ -1010,7 +998,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
         }
 
         var count = formCount > 0 ? formCount : Math.Max(1, existing.Count);
-        var merged = new List<CompanionAppFormRow>();
+        List<CompanionAppFormRow> merged = [];
         for (var i = 0; i < count; i++)
         {
             var prior = i < existing.Count ? existing[i] : CompanionAppFormRow.Empty();
@@ -1028,7 +1016,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
         return merged;
     }
 
-    private List<LaunchRowDraft> MergeCommandsFromInputs(
+    private static List<LaunchRowDraft> MergeCommandsFromInputs(
         JsonObject data,
         List<LaunchRowDraft> existing)
     {
@@ -1044,13 +1032,13 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
 
         if (count == 0)
         {
-            return existing.ToList();
+            return [.. existing];
         }
 
-        var merged = new List<LaunchRowDraft>();
+        List<LaunchRowDraft> merged = [];
         for (var i = 0; i < count; i++)
         {
-            var prior = i < existing.Count ? existing[i] : new LaunchRowDraft();
+            var prior = i < existing.Count ? existing[i] : new();
             merged.Add(new LaunchRowDraft
             {
                 Id = prior.Id,
@@ -1130,7 +1118,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
         new()
         {
             Commands = LaunchRowListEditor.CloneRows(_draft.Commands),
-            Companions = _draft.Companions.Select(row => row.Clone()).ToList(),
+            Companions = [.. _draft.Companions.Select(row => row.Clone())],
             ExpandSuggestionPills = _draft.ExpandSuggestionPills,
             AutoFilledName = _autoFilledName,
             NameCustomized = _nameCustomized,
@@ -1139,7 +1127,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
     private bool ApplyEditSnapshot(FormEditSnapshot restored)
     {
         _draft.Commands = restored.Commands;
-        _draft.Companions = restored.Companions.Select(row => row.Clone()).ToList();
+        _draft.Companions = [.. restored.Companions.Select(row => row.Clone())];
         CompanionAppFormEditor.EnsureAtLeastOne(_draft.Companions);
         SyncCompanionLegacyScalars();
         _draft.ExpandSuggestionPills = restored.ExpandSuggestionPills;
@@ -1154,8 +1142,8 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
     private WorkspaceEditState BuildState()
     {
         var scanning = IsSuggestionScanning;
-        var pills = scanning
-            ? Array.Empty<CommandSuggestionPill>()
+        IReadOnlyList<CommandSuggestionPill> pills = scanning
+            ? []
             : CommandSuggestionService.GetPills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
@@ -1174,8 +1162,8 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
             _draft.CompanionAppPreset,
             _draft.CompanionAppPath,
             _draft.CompanionAppArguments,
-            _draft.Commands.Select(c => c.Clone()).ToList(),
-            _draft.Companions.Select(c => c.Clone()).ToList(),
+            [.. _draft.Commands.Select(c => c.Clone())],
+            [.. _draft.Companions.Select(c => c.Clone())],
             pills,
             _draft.ExpandSuggestionPills,
             scanning,
@@ -1216,7 +1204,7 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
             Name = draft.Name,
             Abbreviation = draft.Abbreviation,
             Directory = draft.Directory,
-            Commands = draft.Commands.Select(command => new LaunchRowDraft
+            Commands = [.. draft.Commands.Select(command => new LaunchRowDraft
             {
                 Id = command.Id,
                 Command = command.Command,
@@ -1224,12 +1212,12 @@ internal sealed partial class WorkspaceEditor : IWorkspaceEditor
                 LaunchTarget = command.LaunchTarget,
                 RunAsAdmin = command.RunAsAdmin,
                 IsEditorPlaceholder = command.IsEditorPlaceholder,
-            }).ToList(),
+            })],
             LaunchTarget = draft.LaunchTarget,
             DevServerUrl = draft.DevServerUrl,
             RepoUrl = draft.RepoUrl,
             OpenDevServerOnLaunch = draft.OpenDevServerOnLaunch,
-            Companions = draft.Companions.Select(row => row.Clone()).ToList(),
+            Companions = [.. draft.Companions.Select(row => row.Clone())],
             OpenCompanionAppOnLaunch = draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
