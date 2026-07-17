@@ -724,7 +724,7 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
 
         _nameCustomized = persisted.NameCustomized;
         _autoFilledName = persisted.AutoFilledName;
-        _baselineDraft = CloneDraft(_draft);
+        // Keep the saved-shortcut baseline so restored edits still count as unsaved.
         OnChanged();
     }
 

@@ -156,6 +156,13 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     {
         TerminalCatalog.InvalidateCache();
         ShortcutFormTemplateCache.Invalidate();
+        lock (_sync)
+        {
+            // Force RebuildFromState to refresh TemplateJson even when row counts are unchanged.
+            _templateCommandCount = -1;
+            _templateCompanionCount = -1;
+        }
+
         var targets = TerminalCatalog.GetLaunchTargets(includeDefaultChoice: true);
         var targetIds = targets.Select(t => t.Id).ToList();
         return MapResult(_editor.RefreshTerminals(targetIds, "default"));

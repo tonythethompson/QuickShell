@@ -29,11 +29,19 @@ public sealed class WorkspaceFormActionParserTests
     }
 
     [Fact]
-    public void Parse_EmptyInputsAndData_ReturnsNone()
+    public void Parse_EmptyInputsAndData_ReturnsSave()
     {
         var action = WorkspaceFormActionParser.Parse("{}", "{}");
 
-        Assert.Equal(WorkspaceFormActionKind.None, action.Kind);
+        Assert.Equal(WorkspaceFormActionKind.Save, action.Kind);
+    }
+
+    [Fact]
+    public void Parse_AbsentAction_DefaultsToSave()
+    {
+        var action = WorkspaceFormActionParser.Parse("""{"Name":"Workspace"}""", null);
+
+        Assert.Equal(WorkspaceFormActionKind.Save, action.Kind);
     }
 
     [Fact]

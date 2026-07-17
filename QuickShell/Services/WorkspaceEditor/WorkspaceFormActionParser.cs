@@ -9,7 +9,8 @@ internal static class WorkspaceFormActionParser
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
         if (string.IsNullOrWhiteSpace(action))
         {
-            return new WorkspaceFormAction(WorkspaceFormActionKind.None);
+            // Primary "Save workspace" submit has no action payload; preserve default-submit.
+            return new WorkspaceFormAction(WorkspaceFormActionKind.Save);
         }
 
         var source = data ?? inputs;

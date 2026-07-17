@@ -199,6 +199,37 @@ public sealed class WorkspaceEditorTests : IDisposable
     }
 
     [Fact]
+    public void ResetForOpen_RestoredEditDraft_KeepsSavedBaselineForDiscardPrompt()
+    {
+        var existing = new TerminalShortcut
+        {
+            Id = "restore-baseline",
+            Name = "Original",
+            Directory = _temp.Path,
+            Command = "npm start",
+        };
+        _repository.Upsert(existing);
+
+        using (var first = CreateEditor())
+        {
+            first.ResetForOpen(existing, null);
+            Assert.True(first.TryApplyInputs("""{"Name":"RestoredEdit"}"""));
+            first.LeaveForm();
+        }
+
+        using var editor = CreateEditor();
+        editor.ResetForOpen(existing, null);
+
+        Assert.Equal("RestoredEdit", editor.GetState().Name);
+        Assert.True(editor.GetState().ShowRestoredDraftNote);
+        Assert.True(editor.HasUnsavedChanges);
+
+        var result = editor.Cancel();
+
+        Assert.Equal(WorkspaceEditResultKind.PromptDiscard, result.Kind);
+    }
+
+    [Fact]
     public void UndoRedo_RestoresCompanionPresetChange()
     {
         var editor = CreateEditor();
