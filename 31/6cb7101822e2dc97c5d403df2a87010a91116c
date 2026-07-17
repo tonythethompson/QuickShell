@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/AtomicFileWriterTests.cs
+  s_52647a87314e53::t_19d5188ba4b9ca 78,81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "316cb7101822e2dc97c5d403df2a87010a91116c",
+  "prompts": {},
+  "sessions": {
+    "s_52647a87314e53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "856a8ee7-c447-46e2-9928-9f9fb7644023",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
