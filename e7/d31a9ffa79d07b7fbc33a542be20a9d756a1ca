@@ -1,0 +1,19 @@
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_6fad6f7a509527::t_2fc7c929fd5534 1296-1299,1301-1321,1324,1334-1341,1356-1361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e7d31a9ffa79d07b7fbc33a542be20a9d756a1ca",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
