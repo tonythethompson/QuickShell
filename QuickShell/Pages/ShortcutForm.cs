@@ -356,9 +356,12 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
 
     private static string UnwrapQuotedPath(string value)
     {
-        if (value.Length >= 2
-            && ((value.StartsWith('"') && value.EndsWith('"'))
-                || (value.StartsWith('\'') && value.EndsWith('\''))))
+        var hasMinimumLength = value.Length >= 2;
+        var isDoubleQuoted = value.StartsWith('"') && value.EndsWith('"');
+        var isSingleQuoted = value.StartsWith('\'') && value.EndsWith('\'');
+        var isWrappedInQuotes = hasMinimumLength && (isDoubleQuoted || isSingleQuoted);
+
+        if (isWrappedInQuotes)
         {
             return value[1..^1].Trim();
         }
