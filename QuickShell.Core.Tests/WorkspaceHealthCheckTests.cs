@@ -8,7 +8,7 @@ namespace QuickShell.Core.Tests;
 public sealed class WorkspaceHealthCheckTests : IDisposable
 {
     private readonly string _root;
-    private FakeWorkspaceEnvironmentProbe _probe = FakeWorkspaceEnvironmentProbe.Healthy();
+    private readonly FakeWorkspaceEnvironmentProbe _probe = FakeWorkspaceEnvironmentProbe.Healthy();
     private WorkspaceGitOperations _git = LaunchTestServices.CreateGit(getStatus: _ => null);
 
     public WorkspaceHealthCheckTests()
