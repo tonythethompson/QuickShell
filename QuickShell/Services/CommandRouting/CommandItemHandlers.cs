@@ -173,10 +173,12 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
 
         WorkspaceGitStatus? status = null;
         string? target = null;
-        if (WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var gitStatus))
+        if (context.Services.GitOperations.TryGetStatus(shortcut.Directory, out var gitStatus))
         {
             status = gitStatus;
-            target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
+            target = WorktreeBranchTargetStore.GetTargetForDirectory(
+                shortcut.Directory,
+                context.Services.GitOperations);
         }
 
         return new CommandItem(new WorktreeBranchPickerPage(

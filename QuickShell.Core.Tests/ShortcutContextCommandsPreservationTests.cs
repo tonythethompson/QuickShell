@@ -39,7 +39,12 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
         _drafts = new ShortcutDraftStore(_repository);
         _settings = new QuickShellSettingsManager();
         _lifetime = new QuickShellLifetime();
-        _quickShellServices = new QuickShellServices(_repository, _drafts, _settings, new FakeProjectAnalysisService(), _lifetime);
+        _quickShellServices = TestQuickShellServicesFactory.Create(
+            _repository,
+            _drafts,
+            _settings,
+            new FakeProjectAnalysisService(),
+            _lifetime);
         _context = new QuickShellPageContext(
             new QuickShellHostServices(_quickShellServices),
             new CreateShortcutCommand(OnChanged, _quickShellServices),

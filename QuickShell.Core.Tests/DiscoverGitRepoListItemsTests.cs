@@ -16,7 +16,7 @@ public sealed class DiscoverGitRepoListItemsTests : IDisposable
         Directory.CreateDirectory(_root);
 
         var repository = new FakeShortcutRepository([], _root);
-        _services = new QuickShellServices(
+        _services = TestQuickShellServicesFactory.Create(
             repository,
             new ShortcutDraftStore(repository),
             new QuickShellSettingsManager(),

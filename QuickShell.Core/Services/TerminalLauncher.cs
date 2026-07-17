@@ -16,26 +16,15 @@ internal sealed record TerminalLaunchAttempt(
 
 internal sealed class TerminalLauncher : ITerminalLauncher
 {
-    internal static Func<ProcessStartInfo, bool>? StartProcessOverride { get; set; }
+    private readonly IProcessStarter _processStarter;
 
-    ResolvedLaunch ITerminalLauncher.Resolve(
-        TerminalShortcut shortcut,
-        string terminalApplicationId,
-        string defaultProfileId) =>
-        Resolve(shortcut, terminalApplicationId, defaultProfileId);
+    public TerminalLauncher(IProcessStarter processStarter)
+    {
+        ArgumentNullException.ThrowIfNull(processStarter);
+        _processStarter = processStarter;
+    }
 
-    TerminalLaunchAttempt ITerminalLauncher.Open(
-        TerminalShortcut shortcut,
-        string terminalApplicationId,
-        string defaultProfileId,
-        bool runAsAdmin,
-        bool runAsStandard) =>
-        Open(shortcut, terminalApplicationId, defaultProfileId, runAsAdmin, runAsStandard);
-
-    TerminalLaunchAttempt ITerminalLauncher.OpenResolved(ResolvedLaunch resolved, bool effectiveElevation) =>
-        OpenResolved(resolved, effectiveElevation);
-
-    public static ResolvedLaunch Resolve(
+    public ResolvedLaunch Resolve(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId)
@@ -73,7 +62,7 @@ internal sealed class TerminalLauncher : ITerminalLauncher
         return new ResolvedLaunch(launchShortcut, target);
     }
 
-    public static TerminalLaunchAttempt Open(
+    public TerminalLaunchAttempt Open(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
@@ -85,7 +74,7 @@ internal sealed class TerminalLauncher : ITerminalLauncher
         return OpenResolved(resolved, effectiveElevation);
     }
 
-    public static TerminalLaunchAttempt OpenResolved(ResolvedLaunch resolved, bool effectiveElevation)
+    public TerminalLaunchAttempt OpenResolved(ResolvedLaunch resolved, bool effectiveElevation)
     {
         var startInfo = BuildStartInfo(resolved.Shortcut, resolved.Target);
 
@@ -102,7 +91,7 @@ internal sealed class TerminalLauncher : ITerminalLauncher
     /// Launches multiple entries as tabs of a single Windows Terminal window/process.
     /// Elevation applies to the whole window, so callers must group entries by matching elevation first.
     /// </summary>
-    public static IReadOnlyList<TerminalLaunchAttempt> OpenGroup(
+    public IReadOnlyList<TerminalLaunchAttempt> OpenGroup(
         IReadOnlyList<ResolvedLaunch> group,
         bool effectiveElevation,
         string? hostExecutableOverride = null)
@@ -171,16 +160,9 @@ internal sealed class TerminalLauncher : ITerminalLauncher
             _ => false,
         };
 
-    private static void StartProcess(ProcessStartInfo startInfo)
+    private void StartProcess(ProcessStartInfo startInfo)
     {
-        if (StartProcessOverride is { } startOverride)
-        {
-            if (!startOverride(startInfo))
-            {
-                throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
-            }
-        }
-        else if (Process.Start(startInfo) is null)
+        if (!_processStarter.TryStart(startInfo))
         {
             throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
         }

@@ -54,7 +54,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         }
 
         var status = _knownStatus;
-        if (status is null && !WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out status))
+        if (status is null && !_services.GitOperations.TryGetStatus(shortcut.Directory, out status))
         {
             return
             [
@@ -66,8 +66,9 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             ];
         }
 
-        var target = _knownTargetBranch ?? WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
-        var branches = WorkspaceGitOperations.ListLocalBranches(shortcut.Directory);
+        var target = _knownTargetBranch
+            ?? WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, _services.GitOperations);
+        var branches = _services.GitOperations.ListLocalBranches(shortcut.Directory);
         if (branches.Count == 0)
         {
             return

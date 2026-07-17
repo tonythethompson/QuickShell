@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
+using QuickShell.Services;
 
 namespace QuickShell.Services.CommandRouting;
 
@@ -23,6 +24,11 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<IDraftStore>(),
             sp.GetRequiredService<QuickShellSettingsManager>(),
             sp.GetRequiredService<IProjectAnalysisService>(),
+            sp.GetRequiredService<IShortcutLaunchExecutor>(),
+            sp.GetRequiredService<IWorkspaceGitOperations>(),
+            sp.GetRequiredService<ICompanionAppLauncher>(),
+            sp.GetRequiredService<IWorkspaceHealthChecker>(),
+            sp.GetRequiredService<WorkspaceGitLaunchGate>(),
             sp.GetRequiredService<IQuickShellLifetime>()));
         services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
 

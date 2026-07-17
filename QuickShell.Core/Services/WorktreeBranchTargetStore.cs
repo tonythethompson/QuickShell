@@ -1,5 +1,6 @@
 using System.Text.Json;
 using QuickShell;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -36,9 +37,11 @@ internal static class WorktreeBranchTargetStore
         }
     }
 
-    public static string? GetTargetForDirectory(string directory)
+    public static string? GetTargetForDirectory(string directory, IWorkspaceGitOperations git)
     {
-        if (!WorkspaceGitOperations.TryResolveWorktreeKey(directory, out var worktreeKey))
+        ArgumentNullException.ThrowIfNull(git);
+
+        if (!git.TryResolveWorktreeKey(directory, out var worktreeKey))
         {
             return null;
         }
@@ -70,11 +73,16 @@ internal static class WorktreeBranchTargetStore
         }
     }
 
-    public static bool TrySetTargetForDirectory(string directory, string? branch, out string? error)
+    public static bool TrySetTargetForDirectory(
+        string directory,
+        string? branch,
+        IWorkspaceGitOperations git,
+        out string? error)
     {
+        ArgumentNullException.ThrowIfNull(git);
         error = null;
 
-        if (!WorkspaceGitOperations.TryResolveWorktreeKey(directory, out var worktreeKey))
+        if (!git.TryResolveWorktreeKey(directory, out var worktreeKey))
         {
             error = "This folder is not a git repository.";
             return false;
@@ -84,9 +92,11 @@ internal static class WorktreeBranchTargetStore
         return true;
     }
 
-    public static void ClearTargetForDirectory(string directory)
+    public static void ClearTargetForDirectory(string directory, IWorkspaceGitOperations git)
     {
-        if (!WorkspaceGitOperations.TryResolveWorktreeKey(directory, out var worktreeKey))
+        ArgumentNullException.ThrowIfNull(git);
+
+        if (!git.TryResolveWorktreeKey(directory, out var worktreeKey))
         {
             return;
         }

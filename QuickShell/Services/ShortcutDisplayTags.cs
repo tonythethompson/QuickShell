@@ -1,4 +1,5 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -9,12 +10,16 @@ internal static class ShortcutDisplayTags
     public static Tag[]? BuildTags(
         TerminalShortcut shortcut,
         string terminalApplicationId,
-        string defaultProfileId)
+        string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations)
     {
         if (!WorkspaceStatusService.TryGetCached(
                 shortcut,
                 terminalApplicationId,
                 defaultProfileId,
+                healthChecker,
+                gitOperations,
                 out var snapshot))
         {
             return null;

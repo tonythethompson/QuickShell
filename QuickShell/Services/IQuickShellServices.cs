@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
@@ -15,4 +16,14 @@ internal interface IQuickShellServices
     QuickShellSettingsManager Settings { get; }
 
     IProjectAnalysisService ProjectAnalysis { get; }
+
+    IShortcutLaunchExecutor LaunchExecutor { get; }
+
+    IWorkspaceGitOperations GitOperations { get; }
+
+    ICompanionAppLauncher CompanionApps { get; }
+
+    IWorkspaceHealthChecker HealthChecker { get; }
+
+    WorkspaceGitLaunchGate GitLaunchGate { get; }
 }

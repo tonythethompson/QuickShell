@@ -4,27 +4,20 @@ using QuickShell.Services;
 namespace QuickShell.Core.Tests;
 
 /// <summary>
-/// Covers <see cref="CompanionAppLauncher.ExpandArguments"/> (the "." /
-/// "{folder}" / "{solution}" placeholder substitution used for companion
-/// app arguments), validation error paths, and multi-companion launch via
-/// <see cref="CompanionAppLauncher.StartProcessOverride"/>.
-/// Shares the terminal launch override collection so static seams are not
-/// clobbered by parallel launch-executor tests.
+/// Covers <see cref="CompanionAppLauncher.ExpandArguments"/> and instance launch paths
+/// via <see cref="FakeProcessStarter"/>.
 /// </summary>
 [Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class CompanionAppLauncherTests : IDisposable
 {
     public CompanionAppLauncherTests()
     {
-        ResetCompanionSeams();
+        CompanionAppPreference.ReadLastUsedOverride = null;
+        CompanionAppPreference.WriteLastUsedOverride = null;
     }
 
-    public void Dispose() => ResetCompanionSeams();
-
-    private static void ResetCompanionSeams()
+    public void Dispose()
     {
-        CompanionAppLauncher.TryLaunchOverride = null;
-        CompanionAppLauncher.StartProcessOverride = null;
         CompanionAppPreference.ReadLastUsedOverride = null;
         CompanionAppPreference.WriteLastUsedOverride = null;
     }
@@ -97,8 +90,9 @@ public sealed class CompanionAppLauncherTests : IDisposable
     public void TryLaunch_OnDemand_NoCompanionConfigured_ReturnsActionableError()
     {
         var shortcut = new TerminalShortcut { Name = "NoCompanion", Directory = Environment.CurrentDirectory };
+        var launcher = new CompanionAppLauncher(new FakeProcessStarter());
 
-        var success = CompanionAppLauncher.TryLaunch(shortcut, onDemand: true, out var error);
+        var success = launcher.TryLaunch(shortcut, onDemand: true, out var error);
 
         Assert.False(success);
         Assert.Contains("No companion app is configured", error, StringComparison.OrdinalIgnoreCase);
@@ -107,10 +101,10 @@ public sealed class CompanionAppLauncherTests : IDisposable
     [Fact]
     public void TryLaunch_AutoLaunchNotConfigured_ReturnsTrueWithoutError()
     {
-        // Auto-launch (onDemand: false) with the opt-in flag off is a no-op, not an error.
         var shortcut = new TerminalShortcut { Name = "NotOptedIn", Directory = Environment.CurrentDirectory };
+        var launcher = new CompanionAppLauncher(new FakeProcessStarter());
 
-        var success = CompanionAppLauncher.TryLaunch(shortcut, onDemand: false, out var error);
+        var success = launcher.TryLaunch(shortcut, onDemand: false, out var error);
 
         Assert.True(success);
         Assert.Null(error);
@@ -125,8 +119,9 @@ public sealed class CompanionAppLauncherTests : IDisposable
             Directory = Environment.CurrentDirectory,
             CompanionAppPath = @"C:\this-executable-should-not-exist-quickshell-test.exe",
         };
+        var launcher = new CompanionAppLauncher(new FakeProcessStarter());
 
-        var success = CompanionAppLauncher.TryLaunch(shortcut, onDemand: true, out var error);
+        var success = launcher.TryLaunch(shortcut, onDemand: true, out var error);
 
         Assert.False(success);
         Assert.Contains("not found", error, StringComparison.OrdinalIgnoreCase);
@@ -141,8 +136,9 @@ public sealed class CompanionAppLauncherTests : IDisposable
             Directory = @"C:\this-directory-should-not-exist-quickshell-test",
             CompanionAppPath = "explorer.exe",
         };
+        var launcher = new CompanionAppLauncher(new FakeProcessStarter());
 
-        var success = CompanionAppLauncher.TryLaunch(shortcut, onDemand: true, out var error);
+        var success = launcher.TryLaunch(shortcut, onDemand: true, out var error);
 
         Assert.False(success);
         Assert.Contains("folder not found", error, StringComparison.OrdinalIgnoreCase);
@@ -151,13 +147,9 @@ public sealed class CompanionAppLauncherTests : IDisposable
     [Fact]
     public void TryLaunch_Auto_LaunchesOnlyOpenOnLaunchEntries()
     {
-        var started = new List<(string FileName, string Arguments, string WorkingDirectory)>();
         CompanionAppPreference.WriteLastUsedOverride = _ => { };
-        CompanionAppLauncher.StartProcessOverride = (fileName, arguments, workingDirectory) =>
-        {
-            started.Add((fileName, arguments, workingDirectory));
-            return true;
-        };
+        var starter = new FakeProcessStarter { Succeed = true };
+        var launcher = new CompanionAppLauncher(starter);
 
         var shortcut = new TerminalShortcut
         {
@@ -192,27 +184,23 @@ public sealed class CompanionAppLauncherTests : IDisposable
             ],
         };
 
-        var success = CompanionAppLauncher.TryLaunch(shortcut, onDemand: false, out var error);
+        var success = launcher.TryLaunch(shortcut, onDemand: false, out var error);
 
         Assert.True(success);
         Assert.Null(error);
-        Assert.Equal(2, CompanionAppLauncher.LastLaunchCount);
-        Assert.Equal(2, started.Count);
-        Assert.Contains(started, item => item.FileName.Contains("explorer", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(started, item => item.FileName.Contains("cmd", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(started, item => item.FileName.Contains("notepad", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(2, launcher.LastLaunchCount);
+        Assert.Equal(2, starter.Started.Count);
+        Assert.Contains(starter.Started, item => item.FileName.Contains("explorer", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(starter.Started, item => item.FileName.Contains("cmd", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(starter.Started, item => item.FileName.Contains("notepad", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     public void TryLaunch_OnDemand_LaunchesAllConfiguredEntries()
     {
-        var started = new List<string>();
         CompanionAppPreference.WriteLastUsedOverride = _ => { };
-        CompanionAppLauncher.StartProcessOverride = (fileName, _, _) =>
-        {
-            started.Add(fileName);
-            return true;
-        };
+        var starter = new FakeProcessStarter { Succeed = true };
+        var launcher = new CompanionAppLauncher(starter);
 
         var shortcut = new TerminalShortcut
         {
@@ -237,12 +225,12 @@ public sealed class CompanionAppLauncherTests : IDisposable
             ],
         };
 
-        var success = CompanionAppLauncher.TryLaunch(shortcut, onDemand: true, out var error);
+        var success = launcher.TryLaunch(shortcut, onDemand: true, out var error);
 
         Assert.True(success);
         Assert.Null(error);
-        Assert.Equal(2, CompanionAppLauncher.LastLaunchCount);
-        Assert.Equal(2, started.Count);
+        Assert.Equal(2, launcher.LastLaunchCount);
+        Assert.Equal(2, starter.Started.Count);
     }
 
     [Fact]
@@ -258,14 +246,16 @@ public sealed class CompanionAppLauncherTests : IDisposable
                 new CompanionAppEntry { Id = "2", Path = "notepad.exe", OpenOnLaunch = true, Order = 1 },
             ],
         };
+        var launcher = new CompanionAppLauncher(new FakeProcessStarter());
 
-        Assert.True(CompanionAppLauncher.ShouldLaunchOnWorkspaceOpen(shortcut));
-        Assert.True(CompanionAppLauncher.IsConfigured(shortcut));
+        Assert.True(launcher.ShouldLaunchOnWorkspaceOpen(shortcut));
+        Assert.True(launcher.IsConfigured(shortcut));
     }
 
     [Fact]
     public void BuildDisplaySummary_FormatsSingleAndMultiple()
     {
+        var launcher = new CompanionAppLauncher(new FakeProcessStarter());
         var single = new TerminalShortcut
         {
             CompanionApps =
@@ -273,7 +263,7 @@ public sealed class CompanionAppLauncherTests : IDisposable
                 new CompanionAppEntry { Path = @"C:\Apps\Code.exe", Order = 0 },
             ],
         };
-        Assert.False(string.IsNullOrWhiteSpace(CompanionAppLauncher.BuildDisplaySummary(single)));
+        Assert.False(string.IsNullOrWhiteSpace(launcher.BuildDisplaySummary(single)));
 
         var multi = new TerminalShortcut
         {
@@ -284,7 +274,7 @@ public sealed class CompanionAppLauncherTests : IDisposable
                 new CompanionAppEntry { Path = @"C:\Apps\Notes.exe", Order = 2 },
             ],
         };
-        Assert.Equal("3 companions", CompanionAppLauncher.BuildDisplaySummary(multi));
+        Assert.Equal("3 companions", launcher.BuildDisplaySummary(multi));
     }
 
     private sealed class TempDataDirectory : IDisposable
