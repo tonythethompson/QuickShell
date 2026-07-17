@@ -43,7 +43,7 @@ Before a workspace launches, Quick Shell runs a **health check** and surfaces pr
 | **Branch mismatch** | Configured target branch differs from the checked-out branch |
 | **Running** | Port or process heuristics suggest the workspace may already be up |
 
-In the workspace list, badges call out items that need attention (warning icon) or appear to be running (activity icon). Open **⋯** → **Workspace status…** for a full snapshot (launches, git, runtime signals, and attention items), with **Refresh** and **Copy launch diagnostics** after a failed launch.
+In the workspace list, badges call out items that need attention (warning icon) or appear to be running (activity icon). Open **⋯** → **Workspace status…** for a full snapshot (launches, git, runtime signals, and attention items), with **Refresh**, detailed **Copy launch diagnostics**, and redacted support-bundle/log-folder actions.
 
 ---
 
@@ -76,7 +76,7 @@ When editing a workspace, **Suggested commands** appear as clickable pills for f
 
 Suggestions come from `package.json` scripts, .NET projects, `docker-compose.yml`, Make/Just/Taskfile targets, VS Code tasks, and other markers in the folder. **Browse/Paste on create or edit does not auto-fill commands or companion apps** (use suggestion pills / pick a companion). **Discover git repos** still heuristically seeds launches and a companion when the project layout is clear.
 
-**Privacy:** classification reads only the workspace folder you chose. Commands may appear in tooltips; they are not logged or uploaded. Raycast uses the local `QuickShell.Suggest` helper (`QUICKSHELL_SUGGEST_EXE` overrides its path for development).
+**Privacy:** classification reads only the workspace folder you chose. Commands may appear in tooltips; they are not uploaded. Local support logs are redacted JSONL under `%LOCALAPPDATA%\QuickShell\logs` and omit workspace names, paths, commands, exception messages, and arbitrary data. Raycast uses the local `QuickShell.Suggest` helper (`QUICKSHELL_SUGGEST_EXE` overrides its path for development).
 
 ---
 
@@ -226,6 +226,8 @@ Open the **⋯** menu on any workspace (or press **Ctrl+K**) for edit, favorite,
 | Set how many recents to show | **Quick Shell settings** → **Recent workspaces to show** |
 | Refresh terminal list | **Quick Shell settings** → **Refresh terminal list**, or **↻** in the editor |
 | Copy last launch diagnostics | **⋯** → **Copy launch diagnostics**, or **Quick Shell settings** after a failed launch |
+| Copy a redacted support bundle | **Workspace status…** or **Quick Shell settings** → **Copy support bundle** |
+| Open redacted support logs | **Workspace status…** or **Quick Shell settings** → **Open support log folder** |
 | Back up or move workspaces | **Quick Shell settings** → **Export workspaces** / **Import workspaces** |
 | Reset all workspaces | **Quick Shell settings** → **Reset all workspaces** (backup `.bak` is kept) |
 | Resolve import conflicts | **Merge** (keep yours, add new, rename duplicates) or **Replace all** (file only) |

@@ -84,6 +84,97 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
     }
 
     [Fact]
+    public void Check_FirstSameAsPreviousLaunch_ValidatesConfiguredDefaultTarget()
+    {
+        WorkspaceHealthCheck.ExecutableExistsOverride = executable =>
+            !executable.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase);
+        var shortcut = BuildShortcut(_root);
+        shortcut.Launches[0].Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId;
+
+        var health = WorkspaceHealthCheck.Check(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.Contains(health.Findings, finding =>
+            finding.Kind == WorkspaceHealthFindingKind.MissingTerminal
+            && finding.Title.Contains("Command Prompt", StringComparison.Ordinal));
+        Assert.Equal(TerminalCatalog.SameAsPreviousLaunchTargetId, shortcut.Launches[0].Terminal);
+    }
+
+    [Fact]
+    public void Check_ChainedSameAsPreviousLaunch_ValidatesInheritedWslDistro()
+    {
+        var shortcut = BuildShortcut(_root);
+        shortcut.Launches =
+        [
+            new WorkspaceEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Label = "First",
+                Terminal = "wsl",
+                WtProfile = "Debian",
+                IsEnabled = true,
+                Order = 0,
+            },
+            new WorkspaceEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Label = "Inherited",
+                Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId,
+                IsEnabled = true,
+                Order = 1,
+            },
+        ];
+
+        var health = WorkspaceHealthCheck.Check(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.Contains(health.Findings, finding => finding.Kind == WorkspaceHealthFindingKind.MissingWslDistro);
+        Assert.Equal(TerminalCatalog.SameAsPreviousLaunchTargetId, shortcut.Launches[1].Terminal);
+    }
+
+    [Fact]
+    public void Check_SameAsPreviousIgnoresDisabledPriorLaunches()
+    {
+        WorkspaceHealthCheck.ExecutableExistsOverride = executable =>
+            !executable.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase);
+        var shortcut = BuildShortcut(_root);
+        shortcut.Launches =
+        [
+            new WorkspaceEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Label = "Disabled",
+                Terminal = "wsl",
+                WtProfile = "Ubuntu",
+                IsEnabled = false,
+                Order = 0,
+            },
+            new WorkspaceEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Label = "Inherited default",
+                Terminal = TerminalCatalog.SameAsPreviousLaunchTargetId,
+                IsEnabled = true,
+                Order = 1,
+            },
+        ];
+
+        var health = WorkspaceHealthCheck.Check(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.Contains(health.Findings, finding =>
+            finding.Kind == WorkspaceHealthFindingKind.MissingTerminal
+            && finding.Title.Contains("Command Prompt", StringComparison.Ordinal));
+        Assert.DoesNotContain(health.Findings, finding => finding.Kind == WorkspaceHealthFindingKind.MissingWslDistro);
+    }
+
+    [Fact]
     public void Check_PortInUseCreatesRunningWarning()
     {
         WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;

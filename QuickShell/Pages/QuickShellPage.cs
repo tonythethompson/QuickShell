@@ -354,7 +354,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         // #region agent log
         var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        AgentDebugLog.Write(
+        SupportDiagnostics.Write(
             "QuickShellPage.cs:RefreshItems",
             "start",
             new
@@ -431,7 +431,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
 
             // #region agent log
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "QuickShellPage.cs:RefreshItems",
                 "complete",
                 new
@@ -448,7 +448,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         catch (Exception ex)
         {
             // #region agent log
-            AgentDebugLog.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-form");
+            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-form");
             // #endregion
 
             var items = new List<IListItem>();
