@@ -1,0 +1,23 @@
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_6fad6f7a509527::t_779b5c554d5702 5-6
+  s_6fad6f7a509527::t_b62f6143cacae7 7-8
+  s_6fad6f7a509527::t_8ee8c2f1d05171 12,15
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_6fad6f7a509527::t_70f2c55a26cc36 10-12,101-104,106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "072efd9374fc82e95e226a4254c7e08f5a6277e8",
+  "prompts": {},
+  "sessions": {
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
