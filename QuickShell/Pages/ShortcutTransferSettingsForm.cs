@@ -12,15 +12,38 @@ namespace QuickShell.Pages;
 internal sealed partial class ShortcutTransferSettingsForm : FormContent
 {
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
+    private static readonly HashSet<string> HandledActions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "exportWorkspaces",
+        "importWorkspaces",
+        "resetWorkspaces",
+        "copyLaunchDiagnostics",
+        "copySupportBundle",
+        "openSupportLogs",
+        "merge",
+        "replace",
+        "cancel",
+    };
 
+    private readonly IQuickShellServices _services;
     private readonly Action? _onReload;
     private readonly Action? _onSettingsChanged;
+    private readonly Action? _onBodyChanged;
 
-    public ShortcutTransferSettingsForm(Action? onReload, Action? onSettingsChanged = null)
+    /// <summary>Body elements for embedding under Home / Multi / Git in one Adaptive Card.</summary>
+    public string BodyElementsJson { get; private set; } = "[]";
+
+    public ShortcutTransferSettingsForm(
+        IQuickShellServices services,
+        Action? onReload = null,
+        Action? onSettingsChanged = null,
+        Action? onBodyChanged = null)
     {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _onReload = onReload;
         _onSettingsChanged = onSettingsChanged;
-        RebuildTemplate();
+        _onBodyChanged = onBodyChanged;
+        RebuildTemplate(notifyParent: false);
     }
 
     public override CommandResult SubmitForm(string payload) => SubmitForm(payload, string.Empty);
@@ -28,24 +51,39 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
     public override CommandResult SubmitForm(string inputs, string data)
     {
         var action = TryGetAction(data) ?? TryGetActionFromInputs(inputs);
-        var result = action switch
+        return TryHandleAction(action, inputs, data, out var result)
+            ? result
+            : CommandResult.KeepOpen();
+    }
+
+    /// <summary>Handles backup/import/diagnostics actions when this form is embedded.</summary>
+    public bool TryHandleAction(string? action, string inputs, string data, out CommandResult result)
+    {
+        if (action is null || !HandledActions.Contains(action))
+        {
+            result = CommandResult.KeepOpen();
+            return false;
+        }
+
+        result = action switch
         {
             "exportWorkspaces" => RunWorkspaceExport(),
             "importWorkspaces" => RunWorkspaceImport(),
             "resetWorkspaces" => ConfirmResetWorkspaces(),
             "copyLaunchDiagnostics" => CopyLaunchDiagnostics(),
+            "copySupportBundle" => CopySupportBundle(),
+            "openSupportLogs" => OpenSupportLogs(),
             "merge" => ResolveImportConflict(merge: true),
             "replace" => ResolveImportConflict(merge: false),
             "cancel" => CancelImportConflict(),
             _ => CommandResult.KeepOpen(),
         };
-
-        return result;
+        return true;
     }
 
     private CommandResult RunWorkspaceExport()
     {
-        var result = new ExportShortcutsCommand(stayOnSettings: true).Invoke();
+        var result = new ExportShortcutsCommand(stayOnSettings: true, _services).Invoke();
         RebuildTemplate();
         return result;
     }
@@ -55,19 +93,20 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var result = new ImportShortcutsCommand(
             _onReload ?? (() => { }),
             stayOnSettings: true,
-            onSettingsRefresh: _onSettingsChanged).Invoke();
+            _onSettingsChanged,
+            _services).Invoke();
         RebuildTemplate();
         return result;
     }
 
     private CommandResult ConfirmResetWorkspaces()
     {
-        var count = QuickShellServices.Current.Shortcuts.GetShortcuts().Count;
+        var count = _services.Shortcuts.GetShortcuts().Count;
         return CommandResult.Confirm(new ConfirmationArgs
         {
             Title = Strings.ResetProjects_Title,
-            Description = BuildResetDescription(count, QuickShellServices.Current.Shortcuts.ConfigPath),
-            PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged),
+            Description = BuildResetDescription(count, _services.Shortcuts.ConfigPath),
+            PrimaryCommand = new ResetProjectsCommand(_onReload ?? (() => { }), _onSettingsChanged, _services),
         });
     }
 
@@ -94,8 +133,8 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         var transferResult = pending.Kind switch
         {
             ImportTransferKind.Projects => ExecuteProjectImportAction(token => merge
-                ? QuickShellServices.Current.Shortcuts.ImportMergeAsync(pending.Path, token)
-                : QuickShellServices.Current.Shortcuts.ImportReplaceAsync(pending.Path, token)),
+                ? _services.Shortcuts.ImportMergeAsync(pending.Path, token)
+                : _services.Shortcuts.ImportReplaceAsync(pending.Path, token)),
             _ => new ImportTransferResult(false, "Unknown import type."),
         };
 
@@ -124,27 +163,31 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         return QuickShellNavigation.StayOnSettings(message);
     }
 
-    private void RebuildTemplate()
+    private void RebuildTemplate() => RebuildTemplate(notifyParent: true);
+
+    private void RebuildTemplate(bool notifyParent)
     {
         var hasConflict = ImportConflictState.HasPending;
+        // Medium gap under Home / Multi / Git; another Medium before diagnostics.
         var bodyParts = new List<string>
         {
-            SettingsCardJson.SectionHeader(Strings.ShortcutTransfer_SectionHeader),
+            SettingsCardJson.SectionHeader(
+                Strings.ShortcutTransfer_SectionHeader,
+                spacing: "Medium",
+                tooltip: Strings.ShortcutTransfer_WorkspacesRow_Description),
         };
 
         if (!hasConflict)
         {
-            bodyParts.Add(SettingsCardJson.TransferRow(
-                Strings.ShortcutTransfer_WorkspacesRow_Title,
-                Strings.ShortcutTransfer_WorkspacesRow_Description,
+            bodyParts.Add(SettingsCardJson.TransferActionsBlock(
                 BuildWorkspaceTransferActionSet(),
                 topSpacing: "Small"));
 
-            bodyParts.Add(SettingsCardJson.TransferRow(
-                "Launch diagnostics",
-                "Copy the last workspace launch report for troubleshooting terminal, command, URL, profile, or health-check issues.",
+            bodyParts.Add(SettingsCardJson.TransferActionsBlock(
                 BuildLaunchDiagnosticsActionSet(),
-                topSpacing: "Medium"));
+                topSpacing: "Medium",
+                header: Strings.Diagnostics_SectionHeader,
+                tooltip: Strings.Diagnostics_CopyLaunch_Tooltip));
         }
 
         var conflictBlock = BuildImportConflictBlock();
@@ -160,7 +203,9 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
         }
 
         var bodyJson = string.Join(",\n                ", bodyParts);
+        BodyElementsJson = bodyJson;
 
+        // Standalone card (not used when embedded under BehaviorSettingsForm).
         TemplateJson = $$"""
             {
               "type": "AdaptiveCard",
@@ -170,6 +215,11 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
               ]
             }
             """;
+
+        if (notifyParent)
+        {
+            _onBodyChanged?.Invoke();
+        }
     }
 
     private static string BuildWorkspaceTransferActionSet() =>
@@ -201,16 +251,31 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
             }
             """);
 
-    private static string BuildLaunchDiagnosticsActionSet() => """
+    private static string BuildLaunchDiagnosticsActionSet() => $$"""
         {
           "type": "ActionSet",
-          "spacing": "Small",
+          "spacing": "None",
           "actions": [
             {
               "type": "Action.Submit",
-              "title": "Copy launch diagnostics",
+              "title": "{{Escape(Strings.Diagnostics_CopyLaunch_Title)}}",
+              "tooltip": "{{Escape(Strings.Diagnostics_CopyLaunch_Tooltip)}}",
               "associatedInputs": "none",
               "data": { "action": "copyLaunchDiagnostics" }
+            },
+            {
+              "type": "Action.Submit",
+              "title": "{{Escape(Strings.Diagnostics_CopySupportBundle_Title)}}",
+              "tooltip": "{{Escape(Strings.Diagnostics_CopySupportBundle_Tooltip)}}",
+              "associatedInputs": "none",
+              "data": { "action": "copySupportBundle" }
+            },
+            {
+              "type": "Action.Submit",
+              "title": "{{Escape(Strings.Diagnostics_OpenLogFolder_Title)}}",
+              "tooltip": "{{Escape(Strings.Diagnostics_OpenLogFolder_Tooltip)}}",
+              "associatedInputs": "none",
+              "data": { "action": "openSupportLogs" }
             }
           ]
         }
@@ -220,6 +285,19 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
     {
         LaunchDiagnosticsState.TryCopyLastReport(out var message);
         return QuickShellNavigation.StayOnSettings(message);
+    }
+
+    private static CommandResult CopySupportBundle()
+    {
+        SupportDiagnostics.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var message);
+        return QuickShellNavigation.StayOnSettings(message);
+    }
+
+    private static CommandResult OpenSupportLogs()
+    {
+        return SupportDiagnostics.TryOpenLogFolder(out var error)
+            ? QuickShellNavigation.StayOnSettings(Strings.Diagnostics_LogFolderOpened)
+            : QuickShellNavigation.StayOnSettings(error);
     }
 
     private static string BuildImportConflictBlock()
@@ -286,7 +364,7 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private static string Escape(string value)
     {
-        var serialized = JsonSerializer.Serialize(value);
+        var serialized = JsonSerializer.Serialize(value, QuickShellJsonContext.Default.String);
         return serialized.Substring(1, serialized.Length - 2);
     }
 

@@ -1,15 +1,24 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class DockerComposeDiscoveryTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public DockerComposeDiscoveryTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-compose-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -51,7 +60,7 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
                 image: postgres
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Services);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Services, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("docker compose up postgres", suggested);
     }
@@ -69,13 +78,14 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
                 image: nginx
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Logs);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Logs, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("docker compose logs -f api", suggested);
     }
 
     public void Dispose()
     {
+        _provider.Dispose();
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -86,14 +96,19 @@ public sealed class DockerComposeDiscoveryTests : IDisposable
     }
 }
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class TaskTypeCandidatePickTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public TaskTypeCandidatePickTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-pick-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -114,13 +129,14 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             }
             """);
 
-        var first = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Frontend, TaskTypePickContext.Empty);
+        var first = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Frontend, TaskTypePickContext.Empty, _projectAnalysis);
         Assert.Equal("npm run dev", first);
 
         var second = TaskTypeCommandSuggestion.TrySuggest(
             _root,
             TaskTypeCatalog.Frontend,
-            TaskTypePickContext.FromCommands([first]));
+            TaskTypePickContext.FromCommands([first]),
+            _projectAnalysis);
         Assert.Equal("npm run dev:web", second);
     }
 
@@ -133,7 +149,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             <Project Sdk="Microsoft.NET.Sdk" />
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Test);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Test, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("dotnet test", suggested);
     }
@@ -147,7 +163,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             <Project Sdk="Microsoft.NET.Sdk" />
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Build);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Build, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("dotnet build", suggested);
     }
@@ -176,7 +192,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             }
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("npm run dev:api", suggested);
     }
@@ -195,7 +211,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             }
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Test);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Test, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("npm run vitest", suggested);
     }
@@ -206,7 +222,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
         File.WriteAllText(Path.Combine(_root, "manage.py"), "print('ok')");
         File.WriteAllText(Path.Combine(_root, "requirements.txt"), "django\n");
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("python manage.py runserver", suggested);
     }
@@ -229,7 +245,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             """);
         File.WriteAllText(Path.Combine(_root, "Procfile"), "web: npm run dev");
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Null(suggested);
     }
@@ -247,7 +263,7 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             }
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Frontend);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Frontend, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("npm run storybook", suggested);
     }
@@ -266,13 +282,14 @@ public sealed class TaskTypeCandidatePickTests : IDisposable
             end
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("mix phx.server", suggested);
     }
 
     public void Dispose()
     {
+        _provider.Dispose();
         try
         {
             Directory.Delete(_root, recursive: true);

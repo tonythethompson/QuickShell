@@ -4,15 +4,48 @@ namespace QuickShell.Services;
 
 internal static class TerminalLaunchGlyphs
 {
+    /// <summary>
+    /// Glyph path uses a process-local profile resolver (settings file reader only).
+    /// Launch/health services use the DI-registered terminal profile resolver.
+    /// </summary>
+    private static readonly TerminalProfileResolver GlyphProfileResolver =
+        new(new QuickShellSettingsReader());
+
     public static string GetForShortcut(TerminalShortcut shortcut)
     {
         var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         return launches.Count == 0 ? ShortcutGlyphs.NewWindow : GetForLaunch(launches[0]);
     }
 
+    /// <summary>
+    /// List/menu icon without resolving Windows Terminal profile icons on disk.
+    /// Profile icon probing is too slow for first paint of large workspace lists.
+    /// </summary>
+    public static string GetForList(TerminalShortcut shortcut)
+    {
+        var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
+        if (launches.Count == 0)
+        {
+            return ShortcutGlyphs.NewWindow;
+        }
+
+        return GetForList(launches[0]);
+    }
+
+    public static string GetForList(WorkspaceEntry launch)
+    {
+        var taskGlyph = TaskTypeCatalog.GetGlyph(launch.TaskType);
+        if (taskGlyph is not null)
+        {
+            return taskGlyph;
+        }
+
+        return GetFallbackGlyph(launch, profile: null);
+    }
+
     public static string GetForLaunch(WorkspaceEntry launch)
     {
-        var profile = TerminalProfileResolver.ResolveForLaunch(launch);
+        var profile = GlyphProfileResolver.ResolveForLaunch(launch);
 
         if (profile is not null && IsWslProfile(profile))
         {

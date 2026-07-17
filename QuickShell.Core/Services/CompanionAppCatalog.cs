@@ -18,10 +18,22 @@ internal static class CompanionAppCatalog
     public const string PresetGvim = "gvim";
     public const string PresetRider = "rider";
     public const string PresetIntelliJIdea = "intellij-idea";
+    public const string PresetWebStorm = "webstorm";
+    public const string PresetPyCharm = "pycharm";
+    public const string PresetGoLand = "goland";
+    public const string PresetCLion = "clion";
+    public const string PresetAndroidStudio = "android-studio";
     public const string PresetZed = "zed";
     public const string PresetNotepadPlusPlus = "notepad-plus-plus";
     public const string PresetVsCode = "vscode";
+    public const string PresetVsCodeInsiders = "vscode-insiders";
     public const string PresetCursor = "cursor";
+    public const string PresetTrae = "trae";
+    public const string PresetGitKraken = "gitkraken";
+    public const string PresetSourcetree = "sourcetree";
+    public const string PresetAntigravity = "antigravity";
+    public const string PresetDevin = "devin";
+    public const string PresetKiro = "kiro";
 
     private static readonly IReadOnlyList<(string Id, string Title, string DefaultArguments, IReadOnlyList<string> CandidatePaths)> Definitions =
     [
@@ -30,6 +42,8 @@ internal static class CompanionAppCatalog
         (PresetVs2026, "Visual Studio 2026", "{solution}", []),
         (PresetGitHubDesktop, "GitHub Desktop", "{folder}", BuildGitHubDesktopCandidates()),
         (PresetFork, "Fork", "{folder}", BuildForkCandidates()),
+        (PresetGitKraken, "GitKraken", "{folder}", BuildGitKrakenCandidates()),
+        (PresetSourcetree, "Sourcetree", "{folder}", BuildSourcetreeCandidates()),
         (PresetAzureDataStudio, "Azure Data Studio", "{folder}", BuildAzureDataStudioCandidates()),
         (PresetObsidian, "Obsidian", "{folder}", BuildObsidianCandidates()),
         (PresetSublime, "Sublime Text", ".", BuildSublimeCandidates()),
@@ -37,15 +51,44 @@ internal static class CompanionAppCatalog
         (PresetGvim, "GVim", ".", BuildGvimCandidates()),
         (PresetRider, "JetBrains Rider", "{folder}", []),
         (PresetIntelliJIdea, "IntelliJ IDEA", "{folder}", []),
+        (PresetWebStorm, "WebStorm", "{folder}", []),
+        (PresetPyCharm, "PyCharm", "{folder}", []),
+        (PresetGoLand, "GoLand", "{folder}", []),
+        (PresetCLion, "CLion", "{folder}", []),
+        (PresetAndroidStudio, "Android Studio", "{folder}", []),
         (PresetZed, "Zed", ".", BuildZedCandidates()),
-        (PresetNotepadPlusPlus, "Notepad++", string.Empty, BuildNotepadPlusPlusCandidates()),
+        (PresetNotepadPlusPlus, "Notepad++", "{folder}", BuildNotepadPlusPlusCandidates()),
         (PresetVsCode, "Visual Studio Code", ".", BuildVsCodeCandidates()),
+        (PresetVsCodeInsiders, "VS Code Insiders", ".", BuildVsCodeInsidersCandidates()),
         (PresetCursor, "Cursor", ".", BuildCursorCandidates()),
+        (PresetTrae, "TRAE", ".", BuildTraeCandidates()),
+        (PresetAntigravity, "Antigravity", ".", BuildAntigravityCandidates()),
+        (PresetDevin, "Devin", ".", BuildDevinCandidates()),
+        (PresetKiro, "Kiro", ".", BuildKiroCandidates()),
     ];
 
     public static bool IsCatalogPreset(string presetId) =>
-        !string.Equals(presetId, PresetNone, StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(presetId, PresetCustom, StringComparison.OrdinalIgnoreCase);
+        !string.IsNullOrWhiteSpace(presetId) && FindDefinition(presetId).Id is not null;
+
+    private static Func<string, string?>? _tryResolveExecutableOverride;
+
+    /// <summary>Test hook replacing disk/install resolution for a preset id.</summary>
+    internal static Func<string, string?>? TryResolveExecutableOverride
+    {
+        get => _tryResolveExecutableOverride;
+        set
+        {
+            _tryResolveExecutableOverride = value;
+            // Drop process-wide caches so tests with overrides do not see production probes.
+            InvalidateInstallCaches();
+        }
+    }
+
+    private static readonly object FormChoicesLock = new();
+    private static string? _cachedFormChoicesJson;
+    private static IReadOnlyList<(string Id, string Title)>? _cachedFormChoices;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string?> PresetExecutableCache =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public static bool IsPresetInstalled(string presetId)
     {
@@ -75,14 +118,57 @@ internal static class CompanionAppCatalog
     public const string BrowseActionTitle = "Choose custom app…";
     public const string BrowseRequiredMessage = "Choose custom app… to pick an executable.";
 
+    /// <summary>
+    /// Dropdown choices for the workspace form. Cached — probing every catalog app
+    /// (vswhere, JetBrains Toolbox, PATH walks) is too expensive to repeat per form open.
+    /// </summary>
     public static string BuildFormChoicesJson()
     {
-        return JsonSerializer.Serialize(
-            GetInstalledFormChoices()
-                .Select(choice => new { title = choice.Title, value = choice.Id }));
+        if (_tryResolveExecutableOverride is not null)
+        {
+            return SerializeFormChoices(BuildInstalledFormChoicesUncached());
+        }
+
+        EnsureFormChoicesCached();
+        return _cachedFormChoicesJson!;
     }
 
     public static IReadOnlyList<(string Id, string Title)> GetInstalledFormChoices()
+    {
+        if (_tryResolveExecutableOverride is not null)
+        {
+            return BuildInstalledFormChoicesUncached();
+        }
+
+        EnsureFormChoicesCached();
+        return _cachedFormChoices!;
+    }
+
+    private static void EnsureFormChoicesCached()
+    {
+        lock (FormChoicesLock)
+        {
+            if (_cachedFormChoicesJson is not null && _cachedFormChoices is not null)
+            {
+                return;
+            }
+        }
+
+        var choices = BuildInstalledFormChoicesUncached();
+        var json = SerializeFormChoices(choices);
+
+        lock (FormChoicesLock)
+        {
+            _cachedFormChoices = choices;
+            _cachedFormChoicesJson = json;
+        }
+    }
+
+    private static string SerializeFormChoices(IReadOnlyList<(string Id, string Title)> choices) =>
+        JsonSerializer.Serialize(
+            choices.Select(choice => new { title = choice.Title, value = choice.Id }));
+
+    private static List<(string Id, string Title)> BuildInstalledFormChoicesUncached()
     {
         var choices = new List<(string Id, string Title)>
         {
@@ -99,6 +185,20 @@ internal static class CompanionAppCatalog
 
         choices.Add((PresetCustom, FormChoiceTitleCustom));
         return choices;
+    }
+
+    /// <summary>Drops form-choice and per-preset path caches (tests / after install changes).</summary>
+    public static void InvalidateInstallCaches()
+    {
+        lock (FormChoicesLock)
+        {
+            _cachedFormChoicesJson = null;
+            _cachedFormChoices = null;
+        }
+
+        PresetExecutableCache.Clear();
+        VisualStudioInstallDiscovery.InvalidateCache();
+        JetBrainsInstallDiscovery.InvalidateCache();
     }
 
     /// <summary>
@@ -157,22 +257,48 @@ internal static class CompanionAppCatalog
             return visualStudioPreset;
         }
 
+        var byName = InferPresetFromFileName(path);
+        if (string.Equals(byName, PresetExplorer, StringComparison.OrdinalIgnoreCase)
+            && !IsWindowsExplorerExecutable(path))
+        {
+            return PresetCustom;
+        }
+
+        return byName;
+    }
+
+    /// <summary>
+    /// Filename-only preset guess for form open (no PATH/disk resolution).
+    /// </summary>
+    public static string InferPresetFromFileName(string? executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return PresetNone;
+        }
+
+        var path = executablePath.Trim();
         var fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return PresetCustom;
+        }
+
+        if (string.Equals(fileName, "devenv.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            var vs = VisualStudioInstallDiscovery.TryInferPresetFromDevenvPath(path);
+            if (vs is not null)
+            {
+                return vs;
+            }
+        }
 
         foreach (var (presetId, fileNames) in ExecutableNamePresets)
         {
-            if (!fileNames.Any(name => string.Equals(name, fileName, StringComparison.OrdinalIgnoreCase)))
+            if (fileNames.Any(name => string.Equals(name, fileName, StringComparison.OrdinalIgnoreCase)))
             {
-                continue;
+                return presetId;
             }
-
-            if (string.Equals(presetId, PresetExplorer, StringComparison.OrdinalIgnoreCase)
-                && !IsWindowsExplorerExecutable(path))
-            {
-                continue;
-            }
-
-            return presetId;
         }
 
         foreach (var definition in Definitions)
@@ -233,6 +359,38 @@ internal static class CompanionAppCatalog
 
     public static string? TryResolveExecutable(string presetId)
     {
+        if (TryResolveExecutableOverride is { } resolveOverride)
+        {
+            return resolveOverride(presetId);
+        }
+
+        if (string.IsNullOrWhiteSpace(presetId))
+        {
+            return null;
+        }
+
+        if (PresetExecutableCache.TryGetValue(presetId, out var cached))
+        {
+            if (cached is null)
+            {
+                return null;
+            }
+
+            if (File.Exists(cached))
+            {
+                return cached;
+            }
+
+            PresetExecutableCache.TryRemove(presetId, out _);
+        }
+
+        var resolved = ResolveExecutableUncached(presetId);
+        PresetExecutableCache[presetId] = resolved;
+        return resolved;
+    }
+
+    private static string? ResolveExecutableUncached(string presetId)
+    {
         if (string.Equals(presetId, PresetVs2022, StringComparison.OrdinalIgnoreCase))
         {
             return VisualStudioInstallDiscovery.TryResolveDevenv(17, 18);
@@ -251,6 +409,31 @@ internal static class CompanionAppCatalog
         if (string.Equals(presetId, PresetIntelliJIdea, StringComparison.OrdinalIgnoreCase))
         {
             return JetBrainsInstallDiscovery.TryResolveIntelliJIdea();
+        }
+
+        if (string.Equals(presetId, PresetWebStorm, StringComparison.OrdinalIgnoreCase))
+        {
+            return JetBrainsInstallDiscovery.TryResolveWebStorm();
+        }
+
+        if (string.Equals(presetId, PresetPyCharm, StringComparison.OrdinalIgnoreCase))
+        {
+            return JetBrainsInstallDiscovery.TryResolvePyCharm();
+        }
+
+        if (string.Equals(presetId, PresetGoLand, StringComparison.OrdinalIgnoreCase))
+        {
+            return JetBrainsInstallDiscovery.TryResolveGoLand();
+        }
+
+        if (string.Equals(presetId, PresetCLion, StringComparison.OrdinalIgnoreCase))
+        {
+            return JetBrainsInstallDiscovery.TryResolveCLion();
+        }
+
+        if (string.Equals(presetId, PresetAndroidStudio, StringComparison.OrdinalIgnoreCase))
+        {
+            return JetBrainsInstallDiscovery.TryResolveAndroidStudio();
         }
 
         var definition = FindDefinition(presetId);
@@ -441,10 +624,21 @@ internal static class CompanionAppCatalog
         (PresetGvim, ["gvim.exe"]),
         (PresetRider, ["rider64.exe"]),
         (PresetIntelliJIdea, ["idea64.exe"]),
+        (PresetWebStorm, ["webstorm64.exe"]),
+        (PresetPyCharm, ["pycharm64.exe"]),
+        (PresetGoLand, ["goland64.exe"]),
+        (PresetCLion, ["clion64.exe"]),
+        (PresetAndroidStudio, ["studio64.exe", "studio.exe"]),
         (PresetZed, ["zed.exe", "Zed.exe"]),
         (PresetNotepadPlusPlus, ["notepad++.exe"]),
         (PresetVsCode, ["Code.exe"]),
+        (PresetVsCodeInsiders, ["Code - Insiders.exe"]),
         (PresetCursor, ["Cursor.exe"]),
+        (PresetGitKraken, ["GitKraken.exe"]),
+        (PresetSourcetree, ["Sourcetree.exe"]),
+        (PresetAntigravity, ["Antigravity IDE.exe", "Antigravity.exe"]),
+        (PresetDevin, ["Windsurf.exe", "Devin.exe"]),
+        (PresetKiro, ["Kiro.exe"]),
     ];
 
     private static bool IsWindowsExplorerExecutable(string path)
@@ -534,6 +728,28 @@ internal static class CompanionAppCatalog
         [
             Path.Combine(localAppData, "Fork", "Fork.exe"),
             Path.Combine(programFiles, "Fork", "Fork.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildGitKrakenCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        return
+        [
+            Path.Combine(localAppData, "gitkraken", "gitkraken.exe"),
+            Path.Combine(localAppData, "GitKraken", "GitKraken.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildSourcetreeCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        return
+        [
+            Path.Combine(localAppData, "SourceTree", "SourceTree.exe"),
+            Path.Combine(localAppData, "Atlassian", "SourceTree", "SourceTree.exe"),
         ];
     }
 
@@ -641,6 +857,18 @@ internal static class CompanionAppCatalog
         ];
     }
 
+    private static IReadOnlyList<string> BuildVsCodeInsidersCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+
+        return
+        [
+            Path.Combine(localAppData, "Programs", "Microsoft VS Code Insiders", "Code - Insiders.exe"),
+            Path.Combine(programFiles, "Microsoft VS Code Insiders", "Code - Insiders.exe"),
+        ];
+    }
+
     private static IReadOnlyList<string> BuildCursorCandidates()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -649,6 +877,55 @@ internal static class CompanionAppCatalog
         [
             Path.Combine(localAppData, "Programs", "cursor", "Cursor.exe"),
             Path.Combine(localAppData, "Programs", "Cursor", "Cursor.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildTraeCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        return
+        [
+            Path.Join(localAppData, "Programs", "Trae", "Trae.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildAntigravityCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        return
+        [
+            Path.Combine(localAppData, "Programs", "Antigravity IDE", "Antigravity IDE.exe"),
+            Path.Combine(localAppData, "Programs", "Antigravity", "Antigravity.exe"),
+            Path.Combine(localAppData, "Programs", "antigravity", "Antigravity.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildDevinCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        // Devin (formerly Windsurf / Codeium IDE fork).
+        return
+        [
+            Path.Combine(localAppData, "Programs", "Windsurf", "Windsurf.exe"),
+            Path.Combine(localAppData, "Programs", "Devin", "Devin.exe"),
+            Path.Combine(localAppData, "Programs", "devin", "Devin.exe"),
+        ];
+    }
+
+    private static IReadOnlyList<string> BuildKiroCandidates()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+
+        return
+        [
+            Path.Combine(localAppData, "Programs", "Kiro", "Kiro.exe"),
+            Path.Combine(programFiles, "Kiro", "Kiro.exe"),
+            Path.Combine(programFilesX86, "Kiro", "Kiro.exe"),
         ];
     }
 }

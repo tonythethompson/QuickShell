@@ -38,11 +38,23 @@
     <Content Remove="Assets\run\export\**" />
   </ItemGroup>
 
-  <Target Name="GenerateLogoAssets" BeforeTargets="PrepareForBuild"
+  <Target Name="GenerateLogoAssets" BeforeTargets="PrepareForBuild" Condition=" '$(SkipAssets)' != 'true' "
           Inputs="$(MSBuildProjectDirectory)\Assets\icon\quickshell-icon.svg;$(MSBuildProjectDirectory)\Assets\icon\quickshell-icon-raycast.svg;$(MSBuildProjectDirectory)\Assets\icon\export-msix-icons.ps1;$(MSBuildProjectDirectory)\Assets\run\quickshell-run.dark.svg;$(MSBuildProjectDirectory)\Assets\run\quickshell-run.light.svg;$(MSBuildProjectDirectory)\Assets\run\export-run-icons.ps1;$(MSBuildProjectDirectory)\Assets\raycast\export-raycast-icons.ps1;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1;$(MSBuildProjectDirectory)\..\scripts\LogoAssetGenerator\Program.cs"
           Outputs="$(MSBuildProjectDirectory)\Assets\StoreLogo.png">
     <Exec WorkingDirectory="$(MSBuildProjectDirectory)\.."
           Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\generate-assets.ps1&quot;" />
+  </Target>
+
+  <!-- The CmdPal SDK winmd is an out-of-process API contract, not an in-process
+       WinRT component. Tell MSIX packaging not to harvest a nonexistent DLL
+       implementation for this contract. -->
+  <Target Name="MarkCmdPalContractWinmdOutOfProcess"
+          BeforeTargets="_CalculateInputsForGenerateCurrentProjectAppxManifest">
+    <ItemGroup>
+      <PackagingOutputs Update="Microsoft.CommandPalette.Extensions.winmd">
+        <SkipHarvestingWinmdRegistration>true</SkipHarvestingWinmdRegistration>
+      </PackagingOutputs>
+    </ItemGroup>
   </Target>
 
   <ItemGroup>
@@ -58,6 +70,7 @@
     <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\QuickShell.Core\Services\TerminalListIconCache.cs" Link="Services\TerminalListIconCache.cs" />
     <ProjectReference Include="..\QuickShell.Core\QuickShell.Core.csproj" />
   </ItemGroup>
 

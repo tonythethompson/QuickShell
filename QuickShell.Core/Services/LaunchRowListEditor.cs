@@ -15,6 +15,7 @@ internal static class LaunchRowListEditor
                 Command = entry.Command ?? string.Empty,
                 TaskType = TaskTypeCatalog.Normalize(entry.TaskType),
                 LaunchTarget = ShortcutFormSave.EncodeLaunchTargetForEntry(entry),
+                RunAsAdmin = entry.RunAsAdmin,
             })
             .ToList();
 
@@ -50,16 +51,25 @@ internal static class LaunchRowListEditor
             IsEditorPlaceholder = true,
         };
 
-    public static void ClearRow(List<LaunchRowDraft> rows, int index)
+    /// <summary>
+    /// Removes the launch row at <paramref name="index"/> and shifts later rows up,
+    /// then pads with empty editor placeholders back to <see cref="MinimumEditorRowCount"/>.
+    /// </summary>
+    public static void ClearRow(List<LaunchRowDraft> rows, int index, string fallbackLaunchTarget)
     {
         if (index < 0 || index >= rows.Count)
         {
             return;
         }
 
-        rows[index].Command = string.Empty;
-        rows[index].TaskType = TaskTypeCatalog.None;
-        rows[index].IsEditorPlaceholder = false;
+        var successor = index + 1 < rows.Count ? rows[index + 1] : null;
+        if (successor?.LaunchTarget.Equals(TerminalCatalog.SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            successor.LaunchTarget = ResolveEffectiveLaunchTarget(rows, index, fallbackLaunchTarget);
+        }
+
+        rows.RemoveAt(index);
+        EnsureMinimumRowsForEditor(rows, fallbackLaunchTarget);
     }
 
     public static bool ApplyPill(List<LaunchRowDraft> rows, CommandSuggestionPill pill, string fallbackLaunchTarget)
@@ -77,6 +87,10 @@ internal static class LaunchRowListEditor
         return targetIndex == rows.Count - 1 && rows.Count > MinimumEditorRowCount;
     }
 
+    /// <summary>
+    /// First empty editor placeholder, so pills refill gaps after clear/compact without
+    /// overwriting intentional folder-only launches.
+    /// </summary>
     public static int FindFirstEmptyCommandIndex(IReadOnlyList<LaunchRowDraft> rows)
     {
         for (var i = 0; i < rows.Count; i++)
@@ -87,7 +101,6 @@ internal static class LaunchRowListEditor
             }
         }
 
-        // Do not overwrite intentional blank (folder-only) launches; caller should append.
         return -1;
     }
 
@@ -109,4 +122,22 @@ internal static class LaunchRowListEditor
 
     public static List<LaunchRowDraft> CloneRows(IEnumerable<LaunchRowDraft> rows) =>
         rows.Select(row => row.Clone()).ToList();
+
+    private static string ResolveEffectiveLaunchTarget(
+        List<LaunchRowDraft> rows,
+        int index,
+        string fallbackLaunchTarget)
+    {
+        for (var i = index; i >= 0; i--)
+        {
+            var target = rows[i].LaunchTarget;
+            if (!string.IsNullOrWhiteSpace(target)
+                && !target.Equals(TerminalCatalog.SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase))
+            {
+                return target;
+            }
+        }
+
+        return fallbackLaunchTarget;
+    }
 }

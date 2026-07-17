@@ -1,15 +1,28 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 using System.Linq;
 using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class TaskTypeCatalogTests
+public sealed class TaskTypeCatalogTests : IDisposable
 {
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+
+    public TaskTypeCatalogTests()
+    {
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+    }
+
+    public void Dispose() => _provider.Dispose();
     [Fact]
     public void BuildPickerChoicesJson_WithoutDirectory_IncludesOnlyPlaceholder()
     {
-        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson());
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis));
         var values = document.RootElement
             .EnumerateArray()
             .Select(choice => choice.GetProperty("value").GetString())
@@ -28,7 +41,7 @@ public sealed class TaskTypeCatalogTests
 
         try
         {
-            using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(root));
+            using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis, root));
             var values = document.RootElement
                 .EnumerateArray()
                 .Select(choice => choice.GetProperty("value").GetString())
@@ -55,12 +68,18 @@ public sealed class TaskTypeCatalogTests
     [Fact]
     public void BuildPickerChoicesJson_IncludesTooltipOnEachChoice()
     {
-        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson());
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis));
 
         foreach (var choice in document.RootElement.EnumerateArray())
         {
             Assert.True(choice.TryGetProperty("tooltip", out _));
         }
+    }
+
+    [Fact]
+    public void GetChoices_IncludesAgent()
+    {
+        Assert.Contains(TaskTypeCatalog.GetChoices(), choice => choice.Id == TaskTypeCatalog.Agent && choice.Title == "Agent");
     }
 
     [Theory]
@@ -79,6 +98,8 @@ public sealed class TaskTypeCatalogTests
     [InlineData("DATABASE", TaskTypeCatalog.Services)]
     [InlineData("database", TaskTypeCatalog.Services)]
     [InlineData("logs", TaskTypeCatalog.Logs)]
+    [InlineData("agent", TaskTypeCatalog.Agent)]
+    [InlineData("AI", TaskTypeCatalog.Agent)]
     public void Normalize_KnownValues_AreCaseInsensitiveAndTrimmed(string value, string expected)
     {
         Assert.Equal(expected, TaskTypeCatalog.Normalize(value));
@@ -98,6 +119,7 @@ public sealed class TaskTypeCatalogTests
     [InlineData(TaskTypeCatalog.Test, "Test")]
     [InlineData(TaskTypeCatalog.Build, "Build")]
     [InlineData(TaskTypeCatalog.Logs, "Logs")]
+    [InlineData(TaskTypeCatalog.Agent, "Agent")]
     public void GetTitle_KnownValues_ReturnExpectedStrings(string value, string expected)
     {
         Assert.Equal(expected, TaskTypeCatalog.GetTitle(value));
@@ -117,6 +139,7 @@ public sealed class TaskTypeCatalogTests
     [InlineData(TaskTypeCatalog.Test)]
     [InlineData(TaskTypeCatalog.Build)]
     [InlineData(TaskTypeCatalog.Logs)]
+    [InlineData(TaskTypeCatalog.Agent)]
     public void GetGlyph_KnownValues_ReturnNonEmptyGlyphs(string value)
     {
         Assert.False(string.IsNullOrEmpty(TaskTypeCatalog.GetGlyph(value)));

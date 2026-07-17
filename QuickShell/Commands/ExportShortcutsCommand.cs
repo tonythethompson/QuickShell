@@ -8,10 +8,12 @@ namespace QuickShell.Commands;
 internal sealed partial class ExportShortcutsCommand : InvokableCommand
 {
     private static readonly TimeSpan IoTimeout = TimeSpan.FromSeconds(30);
+    private readonly IQuickShellServices _services;
     private readonly bool _stayOnSettings;
 
-    public ExportShortcutsCommand(bool stayOnSettings = true)
+    public ExportShortcutsCommand(bool stayOnSettings, IQuickShellServices services)
     {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _stayOnSettings = stayOnSettings;
         Name = Strings.Command_ExportWorkspaces_Name;
         Icon = new IconInfo("\uE896");
@@ -19,14 +21,14 @@ internal sealed partial class ExportShortcutsCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var path = ShortcutFilePickerService.PickExportFile();
+        var path = ShortcutFilePickerService.PickExportFile(_services);
         if (path is null)
         {
             return Finish(Strings.Export_Cancelled);
         }
 
         using var cancellation = new CancellationTokenSource(IoTimeout);
-        var result = QuickShellServices.Current.Shortcuts.TryExportToFileAsync(path, cancellation.Token).GetAwaiter().GetResult();
+        var result = _services.Shortcuts.TryExportToFileAsync(path, cancellation.Token).GetAwaiter().GetResult();
         if (!result.Success)
         {
             return Finish(Strings.ExportFailedFormat(result.Error));

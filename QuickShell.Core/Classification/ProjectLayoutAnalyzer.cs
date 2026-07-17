@@ -85,15 +85,7 @@ internal sealed class ProjectLayoutAnalyzer : IProjectLayoutAnalyzer
 
     private static bool HasAnyFile(string rootPath, params string[] names)
     {
-        foreach (var name in names)
-        {
-            if (File.Exists(Path.Join(rootPath, name)))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return names.Any(name => File.Exists(Path.Join(rootPath, name)));
     }
 
     private static bool HasAnyTopLevelFile(string rootPath, string pattern)

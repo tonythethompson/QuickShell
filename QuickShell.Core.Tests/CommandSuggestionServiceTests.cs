@@ -1,35 +1,129 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
+using System.Reflection;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(AgentCliCatalogIsolation.Name)]
 public sealed class CommandSuggestionServiceTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IProjectClassificationCache _classificationCache;
 
     public CommandSuggestionServiceTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "quickshell-pills-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Join(Path.GetTempPath(), "quickshell-pills-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        _classificationCache = _provider.GetRequiredService<IProjectClassificationCache>();
     }
 
     [Fact]
     public void GetPills_DockerProject_IncludesLogsAndServices()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
 
-        var pills = CommandSuggestionService.GetPills(_root, []);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.Contains(pills, pill => pill.Command == "docker compose logs -f");
         Assert.Contains(pills, pill => pill.Command == "docker compose up");
-        Assert.All(pills, pill => Assert.Contains('·', pill.DisplayTitle));
+        Assert.All(pills, pill =>
+        {
+            Assert.Equal(SuggestionPillPresentation.FormatDisplayTitle(pill.Command), pill.DisplayTitle);
+            Assert.DoesNotContain('·', pill.DisplayTitle);
+            Assert.Contains('·', pill.Tooltip);
+        });
+    }
+
+    [Fact]
+    public void HasSuggestions_TrueForDockerProject_FalseForEmptyDir()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
+
+        Assert.True(CommandSuggestionService.HasSuggestions(_root, [], _projectAnalysis, _classificationCache));
+        Assert.False(CommandSuggestionService.HasSuggestions(Path.Join(_root, "missing"), [], _projectAnalysis, _classificationCache));
+        Assert.False(CommandSuggestionService.HasSuggestions(null, [], _projectAnalysis, _classificationCache));
+    }
+
+    [Fact]
+    public void GetPills_MaxCountOne_MatchesFullListHead()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
+
+        var full = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
+        CommandSuggestionService.ClearResultCache();
+        var single = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache, maxCount: 1);
+
+        Assert.NotEmpty(full);
+        Assert.Single(single);
+        Assert.Equal(full[0].Command, single[0].Command);
+        Assert.Equal(full[0].Score, single[0].Score);
+    }
+
+    [Fact]
+    public void GetPills_RepeatedDirectory_UsesCacheWithoutChangingResults()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        CommandSuggestionService.ClearResultCache();
+
+        var first = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
+        var second = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
+
+        Assert.Equal(first.Count, second.Count);
+        Assert.Equal(
+            first.Select(pill => (pill.Command, pill.Score, pill.TaskType)),
+            second.Select(pill => (pill.Command, pill.Score, pill.TaskType)));
+    }
+
+    [Fact]
+    public void GetPills_FiltersVsCodeVariablesAndTempProjects()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        Directory.CreateDirectory(Path.Join(_root, ".vscode"));
+        File.WriteAllText(
+            Path.Join(_root, ".vscode", "tasks.json"),
+            """
+            {
+              "version": "2.0.0",
+              "tasks": [
+                {
+                  "label": "broken",
+                  "type": "shell",
+                  "command": "dotnet",
+                  "args": ["watch", "run", "--project", "${workspaceFolder}/Trackdub.sln"]
+                },
+                {
+                  "label": "probe",
+                  "type": "shell",
+                  "command": "dotnet watch --project tmp_serilog_probe.csproj"
+                }
+              ]
+            }
+            """);
+        File.WriteAllText(Path.Join(_root, "tmp_serilog_probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
+
+        Assert.DoesNotContain(pills, pill => pill.Command.Contains("${workspaceFolder}", StringComparison.Ordinal));
+        Assert.DoesNotContain(pills, pill => pill.Command.Contains("tmp_serilog_probe", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     public void GetPills_ExcludesUsedCommands()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
 
-        var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"]);
+        var pills = CommandSuggestionService.GetPills(_root, ["docker compose logs -f"], _projectAnalysis, _classificationCache);
 
         Assert.DoesNotContain(pills, pill => pill.Command == "docker compose logs -f");
     }
@@ -44,9 +138,9 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         }
 
         var json = System.Text.Json.JsonSerializer.Serialize(new { scripts });
-        File.WriteAllText(Path.Combine(_root, "package.json"), json);
+        File.WriteAllText(Path.Join(_root, "package.json"), json);
 
-        var pills = CommandSuggestionService.GetPills(_root, []);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
 
         Assert.True(pills.Count <= CommandSuggestionService.MaxPills);
     }
@@ -54,7 +148,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     [Fact]
     public void ApplyPill_FillThenAppend_UsesThreeRowsBeforeAddingFourth()
     {
-        File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
         var rows = new List<LaunchRowDraft>
         {
             new() { LaunchTarget = "default", IsEditorPlaceholder = true },
@@ -62,7 +156,7 @@ public sealed class CommandSuggestionServiceTests : IDisposable
             new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
         };
 
-        var pills = CommandSuggestionService.GetPills(_root, []);
+        var pills = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache);
         Assert.True(pills.Count >= 2);
 
         Assert.False(CommandSuggestionService.ApplyPill(rows, pills[0], "default"));
@@ -81,8 +175,8 @@ public sealed class CommandSuggestionServiceTests : IDisposable
     {
         var pills = new[]
         {
-            new CommandSuggestionPill("npm run dev", TaskTypeCatalog.Frontend, "Frontend", "Frontend · npm run dev", "npm run dev", 10, "node-script"),
-            new CommandSuggestionPill("npm run dev", TaskTypeCatalog.Api, "API", "API · npm run dev", "npm run dev", 8, "node-script"),
+            new CommandSuggestionPill("npm run dev", TaskTypeCatalog.Frontend, "Frontend", "npm run dev", "Frontend · npm run dev", 10, "node-script"),
+            new CommandSuggestionPill("npm run dev", TaskTypeCatalog.Api, "API", "npm run dev", "API · npm run dev", 8, "node-script"),
         };
 
         var pill = CommandSuggestionService.TryFindPill(pills, "npm run dev", TaskTypeCatalog.Api);
@@ -91,8 +185,24 @@ public sealed class CommandSuggestionServiceTests : IDisposable
         Assert.Equal(TaskTypeCatalog.Api, pill.TaskType);
     }
 
+    [Fact]
+    public void RankTop_EqualScoreAndTitle_OrdersByCommand()
+    {
+        var alpha = new CommandSuggestionPill("alpha", TaskTypeCatalog.Agent, "Agent", "Agent", "Agent · alpha", 94, "test");
+        var beta = new CommandSuggestionPill("beta", TaskTypeCatalog.Agent, "Agent", "Agent", "Agent · beta", 94, "test");
+        var method = typeof(CommandSuggestionService).GetMethod("RankTop", BindingFlags.NonPublic | BindingFlags.Static);
+
+        var ranked = Assert.IsType<List<CommandSuggestionPill>>(method!.Invoke(
+            null,
+            new object?[] { new[] { alpha, beta }, 2 }));
+
+        Assert.Equal(["alpha", "beta"], ranked.Select(pill => pill.Command));
+    }
+
     public void Dispose()
     {
+        _provider.Dispose();
+        CommandSuggestionService.ClearResultCache();
         try
         {
             Directory.Delete(_root, recursive: true);

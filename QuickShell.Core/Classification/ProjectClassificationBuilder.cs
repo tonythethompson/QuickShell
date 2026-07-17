@@ -288,16 +288,9 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
     private string? FindFirst(params string[] names)
     {
-        foreach (var name in names)
-        {
-            var path = Path.Join(directory, name);
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return null;
+        return names
+            .Select(name => Path.Join(directory, name))
+            .FirstOrDefault(File.Exists);
     }
 
     private List<VsCodeTaskSuggestion> ReadVsCodeTasks()
@@ -393,9 +386,9 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
         try
         {
-            var contents = File.ReadAllText(path);
-            return contents.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
-                || contents.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase);
+            return File.ReadLines(path).Any(line =>
+                line.Contains("<OutputType>Exe</OutputType>", StringComparison.OrdinalIgnoreCase)
+                || line.Contains("<OutputType>WinExe</OutputType>", StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
@@ -531,7 +524,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
 
         try
         {
-            return File.ReadAllText(path).Contains(value, StringComparison.OrdinalIgnoreCase);
+            return File.ReadLines(path).Any(line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
@@ -554,7 +547,7 @@ internal sealed partial class ProjectClassificationBuilder(string directory)
         {
             action();
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or InvalidOperationException)
         {
             // Repository discovery should degrade to fewer suggestions, not fail.
         }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -12,15 +13,29 @@ internal sealed record GitCommandResult(int ExitCode, string StandardOutput, str
 
 internal sealed record WorkspaceGitStatus(string Branch, bool IsDirty, bool IsDetached);
 
-internal static class WorkspaceGitOperations
+internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
 {
     private const int GitTimeoutMs = 3000;
 
-    internal static Func<string, IReadOnlyList<string>, GitCommandResult>? GitRunOverride { get; set; }
+    private readonly Func<string, IReadOnlyList<string>, GitCommandResult>? _runGit;
+    private readonly Func<string, WorkspaceGitStatus?>? _getStatus;
 
-    internal static Func<string, WorkspaceGitStatus?>? GitStatusOverride { get; set; }
+    public WorkspaceGitOperations()
+    {
+    }
 
-    public static bool TryResolveWorktreeKey(string directory, out string worktreeKey)
+    /// <summary>
+    /// Test constructor: inject per-instance doubles (no process-wide static overrides).
+    /// </summary>
+    internal WorkspaceGitOperations(
+        Func<string, IReadOnlyList<string>, GitCommandResult>? runGit,
+        Func<string, WorkspaceGitStatus?>? getStatus)
+    {
+        _runGit = runGit;
+        _getStatus = getStatus;
+    }
+
+    public bool TryResolveWorktreeKey(string directory, out string worktreeKey)
     {
         worktreeKey = string.Empty;
 
@@ -45,11 +60,11 @@ internal static class WorkspaceGitOperations
         return TryNormalizeWorktreeKey(topLevel.StandardOutput.Trim(), out worktreeKey);
     }
 
-    public static bool TryGetStatus(string directory, out WorkspaceGitStatus status)
+    public bool TryGetStatus(string directory, out WorkspaceGitStatus status)
     {
         status = null!;
 
-        if (GitStatusOverride is { } statusOverride)
+        if (_getStatus is { } statusOverride)
         {
             var overridden = statusOverride(directory);
             if (overridden is null)
@@ -89,7 +104,7 @@ internal static class WorkspaceGitOperations
         return true;
     }
 
-    public static IReadOnlyList<string> ListLocalBranches(string directory)
+    public IReadOnlyList<string> ListLocalBranches(string directory)
     {
         var result = RunGit(directory, ["for-each-ref", "refs/heads", "--format=%(refname:short)"]);
         if (!result.Succeeded)
@@ -111,7 +126,7 @@ internal static class WorkspaceGitOperations
         !status.IsDetached
         && string.Equals(status.Branch, targetBranch, StringComparison.Ordinal);
 
-    public static bool TrySwitchBranch(string directory, string branch, out string? error)
+    public bool TrySwitchBranch(string directory, string branch, out string? error)
     {
         error = null;
 
@@ -156,9 +171,9 @@ internal static class WorkspaceGitOperations
         return $"Branch: {current} → {targetBranch}{dirtySuffix}";
     }
 
-    public static GitCommandResult RunGit(string directory, IReadOnlyList<string> gitArguments)
+    public GitCommandResult RunGit(string directory, IReadOnlyList<string> gitArguments)
     {
-        if (GitRunOverride is { } gitRunOverride)
+        if (_runGit is { } gitRunOverride)
         {
             return gitRunOverride(directory, gitArguments);
         }

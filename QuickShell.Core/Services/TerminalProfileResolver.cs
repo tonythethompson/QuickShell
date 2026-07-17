@@ -1,10 +1,18 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
 
-internal static class TerminalProfileResolver
+internal sealed class TerminalProfileResolver : ITerminalProfileResolver
 {
-    public static WtProfileInfo? ResolveForLaunch(WorkspaceEntry launch)
+    private readonly QuickShellSettingsReader _settingsReader;
+
+    public TerminalProfileResolver(QuickShellSettingsReader settingsReader)
+    {
+        _settingsReader = settingsReader ?? throw new ArgumentNullException(nameof(settingsReader));
+    }
+
+    public WtProfileInfo? ResolveForLaunch(WorkspaceEntry launch)
     {
         var terminal = (launch.Terminal ?? "default").Trim().ToLowerInvariant();
 
@@ -37,10 +45,9 @@ internal static class TerminalProfileResolver
         return null;
     }
 
-    private static WtProfileInfo? ResolveDefaultSettingsProfile()
+    private WtProfileInfo? ResolveDefaultSettingsProfile()
     {
-        var settings = new QuickShellSettingsReader();
-        var terminalApplicationId = settings.TerminalApplicationId;
+        var terminalApplicationId = _settingsReader.TerminalApplicationId;
         if (terminalApplicationId.Equals(TerminalHostIds.WindowsConsoleHost, StringComparison.OrdinalIgnoreCase))
         {
             return null;
@@ -52,7 +59,7 @@ internal static class TerminalProfileResolver
             ? TerminalHostIds.IntelligentTerminal
             : TerminalHostIds.WindowsTerminal;
 
-        var defaultProfileId = settings.DefaultProfileId;
+        var defaultProfileId = _settingsReader.DefaultProfileId;
         if (defaultProfileId.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase))
         {
             return WtProfilesService.FindDefaultProfile(hostTerminal);

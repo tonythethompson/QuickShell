@@ -7,26 +7,26 @@ namespace QuickShell.Pages;
 
 internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
-    private readonly QuickShellSettingsManager _settings;
     private readonly Action _onChanged;
     private readonly WorkspaceGitStatus? _knownStatus;
     private readonly string? _knownTargetBranch;
     private IListItem[] _items = [];
 
     public WorktreeBranchPickerPage(
+        IQuickShellServices services,
         string shortcutId,
-        QuickShellSettingsManager settings,
         Action onChanged,
         WorkspaceGitStatus? knownStatus = null,
         string? knownTargetBranch = null)
     {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcutId;
-        _settings = settings;
         _onChanged = onChanged;
         _knownStatus = knownStatus;
         _knownTargetBranch = knownTargetBranch;
-        Id = ShortcutCommandIds.WorktreeBranchPicker(shortcutId);
+        Id = CommandDescriptor.WorktreeBranchPicker(shortcutId).Id;
         Title = "Switch branch";
         Name = "Switch branch";
         Icon = new IconInfo("\uE8AB");
@@ -41,7 +41,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
 
     private IListItem[] BuildItems()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return
@@ -54,7 +54,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         }
 
         var status = _knownStatus;
-        if (status is null && !WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out status))
+        if (status is null && !_services.GitOperations.TryGetStatus(shortcut.Directory, out status))
         {
             return
             [
@@ -66,8 +66,9 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             ];
         }
 
-        var target = _knownTargetBranch ?? WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
-        var branches = WorkspaceGitOperations.ListLocalBranches(shortcut.Directory);
+        var target = _knownTargetBranch
+            ?? WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, _services.GitOperations);
+        var branches = _services.GitOperations.ListLocalBranches(shortcut.Directory);
         if (branches.Count == 0)
         {
             return
@@ -93,7 +94,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         foreach (var branch in branches)
         {
             var isCurrent = WorkspaceGitOperations.IsOnBranch(status, branch);
-            items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _settings, _onChanged))
+            items.Add(new ListItem(new SelectWorktreeBranchCommand(_shortcutId, branch, _services, _onChanged))
             {
                 Title = branch,
                 Subtitle = isCurrent ? "Current branch" : string.Empty,

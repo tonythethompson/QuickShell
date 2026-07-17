@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Services;
 
 using System.Windows;
@@ -17,6 +18,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
     private readonly QuickShellSettingsReader _settings;
 
     private readonly IShortcutRepository _shortcuts;
+
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     private readonly ComboBox _terminalAppBox;
 
@@ -38,13 +41,17 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         QuickShellSettingsReader settings,
 
-        IShortcutRepository shortcuts)
+        IShortcutRepository shortcuts,
+
+        IProjectAnalysisService projectAnalysis)
 
     {
 
         _settings = settings;
 
         _shortcuts = shortcuts;
+
+        _projectAnalysis = projectAnalysis;
 
         Title = "Quick Shell settings";
 
@@ -542,7 +549,7 @@ internal static class QuickShellRunSettingsDialog
 
 {
 
-    public static void Show(QuickShellSettingsReader settings, IShortcutRepository shortcuts)
+    public static void Show(QuickShellSettingsReader settings, IShortcutRepository shortcuts, IProjectAnalysisService projectAnalysis)
 
     {
 
@@ -550,7 +557,7 @@ internal static class QuickShellRunSettingsDialog
 
         {
 
-            var window = new QuickShellRunSettingsWindow(settings, shortcuts);
+            var window = new QuickShellRunSettingsWindow(settings, shortcuts, projectAnalysis);
 
             window.ShowDialog();
 

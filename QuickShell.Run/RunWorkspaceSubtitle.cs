@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -8,16 +9,20 @@ internal static class RunWorkspaceSubtitle
     public static string Build(
         TerminalShortcut shortcut,
         QuickShellSettingsReader settings,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations,
         bool listMode = false)
     {
         var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
-        var status = TryBuildStatusSuffix(shortcut, settings, listMode);
+        var status = TryBuildStatusSuffix(shortcut, settings, healthChecker, gitOperations, listMode);
         return string.IsNullOrWhiteSpace(status) ? subtitle : $"{subtitle} · {status}";
     }
 
     private static string? TryBuildStatusSuffix(
         TerminalShortcut shortcut,
         QuickShellSettingsReader settings,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations,
         bool listMode)
     {
         if (ShortcutHealth.WouldNeedRepair(shortcut))
@@ -34,6 +39,8 @@ internal static class RunWorkspaceSubtitle
                         shortcut,
                         settings.TerminalApplicationId,
                         settings.DefaultProfileId,
+                        healthChecker,
+                        gitOperations,
                         out snapshot))
                 {
                     return null;
@@ -44,7 +51,9 @@ internal static class RunWorkspaceSubtitle
                 snapshot = WorkspaceStatusService.CaptureForList(
                     shortcut,
                     settings.TerminalApplicationId,
-                    settings.DefaultProfileId);
+                    settings.DefaultProfileId,
+                    healthChecker,
+                    gitOperations);
             }
 
             if (snapshot.Activity == WorkspaceActivityState.Running)

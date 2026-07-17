@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using System.Threading;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -59,11 +61,14 @@ internal static partial class GitRepoDiscovery
     internal static bool IncludeDefaultSearchRoots { get; set; } = true;
 
     public static IReadOnlyList<GitRepoCandidate> Discover(
+        IProjectAnalysisService projectAnalysis,
         IEnumerable<string>? extraRoots = null,
-        int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism)
+        int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
         var roots = BuildSearchRoots(extraRoots);
-        if (roots.Count == 0)
+        if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
         {
             return [];
         }
@@ -84,10 +89,12 @@ internal static partial class GitRepoDiscovery
 
         var workers = Enumerable
             .Range(0, workerCount)
-            .Select(_ => Task.Run(Worker))
+            .Select(_ => Task.Run(Worker, cancellationToken))
             .ToArray();
 
-        Task.WaitAll(workers);
+        Task.WaitAll(workers, CancellationToken.None);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         return results
             .OrderBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
@@ -118,7 +125,14 @@ internal static partial class GitRepoDiscovery
         {
             while (true)
             {
-                signal.Wait();
+                try
+                {
+                    signal.Wait(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
 
                 if (!queue.TryDequeue(out var workItem))
                 {
@@ -166,7 +180,7 @@ internal static partial class GitRepoDiscovery
                     Directory = workItem.Directory,
                     Name = Path.GetFileName(workItem.Directory.TrimEnd('\\', '/')),
                     RemoteUrl = TryReadOriginRemoteUrl(workItem.Directory),
-                    Classification = ProjectAnalysisAccessor.Instance.Classify(workItem.Directory),
+                    Classification = projectAnalysis.Classify(workItem.Directory),
                 };
 
                 lock (sync)
@@ -209,6 +223,11 @@ internal static partial class GitRepoDiscovery
 
         bool ShouldStop()
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return true;
+            }
+
             lock (sync)
             {
                 return results.Count >= MaxRepos || scanned >= MaxDirectoriesScanned;

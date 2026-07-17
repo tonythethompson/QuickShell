@@ -1,10 +1,23 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Pages;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class ShortcutFormLaunchSectionTests
+public sealed class ShortcutFormLaunchSectionTests : IDisposable
 {
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+
+    public ShortcutFormLaunchSectionTests()
+    {
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+    }
+
+    public void Dispose() => _provider.Dispose();
     [Fact]
     public void ToLaunchInputs_TrimsTrailingPlaceholderBlankRowWithNoTaskType()
     {
@@ -14,7 +27,7 @@ public sealed class ShortcutFormLaunchSectionTests
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.None, IsEditorPlaceholder = true },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
 
         Assert.Single(inputs);
         Assert.Equal("npm start", inputs[0].Command);
@@ -30,7 +43,7 @@ public sealed class ShortcutFormLaunchSectionTests
             new() { Command = "npm test" },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
 
         Assert.Equal(2, inputs.Count);
         Assert.Equal("npm start", inputs[0].Command);
@@ -46,7 +59,7 @@ public sealed class ShortcutFormLaunchSectionTests
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.None, LaunchTarget = "wt:pwsh" },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
 
         Assert.Equal(2, inputs.Count);
         Assert.Equal(string.Empty, inputs[1].Command);
@@ -72,11 +85,55 @@ public sealed class ShortcutFormLaunchSectionTests
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.Services },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", runAsAdmin: false);
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
 
         Assert.Equal(2, inputs.Count);
         Assert.Equal(string.Empty, inputs[1].Command);
         Assert.Equal(TaskTypeCatalog.Services, inputs[1].TaskType);
+    }
+
+    [Fact]
+    public void ToLaunchInputs_PreservesPerRowRunAsAdminIncludingBlankCommand()
+    {
+        var rows = new List<LaunchRowDraft>
+        {
+            new() { Command = "npm start", RunAsAdmin = false },
+            new() { Command = string.Empty, LaunchTarget = "wt:pwsh", RunAsAdmin = true },
+        };
+
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
+
+        Assert.Equal(2, inputs.Count);
+        Assert.False(inputs[0].RunAsAdmin);
+        Assert.True(inputs[1].RunAsAdmin);
+        Assert.Equal(string.Empty, inputs[1].Command);
+    }
+
+    [Fact]
+    public void FromWorkspaceEntries_CopiesRunAsAdmin()
+    {
+        var drafts = LaunchRowListEditor.FromWorkspaceEntries(
+        [
+            new QuickShell.Models.WorkspaceEntry
+            {
+                Id = "a",
+                Command = "npm start",
+                Terminal = "default",
+                RunAsAdmin = true,
+                Order = 0,
+            },
+            new QuickShell.Models.WorkspaceEntry
+            {
+                Id = "b",
+                Command = "dotnet watch",
+                Terminal = "default",
+                RunAsAdmin = false,
+                Order = 1,
+            },
+        ]);
+
+        Assert.True(drafts[0].RunAsAdmin);
+        Assert.False(drafts[1].RunAsAdmin);
     }
 
     [Fact]
@@ -88,7 +145,7 @@ public sealed class ShortcutFormLaunchSectionTests
 
         try
         {
-            var created = ShortcutFormLaunchSection.TryCreateCommandFromTaskType(directory, TaskTypeCatalog.Logs);
+            var created = ShortcutFormLaunchSection.TryCreateCommandFromTaskType(_projectAnalysis, directory, TaskTypeCatalog.Logs);
 
             Assert.NotNull(created);
             Assert.Equal("docker compose logs -f", created!.Command);
@@ -109,6 +166,6 @@ public sealed class ShortcutFormLaunchSectionTests
     [Fact]
     public void TryCreateCommandFromTaskType_None_ReturnsNull()
     {
-        Assert.Null(ShortcutFormLaunchSection.TryCreateCommandFromTaskType(@"C:\temp", TaskTypeCatalog.None));
+        Assert.Null(ShortcutFormLaunchSection.TryCreateCommandFromTaskType(_projectAnalysis, @"C:\temp", TaskTypeCatalog.None));
     }
 }

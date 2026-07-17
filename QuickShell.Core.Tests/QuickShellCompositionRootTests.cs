@@ -70,12 +70,19 @@ public sealed class QuickShellCompositionRootTests : IDisposable
     [Fact]
     public void AddQuickShellCore_resolves_core_service_abstractions()
     {
-        Assert.IsType<TerminalLauncherService>(_services.GetRequiredService<ITerminalLauncher>());
-        Assert.IsType<TerminalProfileResolverService>(_services.GetRequiredService<ITerminalProfileResolver>());
-        Assert.IsType<WorkspaceMapperService>(_services.GetRequiredService<IWorkspaceMapper>());
-        Assert.IsType<GitRepoIndexService>(_services.GetRequiredService<IGitRepoIndex>());
-        Assert.IsType<WorkspaceGitOperationsService>(_services.GetRequiredService<IWorkspaceGitOperations>());
-        Assert.IsType<WorkspaceHealthCheckerService>(_services.GetRequiredService<IWorkspaceHealthChecker>());
+        Assert.IsType<TerminalLauncher>(_services.GetRequiredService<ITerminalLauncher>());
+        Assert.IsType<TerminalProfileResolver>(_services.GetRequiredService<ITerminalProfileResolver>());
+        Assert.IsType<WorkspaceMapper>(_services.GetRequiredService<IWorkspaceMapper>());
+        Assert.IsType<GitRepoIndex>(_services.GetRequiredService<IGitRepoIndex>());
+        Assert.IsType<ProjectClassificationCache>(_services.GetRequiredService<IProjectClassificationCache>());
+        Assert.IsType<SyncExtensionThreadScheduler>(_services.GetRequiredService<IExtensionThreadScheduler>());
+        Assert.IsType<WorkspaceGitOperations>(_services.GetRequiredService<IWorkspaceGitOperations>());
+        Assert.IsType<WorkspaceHealthCheck>(_services.GetRequiredService<IWorkspaceHealthChecker>());
+        Assert.IsType<ProcessStarter>(_services.GetRequiredService<IProcessStarter>());
+        Assert.IsType<CompanionAppLauncher>(_services.GetRequiredService<ICompanionAppLauncher>());
+        Assert.IsType<ShortcutLaunchExecutor>(_services.GetRequiredService<IShortcutLaunchExecutor>());
+        Assert.IsType<WorkspaceGitLaunchGate>(_services.GetRequiredService<WorkspaceGitLaunchGate>());
+        Assert.IsType<WorkspaceEnvironmentProbe>(_services.GetRequiredService<IWorkspaceEnvironmentProbe>());
     }
 
     [Fact]
@@ -105,7 +112,7 @@ public sealed class QuickShellCompositionRootTests : IDisposable
                 Directory.Delete(_configDirectory, recursive: true);
             }
         }
-        catch (IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup.
         }

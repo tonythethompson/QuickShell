@@ -18,10 +18,10 @@ internal static class WorkspaceLinkActions
         }
 
         if (Process.Start(new ProcessStartInfo
-            {
-                FileName = normalized,
-                UseShellExecute = true,
-            }) is null)
+        {
+            FileName = normalized,
+            UseShellExecute = true,
+        }) is null)
         {
             error = "Failed to open link.";
             return false;

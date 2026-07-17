@@ -1,6 +1,9 @@
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
-using QuickShell.Commands;
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
+using QuickShell.Services;
 
 namespace QuickShell.Services.CommandRouting;
 
@@ -11,24 +14,27 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
 {
     public static IServiceCollection AddQuickShellCommandRouting(
         this IServiceCollection services,
-        QuickShellSettingsManager settingsManager,
-        CreateShortcutCommand createShortcutCommand,
-        Action reloadPages)
+        QuickShellSettingsManager settingsManager)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(settingsManager);
-        ArgumentNullException.ThrowIfNull(createShortcutCommand);
-        ArgumentNullException.ThrowIfNull(reloadPages);
 
         services.AddSingleton(settingsManager);
-        services.AddSingleton(createShortcutCommand);
-        services.AddSingleton(sp => new CommandItemFactoryContext
-        {
-            Shortcuts = sp.GetRequiredService<IShortcutRepository>(),
-            Settings = settingsManager,
-            CreateShortcut = createShortcutCommand,
-            ReloadPages = reloadPages,
-        });
+        services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
+            sp.GetRequiredService<IShortcutRepository>(),
+            sp.GetRequiredService<IDraftStore>(),
+            sp.GetRequiredService<QuickShellSettingsManager>(),
+            sp.GetRequiredService<IProjectAnalysisService>(),
+            sp.GetRequiredService<IShortcutLaunchExecutor>(),
+            sp.GetRequiredService<IWorkspaceGitOperations>(),
+            sp.GetRequiredService<ICompanionAppLauncher>(),
+            sp.GetRequiredService<IWorkspaceHealthChecker>(),
+            sp.GetRequiredService<WorkspaceGitLaunchGate>(),
+            sp.GetRequiredService<IQuickShellLifetime>(),
+            sp.GetRequiredService<IGitRepoIndex>(),
+            sp.GetRequiredService<IProjectClassificationCache>(),
+            sp.GetRequiredService<IExtensionCallbackQueue>()));
+        services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
 
         services.AddSingleton<ICommandItemHandler, OpenSettingsCommandHandler>();
         services.AddSingleton<ICommandItemHandler, ImportConflictCommandHandler>();
@@ -50,12 +56,20 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
     public static IServiceCollection AddQuickShellHost(
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager,
-        CreateShortcutCommand createShortcutCommand,
-        Action reloadPages,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        QuickShell.Abstractions.IQuickShellLifetime? lifetime = null)
     {
-        services.AddQuickShellCore(configDirectory);
-        services.AddQuickShellCommandRouting(settingsManager, createShortcutCommand, reloadPages);
+        // Capture extension SynchronizationContext at host registration (provider ctor thread).
+        var extensionContext = SynchronizationContext.Current;
+
+        services.AddQuickShellCore(configDirectory, lifetime);
+        services.AddSingleton<IExtensionCallbackQueue, ExtensionCallbackQueue>();
+        // Override Core's Sync scheduler with CmdPal-aware marshaling.
+        services.AddSingleton<IExtensionThreadScheduler>(sp =>
+            new CmdPalExtensionThreadScheduler(
+                extensionContext,
+                sp.GetRequiredService<IExtensionCallbackQueue>()));
+        services.AddQuickShellCommandRouting(settingsManager);
         return services;
     }
 }

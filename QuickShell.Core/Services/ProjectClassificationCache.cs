@@ -1,20 +1,26 @@
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text;
 
-using QuickShell.Classification;
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
 
-internal static class ProjectClassificationCache
+internal sealed class ProjectClassificationCache : IProjectClassificationCache
 {
     private const int MaxEntries = 64;
 
-    private static readonly ConcurrentDictionary<string, CacheEntry> Entries = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Queue<string> InsertionOrder = new();
-    private static readonly object EvictionLock = new();
+    private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly ConcurrentDictionary<string, CacheEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Queue<string> _insertionOrder = new();
+    private readonly object _evictionLock = new();
 
-    public static ProjectClassification Classify(string? directory)
+    public ProjectClassificationCache(IProjectAnalysisService projectAnalysis)
+    {
+        _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+    }
+
+    public ProjectClassification Classify(string? directory)
     {
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
@@ -22,62 +28,64 @@ internal static class ProjectClassificationCache
         }
 
         var normalized = directory.Trim();
-        var fingerprint = BuildFingerprint(normalized);
-        if (Entries.TryGetValue(normalized, out var cached)
-            && string.Equals(cached.Fingerprint, fingerprint, StringComparison.Ordinal))
+        // Cheap signature every call (markers + typed globs). Full project analysis only
+        // when the signature changes — avoids SHA256 + top-level *.* walks on the hot path.
+        var signature = BuildCheapSignature(normalized);
+        if (_entries.TryGetValue(normalized, out var cached)
+            && string.Equals(cached.Signature, signature, StringComparison.Ordinal))
         {
             return cached.Classification;
         }
 
-        var classification = ProjectAnalysisAccessor.Instance.Classify(normalized);
-        Entries[normalized] = new CacheEntry(fingerprint, classification);
+        var classification = _projectAnalysis.Classify(normalized);
+        _entries[normalized] = new CacheEntry(signature, classification);
         TrackInsertion(normalized);
         return classification;
     }
 
-    public static void Invalidate(string? directory = null)
+    public void Invalidate(string? directory = null)
     {
         if (string.IsNullOrWhiteSpace(directory))
         {
-            lock (EvictionLock)
+            lock (_evictionLock)
             {
-                Entries.Clear();
-                InsertionOrder.Clear();
+                _entries.Clear();
+                _insertionOrder.Clear();
             }
 
             return;
         }
 
         var normalized = directory.Trim();
-        Entries.TryRemove(normalized, out _);
-        lock (EvictionLock)
+        _entries.TryRemove(normalized, out _);
+        lock (_evictionLock)
         {
             RemoveFromQueue(normalized);
         }
     }
 
-    private static void TrackInsertion(string normalized)
+    private void TrackInsertion(string normalized)
     {
-        lock (EvictionLock)
+        lock (_evictionLock)
         {
             RemoveFromQueue(normalized);
-            InsertionOrder.Enqueue(normalized);
-            while (Entries.Count > MaxEntries && InsertionOrder.TryDequeue(out var oldest))
+            _insertionOrder.Enqueue(normalized);
+            while (_entries.Count > MaxEntries && _insertionOrder.TryDequeue(out var oldest))
             {
-                Entries.TryRemove(oldest, out _);
+                _entries.TryRemove(oldest, out _);
             }
         }
     }
 
-    private static void RemoveFromQueue(string normalized)
+    private void RemoveFromQueue(string normalized)
     {
-        if (InsertionOrder.Count == 0)
+        if (_insertionOrder.Count == 0)
         {
             return;
         }
 
-        var retained = new Queue<string>(InsertionOrder.Count);
-        while (InsertionOrder.TryDequeue(out var entry))
+        var retained = new Queue<string>(_insertionOrder.Count);
+        while (_insertionOrder.TryDequeue(out var entry))
         {
             if (!string.Equals(entry, normalized, StringComparison.OrdinalIgnoreCase))
             {
@@ -87,7 +95,7 @@ internal static class ProjectClassificationCache
 
         while (retained.TryDequeue(out var entry))
         {
-            InsertionOrder.Enqueue(entry);
+            _insertionOrder.Enqueue(entry);
         }
     }
 
@@ -122,73 +130,162 @@ internal static class ProjectClassificationCache
         "build.gradle",
         "build.gradle.kts",
         "devcontainer.json",
+        // Nested markers: directory mtimes alone miss in-place edits on Windows.
         Path.Combine(".vscode", "tasks.json"),
+        Path.Combine(".devcontainer", "devcontainer.json"),
     ];
 
-    private static string BuildFingerprint(string directory)
+    /// <summary>
+    /// Nested folders whose contents feed classification (VS Code tasks, dev containers).
+    /// We stamp files inside them — parent directory LastWriteTime often does not change
+    /// when a child file is edited in place.
+    /// </summary>
+    private static readonly string[] NestedContentDirectories =
+    [
+        ".vscode",
+        ".devcontainer",
+    ];
+
+    private const int MaxNestedFilesPerDirectory = 16;
+
+    private static readonly string[] RootProjectGlobPatterns =
+    [
+        "*.csproj",
+        "*.fsproj",
+        "*.sln",
+        "*.slnx",
+        "*.code-workspace",
+    ];
+
+    /// <summary>
+    /// Lightweight directory signature for cache invalidation. Avoids SHA256 and avoids a
+    /// full top-level <c>*.*</c> walk; only known markers + nested content dirs + typed globs.
+    /// </summary>
+    internal static string BuildCheapSignature(string directory)
     {
-        var builder = new StringBuilder();
+        var builder = new StringBuilder(512);
+        AppendDirectoryStamp(builder, directory);
+
         foreach (var marker in ClassifierMarkerFiles)
         {
-            AppendFileFingerprint(builder, Path.Combine(directory, marker));
+            AppendFileStamp(builder, Path.Combine(directory, marker), relativeLabel: marker);
         }
 
-        AppendDirectoryFingerprint(builder, Path.Combine(directory, ".vscode"));
-        AppendDirectoryFingerprint(builder, Path.Combine(directory, ".devcontainer"));
-
-        foreach (var workspace in Directory
-                     .EnumerateFiles(directory, "*.code-workspace", SearchOption.TopDirectoryOnly)
-                     .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
+        foreach (var nested in NestedContentDirectories)
         {
-            AppendFileFingerprint(builder, workspace);
+            AppendNestedDirectorySignature(builder, directory, nested);
         }
 
-        foreach (var project in Directory
-                     .EnumerateFiles(directory, "*.*", SearchOption.TopDirectoryOnly)
-                     .Where(path =>
-                         path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
-                         || path.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
-                         || path.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
-                         || path.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
-                     .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-                     .Take(CommandSuggestionService.MaxRootProjects))
+        foreach (var pattern in RootProjectGlobPatterns)
         {
-            AppendFileFingerprint(builder, project);
+            IEnumerable<string> matches;
+            try
+            {
+                matches = Directory.EnumerateFiles(directory, pattern, SearchOption.TopDirectoryOnly);
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var path in matches
+                         .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
+            {
+                AppendFileStamp(builder, path);
+            }
         }
 
-        var bytes = Encoding.UTF8.GetBytes(builder.ToString());
-        return Convert.ToHexString(SHA256.HashData(bytes));
+        return builder.ToString();
     }
 
-    private static void AppendFileFingerprint(StringBuilder builder, string path)
+    /// <summary>
+    /// Stamp a nested folder and a bounded set of its top-level files so edits to
+    /// <c>tasks.json</c> / <c>devcontainer.json</c> (and siblings) invalidate the cache.
+    /// </summary>
+    private static void AppendNestedDirectorySignature(
+        StringBuilder builder,
+        string rootDirectory,
+        string relativeDirectory)
     {
-        if (!File.Exists(path))
+        var nestedPath = Path.Combine(rootDirectory, relativeDirectory);
+        try
         {
-            return;
-        }
+            if (!Directory.Exists(nestedPath))
+            {
+                return;
+            }
 
-        var info = new FileInfo(path);
-        builder.Append(path);
-        builder.Append('|');
-        builder.Append(info.Length);
-        builder.Append('|');
-        builder.Append(info.LastWriteTimeUtc.Ticks);
-        builder.Append(';');
+            AppendDirectoryStamp(builder, nestedPath);
+
+            IEnumerable<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(nestedPath, "*", SearchOption.TopDirectoryOnly);
+            }
+            catch
+            {
+                return;
+            }
+
+            foreach (var path in files
+                         .OrderBy(static f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
+                         .Take(MaxNestedFilesPerDirectory))
+            {
+                var label = Path.Combine(relativeDirectory, Path.GetFileName(path));
+                AppendFileStamp(builder, path, relativeLabel: label);
+            }
+        }
+        catch
+        {
+            // Ignore inaccessible nested directories.
+        }
     }
 
-    private static void AppendDirectoryFingerprint(StringBuilder builder, string path)
+    private static void AppendFileStamp(StringBuilder builder, string path, string? relativeLabel = null)
     {
-        if (!Directory.Exists(path))
+        try
         {
-            return;
-        }
+            var info = new FileInfo(path);
+            if (!info.Exists)
+            {
+                return;
+            }
 
-        var info = new DirectoryInfo(path);
-        builder.Append(path);
-        builder.Append('|');
-        builder.Append(info.LastWriteTimeUtc.Ticks);
-        builder.Append(';');
+            builder.Append('f');
+            builder.Append(relativeLabel ?? info.Name);
+            builder.Append('|');
+            builder.Append(info.Length);
+            builder.Append('|');
+            builder.Append(info.LastWriteTimeUtc.Ticks);
+            builder.Append(';');
+        }
+        catch
+        {
+            // Ignore inaccessible files.
+        }
     }
 
-    private sealed record CacheEntry(string Fingerprint, ProjectClassification Classification);
+    private static void AppendDirectoryStamp(StringBuilder builder, string path)
+    {
+        try
+        {
+            var info = new DirectoryInfo(path);
+            if (!info.Exists)
+            {
+                return;
+            }
+
+            builder.Append('d');
+            builder.Append(info.Name);
+            builder.Append('|');
+            builder.Append(info.LastWriteTimeUtc.Ticks);
+            builder.Append(';');
+        }
+        catch
+        {
+            // Ignore inaccessible directories.
+        }
+    }
+
+    private sealed record CacheEntry(string Signature, ProjectClassification Classification);
 }

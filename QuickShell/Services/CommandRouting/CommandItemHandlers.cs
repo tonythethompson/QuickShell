@@ -11,7 +11,7 @@ internal sealed class OpenSettingsCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.OpenSettings;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context) =>
         new CommandItem(context.Settings.SettingsPage)
         {
             Title = context.Settings.SettingsPage.Title,
@@ -23,8 +23,8 @@ internal sealed class ImportConflictCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.ImportConflict;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new ImportConflictPage(context.ReloadPages))
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context) =>
+        new CommandItem(new ImportConflictPage(context.Services, context.ReloadRootPages))
         {
             Title = Strings.ImportConflictPage_Title,
             Icon = new IconInfo("\uE8FD"),
@@ -35,8 +35,8 @@ internal sealed class PendingShortcutEditCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.PendingShortcutEdit;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new PendingShortcutEditPage(context.ReloadPages))
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context) =>
+        new CommandItem(new PendingShortcutEditPage(context.Services, context.ReloadRootPages))
         {
             Title = Strings.PendingEdit_Title,
             Icon = new IconInfo("\uE7BA"),
@@ -47,8 +47,8 @@ internal sealed class CreateWorkspaceCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.CreateWorkspace;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new CreateShortcutCommand(context.ReloadPages))
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context) =>
+        new CommandItem(context.CreateShortcut)
         {
             Title = "Create workspace",
             Subtitle = "Folder and terminal launches",
@@ -60,11 +60,11 @@ internal sealed class DiscoverCreateWorkspaceCommandHandler : ICommandItemHandle
 {
     public CommandKind Kind => CommandKind.DiscoverCreateWorkspace;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var discoverDirectory = descriptor.Directory!;
-        var seed = WorkspaceSeedFactory.FromGitRepoDirectory(discoverDirectory);
-        return new CommandItem(new CreateShortcutCommand(context.ReloadPages, seed))
+        var seed = WorkspaceSeedFactory.FromGitRepoDirectory(discoverDirectory, context.Services.ProjectAnalysis);
+        return new CommandItem(new CreateShortcutCommand(context.ReloadRootPages, seed, context.Services))
         {
             Title = seed.Name,
             Subtitle = DiscoverGitRepoListItems.BuildSubtitleForNew(new GitRepoCandidate
@@ -72,7 +72,7 @@ internal sealed class DiscoverCreateWorkspaceCommandHandler : ICommandItemHandle
                 Directory = discoverDirectory,
                 Name = seed.Name,
                 RemoteUrl = seed.RepoUrl,
-                Classification = QuickShellServices.Current.ProjectAnalysis.Classify(discoverDirectory),
+                Classification = context.Services.ProjectAnalysis.Classify(discoverDirectory),
             }),
             Icon = new IconInfo(ShortcutGlyphs.Add),
         };
@@ -83,8 +83,8 @@ internal sealed class DiscoverGitReposCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.DiscoverGitRepos;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context) =>
-        new CommandItem(new OpenDiscoverGitReposCommand(context.ReloadPages))
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context) =>
+        new CommandItem(new OpenDiscoverGitReposCommand(context))
         {
             Title = "Discover git repos",
             Icon = new IconInfo(ShortcutGlyphs.Discover),
@@ -95,7 +95,7 @@ internal sealed class OpenLaunchCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.OpenLaunch;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var shortcutId = descriptor.WorkspaceId!;
         var launchId = descriptor.LaunchId!;
@@ -125,11 +125,7 @@ internal sealed class OpenLaunchCommandHandler : ICommandItemHandler
             Launch = launch,
             Score = 0,
         };
-        return ShortcutTaskActionListItems.Create(
-            action,
-            context.Settings,
-            context.ReloadPages,
-            context.CreateShortcut);
+        return ShortcutTaskActionListItems.Create(context, action, context.ReloadRootPages);
     }
 }
 
@@ -137,16 +133,12 @@ internal sealed class OpenWorkspaceCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.OpenWorkspace;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var shortcut = context.Shortcuts.ResolveForOpenCommand(descriptor.WorkspaceId!);
         return shortcut is null
             ? null
-            : ShortcutListItems.CreateOpen(
-                shortcut,
-                context.Settings,
-                context.ReloadPages,
-                context.CreateShortcut);
+            : ShortcutListItems.CreateOpen(context, shortcut, context.ReloadRootPages);
     }
 }
 
@@ -154,12 +146,12 @@ internal sealed class WorkspaceStatusCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.WorkspaceStatus;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var shortcut = context.Shortcuts.GetById(descriptor.WorkspaceId!);
         return shortcut is null
             ? null
-            : new CommandItem(new WorkspaceStatusPage(shortcut, context.Settings, context.ReloadPages))
+            : new CommandItem(new WorkspaceStatusPage(context.Services, shortcut, context.ReloadRootPages))
             {
                 Title = shortcut.Name,
                 Icon = new IconInfo("\uE9D9"),
@@ -171,7 +163,7 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.WorktreeBranchPicker;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var shortcut = context.Shortcuts.GetById(descriptor.WorkspaceId!);
         if (shortcut is null)
@@ -181,16 +173,18 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
 
         WorkspaceGitStatus? status = null;
         string? target = null;
-        if (WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var gitStatus))
+        if (context.Services.GitOperations.TryGetStatus(shortcut.Directory, out var gitStatus))
         {
             status = gitStatus;
-            target = WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
+            target = WorktreeBranchTargetStore.GetTargetForDirectory(
+                shortcut.Directory,
+                context.Services.GitOperations);
         }
 
         return new CommandItem(new WorktreeBranchPickerPage(
+            context.Services,
             shortcut.Id,
-            context.Settings,
-            context.ReloadPages,
+            context.ReloadRootPages,
             status,
             target))
         {
@@ -204,7 +198,7 @@ internal sealed class WorktreeBranchSelectCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.WorktreeBranchSelect;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var shortcut = context.Shortcuts.GetById(descriptor.WorkspaceId!);
         if (shortcut is null)
@@ -215,10 +209,10 @@ internal sealed class WorktreeBranchSelectCommandHandler : ICommandItemHandler
         return new CommandItem(new SelectWorktreeBranchCommand(
             shortcut.Id,
             descriptor.Branch!,
-            context.Settings,
-            context.ReloadPages))
+            context.Services,
+            context.ReloadRootPages))
         {
-            Title = descriptor.Branch,
+            Title = descriptor.Branch!,
             Icon = new IconInfo("\uE8AB"),
         };
     }
@@ -228,12 +222,12 @@ internal sealed class WorktreeBranchClearCommandHandler : ICommandItemHandler
 {
     public CommandKind Kind => CommandKind.WorktreeBranchClear;
 
-    public ICommandItem? Create(CommandDescriptor descriptor, CommandItemFactoryContext context)
+    public ICommandItem? Create(CommandDescriptor descriptor, QuickShellPageContext context)
     {
         var shortcut = context.Shortcuts.GetById(descriptor.WorkspaceId!);
         return shortcut is null
             ? null
-            : new CommandItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, context.ReloadPages))
+            : new CommandItem(new UseCurrentWorktreeBranchCommand(shortcut.Id, context.ReloadRootPages, context.Services))
             {
                 Title = "Use current branch",
                 Icon = new IconInfo("\uE894"),

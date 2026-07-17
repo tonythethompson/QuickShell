@@ -1,16 +1,25 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Classification;
+using QuickShell.Composition;
 using QuickShell.Services;
 using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class TaskTypeCommandSuggestionTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
 
     public TaskTypeCommandSuggestionTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-task-type-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
 
     [Fact]
@@ -18,7 +27,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Logs);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Logs, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("docker compose logs -f", suggested);
     }
@@ -39,7 +48,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
             }
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Frontend);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Frontend, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("npm run dev", suggested);
     }
@@ -57,7 +66,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
             </Project>
             """);
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Api, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.StartsWith("dotnet watch", suggested, StringComparison.Ordinal);
     }
@@ -67,7 +76,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
 
-        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Services);
+        var suggested = TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.Services, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Equal("docker compose up", suggested);
     }
@@ -77,7 +86,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
 
-        Assert.Null(TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.None));
+        Assert.Null(TaskTypeCommandSuggestion.TrySuggest(_root, TaskTypeCatalog.None, TaskTypePickContext.Empty, _projectAnalysis));
     }
 
     [Fact]
@@ -85,7 +94,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
 
-        var tooltip = TaskTypeCommandSuggestion.GetChoiceTooltip(_root, TaskTypeCatalog.Logs);
+        var tooltip = TaskTypeCommandSuggestion.GetChoiceTooltip(_root, TaskTypeCatalog.Logs, TaskTypePickContext.Empty, _projectAnalysis);
 
         Assert.Contains("docker compose logs -f", tooltip, StringComparison.Ordinal);
     }
@@ -94,7 +103,7 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     public void BuildFormChoicesJson_IncludesTooltipPerChoice()
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
-        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_root));
+        using var document = JsonDocument.Parse(TaskTypeCatalog.BuildPickerChoicesJson(_projectAnalysis, _root));
 
         foreach (var choice in document.RootElement.EnumerateArray())
         {
@@ -116,18 +125,19 @@ public sealed class TaskTypeCommandSuggestionTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_root, "docker-compose.yml"), "services: {}");
 
-        Assert.True(TaskTypeCommandSuggestion.HasAvailableTypes(_root));
-        Assert.Contains(TaskTypeCatalog.Logs, TaskTypeCommandSuggestion.GetAvailableTaskTypes(_root));
+        Assert.True(TaskTypeCommandSuggestion.HasAvailableTypes(_root, _projectAnalysis));
+        Assert.Contains(TaskTypeCatalog.Logs, TaskTypeCommandSuggestion.GetAvailableTaskTypes(_root, TaskTypePickContext.Empty, _projectAnalysis));
     }
 
     [Fact]
     public void HasAvailableTypes_EmptyDirectory_IsFalse()
     {
-        Assert.False(TaskTypeCommandSuggestion.HasAvailableTypes(_root));
+        Assert.False(TaskTypeCommandSuggestion.HasAvailableTypes(_root, _projectAnalysis));
     }
 
     public void Dispose()
     {
+        _provider.Dispose();
         try
         {
             Directory.Delete(_root, recursive: true);

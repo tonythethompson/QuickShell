@@ -121,8 +121,10 @@ public sealed class ShortcutRepositoryWorkspacesChangedTests
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch (IOException or UnauthorizedAccessException)
-        {
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Best-effort test cleanup.
+                GC.KeepAlive(ex);
             }
         }
     }

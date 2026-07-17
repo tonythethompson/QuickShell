@@ -9,16 +9,23 @@ namespace QuickShell.Services;
 internal static class ShortcutListItems
 {
     public static ListItem CreateOpen(
+        QuickShellPageContext context,
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
         Action? onChanged = null,
-        CreateShortcutCommand? createShortcutCommand = null)
+        PinnedMoveVisibility moveVisibility = default,
+        bool includeEdit = true,
+        Action? onFavoritesReordered = null,
+        bool useHomePinContextMenu = false)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var services = context.Services;
+        var settings = context.Settings;
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
-            ? new ShortcutFormPage(shortcut, onChanged)
-            : new OpenTerminalShortcutCommand(shortcut, settings);
+            ? new ShortcutFormPage(services, shortcut, onChanged)
+            : new OpenTerminalShortcutCommand(shortcut, services);
 
         var item = new ListItem(primaryCommand)
         {
@@ -30,7 +37,9 @@ internal static class ShortcutListItems
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
             settings.TerminalApplicationId,
-            settings.DefaultProfileId);
+            settings.DefaultProfileId,
+            services.HealthChecker,
+            services.GitOperations);
         if (tags is not null)
         {
             item.Tags = tags;
@@ -39,15 +48,22 @@ internal static class ShortcutListItems
         if (onChanged is not null)
         {
             item.MoreCommands = needsRepair
-                ? ShortcutContextCommands.BuildRepairOnly(shortcut, onChanged, settings)
-                : createShortcutCommand is not null
+                ? ShortcutContextCommands.BuildRepairOnly(context, shortcut, onChanged)
+                : useHomePinContextMenu
                     ? ShortcutContextCommands.BuildForHomePin(
+                        context,
                         shortcut,
                         onChanged,
-                        settings,
-                        createShortcutCommand,
-                        needsRepair)
-                    : item.MoreCommands;
+                        needsRepair,
+                        moveVisibility)
+                    : ShortcutContextCommands.Build(
+                        context,
+                        shortcut,
+                        onChanged,
+                        includeEdit,
+                        moveVisibility,
+                        onFavoritesReordered: onFavoritesReordered,
+                        includePageCommands: true);
         }
 
         return item;

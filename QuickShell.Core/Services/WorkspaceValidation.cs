@@ -34,7 +34,7 @@ internal static class WorkspaceValidation
 
         var requiresPersistence = false;
         var workspaceId = record.Id?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(workspaceId) || !ShortcutCommandIds.IsStableShortcutId(workspaceId))
+        if (string.IsNullOrWhiteSpace(workspaceId) || !CommandDescriptor.IsStableId(workspaceId))
         {
             workspaceId = Guid.NewGuid().ToString("N");
             requiresPersistence = true;
@@ -162,7 +162,7 @@ internal static class WorkspaceValidation
             }
 
             var entryId = entry.Id?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(entryId) || !ShortcutCommandIds.IsStableShortcutId(entryId))
+            if (string.IsNullOrWhiteSpace(entryId) || !CommandDescriptor.IsStableId(entryId))
             {
                 entryId = Guid.NewGuid().ToString("N");
             }

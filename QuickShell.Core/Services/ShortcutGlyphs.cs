@@ -62,4 +62,7 @@ internal static class ShortcutGlyphs
 
     /// <summary>Segoe MDL2 ConstructionCone — task type: Build. Verify visually before shipping.</summary>
     public const string TaskBuild = "\uE790";
+
+    /// <summary>Segoe MDL2 Robot — task type: AI agent CLI. Verify visually before shipping.</summary>
+    public const string TaskAgent = "\uE99A";
 }

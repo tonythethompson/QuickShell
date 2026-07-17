@@ -1,99 +1,166 @@
+using System.Threading;
+
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+
 namespace QuickShell.Services;
 
-internal static class GitRepoIndex
+internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 {
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(10);
-    private static readonly object Sync = new();
 
-    private static IReadOnlyList<GitRepoCandidate> _cache = [];
-    private static string _cacheRootKey = string.Empty;
-    private static DateTime _refreshedUtc = DateTime.MinValue;
-    private static bool _hasCompletedRefreshForRoot;
-    private static RefreshInFlight? _refreshInFlight;
-    private static readonly List<Action> RefreshCompletedHandlers = [];
-    private static readonly object RefreshHandlerSync = new();
+    private readonly object _sync = new();
+    private readonly object _refreshHandlerSync = new();
+    private readonly List<Action> _refreshCompletedHandlers = [];
+    private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly IQuickShellLifetime _lifetime;
+    private readonly IExtensionThreadScheduler _threadScheduler;
+    private readonly Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? _discoverOverride;
 
-    internal static Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? DiscoverOverride { get; set; }
+    private IReadOnlyList<GitRepoCandidate> _cache = [];
+    private string _cacheRootKey = string.Empty;
+    private DateTime _refreshedUtc = DateTime.MinValue;
+    private bool _hasCompletedRefreshForRoot;
+    private RefreshInFlight? _refreshInFlight;
+    private bool _disposed;
 
-    /// <summary>
-    /// CmdPal extension thread captured at provider startup; refresh waiters must run there.
-    /// </summary>
-    internal static SynchronizationContext? ExtensionSynchronizationContext { get; set; }
+    public GitRepoIndex(
+        IProjectAnalysisService projectAnalysis,
+        IQuickShellLifetime lifetime,
+        IExtensionThreadScheduler threadScheduler)
+        : this(projectAnalysis, lifetime, threadScheduler, discoverOverride: null)
+    {
+    }
 
-    public static bool IsRefreshInFlight
+    /// <summary>Test constructor that injects a discover override without static seams.</summary>
+    internal GitRepoIndex(
+        IProjectAnalysisService projectAnalysis,
+        IQuickShellLifetime lifetime,
+        IExtensionThreadScheduler threadScheduler,
+        Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? discoverOverride)
+    {
+        _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
+        _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+        _threadScheduler = threadScheduler ?? throw new ArgumentNullException(nameof(threadScheduler));
+        _discoverOverride = discoverOverride;
+    }
+
+    public bool IsRefreshInFlight
     {
         get
         {
-            lock (Sync)
+            lock (_sync)
             {
                 return _refreshInFlight is not null;
             }
         }
     }
 
-    public static void RunAfterNextRefresh(Action callback)
+    public void RunAfterNextRefresh(Action callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
+        ThrowIfDisposed();
 
-        lock (RefreshHandlerSync)
+        lock (_refreshHandlerSync)
         {
-            RefreshCompletedHandlers.Add(callback);
+            _refreshCompletedHandlers.Add(callback);
         }
     }
 
-    public static bool TryRunAfterNextRefreshIfInFlight(Action callback)
+    public bool TryRunAfterNextRefreshIfInFlight(Action callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
+        ThrowIfDisposed();
 
-        lock (Sync)
+        lock (_sync)
         {
             if (_refreshInFlight is null)
             {
                 return false;
             }
 
-            lock (RefreshHandlerSync)
+            lock (_refreshHandlerSync)
             {
-                RefreshCompletedHandlers.Add(callback);
+                _refreshCompletedHandlers.Add(callback);
             }
 
             return true;
         }
     }
 
-    public static IReadOnlyList<GitRepoCandidate> Search(
+    public IReadOnlyList<GitRepoCandidate> Search(
         string query,
-        IEnumerable<string>? extraRoots = null,
+        IReadOnlyList<string> searchRoots,
         IReadOnlySet<string>? savedDirectories = null,
-        int maxResults = 8)
+        int maxResults = 8,
+        CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
+
         var trimmed = query.Trim();
         if (string.IsNullOrWhiteSpace(trimmed))
         {
             return [];
         }
 
-        var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots);
+        var rootKey = BuildRootKey(SnapshotRoots(searchRoots));
+        EnsureFresh(searchRoots, cancellationToken);
         savedDirectories ??= EmptySet.Instance;
 
-        return GetCacheForRootKey(rootKey)
-            .Where(candidate => !savedDirectories.Contains(candidate.Directory))
-            .Where(candidate => Matches(candidate, trimmed))
-            .Take(maxResults)
-            .ToList();
+        // Single linear pass with early exit — index size is bounded by discovery, not workspaces.
+        maxResults = Math.Max(0, maxResults);
+        if (maxResults == 0)
+        {
+            return [];
+        }
+
+        var cache = GetCacheForRootKey(rootKey);
+        List<GitRepoCandidate>? results = null;
+        foreach (var candidate in cache)
+        {
+            if (savedDirectories.Contains(candidate.Directory))
+            {
+                continue;
+            }
+
+            if (!Matches(candidate, trimmed))
+            {
+                continue;
+            }
+
+            results ??= new List<GitRepoCandidate>(Math.Min(maxResults, 8));
+            results.Add(candidate);
+            if (results.Count >= maxResults)
+            {
+                break;
+            }
+        }
+
+        return results is null ? [] : results;
     }
 
-    public static IReadOnlyList<GitRepoCandidate> GetAll(IEnumerable<string>? extraRoots = null)
+    public IReadOnlyList<GitRepoCandidate> GetAll(
+        IReadOnlyList<string>? extraRoots = null,
+        CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
+
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots);
+        EnsureFresh(extraRoots, cancellationToken);
         return GetCacheForRootKey(rootKey);
     }
 
-    public static void Prewarm(IEnumerable<string>? extraRoots = null) => EnsureFresh(extraRoots);
+    public void Prewarm(
+        IReadOnlyList<string> searchRoots,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        EnsureFresh(searchRoots, cancellationToken);
+    }
 
-    public static void Invalidate() =>
+    public void Invalidate()
+    {
+        ThrowIfDisposed();
         WithLock(() =>
         {
             _cache = [];
@@ -102,6 +169,7 @@ internal static class GitRepoIndex
             _hasCompletedRefreshForRoot = false;
             _refreshInFlight = null;
         });
+    }
 
     public static bool IsDiscoverQuery(string query)
     {
@@ -117,13 +185,13 @@ internal static class GitRepoIndex
         };
     }
 
-    internal static void WaitForRefreshForTests(TimeSpan timeout)
+    internal void WaitForRefreshForTests(TimeSpan timeout)
     {
         var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
         while (Environment.TickCount64 < deadline)
         {
             Task? pending;
-            lock (Sync)
+            lock (_sync)
             {
                 pending = _refreshInFlight?.Task;
                 if (pending is null)
@@ -141,13 +209,13 @@ internal static class GitRepoIndex
         throw new TimeoutException("GitRepoIndex refresh did not complete.");
     }
 
-    internal static void WaitForPopulationForTests(string rootKey, TimeSpan timeout)
+    internal void WaitForPopulationForTests(string rootKey, TimeSpan timeout)
     {
         var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
         while (Environment.TickCount64 < deadline)
         {
             Task? pending;
-            lock (Sync)
+            lock (_sync)
             {
                 if (string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal) && _cache.Count > 0)
                 {
@@ -170,29 +238,12 @@ internal static class GitRepoIndex
         throw new TimeoutException($"GitRepoIndex did not populate cache for root key '{rootKey}'.");
     }
 
-    internal static void ResetForTests()
-    {
-        lock (Sync)
-        {
-            _cache = [];
-            _cacheRootKey = string.Empty;
-            _refreshedUtc = DateTime.MinValue;
-            _hasCompletedRefreshForRoot = false;
-            _refreshInFlight = null;
-            DiscoverOverride = null;
-            lock (RefreshHandlerSync)
-            {
-                RefreshCompletedHandlers.Clear();
-            }
-        }
-    }
-
-    internal static void SeedCacheForTests(
+    internal void SeedCacheForTests(
         IReadOnlyList<GitRepoCandidate> cache,
         string rootKey,
         DateTime refreshedUtc)
     {
-        lock (Sync)
+        lock (_sync)
         {
             _cache = cache;
             _cacheRootKey = rootKey;
@@ -202,42 +253,99 @@ internal static class GitRepoIndex
         }
     }
 
-    private static IReadOnlyList<GitRepoCandidate> GetCacheForRootKey(string rootKey)
+    public void Dispose()
     {
-        lock (Sync)
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        RefreshInFlight? inFlight;
+        lock (_sync)
+        {
+            inFlight = _refreshInFlight;
+            _refreshInFlight = null;
+            _cache = [];
+            _cacheRootKey = string.Empty;
+            _refreshedUtc = DateTime.MinValue;
+            _hasCompletedRefreshForRoot = false;
+        }
+
+        if (inFlight is not null)
+        {
+            try
+            {
+                inFlight.LinkedCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Another thread may have already disposed the linked CTS during teardown.
+                // Safe to ignore here because Dispose() is best-effort cleanup.
+            }
+
+            DisposeLinkedCts(inFlight);
+        }
+
+        lock (_refreshHandlerSync)
+        {
+            _refreshCompletedHandlers.Clear();
+        }
+    }
+
+    private static void DisposeLinkedCts(RefreshInFlight inFlight)
+    {
+        try
+        {
+            inFlight.LinkedCts.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private IReadOnlyList<GitRepoCandidate> GetCacheForRootKey(string rootKey)
+    {
+        lock (_sync)
         {
             return string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal) ? _cache : [];
         }
     }
 
-    private static bool Matches(GitRepoCandidate candidate, string query) =>
+    internal static bool Matches(GitRepoCandidate candidate, string query) =>
         candidate.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
         || candidate.Directory.Contains(query, StringComparison.OrdinalIgnoreCase)
         || (candidate.RemoteUrl?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
         || candidate.Classification.Labels.Any(label => label.Contains(query, StringComparison.OrdinalIgnoreCase));
 
-    private static void EnsureFresh(IEnumerable<string>? extraRoots)
+    private void EnsureFresh(
+        IEnumerable<string>? extraRoots,
+        CancellationToken cancellationToken = default)
     {
         var rootSnapshot = SnapshotRoots(extraRoots);
         var rootKey = BuildRootKey(rootSnapshot);
 
-        lock (Sync)
+        lock (_sync)
         {
             if (IsCacheFreshLocked(rootKey))
             {
                 return;
             }
 
-            StartRefreshLocked(rootKey, rootSnapshot);
+            StartRefreshLocked(rootKey, rootSnapshot, cancellationToken);
         }
     }
 
-    private static bool IsCacheFreshLocked(string rootKey) =>
+    private bool IsCacheFreshLocked(string rootKey) =>
         _hasCompletedRefreshForRoot
         && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
 
-    private static void StartRefreshLocked(string rootKey, string[] rootSnapshot)
+    private void StartRefreshLocked(
+        string rootKey,
+        string[] rootSnapshot,
+        CancellationToken cancellationToken)
     {
         if (_refreshInFlight is not null
             && string.Equals(_refreshInFlight.RootKey, rootKey, StringComparison.Ordinal))
@@ -245,12 +353,27 @@ internal static class GitRepoIndex
             return;
         }
 
+        CancellationTokenSource linkedCts;
+        try
+        {
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                _lifetime.CancellationToken,
+                cancellationToken);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Lifetime already disposed — skip starting a new refresh.
+            return;
+        }
+
+        var tokenForTask = linkedCts.Token;
         var inFlight = new RefreshInFlight(
             rootKey,
-            Task.Run(() => DiscoverForRefresh(rootSnapshot)));
+            Task.Run(() => DiscoverForRefresh(rootSnapshot, tokenForTask), tokenForTask),
+            linkedCts);
 
         _ = inFlight.Task.ContinueWith(
-            task => CompleteRefresh(inFlight, task),
+            task => CompleteRefresh(inFlight, task, tokenForTask),
             CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
@@ -258,22 +381,29 @@ internal static class GitRepoIndex
         _refreshInFlight = inFlight;
     }
 
-    private static IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(IReadOnlyList<string> rootSnapshot) =>
-        DiscoverOverride?.Invoke(rootSnapshot) ?? GitRepoDiscovery.Discover(rootSnapshot);
+    private IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(
+        IReadOnlyList<string> rootSnapshot,
+        CancellationToken cancellationToken) =>
+        _discoverOverride?.Invoke(rootSnapshot)
+        ?? GitRepoDiscovery.Discover(_projectAnalysis, rootSnapshot, cancellationToken: cancellationToken);
 
-    private static void CompleteRefresh(RefreshInFlight inFlight, Task<IReadOnlyList<GitRepoCandidate>> task)
+    private void CompleteRefresh(
+        RefreshInFlight inFlight,
+        Task<IReadOnlyList<GitRepoCandidate>> task,
+        CancellationToken cancellationToken)
     {
         var shouldNotify = false;
-        lock (Sync)
+        lock (_sync)
         {
-            if (!ReferenceEquals(_refreshInFlight, inFlight))
+            if (_disposed || !ReferenceEquals(_refreshInFlight, inFlight))
             {
+                DisposeLinkedCts(inFlight);
                 return;
             }
 
             shouldNotify = true;
 
-            if (!task.IsFaulted && !task.IsCanceled)
+            if (!task.IsFaulted && !task.IsCanceled && !cancellationToken.IsCancellationRequested)
             {
                 _cache = task.Result;
                 _cacheRootKey = inFlight.RootKey;
@@ -282,6 +412,7 @@ internal static class GitRepoIndex
             }
 
             _refreshInFlight = null;
+            DisposeLinkedCts(inFlight);
         }
 
         if (shouldNotify)
@@ -290,25 +421,25 @@ internal static class GitRepoIndex
         }
     }
 
-    private static void NotifyRefreshCompleted()
+    private void NotifyRefreshCompleted()
     {
         Action[] handlers;
-        lock (RefreshHandlerSync)
+        lock (_refreshHandlerSync)
         {
-            if (RefreshCompletedHandlers.Count == 0)
+            if (_refreshCompletedHandlers.Count == 0)
             {
                 return;
             }
 
-            handlers = RefreshCompletedHandlers.ToArray();
-            RefreshCompletedHandlers.Clear();
+            handlers = _refreshCompletedHandlers.ToArray();
+            _refreshCompletedHandlers.Clear();
         }
 
         foreach (var handler in handlers)
         {
             try
             {
-                RunOnExtensionThread(handler);
+                _threadScheduler.Post(handler);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException
                                        and not StackOverflowException
@@ -316,42 +447,14 @@ internal static class GitRepoIndex
                                        and not AppDomainUnloadedException
                                        and not BadImageFormatException
                                        and not CannotUnloadAppDomainException
-                                       and not System.Threading.ThreadAbortException)
+                                       and not ThreadAbortException)
             {
                 // Best effort; UI callbacks should not break cache refresh.
             }
         }
     }
 
-    private static void RunOnExtensionThread(Action action)
-    {
-        var extensionContext = ExtensionSynchronizationContext;
-        if (extensionContext is null || ReferenceEquals(SynchronizationContext.Current, extensionContext))
-        {
-            action();
-            return;
-        }
-
-        extensionContext.Post(static state =>
-        {
-            try
-            {
-                ((Action)state!).Invoke();
-            }
-            catch (Exception ex) when (ex is not OutOfMemoryException
-                                       and not StackOverflowException
-                                       and not AccessViolationException
-                                       and not AppDomainUnloadedException
-                                       and not BadImageFormatException
-                                       and not CannotUnloadAppDomainException
-                                       and not System.Threading.ThreadAbortException)
-            {
-                System.Diagnostics.Trace.TraceWarning("Ignored exception in extension-thread callback: {0}", ex);
-            }
-        }, action);
-    }
-
-    private static string[] SnapshotRoots(IEnumerable<string>? extraRoots) =>
+    internal static string[] SnapshotRoots(IEnumerable<string>? extraRoots) =>
         extraRoots?
             .Where(root => !string.IsNullOrWhiteSpace(root))
             .Select(root => root.Trim())
@@ -360,16 +463,18 @@ internal static class GitRepoIndex
             .ToArray()
         ?? [];
 
-    private static string BuildRootKey(IEnumerable<string> roots) =>
+    internal static string BuildRootKey(IEnumerable<string> roots) =>
         string.Join('\n', roots);
 
-    private static void WithLock(Action action)
+    private void WithLock(Action action)
     {
-        lock (Sync)
+        lock (_sync)
         {
             action();
         }
     }
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     private sealed class EmptySet : IReadOnlySet<string>
     {
@@ -399,5 +504,8 @@ internal static class GitRepoIndex
         public bool SetEquals(IEnumerable<string> other) => !other.Any();
     }
 
-    private sealed record RefreshInFlight(string RootKey, Task<IReadOnlyList<GitRepoCandidate>> Task);
+    private sealed record RefreshInFlight(
+        string RootKey,
+        Task<IReadOnlyList<GitRepoCandidate>> Task,
+        CancellationTokenSource LinkedCts);
 }

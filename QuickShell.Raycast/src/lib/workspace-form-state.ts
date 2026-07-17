@@ -1,7 +1,7 @@
 import { createStableId } from "./ids";
 import { suggestionLabelForCommand } from "./project-setup-suggestion";
-import type { LaunchEntry, Workspace } from "./schema";
-import { normalizeWorkspace } from "./validation";
+import type { CompanionAppEntry, LaunchEntry, Workspace } from "./schema";
+import { normalizeCompanionApps, normalizeWorkspace } from "./validation";
 
 export type LaunchFormRow = {
   id: string;
@@ -71,6 +71,27 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
 
   const primary = launches.find((entry) => entry.isEnabled) ?? launches[0];
 
+  // Form still edits the primary companion; keep additional companions from the existing workspace.
+  const existingCompanions = normalizeCompanionApps(initialWorkspace);
+  const additionalCompanions = existingCompanions.slice(1);
+  const primaryPath = state.companionAppPath?.trim() || null;
+  const companionApps: CompanionAppEntry[] = [];
+  if (primaryPath) {
+    companionApps.push({
+      id: existingCompanions[0]?.id || createStableId(),
+      path: primaryPath,
+      arguments: state.companionAppArguments?.trim() || null,
+      openOnLaunch: state.openCompanionAppOnLaunch ?? false,
+      order: 0,
+    });
+  }
+  companionApps.push(
+    ...additionalCompanions.map((entry, index) => ({
+      ...entry,
+      order: companionApps.length + index,
+    })),
+  );
+
   return normalizeWorkspace({
     ...initialWorkspace,
     name: state.name.trim(),
@@ -82,11 +103,12 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
     isPinned: state.isPinned,
     runAsAdmin: state.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
+    companionApps,
     devServerUrl: state.devServerUrl?.trim() || null,
     openDevServerOnLaunch: state.openDevServerOnLaunch ?? false,
     repoUrl: state.repoUrl?.trim() || null,
     openCompanionAppOnLaunch: state.openCompanionAppOnLaunch ?? false,
-    companionAppPath: state.companionAppPath?.trim() || null,
+    companionAppPath: primaryPath,
     companionAppArguments: state.companionAppArguments?.trim() || null,
   });
 }

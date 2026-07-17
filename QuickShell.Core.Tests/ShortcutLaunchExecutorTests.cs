@@ -4,10 +4,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-// Shares a collection with TerminalLauncherTests (see TerminalLauncherOverrideCollection)
-// because both mutate the process-wide static TerminalLauncher.StartProcessOverride
-// seam, which two test classes running in parallel could otherwise clobber.
-[Collection(TerminalLauncherOverrideCollection.Name)]
+[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class ShortcutLaunchExecutorTests : IDisposable
 {
     public ShortcutLaunchExecutorTests()
@@ -18,7 +15,6 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
     public void Dispose()
     {
         LaunchExecutorTestEnvironment.Reset();
-        TerminalLauncher.StartProcessOverride = null;
     }
 
     [Fact]
@@ -38,20 +34,12 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        var captured = new List<ProcessStartInfo>();
-        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
-        try
-        {
-            ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+        var bundle = LaunchTestServices.CreateBundle();
+        bundle.Executor.Launch(shortcut, "wt", "default");
 
-            Assert.Single(captured);
-            Assert.Equal("wt.exe", captured[0].FileName);
-            Assert.Equal(2, CountOccurrences(captured[0].Arguments ?? string.Empty, "; new-tab"));
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        Assert.Single(bundle.ProcessStarter.Started);
+        Assert.Equal("wt.exe", bundle.ProcessStarter.Started[0].FileName);
+        Assert.Equal(2, CountOccurrences(bundle.ProcessStarter.Started[0].Arguments ?? string.Empty, "; new-tab"));
     }
 
     [Fact]
@@ -70,20 +58,12 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        var captured = new List<ProcessStartInfo>();
-        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
-        try
-        {
-            ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+        var bundle = LaunchTestServices.CreateBundle();
+        bundle.Executor.Launch(shortcut, "wt", "default");
 
-            Assert.Equal(2, captured.Count);
-            Assert.Contains(captured, c => c.Verb == "runas");
-            Assert.Contains(captured, c => string.IsNullOrEmpty(c.Verb));
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        Assert.Equal(2, bundle.ProcessStarter.Started.Count);
+        Assert.Contains(bundle.ProcessStarter.Started, c => c.Verb == "runas");
+        Assert.Contains(bundle.ProcessStarter.Started, c => string.IsNullOrEmpty(c.Verb));
     }
 
     [Fact]
@@ -103,22 +83,14 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        var captured = new List<ProcessStartInfo>();
-        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
-        try
-        {
-            ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+        var bundle = LaunchTestServices.CreateBundle();
+        bundle.Executor.Launch(shortcut, "wt", "default");
 
-            Assert.Single(captured);
-            Assert.Equal("wt.exe", captured[0].FileName);
-            var arguments = captured[0].Arguments ?? string.Empty;
-            Assert.Equal(2, CountOccurrences(arguments, "; new-tab"));
-            Assert.Contains("cmd.exe", arguments, StringComparison.OrdinalIgnoreCase);
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        Assert.Single(bundle.ProcessStarter.Started);
+        Assert.Equal("wt.exe", bundle.ProcessStarter.Started[0].FileName);
+        var arguments = bundle.ProcessStarter.Started[0].Arguments ?? string.Empty;
+        Assert.Equal(2, CountOccurrences(arguments, "; new-tab"));
+        Assert.Contains("cmd.exe", arguments, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -137,23 +109,15 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        var captured = new List<ProcessStartInfo>();
-        TerminalLauncher.StartProcessOverride = info => { captured.Add(info); return true; };
-        try
-        {
-            ShortcutLaunchExecutor.Launch(
-                shortcut,
-                "wt",
-                "default",
-                new ShortcutLaunchOptions(SeparateWindowsForMultiLaunch: true));
+        var bundle = LaunchTestServices.CreateBundle();
+        bundle.Executor.Launch(
+            shortcut,
+            "wt",
+            "default",
+            new ShortcutLaunchOptions(SeparateWindowsForMultiLaunch: true));
 
-            Assert.Equal(2, captured.Count);
-            Assert.All(captured, c => Assert.Equal("wt.exe", c.FileName));
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        Assert.Equal(2, bundle.ProcessStarter.Started.Count);
+        Assert.All(bundle.ProcessStarter.Started, c => Assert.Equal("wt.exe", c.FileName));
     }
 
     private static int CountOccurrences(string haystack, string needle) =>
@@ -180,7 +144,8 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        var result = ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+        var bundle = LaunchTestServices.CreateBundle();
+        var result = bundle.Executor.Launch(shortcut, "wt", "default");
 
         Assert.False(result.Dismiss);
         Assert.Contains("folder not found", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
@@ -212,7 +177,8 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        var result = ShortcutLaunchExecutor.Launch(shortcut, "wt", "default");
+        var bundle = LaunchTestServices.CreateBundle();
+        var result = bundle.Executor.Launch(shortcut, "wt", "default");
 
         Assert.False(result.Dismiss);
         Assert.Contains("no enabled launch", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
@@ -240,39 +206,43 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             ],
         };
 
-        TerminalLauncher.StartProcessOverride = _ => true;
-        try
-        {
-            var result = ShortcutLaunchExecutor.Launch(
-                shortcut,
-                TerminalHostIds.WindowsConsoleHost,
-                "cmd");
+        var bundle = LaunchTestServices.CreateBundle();
+        var result = bundle.Executor.Launch(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
 
-            Assert.True(result.Dismiss);
-            Assert.NotNull(result.Diagnostics);
-            Assert.Contains(
-                result.Diagnostics.Entries,
-                entry => entry.Kind == LaunchDiagnosticKind.TerminalLaunched
-                    && entry.Title.Contains("Dev", StringComparison.Ordinal));
-            Assert.Contains(
-                result.Diagnostics.Entries,
-                entry => entry.Kind == LaunchDiagnosticKind.CommandHandoff
-                    && entry.Detail == "echo ready");
-            Assert.Contains(
-                "Command exit status is not monitored.",
-                result.Diagnostics.ToClipboardText(),
-                StringComparison.Ordinal);
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        Assert.True(result.Dismiss);
+        Assert.NotNull(result.Diagnostics);
+        Assert.Contains(
+            result.Diagnostics.Entries,
+            entry => entry.Kind == LaunchDiagnosticKind.TerminalLaunched
+                && entry.Title.Contains("Dev", StringComparison.Ordinal));
+        Assert.Contains(
+            result.Diagnostics.Entries,
+            entry => entry.Kind == LaunchDiagnosticKind.CommandHandoff
+                && entry.Detail == "echo ready");
+        Assert.Contains(
+            "Command exit status is not monitored.",
+            result.Diagnostics.ToClipboardText(),
+            StringComparison.Ordinal);
     }
 }
 
-[Collection(TerminalLauncherOverrideCollection.Name)]
-public sealed class WorkspaceDevServerActionsTests
+[Collection(TerminalLauncherOverrideIsolation.Name)]
+public sealed class WorkspaceDevServerActionsTests : IDisposable
 {
+    public WorkspaceDevServerActionsTests()
+    {
+        LaunchExecutorTestEnvironment.Apply();
+    }
+
+    public void Dispose()
+    {
+        LaunchExecutorTestEnvironment.Reset();
+        WorkspaceDevServerActions.TryOpenOverride = null;
+    }
+
     [Fact]
     public void ShouldOpenOnWorkspaceLaunch_RequiresExplicitOptIn()
     {
@@ -320,20 +290,21 @@ public sealed class WorkspaceDevServerActionsTests
             ],
         };
 
-        TerminalLauncher.StartProcessOverride = _ => true;
-        try
+        var devServerOpened = false;
+        WorkspaceDevServerActions.TryOpenOverride = _ =>
         {
-            var result = ShortcutLaunchExecutor.LaunchEntry(
-                shortcut,
-                shortcut.Launches[0],
-                TerminalHostIds.WindowsConsoleHost,
-                "cmd");
+            devServerOpened = true;
+            return true;
+        };
 
-            Assert.True(result.Dismiss);
-        }
-        finally
-        {
-            TerminalLauncher.StartProcessOverride = null;
-        }
+        var bundle = LaunchTestServices.CreateBundle();
+        var result = bundle.Executor.LaunchEntry(
+            shortcut,
+            shortcut.Launches[0],
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd");
+
+        Assert.True(result.Dismiss, result.StayOpenMessage);
+        Assert.False(devServerOpened);
     }
 }

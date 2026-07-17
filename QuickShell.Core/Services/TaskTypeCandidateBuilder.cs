@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 
 namespace QuickShell.Services;
@@ -40,7 +41,7 @@ internal static class TaskTypeCandidateBuilder
             foreach (var (scriptName, scriptValue) in context.Classification.NodeScripts
                          .Take(CommandSuggestionService.MaxNodeScripts))
             {
-                var command = ProjectAnalysisAccessor.Instance.FormatPackageScriptCommand(context.Directory, scriptName);
+                var command = context.ProjectAnalysis.FormatPackageScriptCommand(context.Directory, scriptName);
                 AddCandidate(
                     candidates,
                     seenCommands,
@@ -255,7 +256,7 @@ internal static class TaskTypeCandidateBuilder
         }
 
         if (context.Classification.Has(ProjectStack.Node)
-            && !IsLikelyFrontendNodeCommand(suggestion.Command, context.Directory)
+            && !IsLikelyFrontendNodeCommand(suggestion.Command, context.Directory, context.ProjectAnalysis)
             && ContainsAny(suggestion.Command, " run dev", " run start", "npm start"))
         {
             score += 28;
@@ -292,7 +293,7 @@ internal static class TaskTypeCandidateBuilder
             score += 42;
         }
 
-        if (IsLikelyFrontendNodeCommand(suggestion.Command, context.Directory))
+        if (IsLikelyFrontendNodeCommand(suggestion.Command, context.Directory, context.ProjectAnalysis))
         {
             score += 18;
         }
@@ -353,7 +354,7 @@ internal static class TaskTypeCandidateBuilder
             return false;
         }
 
-        if (IsLikelyFrontendNodeCommand(suggestion.Command, context.Directory))
+        if (IsLikelyFrontendNodeCommand(suggestion.Command, context.Directory, context.ProjectAnalysis))
         {
             return true;
         }
@@ -361,7 +362,7 @@ internal static class TaskTypeCandidateBuilder
         var label = NormalizeSuggestionLabel(suggestion.Label);
         return label.Equals("Run", StringComparison.OrdinalIgnoreCase)
             && string.Equals(
-                ProjectAnalysisAccessor.Instance.TryInferTaskType(context.Directory),
+                context.ProjectAnalysis.TryInferTaskType(context.Directory),
                 TaskTypeCatalog.Frontend,
                 StringComparison.Ordinal);
     }
@@ -399,9 +400,9 @@ internal static class TaskTypeCandidateBuilder
         };
     }
 
-    private static bool IsLikelyFrontendNodeCommand(string command, string directory) =>
+    private static bool IsLikelyFrontendNodeCommand(string command, string directory, IProjectAnalysisService projectAnalysis) =>
         string.Equals(
-            ProjectAnalysisAccessor.Instance.TryInferTaskType(directory),
+            projectAnalysis.TryInferTaskType(directory),
             TaskTypeCatalog.Frontend,
             StringComparison.Ordinal)
         && ContainsAny(command, "npm ", "pnpm ", "yarn ", "bun ", "deno task");
@@ -476,5 +477,6 @@ internal static class TaskTypeCandidateBuilder
     internal sealed record SuggestionContext(
         string Directory,
         IReadOnlyList<WorkspaceSetupTask> Suggestions,
-        ProjectClassification Classification);
+        ProjectClassification Classification,
+        IProjectAnalysisService ProjectAnalysis);
 }

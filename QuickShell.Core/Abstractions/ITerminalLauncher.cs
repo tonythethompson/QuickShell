@@ -18,4 +18,9 @@ internal interface ITerminalLauncher
         bool runAsStandard = false);
 
     TerminalLaunchAttempt OpenResolved(ResolvedLaunch resolved, bool effectiveElevation);
+
+    IReadOnlyList<TerminalLaunchAttempt> OpenGroup(
+        IReadOnlyList<ResolvedLaunch> group,
+        bool effectiveElevation,
+        string? hostExecutableOverride = null);
 }

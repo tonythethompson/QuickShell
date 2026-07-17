@@ -6,26 +6,22 @@ namespace QuickShell.Commands;
 
 internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
-    private readonly QuickShellSettingsManager _settings;
     private readonly bool _runAsAdmin;
     private readonly bool _runAsStandard;
 
     public OpenTerminalShortcutCommand(
         TerminalShortcut shortcut,
-        QuickShellSettingsManager settings,
+        IQuickShellServices services,
         bool runAsAdmin = false,
         bool runAsStandard = false)
     {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcut.Id;
-        _settings = settings;
         _runAsAdmin = runAsAdmin;
         _runAsStandard = runAsStandard;
-        Id = runAsAdmin
-            ? $"{ShortcutCommandIds.Open(shortcut.Id)}.admin"
-            : runAsStandard
-                ? $"{ShortcutCommandIds.Open(shortcut.Id)}.standard"
-                : ShortcutCommandIds.Open(shortcut.Id);
+        Id = CommandDescriptor.OpenWorkspace(shortcut.Id, runAsAdmin, runAsStandard).Id;
         Name = runAsAdmin
             ? Strings.Menu_RunAsAdmin
             : runAsStandard
@@ -56,21 +52,22 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
-        var result = ShortcutLaunchExecutor.Launch(
+        var settings = _services.Settings;
+        var result = _services.LaunchExecutor.Launch(
             shortcut,
-            _settings.TerminalApplicationId,
-            _settings.DefaultProfileId,
+            settings.TerminalApplicationId,
+            settings.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,
-                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch,
-                SeparateWindowsForMultiLaunch: _settings.SeparateWindowsForMultiLaunch));
+                BlockDirtyBranchSwitch: settings.BlockDirtyBranchSwitch,
+                SeparateWindowsForMultiLaunch: settings.SeparateWindowsForMultiLaunch));
 
         return ToCommandResult(result);
     }
@@ -81,7 +78,7 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 
         if (result.MarkUsed)
         {
-            QuickShellServices.Current.Shortcuts.MarkUsed(_shortcutId);
+            _services.Shortcuts.MarkUsed(_shortcutId);
         }
 
         return result.Dismiss

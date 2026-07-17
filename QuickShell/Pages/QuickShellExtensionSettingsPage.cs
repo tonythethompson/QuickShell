@@ -6,21 +6,21 @@ namespace QuickShell.Pages;
 
 internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
 {
-    public const string PageId = QuickShellDeepLinkIds.Settings;
+    public const string PageId = CommandDescriptor.SettingsId;
 
+    private readonly IQuickShellServices _services;
     private readonly QuickShellSettingsManager _settingsManager;
     private readonly Action _onReload;
     private readonly object _contentSync = new();
 
-    private TerminalDefaultsSettingsForm? _terminalDefaultsForm;
     private BehaviorSettingsForm? _behaviorSettingsForm;
-    private GitLaunchSettingsForm? _gitLaunchForm;
-    private ShortcutTransferSettingsForm? _transferForm;
 
     public QuickShellExtensionSettingsPage(
         QuickShellSettingsManager settingsManager,
+        IQuickShellServices services,
         Action? onReload = null)
     {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _settingsManager = settingsManager;
         _onReload = onReload ?? (() => { });
 
@@ -28,15 +28,13 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         Name = "Settings";
         Title = QuickShellBrand.SettingsTitle;
         Icon = new IconInfo("\uE713");
-        Commands = ShortcutContextCommands.BuildUndoRedoCommands(_onReload);
+        Commands = ShortcutContextCommands.BuildUndoRedoCommands(_services, _onReload);
     }
 
     public void RefreshContent()
     {
         EnsureSettingsForms();
-        _terminalDefaultsForm?.SyncFromSettings();
         _behaviorSettingsForm?.SyncFromSettings();
-        _gitLaunchForm?.SyncFromSettings();
         RaiseItemsChanged();
     }
 
@@ -54,15 +52,13 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         var refreshSettings = (Action)RefreshContent;
         var content = new List<IContent>();
 
-        if (QuickShellServices.Current.Drafts.HasPending)
+        if (_services.Drafts.HasPending)
         {
-            content.Add(new PendingShortcutEditForm(_onReload, refreshSettings));
+            content.Add(new PendingShortcutEditForm(_services, _onReload, refreshSettings));
         }
 
-        content.Add(_terminalDefaultsForm!);
+        // Single card: terminal + Home/Multi/Git + Backup & Transfer (controlled spacing).
         content.Add(_behaviorSettingsForm!);
-        content.Add(_gitLaunchForm!);
-        content.Add(_transferForm!);
         return content.ToArray();
     }
 
@@ -71,10 +67,7 @@ internal sealed partial class QuickShellExtensionSettingsPage : ContentPage
         lock (_contentSync)
         {
             var refreshSettings = (Action)RefreshContent;
-            _terminalDefaultsForm ??= new TerminalDefaultsSettingsForm(_settingsManager, _onReload, refreshSettings);
-            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _onReload, refreshSettings);
-            _gitLaunchForm ??= new GitLaunchSettingsForm(_settingsManager, _onReload, refreshSettings);
-            _transferForm ??= new ShortcutTransferSettingsForm(_onReload, refreshSettings);
+            _behaviorSettingsForm ??= new BehaviorSettingsForm(_settingsManager, _services, _onReload, refreshSettings);
         }
     }
 }

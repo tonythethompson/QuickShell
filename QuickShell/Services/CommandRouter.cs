@@ -9,25 +9,23 @@ namespace QuickShell.Services;
 internal sealed class CommandRouter : ICommandRouter
 {
     private readonly ICommandIdParser _parser;
-    private readonly CommandItemFactoryContext _context;
-    private readonly IReadOnlyDictionary<CommandKind, ICommandItemHandler> _handlers;
+    private readonly Dictionary<CommandKind, ICommandItemHandler> _handlers;
 
     public CommandRouter(
         ICommandIdParser parser,
-        CommandItemFactoryContext context,
         IEnumerable<ICommandItemHandler> handlers)
     {
         ArgumentNullException.ThrowIfNull(parser);
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(handlers);
 
         _parser = parser;
-        _context = context;
         _handlers = handlers.ToDictionary(handler => handler.Kind);
     }
 
-    public bool TryHandle(string id, out ICommandItem? item)
+    public bool TryHandle(string id, QuickShellPageContext context, out ICommandItem? item)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         item = null;
 
         if (!_parser.TryParse(id, out var descriptor))
@@ -40,7 +38,7 @@ internal sealed class CommandRouter : ICommandRouter
             return true;
         }
 
-        item = handler.Create(descriptor, _context);
+        item = handler.Create(descriptor, context);
         return true;
     }
 }

@@ -1,3 +1,4 @@
+using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -10,7 +11,7 @@ internal static class ShortcutFormLaunchSection
         List<LaunchRowDraft> commands;
         if (shortcut is null)
         {
-            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget }];
+            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget, IsEditorPlaceholder = true }];
         }
         else
         {
@@ -24,6 +25,7 @@ internal static class ShortcutFormLaunchSection
                     {
                         Command = shortcut.Command ?? string.Empty,
                         LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
+                        RunAsAdmin = shortcut.RunAsAdmin,
                     },
                 ];
             }
@@ -40,8 +42,7 @@ internal static class ShortcutFormLaunchSection
     public static List<ShortcutFormLaunchInput> ToLaunchInputs(
         IReadOnlyList<LaunchRowDraft> commands,
         string workspaceName,
-        string fallbackLaunchTarget,
-        bool runAsAdmin)
+        string fallbackLaunchTarget)
     {
         var rows = LaunchRowListEditor.TrimForSave(commands);
 
@@ -56,7 +57,7 @@ internal static class ShortcutFormLaunchSection
                     ? fallbackLaunchTarget
                     : TerminalCatalog.SameAsPreviousLaunchTargetId
                 : row.LaunchTarget,
-            RunAsAdmin = runAsAdmin,
+            RunAsAdmin = row.RunAsAdmin,
             IsEnabled = true,
             TaskType = TaskTypeCatalog.Normalize(row.TaskType),
         }).ToList();
@@ -66,14 +67,17 @@ internal static class ShortcutFormLaunchSection
         IReadOnlyList<LaunchRowDraft> commands,
         string terminalChoices) =>
         ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget)).ToList(),
+            commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin)).ToList(),
             terminalChoices);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(
+        IProjectAnalysisService projectAnalysis,
         string? directory,
         string? taskType,
         IEnumerable<string?>? existingCommands = null)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var normalized = TaskTypeCatalog.Normalize(taskType);
         if (normalized == TaskTypeCatalog.None)
         {
@@ -87,7 +91,8 @@ internal static class ShortcutFormLaunchSection
         var suggestion = TaskTypeCommandSuggestion.TrySuggest(
             directory,
             normalized,
-            pickContext);
+            pickContext,
+            projectAnalysis);
         if (string.IsNullOrWhiteSpace(suggestion))
         {
             return null;

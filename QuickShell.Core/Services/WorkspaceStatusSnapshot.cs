@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -73,21 +75,69 @@ internal static class WorkspaceStatusLabels
 internal static class WorkspaceStatusService
 {
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromSeconds(10);
-    private static readonly ConcurrentDictionary<string, CacheEntry> Cache = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Hard cap on unique directory/terminal/profile entries so long sessions cannot grow unbounded.
+    /// </summary>
+    internal const int MaxCacheEntries = 64;
+
+    private static readonly ConcurrentDictionary<string, CacheEntry> Cache = new(StringComparer.Ordinal);
+    private static readonly Queue<string> InsertionOrder = new();
+    private static readonly object EvictionLock = new();
+
+    /// <summary>Test seam for stale-entry pruning without waiting on wall clock.</summary>
+    internal static Func<DateTimeOffset>? UtcNowOverride { get; set; }
+
+    internal static int CacheCountForTests
+    {
+        get
+        {
+            lock (EvictionLock)
+            {
+                return Cache.Count;
+            }
+        }
+    }
+
+    private static DateTimeOffset UtcNow => UtcNowOverride?.Invoke() ?? DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Snapshot for status UI / Run detail rows. Uses volatile checks (ports/processes)
+    /// but skips git in <see cref="Capture"/> defaults below when configured that way.
+    /// Do <b>not</b> call this from typing/search list rebuilds — use
+    /// <see cref="TryGetCached"/> only (CmdPal tags and Run listMode already do).
+    /// </summary>
     public static WorkspaceStatusSnapshot CaptureForList(
         TerminalShortcut shortcut,
         string terminalApplicationId,
-        string defaultProfileId) =>
-        Capture(shortcut, terminalApplicationId, defaultProfileId, forceRefresh: false);
+        string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations) =>
+        Capture(
+            shortcut,
+            terminalApplicationId,
+            defaultProfileId,
+            healthChecker,
+            gitOperations,
+            forceRefresh: false);
 
     public static bool TryGetCached(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations,
         out WorkspaceStatusSnapshot snapshot)
     {
-        var key = BuildCacheKey(shortcut.Directory, terminalApplicationId, defaultProfileId);
+        ArgumentNullException.ThrowIfNull(healthChecker);
+        ArgumentNullException.ThrowIfNull(gitOperations);
+
+        var key = BuildCacheKey(
+            shortcut.Directory,
+            terminalApplicationId,
+            defaultProfileId,
+            healthChecker,
+            gitOperations);
         return TryGetFresh(key, out snapshot);
     }
 
@@ -95,33 +145,46 @@ internal static class WorkspaceStatusService
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations,
         bool forceRefresh = false)
     {
-        var key = BuildCacheKey(shortcut.Directory, terminalApplicationId, defaultProfileId);
+        ArgumentNullException.ThrowIfNull(healthChecker);
+        ArgumentNullException.ThrowIfNull(gitOperations);
+
+        // Scope cache entries to the concrete health/git service instances so two hosts
+        // (or test fakes vs production) never reuse each other's snapshots.
+        var key = BuildCacheKey(
+            shortcut.Directory,
+            terminalApplicationId,
+            defaultProfileId,
+            healthChecker,
+            gitOperations);
         if (!forceRefresh && TryGetFresh(key, out var cached))
         {
             return cached;
         }
 
-        var health = WorkspaceHealthCheck.Check(
+        var health = healthChecker.Check(
             shortcut,
             terminalApplicationId,
             defaultProfileId,
             includeVolatile: true,
             includeGit: false);
-        var git = WorkspaceGitOperations.TryGetStatus(shortcut.Directory, out var current)
+        var git = gitOperations.TryGetStatus(shortcut.Directory, out var current)
             ? current
             : null;
         var target = git is null
             ? null
-            : WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory);
+            : WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, gitOperations);
         var snapshot = new WorkspaceStatusSnapshot(
             health,
             git,
             target,
-            DateTimeOffset.UtcNow,
+            UtcNow,
             IsStale: false);
         Cache[key] = new CacheEntry(snapshot);
+        TrackInsertion(key);
         return snapshot;
     }
 
@@ -137,24 +200,57 @@ internal static class WorkspaceStatusService
             : directory.Trim();
         var prefix = normalized + "\u001F";
 
+        List<string>? removed = null;
         foreach (var key in Cache.Keys.ToArray())
         {
             if (string.Equals(key, normalized, StringComparison.OrdinalIgnoreCase)
                 || key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
-                Cache.TryRemove(key, out _);
+                if (Cache.TryRemove(key, out _))
+                {
+                    removed ??= [];
+                    removed.Add(key);
+                }
+            }
+        }
+
+        if (removed is null)
+        {
+            return;
+        }
+
+        lock (EvictionLock)
+        {
+            foreach (var key in removed)
+            {
+                RemoveFromQueue(key);
             }
         }
     }
 
-    internal static void ResetCacheForTests() => Cache.Clear();
+    internal static void ResetCacheForTests()
+    {
+        lock (EvictionLock)
+        {
+            Cache.Clear();
+            InsertionOrder.Clear();
+        }
+
+        UtcNowOverride = null;
+    }
 
     private static bool TryGetFresh(string key, out WorkspaceStatusSnapshot snapshot)
     {
         snapshot = null!;
-        if (!Cache.TryGetValue(key, out var cached)
-            || DateTimeOffset.UtcNow - cached.Snapshot.RefreshedAt > CacheLifetime)
+        if (!Cache.TryGetValue(key, out var cached))
         {
+            return false;
+        }
+
+        if (UtcNow - cached.Snapshot.RefreshedAt > CacheLifetime)
+        {
+            // Drop expired entries immediately so they do not linger until the next insert prune.
+            Cache.TryRemove(key, out _);
             return false;
         }
 
@@ -162,15 +258,105 @@ internal static class WorkspaceStatusService
         return true;
     }
 
+    private static void TrackInsertion(string key)
+    {
+        lock (EvictionLock)
+        {
+            RemoveFromQueue(key);
+            InsertionOrder.Enqueue(key);
+            PruneStaleAndOverCapacity();
+        }
+    }
+
+    /// <summary>
+    /// Opportunistic stale trim from the front of the insertion queue, then FIFO
+    /// eviction until under <see cref="MaxCacheEntries"/>.
+    /// </summary>
+    private static void PruneStaleAndOverCapacity()
+    {
+        var now = UtcNow;
+
+        while (InsertionOrder.TryPeek(out var oldest))
+        {
+            if (!Cache.TryGetValue(oldest, out var entry))
+            {
+                // Ghost key (removed by Invalidate / TryGetFresh) — drop from order tracking.
+                InsertionOrder.Dequeue();
+                continue;
+            }
+
+            if (now - entry.Snapshot.RefreshedAt > CacheLifetime)
+            {
+                InsertionOrder.Dequeue();
+                Cache.TryRemove(oldest, out _);
+                continue;
+            }
+
+            // Front is still fresh; later entries are newer.
+            break;
+        }
+
+        while (Cache.Count > MaxCacheEntries && InsertionOrder.TryDequeue(out var victim))
+        {
+            Cache.TryRemove(victim, out _);
+        }
+
+        // Safety: if the order queue lagged behind the dictionary, trim arbitrary extras.
+        if (Cache.Count <= MaxCacheEntries)
+        {
+            return;
+        }
+
+        foreach (var orphan in Cache.Keys.ToArray())
+        {
+            if (Cache.Count <= MaxCacheEntries)
+            {
+                break;
+            }
+
+            Cache.TryRemove(orphan, out _);
+        }
+    }
+
+    private static void RemoveFromQueue(string key)
+    {
+        if (InsertionOrder.Count == 0)
+        {
+            return;
+        }
+
+        var retained = new Queue<string>(InsertionOrder.Count);
+        while (InsertionOrder.TryDequeue(out var entry))
+        {
+            if (!string.Equals(entry, key, StringComparison.Ordinal))
+            {
+                retained.Enqueue(entry);
+            }
+        }
+
+        while (retained.TryDequeue(out var entry))
+        {
+            InsertionOrder.Enqueue(entry);
+        }
+    }
+
     private static string BuildCacheKey(
         string directory,
         string terminalApplicationId,
-        string defaultProfileId)
+        string defaultProfileId,
+        IWorkspaceHealthChecker healthChecker,
+        IWorkspaceGitOperations gitOperations)
     {
         var normalized = WorkspacePath.TryNormalizeLexical(directory, out var path, out _)
             ? path
             : directory.Trim();
-        return string.Join("\u001F", normalized, terminalApplicationId, defaultProfileId);
+        return string.Join(
+            "\u001F",
+            normalized,
+            terminalApplicationId,
+            defaultProfileId,
+            RuntimeHelpers.GetHashCode(healthChecker).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            RuntimeHelpers.GetHashCode(gitOperations).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private sealed record CacheEntry(WorkspaceStatusSnapshot Snapshot);

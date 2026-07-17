@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using QuickShell.Abstractions.Classification;
+
 namespace QuickShell.Services;
 
 internal static class TaskTypeCatalog
@@ -11,6 +13,7 @@ internal static class TaskTypeCatalog
     public const string Logs = "logs";
     public const string Test = "test";
     public const string Build = "build";
+    public const string Agent = "agent";
 
     public const string Database = Services;
 
@@ -22,18 +25,25 @@ internal static class TaskTypeCatalog
         (Logs, "Logs"),
         (Test, "Test"),
         (Build, "Build"),
+        (Agent, "Agent"),
     ];
 
     public static IReadOnlyList<(string Id, string Title)> GetChoices() => Definitions;
 
-    public static string BuildFormChoicesJson(string? directory = null, TaskTypePickContext? pickContext = null) =>
-        BuildPickerChoicesJson(directory, includePlaceholder: false, pickContext);
+    public static string BuildFormChoicesJson(
+        IProjectAnalysisService projectAnalysis,
+        string? directory = null,
+        TaskTypePickContext? pickContext = null) =>
+        BuildPickerChoicesJson(projectAnalysis, directory, includePlaceholder: false, pickContext);
 
     public static string BuildPickerChoicesJson(
+        IProjectAnalysisService projectAnalysis,
         string? directory = null,
         bool includePlaceholder = true,
         TaskTypePickContext? pickContext = null)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         pickContext ??= TaskTypePickContext.Empty;
         var choices = new List<object>();
         if (includePlaceholder)
@@ -48,7 +58,7 @@ internal static class TaskTypeCatalog
 
         foreach (var definition in Definitions)
         {
-            if (!TaskTypeCommandSuggestion.IsAvailable(directory, definition.Id, pickContext))
+            if (!TaskTypeCommandSuggestion.IsAvailable(directory, definition.Id, pickContext, projectAnalysis))
             {
                 continue;
             }
@@ -57,7 +67,7 @@ internal static class TaskTypeCatalog
             {
                 title = definition.Title,
                 value = definition.Id,
-                tooltip = TaskTypeCommandSuggestion.GetChoiceTooltip(directory, definition.Id, pickContext),
+                tooltip = TaskTypeCommandSuggestion.GetChoiceTooltip(directory, definition.Id, pickContext, projectAnalysis),
             });
         }
 
@@ -73,6 +83,7 @@ internal static class TaskTypeCatalog
             Logs => Logs,
             Test or "tests" => Test,
             Build => Build,
+            Agent or "ai" or "agents" => Agent,
             _ => None,
         };
 
@@ -85,6 +96,7 @@ internal static class TaskTypeCatalog
             Logs => "Logs",
             Test => "Test",
             Build => "Build",
+            Agent => "Agent",
             _ => string.Empty,
         };
 
@@ -97,6 +109,7 @@ internal static class TaskTypeCatalog
             Logs => ShortcutGlyphs.TaskLogs,
             Test => ShortcutGlyphs.TaskTest,
             Build => ShortcutGlyphs.TaskBuild,
+            Agent => ShortcutGlyphs.TaskAgent,
             _ => null,
         };
 }

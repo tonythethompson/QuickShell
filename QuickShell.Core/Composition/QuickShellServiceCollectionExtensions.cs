@@ -4,6 +4,7 @@ using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Classification.Classifiers;
 using QuickShell.Classification.Detectors;
+using QuickShell.Classification.Suggestions;
 using QuickShell.Services;
 
 namespace QuickShell.Composition;
@@ -22,12 +23,17 @@ internal static class QuickShellServiceCollectionExtensions
     /// Optional override for the shortcuts store directory (tests).
     /// When null, uses the default <c>%LOCALAPPDATA%\QuickShell</c> path.
     /// </param>
+    /// <param name="lifetime">
+    /// Optional shared process lifetime. When null, a default <see cref="QuickShellLifetime"/> is registered.
+    /// </param>
     public static IServiceCollection AddQuickShellCore(
         this IServiceCollection services,
-        string? configDirectory = null)
+        string? configDirectory = null,
+        IQuickShellLifetime? lifetime = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<IQuickShellLifetime>(_ => lifetime ?? new QuickShellLifetime());
         services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
         services.AddSingleton<IShortcutRepository>(sp =>
             new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));
@@ -37,12 +43,20 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
 
-        services.AddSingleton<ITerminalLauncher, TerminalLauncherService>();
-        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolverService>();
-        services.AddSingleton<IWorkspaceMapper, WorkspaceMapperService>();
-        services.AddSingleton<IGitRepoIndex, GitRepoIndexService>();
-        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperationsService>();
-        services.AddTransient<IWorkspaceHealthChecker, WorkspaceHealthCheckerService>();
+        services.AddSingleton<IProcessStarter, ProcessStarter>();
+        services.AddSingleton<QuickShellSettingsReader>(_ => new QuickShellSettingsReader());
+        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolver>();
+        services.AddSingleton<ITerminalLauncher, TerminalLauncher>();
+        services.AddSingleton<IWorkspaceEnvironmentProbe, WorkspaceEnvironmentProbe>();
+        services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperations>();
+        services.AddSingleton<IWorkspaceHealthChecker, WorkspaceHealthCheck>();
+        services.AddSingleton<WorkspaceGitLaunchGate>();
+        services.AddSingleton<ICompanionAppLauncher, CompanionAppLauncher>();
+        services.AddSingleton<IShortcutLaunchExecutor, ShortcutLaunchExecutor>();
+        services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
+        services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
+        services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
+        services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();
@@ -60,6 +74,8 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IProjectClassifier, ElixirProjectClassifier>();
         services.AddSingleton<ICompanionAppDetector, CompanionAppDetector>();
         services.AddSingleton<IDevServerDetector, DevServerDetector>();
+        services.AddSingleton<ITaskSuggestionProvider, WorkspaceSetupTaskSuggestionProvider>();
+        services.AddSingleton<ITaskSuggestionProvider, DockerComposeTaskSuggestionProvider>();
         services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
 
         return services;

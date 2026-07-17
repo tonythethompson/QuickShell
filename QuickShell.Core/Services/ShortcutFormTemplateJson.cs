@@ -1,3 +1,6 @@
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+
 namespace QuickShell.Services;
 
 internal static class ShortcutFormTemplateJson
@@ -28,18 +31,27 @@ internal static class ShortcutFormTemplateJson
 
         public string CompanionAppArguments { get; init; } = string.Empty;
 
+        public IReadOnlyList<CompanionAppFormRow> Companions { get; init; } = [CompanionAppFormRow.Empty()];
+
         public bool ShowRestoredDraftNote { get; init; }
 
-        public bool RunAsAdmin { get; init; }
-
         public bool ExpandSuggestionPills { get; init; }
+
+        /// <summary>
+        /// When true, pill data is omitted so the form can paint before project analysis finishes.
+        /// </summary>
+        public bool SuggestionScanning { get; init; }
+
+        /// <summary>Non-empty when the last Save failed validation; shown as an attention banner.</summary>
+        public string SaveError { get; init; } = string.Empty;
     }
 
     public static string BuildTemplate(
         string terminalChoices,
         string companionChoices,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)> commands,
-        string displayName = DisplayNameDefault)
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
+        string displayName = DisplayNameDefault,
+        int companionCount = 1)
     {
         var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices);
         var tipDirectory = Escape(WorkspaceFormTooltips.Directory);
@@ -48,13 +60,14 @@ internal static class ShortcutFormTemplateJson
         var tipDevServerUrl = Escape(WorkspaceFormTooltips.DevServerUrl);
         var tipDevServerOnLaunch = Escape(WorkspaceFormTooltips.DevServerOnLaunch);
         var tipRepoUrl = Escape(WorkspaceFormTooltips.RepoUrl);
-        var tipCompanionPreset = Escape(WorkspaceFormTooltips.CompanionAppPreset);
-        var tipRunAsAdmin = Escape(WorkspaceFormTooltips.RunAsAdmin);
-        var browseCompanionTitle = Escape(CompanionAppCatalog.BrowseActionTitle);
         var suggestionPillsBlock = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
         var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
             commandRows,
             suggestionPillsBlock);
+        var companionRows = Enumerable.Range(0, Math.Max(1, companionCount))
+            .Select(_ => CompanionAppFormRow.Empty())
+            .ToList();
+        var companionsSection = CompanionAppFormJson.BuildSection(companionRows, companionChoices);
 
         return $$"""
         {
@@ -78,32 +91,64 @@ internal static class ShortcutFormTemplateJson
             },
             {
               "type": "Container",
+              "spacing": "Small",
+              "style": "attention",
+              "$when": "${ShowSaveError}",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "Could not save",
+                  "weight": "Bolder",
+                  "color": "Attention",
+                  "wrap": true,
+                  "spacing": "None"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${SaveError}",
+                  "color": "Attention",
+                  "wrap": true,
+                  "spacing": "Small"
+                }
+              ]
+            },
+            {
+              "type": "Container",
               "spacing": "Medium",
               "items": [
                 {{AdaptiveCardFormJson.FieldLabel("Folder path")}},
                 {{AdaptiveCardFormJson.FieldHelp(WorkspaceFormTooltips.DirectoryExample)}},
-                {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.InputWithTrailingActionsRow("""
                 {
-                  "type": "Input.Text",
-                  "id": "Directory",
-                  "isRequired": true,
-                  "errorMessage": "Folder path is required",
-                  "tooltip": "{{tipDirectory}}",
-                  "value": "${Directory}"
+                  "type": "Container",
+                  "spacing": "Small",
+                  "items": [
+                    {{AdaptiveCardFormJson.InputWithTrailingActionsRow("""
+                    {
+                      "type": "Input.Text",
+                      "id": "Directory",
+                      "isRequired": true,
+                      "errorMessage": "Folder path is required",
+                      "tooltip": "{{tipDirectory}}",
+                      "spacing": "None",
+                      "value": "${Directory}"
+                    }
+                    """,
+                    $$"""
+                    {{AdaptiveCardFormJson.IconSubmitAction(
+                        FormActionGlyphs.BrowseLabel,
+                        FormActionGlyphs.BrowseFolderTooltip,
+                        "browse",
+                        "none")}},
+                    {{AdaptiveCardFormJson.IconSubmitAction(
+                        FormActionGlyphs.PasteLabel,
+                        FormActionGlyphs.PastePathTooltip,
+                        "paste",
+                        "none")}}
+                    """,
+                    inputVerticalAlignment: "Center",
+                    actionVerticalAlignment: "Top")}}
+                  ]
                 }
-                """,
-                $$"""
-                {{AdaptiveCardFormJson.IconSubmitAction(
-                    FormActionGlyphs.BrowseLabel,
-                    FormActionGlyphs.BrowseFolderTooltip,
-                    "browse",
-                    "none")}},
-                {{AdaptiveCardFormJson.IconSubmitAction(
-                    FormActionGlyphs.PasteLabel,
-                    FormActionGlyphs.PastePathTooltip,
-                    "paste",
-                    "none")}}
-                """))}}
               ]
             },
             {{AdaptiveCardFormJson.PairedFieldRow(
@@ -124,7 +169,9 @@ internal static class ShortcutFormTemplateJson
                   "tooltip": "{{tipHomeKeyword}}",
                   "value": "${Abbreviation}"
                 }
-                """)}},
+                """,
+                leftWeight: "3",
+                rightWeight: "2")}},
             {{AdaptiveCardFormJson.DevServerFieldRow(
                 """
                 {
@@ -154,85 +201,8 @@ internal static class ShortcutFormTemplateJson
               "value": "${RepoUrl}"
             }
             """)}},
-            {{AdaptiveCardFormJson.FieldWithActionRow(
-                "App preset",
-                $$"""
-                {
-                  "type": "Input.ChoiceSet",
-                  "id": "CompanionAppPreset",
-                  "style": "compact",
-                  "tooltip": "{{tipCompanionPreset}}",
-                  "value": "${CompanionAppPreset}",
-                  "choices": {{companionChoices}}
-                }
-                """,
-                $$"""
-                {
-                  "type": "Action.Submit",
-                  "title": "{{browseCompanionTitle}}",
-                  "tooltip": "Pick any installed application.",
-                  "data": { "action": "browseCompanionApp" },
-                  "associatedInputs": "auto"
-                }
-                """)}},
-            {
-              "type": "TextBlock",
-              "$when": "${ShowCompanionBrowseRequired}",
-              "text": "${CompanionBrowseRequiredMessage}",
-              "color": "Attention",
-              "wrap": true,
-              "spacing": "Small"
-            },
-            {
-              "type": "Container",
-              "$when": "${ShowCompanionExecutablePath}",
-              "spacing": "Small",
-              "items": [
-                {{AdaptiveCardFormJson.FieldLabel("Executable")}},
-                {
-                  "type": "TextBlock",
-                  "text": "${CompanionAppPathDisplay}",
-                  "wrap": true
-                }
-              ]
-            },
-            {
-              "type": "TextBlock",
-              "$when": "${ShowCompanionPathWarning}",
-              "text": "${CompanionPathWarning}",
-              "color": "Attention",
-              "wrap": true,
-              "spacing": "Small"
-            },
-            {
-              "type": "Container",
-              "$when": "${ShowCompanionArguments}",
-              "spacing": "Medium",
-              "items": [
-                {{AdaptiveCardFormJson.FieldLabel(CompanionAppArgumentValidation.FieldLabel)}},
-                {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.NarrowCompanionArgumentsInput())}},
-                {
-                  "type": "TextBlock",
-                  "$when": "${ShowCompanionArgumentWarning}",
-                  "text": "${CompanionArgumentWarning}",
-                  "color": "Attention",
-                  "wrap": true,
-                  "spacing": "Small"
-                }
-              ]
-            },
-            {{commandsSection}},
-            {{AdaptiveCardFormJson.FieldGroup("Administrator", help: null, """
-            {
-              "type": "Input.Toggle",
-              "id": "RunAsAdmin",
-              "title": "Always run as administrator",
-              "tooltip": "{{tipRunAsAdmin}}",
-              "value": "${RunAsAdmin}",
-              "valueOn": "true",
-              "valueOff": "false"
-            }
-            """)}}
+            {{companionsSection}},
+            {{commandsSection}}
           ],
           "actions": [
             {
@@ -254,8 +224,11 @@ internal static class ShortcutFormTemplateJson
 
     public static string BuildDataJson(
         DataPayload draft,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)>? commands = null)
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache,
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)>? commands = null)
     {
+        ArgumentNullException.ThrowIfNull(classificationCache);
         commands ??= [];
         var commandFields = string.Join(
             ",\n",
@@ -264,11 +237,25 @@ internal static class ShortcutFormTemplateJson
                 $"\"LaunchCommand_{index}\": \"{Escape(row.Command)}\"",
                 $"\"LaunchType_{index}\": \"{Escape(TaskTypeCatalog.Normalize(row.TaskType))}\"",
                 $"\"LaunchTarget_{index}\": \"{Escape(row.LaunchTarget)}\"",
+                $"\"LaunchRunAsAdmin_{index}\": \"{(row.RunAsAdmin ? "true" : "false")}\"",
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
-        var pillFields = BuildPillDataFields(draft, commands);
+        var pillFields = BuildPillDataFields(draft, commands, projectAnalysis, classificationCache);
         var pillSection = pillFields.Length > 0 ? ",\n" + pillFields : string.Empty;
+        var companions = draft.Companions is { Count: > 0 }
+            ? draft.Companions
+            :
+            [
+                new CompanionAppFormRow
+                {
+                    Preset = draft.CompanionAppPreset,
+                    Path = draft.CompanionAppPath,
+                    Arguments = draft.CompanionAppArguments,
+                },
+            ];
+        var companionFields = string.Join(",\n", CompanionAppFormJson.BuildDataFields(companions, draft.Directory));
+        var companionSection = companionFields.Length > 0 ? ",\n" + companionFields : string.Empty;
 
         return $$"""
         {
@@ -280,28 +267,18 @@ internal static class ShortcutFormTemplateJson
           "DevServerUrl": "{{Escape(draft.DevServerUrl)}}",
           "OpenDevServerOnLaunch": "{{(draft.OpenDevServerOnLaunch ? "true" : "false")}}",
           "RepoUrl": "{{Escape(draft.RepoUrl)}}",
-          "CompanionAppPreset": "{{Escape(CompanionAppCatalog.ToFormPresetValue(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
-          "CompanionAppPathDisplay": "{{Escape(draft.CompanionAppPath)}}",
-          "ShowCompanionBrowseRequired": {{(CompanionAppCatalog.ShouldShowBrowseRequiredPrompt(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
-          "CompanionBrowseRequiredMessage": "{{Escape(CompanionAppCatalog.BrowseRequiredMessage)}}",
-          "ShowCompanionExecutablePath": {{(CompanionAppCatalog.ShouldShowExecutablePath(draft.CompanionAppPath) ? "true" : "false")}},
-          "ShowCompanionPathWarning": {{(CompanionAppCatalog.ShouldShowPathWarning(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
-          "CompanionPathWarning": "{{Escape(CompanionAppCatalog.BuildPathWarning(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
-          "ShowCompanionArguments": {{(CompanionAppArgumentValidation.ShouldShowArgumentsField(draft.CompanionAppPreset, draft.CompanionAppPath) ? "true" : "false")}},
-          "CompanionAppArguments": "{{Escape(draft.CompanionAppArguments)}}",
-          "CompanionArgumentPlaceholder": "{{Escape(CompanionAppArgumentValidation.GetArgumentPlaceholder(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
-          "CompanionArgumentTooltip": "{{Escape(CompanionAppArgumentValidation.GetArgumentTooltip(draft.CompanionAppPreset, draft.CompanionAppPath))}}",
-          "ShowCompanionArgumentWarning": {{(CompanionAppArgumentValidation.BuildArgumentWarning(draft.CompanionAppPreset, draft.CompanionAppPath, draft.CompanionAppArguments, draft.Directory) is not null ? "true" : "false")}},
-          "CompanionArgumentWarning": "{{Escape(CompanionAppArgumentValidation.BuildArgumentWarning(draft.CompanionAppPreset, draft.CompanionAppPath, draft.CompanionAppArguments, draft.Directory) ?? string.Empty)}}",
-          "RunAsAdmin": "{{(draft.RunAsAdmin ? "true" : "false")}}",
-          "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}}{{commandSection}}{{pillSection}}
+          "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}},
+          "ShowSaveError": {{(!string.IsNullOrWhiteSpace(draft.SaveError) ? "true" : "false")}},
+          "SaveError": "{{Escape(draft.SaveError)}}"{{companionSection}}{{commandSection}}{{pillSection}}
         }
         """;
     }
 
     private static string BuildPillDataFields(
         DataPayload draft,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget)> commands)
+        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
+        IProjectAnalysisService projectAnalysis,
+        IProjectClassificationCache classificationCache)
     {
         var launchRows = commands
             .Select(row => new LaunchRowDraft
@@ -309,6 +286,7 @@ internal static class ShortcutFormTemplateJson
                 Command = row.Command,
                 TaskType = row.TaskType,
                 LaunchTarget = row.LaunchTarget,
+                RunAsAdmin = row.RunAsAdmin,
             })
             .ToList();
 
@@ -316,7 +294,10 @@ internal static class ShortcutFormTemplateJson
         foreach (var entry in SuggestionPillPresentation.BuildDataFields(
                      draft.Directory,
                      launchRows.Select(row => row.Command),
-                     draft.ExpandSuggestionPills))
+                     projectAnalysis,
+                     classificationCache,
+                     draft.ExpandSuggestionPills,
+                     isScanningSuggestions: draft.SuggestionScanning))
         {
             fields.Add(FormatPillDataField(entry.Key, entry.Value));
         }

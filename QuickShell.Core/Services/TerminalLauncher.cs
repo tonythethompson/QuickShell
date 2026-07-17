@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Diagnostics;
 
@@ -13,11 +14,17 @@ internal sealed record TerminalLaunchAttempt(
     bool RunAsAdmin,
     string? FallbackReason);
 
-internal static class TerminalLauncher
+internal sealed class TerminalLauncher : ITerminalLauncher
 {
-    internal static Func<ProcessStartInfo, bool>? StartProcessOverride { get; set; }
+    private readonly IProcessStarter _processStarter;
 
-    public static ResolvedLaunch Resolve(
+    public TerminalLauncher(IProcessStarter processStarter)
+    {
+        ArgumentNullException.ThrowIfNull(processStarter);
+        _processStarter = processStarter;
+    }
+
+    public ResolvedLaunch Resolve(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId)
@@ -55,7 +62,7 @@ internal static class TerminalLauncher
         return new ResolvedLaunch(launchShortcut, target);
     }
 
-    public static TerminalLaunchAttempt Open(
+    public TerminalLaunchAttempt Open(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
@@ -67,7 +74,7 @@ internal static class TerminalLauncher
         return OpenResolved(resolved, effectiveElevation);
     }
 
-    public static TerminalLaunchAttempt OpenResolved(ResolvedLaunch resolved, bool effectiveElevation)
+    public TerminalLaunchAttempt OpenResolved(ResolvedLaunch resolved, bool effectiveElevation)
     {
         var startInfo = BuildStartInfo(resolved.Shortcut, resolved.Target);
 
@@ -84,7 +91,7 @@ internal static class TerminalLauncher
     /// Launches multiple entries as tabs of a single Windows Terminal window/process.
     /// Elevation applies to the whole window, so callers must group entries by matching elevation first.
     /// </summary>
-    public static IReadOnlyList<TerminalLaunchAttempt> OpenGroup(
+    public IReadOnlyList<TerminalLaunchAttempt> OpenGroup(
         IReadOnlyList<ResolvedLaunch> group,
         bool effectiveElevation,
         string? hostExecutableOverride = null)
@@ -153,16 +160,9 @@ internal static class TerminalLauncher
             _ => false,
         };
 
-    private static void StartProcess(ProcessStartInfo startInfo)
+    private void StartProcess(ProcessStartInfo startInfo)
     {
-        if (StartProcessOverride is { } startOverride)
-        {
-            if (!startOverride(startInfo))
-            {
-                throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
-            }
-        }
-        else if (Process.Start(startInfo) is null)
+        if (!_processStarter.TryStart(startInfo))
         {
             throw new InvalidOperationException($"Failed to start {startInfo.FileName}.");
         }

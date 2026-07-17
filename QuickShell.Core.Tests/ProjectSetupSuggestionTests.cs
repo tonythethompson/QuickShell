@@ -1,3 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
+using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -7,11 +11,20 @@ namespace QuickShell.Core.Tests;
 public sealed class ProjectSetupSuggestionTests : IDisposable
 {
     private readonly string _root;
+    private readonly ServiceProvider _provider;
+    private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly GitRepoIndex _gitRepoIndex;
 
     public ProjectSetupSuggestionTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-project-setup-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
+        _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
+        _gitRepoIndex = new GitRepoIndex(
+            _projectAnalysis,
+            _provider.GetRequiredService<IQuickShellLifetime>(),
+            new SyncExtensionThreadScheduler());
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
     }
@@ -45,7 +58,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         }
         """);
 
-        var classification = ProjectClassifier.Classify(_root);
+        var classification = _projectAnalysis.Classify(_root);
 
         Assert.True(classification.Has(ProjectStack.Node));
         Assert.True(classification.Has(ProjectStack.Docker));
@@ -72,7 +85,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         """);
         Write("pnpm-lock.yaml", string.Empty);
 
-        var suggestions = WorkspaceSetupSuggestion.Build(_root);
+        var suggestions = WorkspaceSetupSuggestion.Build(_root, _projectAnalysis);
 
         Assert.Collection(
             suggestions.Take(3),
@@ -111,7 +124,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         {
             Name = "sample",
             Directory = _root,
-        });
+        }, _projectAnalysis);
 
         Assert.Equal("npm run dev", seed.Command);
         Assert.Collection(
@@ -139,7 +152,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         </Project>
         """);
 
-        var suggestions = WorkspaceSetupSuggestion.Build(_root);
+        var suggestions = WorkspaceSetupSuggestion.Build(_root, _projectAnalysis);
 
         Assert.Contains(suggestions, task => task.Command == "dotnet build");
         Assert.Contains(suggestions, task => task.Command == "dotnet test");
@@ -153,9 +166,43 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         </Project>
         """);
 
-        suggestions = WorkspaceSetupSuggestion.Build(_root);
+        suggestions = WorkspaceSetupSuggestion.Build(_root, _projectAnalysis);
 
         Assert.DoesNotContain(suggestions, task => task.Command.StartsWith("dotnet run", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Build_FileMarkerScansAreLineLocalAndDoNotBufferWholeFiles()
+    {
+        Write("App.csproj", """
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Exe</OutputType>
+          </PropertyGroup>
+        </Project>
+        """);
+        Write("SplitMarker.csproj", """
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Ex
+            e</OutputType>
+          </PropertyGroup>
+        </Project>
+        """);
+        Write("mix.exs", """
+        defmodule Sample.MixProject do
+          # phoenix
+        end
+        """);
+
+        var suggestions = WorkspaceSetupSuggestion.Build(_root, _projectAnalysis);
+
+        Assert.Contains(suggestions, task => task.Command == "dotnet run --project App.csproj");
+        Assert.Contains(suggestions, task => task.Command == "mix phx.server");
+        Assert.DoesNotContain(suggestions, task => task.Command == "dotnet run --project SplitMarker.csproj");
+
+        Assert.DoesNotContain("File.ReadAllText", ReadCoreSource("Classification", "ProjectClassificationBuilder.cs"));
+        Assert.DoesNotContain("File.ReadAllText", ReadCoreSource("Services", "WorkspaceSetupSuggestion.cs"));
     }
 
     [Fact]
@@ -182,7 +229,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         """);
         Write("docker-compose.yml", "services: {}\n");
 
-        var suggestions = WorkspaceSetupSuggestion.Build(_root);
+        var suggestions = WorkspaceSetupSuggestion.Build(_root, _projectAnalysis);
 
         Assert.Contains(suggestions, task => task.Command == "make");
         Assert.Contains(suggestions, task => task.Command == "make dev");
@@ -215,7 +262,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         }
         """);
 
-        var suggestions = WorkspaceSetupSuggestion.Build(_root);
+        var suggestions = WorkspaceSetupSuggestion.Build(_root, _projectAnalysis);
 
         Assert.Contains(suggestions, task => task.Label == "VS Code: format" && task.Command == "dotnet format Sample.sln");
         Assert.DoesNotContain(suggestions, task => task.Label.Contains("compound", StringComparison.OrdinalIgnoreCase));
@@ -227,18 +274,18 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         var repoPath = Path.Combine(_root, "api");
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
         File.WriteAllText(Path.Combine(repoPath, "go.mod"), "module example.com/api\n");
-        GitRepoIndex.Invalidate();
+        _gitRepoIndex.Invalidate();
 
-        var discovered = GitRepoDiscovery.Discover([_root]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
 
         var candidate = Assert.Single(discovered);
         Assert.True(candidate.Classification.Has(ProjectStack.Go));
         Assert.Contains("Go", DiscoverGitRepoListItems.BuildSubtitleForNew(candidate), StringComparison.Ordinal);
 
-        _ = GitRepoIndex.Search("go", [_root], savedDirectories: null);
-        GitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
+        _ = _gitRepoIndex.Search("go", [_root], savedDirectories: null);
+        _gitRepoIndex.WaitForPopulationForTests(_root, TimeSpan.FromSeconds(10));
 
-        var matches = GitRepoIndex.Search("go", [_root], savedDirectories: null);
+        var matches = _gitRepoIndex.Search("go", [_root], savedDirectories: null);
 
         Assert.Single(matches);
         Assert.Equal("api", matches[0].Name);
@@ -256,9 +303,22 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         File.WriteAllText(path, contents);
     }
 
+    private static string ReadCoreSource(params string[] relativePath)
+    {
+        var repositoryRoot = Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "../../../../../"));
+        var sourcePath = Path.Join(repositoryRoot, "QuickShell.Core");
+        foreach (var segment in relativePath)
+        {
+            sourcePath = Path.Join(sourcePath, segment);
+        }
+
+        return File.ReadAllText(sourcePath);
+    }
+
     public void Dispose()
     {
-        GitRepoIndex.Invalidate();
+        _gitRepoIndex.Dispose();
+        _provider.Dispose();
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try

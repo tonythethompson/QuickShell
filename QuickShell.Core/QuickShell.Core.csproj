@@ -7,10 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>x64;ARM64</Platforms>
     <PlatformTarget>$(Platform)</PlatformTarget>
-    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Services\TerminalListIconCache.cs" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 

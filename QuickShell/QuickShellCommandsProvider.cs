@@ -1,6 +1,8 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Commands;
@@ -13,66 +15,69 @@ using System.Threading.Tasks;
 
 namespace QuickShell;
 
-public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
+public sealed partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 {
 #if CMDPAL_HOVER_ACTIONS
     public override HoverActionsMode DefaultHoverActionsMode => HoverActionsMode.Explicit;
 #endif
     private readonly ServiceProvider _services;
+    private readonly IQuickShellLifetime _lifetime;
     private readonly QuickShellSettingsManager _settingsManager;
+    private readonly QuickShellPageContext _context;
     private readonly QuickShellPage _page;
-    private readonly CreateShortcutCommand _createShortcutCommand;
-    private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly ICommandRouter _commandRouter;
     private readonly Lazy<QuickShellFallbackPage> _fallbackPage;
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
     private readonly EventHandler _settingsChangedHandler;
+    private volatile bool _disposed;
 
     public QuickShellCommandsProvider()
     {
         // #region agent log
-        AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
+        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
         // #endregion
 
-        GitRepoIndex.ExtensionSynchronizationContext = SynchronizationContext.Current;
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
             // #endregion
-            _settingsManager = new QuickShellSettingsManager(ReloadPages);
+            // Settings + create/edit forms leave via SubmitForm — invalidate only (no list rebuild).
+            _settingsManager = new QuickShellSettingsManager(InvalidatePagesAfterNavigation);
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
             // #endregion
-            _createShortcutCommand = new CreateShortcutCommand(ReloadPages);
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
         {
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
             // #endregion
             var collection = new ServiceCollection();
-            collection.AddQuickShellHost(_settingsManager, _createShortcutCommand, ReloadPages);
+            var lifetime = new QuickShellLifetime();
+            collection.AddQuickShellHost(_settingsManager, lifetime: lifetime);
             _services = collection.BuildServiceProvider();
+            _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
-            var shortcuts = (ShortcutRepository)_services.GetRequiredService<IShortcutRepository>();
-            var drafts = (ShortcutDraftStore)_services.GetRequiredService<IDraftStore>();
-            var projectAnalysis = _services.GetRequiredService<IProjectAnalysisService>();
-            ProjectAnalysisAccessor.Instance = projectAnalysis;
-            QuickShellServices.Bind(new QuickShellServices(shortcuts, drafts, _settingsManager, projectAnalysis));
+            var shortcuts = _services.GetRequiredService<IShortcutRepository>();
+
+            var host = _services.GetRequiredService<QuickShellHostServices>();
+            var createShortcut = new CreateShortcutCommand(ReloadPages, host.Services);
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
+            _context = new QuickShellPageContext(host, createShortcut, ReloadPages);
             // #region agent log
-            AgentDebugLog.Write(
+            SupportDiagnostics.Write(
                 "QuickShellCommandsProvider.cs:ctor",
                 "after composition root",
                 new { shortcutCount = shortcuts.GetShortcuts().Count },
                 hypothesisId: "B");
             // #endregion
             KickoffGitRepoIndexPrewarm();
+            KickoffFormCatalogPrewarm();
         }
 
         DisplayName = QuickShellBrand.DisplayName;
@@ -83,19 +88,29 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
         {
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
             // #endregion
-            _discoverGitReposCommand = new OpenDiscoverGitReposCommand(ReloadPages);
-            _page = new QuickShellPage(_settingsManager, _createShortcutCommand);
+            _page = new QuickShellPage(_context);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;
             // #region agent log
-            AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "after page setup", hypothesisId: "D");
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after page setup", hypothesisId: "D");
             // #endregion
         }
 
         var settingsPage = _settingsManager.SettingsPage;
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.PrewarmSettingsContent);
+        // Build settings Adaptive Card off the activation path so first open is warm.
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                _settingsManager.PrewarmSettingsContent();
+            }
+            catch
+            {
+                // Best effort.
+            }
+        });
 
         _commands =
         [
@@ -109,7 +124,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 #endif
                 MoreCommands =
                 [
-                    new CommandContextItem(_createShortcutCommand)
+                    new CommandContextItem(_context.CreateShortcut)
                     {
                         Title = "Create workspace",
                         Icon = new IconInfo("\uE710"),
@@ -128,7 +143,7 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
                         HoverOrder = 10,
 #endif
                     },
-                    ..ShortcutContextCommands.BuildUndoRedoCommands(ReloadPages),
+                    ..ShortcutContextCommands.BuildUndoRedoCommands(_context.Services, _context.ReloadRootPages),
 #if DEBUG
                     new CommandContextItem(new CmdPalFormReproIndexPage())
                     {
@@ -140,11 +155,11 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             },
         ];
 
-        _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_settingsManager, ReloadPages));
-        _fallbacks = [new QuickShellFallback(_fallbackPage, _discoverGitReposCommand, _settingsManager)];
+        _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_context));
+        _fallbacks = [new QuickShellFallback(_context, _fallbackPage)];
 
         // #region agent log
-        AgentDebugLog.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
+        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
         // #endregion
     }
 
@@ -152,9 +167,10 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public override IFallbackCommandItem[] FallbackCommands() => _fallbacks;
 
+    /// <summary>Immediate home-list rebuild (favorite moves, delete, undo, …).</summary>
     private void ReloadPages()
     {
-        GitRepoIndex.Invalidate();
+        _services.GetRequiredService<IGitRepoIndex>().Invalidate();
         _page.Reload();
         if (_fallbackPage.IsValueCreated)
         {
@@ -162,25 +178,85 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
         }
     }
 
-    private static void KickoffGitRepoIndexPrewarm()
+    /// <summary>Deferred list refresh after form/settings navigation (do not block GoBack).</summary>
+    private void InvalidatePagesAfterNavigation()
     {
+        _services.GetRequiredService<IGitRepoIndex>().Invalidate();
+        // _page may still be null while the provider ctor builds CreateShortcutCommand.
+        if (_page is not null)
+        {
+            _page.InvalidateWorkspaces();
+        }
+
+        if (_fallbackPage.IsValueCreated)
+        {
+            _fallbackPage.Value.ClearResults();
+        }
+    }
+
+    private void KickoffGitRepoIndexPrewarm()
+    {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
+        // Resolve the required services before starting the background task so we
+        // do not access the root ServiceProvider after it has been disposed.
+        var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
+        var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
+        var cancellationToken = _lifetime.CancellationToken;
+
         _ = Task.Run(() =>
         {
             try
             {
-                var shortcuts = QuickShellServices.Current.Shortcuts.GetShortcuts();
-                GitRepoIndex.Prewarm(GitRepoSearchRoots.FromShortcuts(shortcuts));
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var shortcuts = shortcutRepository.GetShortcuts();
+                gitRepoIndex.Prewarm(
+                    GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
+                    cancellationToken);
             }
             catch
             {
                 // Best effort; discover/create still work without the warm cache.
             }
-        });
+        }, cancellationToken);
+    }
+
+    private void KickoffFormCatalogPrewarm()
+    {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var terminalApplicationId = _settingsManager.TerminalApplicationId;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (_disposed || _lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                FormCatalogPrewarm.Warm(terminalApplicationId);
+            }
+            catch
+            {
+                // Best effort; first form open pays cold cost instead.
+            }
+        }, _lifetime.CancellationToken);
     }
 
     public override ICommandItem? GetCommandItem(string id)
     {
-        if (_commandRouter.TryHandle(id, out var item))
+        if (_commandRouter.TryHandle(id, _context, out var item))
         {
             return item;
         }
@@ -190,6 +266,13 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
 
     public override void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _lifetime.Cancel();
         _settingsManager.SettingsChanged -= _settingsChangedHandler;
         _page.Dispose();
         if (_fallbackPage.IsValueCreated)
@@ -197,7 +280,11 @@ public partial class QuickShellCommandsProvider : CommandProvider, IDisposable
             _fallbackPage.Value.Dispose();
         }
 
-        QuickShellServices.Unbind();
+        foreach (var fallback in _fallbacks.OfType<IDisposable>())
+        {
+            fallback.Dispose();
+        }
+
         _services.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);

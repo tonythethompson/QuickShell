@@ -30,7 +30,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
     private int _writeGeneration;
     private Task _fileIoQueue = Task.CompletedTask;
 
-    internal event Action<string>? Cleared;
+    public event Action<string>? Cleared;
 
     public string DraftPath => Path.Combine(_shortcuts.ConfigDirectory, "shortcut-edit-draft.json");
 
@@ -113,6 +113,16 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             CompanionAppPreset = draft.CompanionAppPreset,
             CompanionAppPath = draft.CompanionAppPath,
             CompanionAppArguments = draft.CompanionAppArguments,
+            Companions = draft.Companions
+                .Select(companion => new PersistedShortcutCompanionDraft
+                {
+                    Id = companion.Id,
+                    Preset = companion.Preset,
+                    Path = companion.Path,
+                    Arguments = companion.Arguments,
+                    OpenOnLaunch = companion.OpenOnLaunch,
+                })
+                .ToList(),
             NameCustomized = nameCustomized,
             AutoFilledName = autoFilledName,
             RunAsAdmin = draft.RunAsAdmin,
@@ -184,31 +194,46 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             }).ToList()
             : null;
 
-        var result = launches is null
-            ? ShortcutFormSave.TrySave(
-                pending.OriginalName,
-                pending.Name,
-                pending.Abbreviation,
-                pending.Directory,
-                pending.Command,
-                pending.LaunchTarget,
-                pending.RunAsAdmin,
-                _shortcuts,
-                onSaved)
-            : ShortcutFormSave.TrySave(
-                pending.OriginalName,
-                pending.Name,
-                pending.Abbreviation,
-                pending.Directory,
-                launches,
-                _shortcuts,
-                onSaved,
-                pending.DevServerUrl,
-                pending.RepoUrl,
-                pending.OpenDevServerOnLaunch,
-                pending.OpenCompanionAppOnLaunch,
-                pending.CompanionAppPath,
-                pending.CompanionAppArguments);
+        var companionApps = pending.Companions is { Count: > 0 }
+            ? CompanionAppFormEditor.ToCompanionEntries(
+                pending.Companions.Select(companion => new CompanionAppFormRow
+                {
+                    Id = companion.Id,
+                    Preset = companion.Preset,
+                    Path = companion.Path,
+                    Arguments = companion.Arguments,
+                    OpenOnLaunch = companion.OpenOnLaunch,
+                }).ToList())
+            : null;
+
+        launches ??=
+        [
+            new ShortcutFormLaunchInput
+            {
+                Label = pending.Name,
+                Command = pending.Command,
+                LaunchTarget = pending.LaunchTarget,
+                RunAsAdmin = pending.RunAsAdmin,
+                IsEnabled = true,
+                TaskType = TaskTypeCatalog.None,
+            },
+        ];
+
+        var result = ShortcutFormSave.TrySave(
+            pending.OriginalName,
+            pending.Name,
+            pending.Abbreviation,
+            pending.Directory,
+            launches,
+            _shortcuts,
+            onSaved,
+            pending.DevServerUrl,
+            pending.RepoUrl,
+            pending.OpenDevServerOnLaunch,
+            pending.OpenCompanionAppOnLaunch,
+            pending.CompanionAppPath,
+            pending.CompanionAppArguments,
+            companionApps);
 
         if (result.Success)
         {
@@ -267,7 +292,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             using var stream = File.OpenRead(DraftPath);
             _cached = JsonSerializer.Deserialize(stream, ShortcutFormDraftJsonContext.Default.PersistedShortcutEditDraft);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or NotSupportedException)
         {
             _cached = null;
         }
@@ -281,7 +306,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             var generation = _writeGeneration;
             EnqueueFileIoLocked(() => PersistDraftAsync(json, generation));
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
         {
             // Best-effort autosave; ignore serialization failures.
         }
@@ -302,7 +327,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         {
             _fileIoQueue.GetAwaiter().GetResult();
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Best effort.
         }
@@ -332,7 +357,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 DeleteDraftFileSync();
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort autosave; ignore IO failures.
         }
@@ -349,7 +374,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 File.Delete(DraftPath);
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best-effort cleanup.
         }
@@ -358,8 +383,15 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
     private static bool DraftMatchesShortcut(PersistedShortcutEditDraft draft, TerminalShortcut saved)
     {
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(saved);
+        CompanionAppNormalization.EnsureCompanionsFromLegacy(saved);
 
         if (!MetadataMatches(draft, saved))
+        {
+            return false;
+        }
+
+        if (draft.Companions is { Count: > 0 }
+            && !CompanionDraftsMatchShortcut(draft.Companions, saved.CompanionApps))
         {
             return false;
         }
@@ -394,6 +426,11 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             return false;
         }
 
+        if (!CompanionDraftListsEqual(left.Companions, right.Companions))
+        {
+            return false;
+        }
+
         if (left.Launches.Count == 0 && right.Launches.Count == 0)
         {
             return string.Equals(Normalize(left.Command), Normalize(right.Command), StringComparison.Ordinal)
@@ -414,6 +451,31 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         && left.OpenCompanionAppOnLaunch == right.OpenCompanionAppOnLaunch
         && string.Equals(Normalize(left.CompanionAppPath), Normalize(right.CompanionAppPath), StringComparison.Ordinal)
         && string.Equals(Normalize(left.CompanionAppArguments), Normalize(right.CompanionAppArguments), StringComparison.Ordinal);
+
+    private static bool CompanionDraftListsEqual(
+        List<ShortcutFormCompanionDraftData> left,
+        List<ShortcutFormCompanionDraftData> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            var a = left[i];
+            var b = right[i];
+            if (!string.Equals(Normalize(a.Preset), Normalize(b.Preset), StringComparison.Ordinal)
+                || !string.Equals(Normalize(a.Path), Normalize(b.Path), StringComparison.Ordinal)
+                || !string.Equals(Normalize(a.Arguments), Normalize(b.Arguments), StringComparison.Ordinal)
+                || a.OpenOnLaunch != b.OpenOnLaunch)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool LaunchDraftListsEqual(
         List<ShortcutFormLaunchDraftData> left,
@@ -476,6 +538,31 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         return true;
     }
 
+    private static bool CompanionDraftsMatchShortcut(
+        List<PersistedShortcutCompanionDraft> draftCompanions,
+        List<CompanionAppEntry> savedCompanions)
+    {
+        var saved = savedCompanions.OrderBy(entry => entry.Order).ToList();
+        if (draftCompanions.Count != saved.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < draftCompanions.Count; i++)
+        {
+            var draft = draftCompanions[i];
+            var entry = saved[i];
+            if (!string.Equals(Normalize(draft.Path), Normalize(entry.Path), StringComparison.Ordinal)
+                || !string.Equals(Normalize(draft.Arguments), Normalize(entry.Arguments), StringComparison.Ordinal)
+                || draft.OpenOnLaunch != entry.OpenOnLaunch)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static string Normalize(string? value) => (value ?? string.Empty).Trim();
 
     private void WithLock(Action action)
@@ -522,7 +609,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         {
             WithLock(DrainFileIoQueueLocked);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Best effort drain during shutdown.
         }

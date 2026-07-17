@@ -42,7 +42,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             var port = InferDefaultPort(root, script);
             return port is null ? null : ToLocalhostUrl(port.Value);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -73,7 +73,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
             var script = ReadScript(root, "dev") ?? ReadScript(root, "start");
             return HasFrontendFrameworkSignal(root, script) ? TaskTypeCatalog.Frontend : null;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -113,7 +113,7 @@ internal sealed partial class DevServerDetector : IDevServerDetector
 
             return FormatPackageScriptCommand(directory, scriptName);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }

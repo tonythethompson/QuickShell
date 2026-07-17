@@ -6,30 +6,25 @@ namespace QuickShell.Commands;
 
 internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 {
+    private readonly IQuickShellServices _services;
     private readonly string _shortcutId;
     private readonly string _launchId;
-    private readonly QuickShellSettingsManager _settings;
     private readonly bool _runAsAdmin;
     private readonly bool _runAsStandard;
 
     public OpenShortcutLaunchCommand(
         TerminalShortcut shortcut,
         WorkspaceEntry launch,
-        QuickShellSettingsManager settings,
+        IQuickShellServices services,
         bool runAsAdmin = false,
         bool runAsStandard = false)
     {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         _shortcutId = shortcut.Id;
         _launchId = launch.Id;
-        _settings = settings;
         _runAsAdmin = runAsAdmin;
         _runAsStandard = runAsStandard;
-        var baseId = ShortcutCommandIds.OpenLaunch(shortcut.Id, launch.Id);
-        Id = runAsAdmin
-            ? $"{baseId}.admin"
-            : runAsStandard
-                ? $"{baseId}.standard"
-                : baseId;
+        Id = CommandDescriptor.OpenLaunch(shortcut.Id, launch.Id, runAsAdmin, runAsStandard).Id;
         var enabledLaunches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         Name = ShortcutDisplay.GetLaunchContextMenuTitle(launch, enabledLaunches);
         Icon = new IconInfo(
@@ -40,7 +35,7 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = QuickShellServices.Current.Shortcuts.GetById(_shortcutId);
+        var shortcut = _services.Shortcuts.GetById(_shortcutId);
         if (shortcut is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
@@ -52,23 +47,24 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
             return QuickShellNavigation.StayOpen("That launch entry was not found.");
         }
 
-        var result = ShortcutLaunchExecutor.LaunchEntry(
+        var settings = _services.Settings;
+        var result = _services.LaunchExecutor.LaunchEntry(
             shortcut,
             launch,
-            _settings.TerminalApplicationId,
-            _settings.DefaultProfileId,
+            settings.TerminalApplicationId,
+            settings.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,
                 IncludeCompanionApp: false,
                 IncludeDevServerLink: false,
-                BlockDirtyBranchSwitch: _settings.BlockDirtyBranchSwitch));
+                BlockDirtyBranchSwitch: settings.BlockDirtyBranchSwitch));
 
         LaunchDiagnosticsState.Set(result.Diagnostics);
 
         if (result.MarkUsed)
         {
-            QuickShellServices.Current.Shortcuts.MarkUsed(_shortcutId);
+            _services.Shortcuts.MarkUsed(_shortcutId);
         }
 
         return result.Dismiss

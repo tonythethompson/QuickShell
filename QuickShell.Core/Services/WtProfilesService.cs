@@ -31,10 +31,17 @@ internal static class WtProfilesService
 {
     private static readonly object Sync = new();
 
+    /// <summary>
+    /// When the profile list is warm, skip re-statting every settings path on every call.
+    /// Terminal resolution can hit <see cref="GetProfiles"/> many times per form/launch.
+    /// </summary>
+    private const int RefreshCheckMinIntervalMs = 2000;
+
     private static WtProfileInfo[] _cached = [];
     private static readonly Dictionary<string, DateTime> _writeTimes = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, WtProfileInfo[]> _profilesBySettingsPath = new(StringComparer.OrdinalIgnoreCase);
     private static TerminalSettingsLocation[] _locations = [];
+    private static long _lastRefreshCheckTickMs;
 
     internal static TerminalSettingsLocation[]? TestLocationsOverride { get; set; }
 
@@ -50,6 +57,7 @@ internal static class WtProfilesService
             _writeTimes.Clear();
             _profilesBySettingsPath.Clear();
             _locations = [];
+            _lastRefreshCheckTickMs = 0;
             TestLocationsOverride = null;
             TestOnParseForTests = null;
             TestParseCount = 0;
@@ -178,6 +186,19 @@ internal static class WtProfilesService
     private static void RefreshCacheIfNeeded()
     {
         var forceRefresh = _cached.Length == 0 && _writeTimes.Count == 0 && _profilesBySettingsPath.Count == 0;
+        var nowTick = Environment.TickCount64;
+
+        // Warm cache + production (not test scope): reuse last merge without re-statting
+        // every known settings.json on each terminal-target resolution.
+        if (!forceRefresh
+            && _cached.Length > 0
+            && TestLocationsOverride is null
+            && nowTick - _lastRefreshCheckTickMs < RefreshCheckMinIntervalMs)
+        {
+            return;
+        }
+
+        _lastRefreshCheckTickMs = nowTick;
         var sawChanges = forceRefresh;
         var locations = GetLocations();
         var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

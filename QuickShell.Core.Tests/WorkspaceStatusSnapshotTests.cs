@@ -3,7 +3,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideCollection.Name)]
+[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorkspaceStatusSnapshotTests
 {
     [Fact]
@@ -86,17 +86,20 @@ public sealed class WorkspaceStatusSnapshotTests
         try
         {
             WorkspaceStatusService.ResetCacheForTests();
-            WorkspaceHealthCheck.PortInUseOverride = _ => false;
             WorktreeBranchTargetStore.ResetForTests();
             WorktreeBranchTargetStore.GetTargetOverride = _ => "feature/status";
-            WorkspaceGitOperations.GitRunOverride = (_, args) => args switch
-            {
-                ["rev-parse", "--is-inside-work-tree"] => GitSuccess("true"),
-                ["rev-parse", "--show-toplevel"] => GitSuccess(root),
-                ["rev-parse", "--abbrev-ref", "HEAD"] => GitSuccess("main"),
-                ["status", "--porcelain"] => GitSuccess(string.Empty),
-                _ => GitFailure(),
-            };
+
+            var git = LaunchTestServices.CreateGit(
+                runGit: (_, args) => args switch
+                {
+                    ["rev-parse", "--is-inside-work-tree"] => GitSuccess("true"),
+                    ["rev-parse", "--show-toplevel"] => GitSuccess(root),
+                    ["rev-parse", "--abbrev-ref", "HEAD"] => GitSuccess("main"),
+                    ["status", "--porcelain"] => GitSuccess(string.Empty),
+                    _ => GitFailure(),
+                });
+            var probe = LaunchTestServices.CreateHealthyProbe();
+            var health = new WorkspaceHealthCheck(probe, git);
 
             var shortcut = new TerminalShortcut
             {
@@ -120,7 +123,9 @@ public sealed class WorkspaceStatusSnapshotTests
             var snapshot = WorkspaceStatusService.CaptureForList(
                 shortcut,
                 TerminalHostIds.WindowsConsoleHost,
-                "cmd");
+                "cmd",
+                health,
+                git);
 
             Assert.Equal(WorkspaceAttentionState.Branch, snapshot.Attention);
             Assert.Equal("Configured branch differs from HEAD", snapshot.AttentionSummary);
@@ -129,10 +134,8 @@ public sealed class WorkspaceStatusSnapshotTests
         finally
         {
             WorkspaceStatusService.ResetCacheForTests();
-            WorkspaceHealthCheck.PortInUseOverride = null;
             WorktreeBranchTargetStore.ResetForTests();
             WorktreeBranchTargetStore.GetTargetOverride = null;
-            WorkspaceGitOperations.GitRunOverride = null;
             try
             {
                 Directory.Delete(root, recursive: true);
@@ -153,7 +156,10 @@ public sealed class WorkspaceStatusSnapshotTests
         try
         {
             WorkspaceStatusService.ResetCacheForTests();
-            WorkspaceHealthCheck.PortInUseOverride = port => port == 5173;
+            var probe = LaunchTestServices.CreateHealthyProbe();
+            probe.PortInUseHandler = port => port == 5173;
+            var git = LaunchTestServices.CreateGit();
+            var health = new WorkspaceHealthCheck(probe, git);
 
             var shortcut = new TerminalShortcut
             {
@@ -179,7 +185,9 @@ public sealed class WorkspaceStatusSnapshotTests
             var snapshot = WorkspaceStatusService.CaptureForList(
                 shortcut,
                 TerminalHostIds.WindowsConsoleHost,
-                "cmd");
+                "cmd",
+                health,
+                git);
 
             Assert.Equal(WorkspaceActivityState.Running, snapshot.Activity);
             Assert.Equal("Workspace appears to be running", WorkspaceStatusLabels.RunningBadgeSummary);
@@ -188,7 +196,6 @@ public sealed class WorkspaceStatusSnapshotTests
         finally
         {
             WorkspaceStatusService.ResetCacheForTests();
-            WorkspaceHealthCheck.PortInUseOverride = null;
             try
             {
                 Directory.Delete(root, recursive: true);
@@ -207,6 +214,183 @@ public sealed class WorkspaceStatusSnapshotTests
         var label = WorkspaceGitOperations.FormatBranchContextLabel(status, "feature/foo");
         Assert.Equal("Branch: main → feature/foo · dirty", label);
     }
+
+    [Fact]
+    public void Capture_EvictsWhenOverCapacity()
+    {
+        var baseDir = Path.Combine(Path.GetTempPath(), "qs-status-cap-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(baseDir);
+
+        try
+        {
+            WorkspaceStatusService.ResetCacheForTests();
+            var probe = LaunchTestServices.CreateHealthyProbe();
+            var git = LaunchTestServices.CreateGit(runGit: (_, _) => GitFailure());
+            var health = new WorkspaceHealthCheck(probe, git);
+
+            var extra = 12;
+            var total = WorkspaceStatusService.MaxCacheEntries + extra;
+            for (var i = 0; i < total; i++)
+            {
+                var root = Path.Combine(baseDir, i.ToString("D3", System.Globalization.CultureInfo.InvariantCulture));
+                Directory.CreateDirectory(root);
+                _ = WorkspaceStatusService.CaptureForList(
+                    CreateMinimalShortcut(root),
+                    TerminalHostIds.WindowsConsoleHost,
+                    "cmd",
+                    health,
+                    git);
+            }
+
+            Assert.True(
+                WorkspaceStatusService.CacheCountForTests <= WorkspaceStatusService.MaxCacheEntries,
+                $"Expected cache count <= {WorkspaceStatusService.MaxCacheEntries}, was {WorkspaceStatusService.CacheCountForTests}.");
+        }
+        finally
+        {
+            WorkspaceStatusService.ResetCacheForTests();
+            try
+            {
+                Directory.Delete(baseDir, recursive: true);
+            }
+            catch
+            {
+                // Best effort.
+            }
+        }
+    }
+
+    [Fact]
+    public void Capture_PrunesStaleEntriesOnInsert()
+    {
+        var baseDir = Path.Combine(Path.GetTempPath(), "qs-status-stale-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(baseDir);
+        var t0 = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        try
+        {
+            WorkspaceStatusService.ResetCacheForTests();
+            var probe = LaunchTestServices.CreateHealthyProbe();
+            var git = LaunchTestServices.CreateGit(runGit: (_, _) => GitFailure());
+            var health = new WorkspaceHealthCheck(probe, git);
+            WorkspaceStatusService.UtcNowOverride = () => t0;
+
+            for (var i = 0; i < 5; i++)
+            {
+                var root = Path.Combine(baseDir, "old-" + i);
+                Directory.CreateDirectory(root);
+                _ = WorkspaceStatusService.CaptureForList(
+                    CreateMinimalShortcut(root),
+                    TerminalHostIds.WindowsConsoleHost,
+                    "cmd",
+                    health,
+                    git);
+            }
+
+            Assert.Equal(5, WorkspaceStatusService.CacheCountForTests);
+
+            WorkspaceStatusService.UtcNowOverride = () => t0.AddSeconds(15);
+            var freshRoot = Path.Combine(baseDir, "fresh");
+            Directory.CreateDirectory(freshRoot);
+            _ = WorkspaceStatusService.CaptureForList(
+                CreateMinimalShortcut(freshRoot),
+                TerminalHostIds.WindowsConsoleHost,
+                "cmd",
+                health,
+                git);
+
+            Assert.Equal(1, WorkspaceStatusService.CacheCountForTests);
+            Assert.True(
+                WorkspaceStatusService.TryGetCached(
+                    CreateMinimalShortcut(freshRoot),
+                    TerminalHostIds.WindowsConsoleHost,
+                    "cmd",
+                    health,
+                    git,
+                    out _));
+        }
+        finally
+        {
+            WorkspaceStatusService.ResetCacheForTests();
+            try
+            {
+                Directory.Delete(baseDir, recursive: true);
+            }
+            catch
+            {
+                // Best effort.
+            }
+        }
+    }
+
+    [Fact]
+    public void TryGetCached_DropsExpiredEntry()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "qs-status-exp-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var t0 = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        try
+        {
+            WorkspaceStatusService.ResetCacheForTests();
+            var probe = LaunchTestServices.CreateHealthyProbe();
+            var git = LaunchTestServices.CreateGit(runGit: (_, _) => GitFailure());
+            var health = new WorkspaceHealthCheck(probe, git);
+            WorkspaceStatusService.UtcNowOverride = () => t0;
+
+            var shortcut = CreateMinimalShortcut(root);
+            _ = WorkspaceStatusService.CaptureForList(
+                shortcut,
+                TerminalHostIds.WindowsConsoleHost,
+                "cmd",
+                health,
+                git);
+            Assert.Equal(1, WorkspaceStatusService.CacheCountForTests);
+
+            WorkspaceStatusService.UtcNowOverride = () => t0.AddSeconds(11);
+            Assert.False(
+                WorkspaceStatusService.TryGetCached(
+                    shortcut,
+                    TerminalHostIds.WindowsConsoleHost,
+                    "cmd",
+                    health,
+                    git,
+                    out _));
+            Assert.Equal(0, WorkspaceStatusService.CacheCountForTests);
+        }
+        finally
+        {
+            WorkspaceStatusService.ResetCacheForTests();
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch
+            {
+                // Best effort.
+            }
+        }
+    }
+
+    private static TerminalShortcut CreateMinimalShortcut(string directory) =>
+        new()
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = Path.GetFileName(directory),
+            Directory = directory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Main",
+                    Terminal = "cmd",
+                    Command = "echo",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        };
 
     private static GitCommandResult GitSuccess(string output) =>
         new(0, output, string.Empty, TimedOut: false);

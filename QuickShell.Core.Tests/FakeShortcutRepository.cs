@@ -1,11 +1,18 @@
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuickShell.Core.Tests;
 
 internal sealed class FakeShortcutRepository : IShortcutRepository
 {
-    public event EventHandler? WorkspacesChanged;
+    // Interface requires the event; this fake never raises it.
+    public event EventHandler? WorkspacesChanged
+    {
+        add { }
+        remove { }
+    }
 
     private readonly Dictionary<string, TerminalShortcut> _byId;
     private readonly Dictionary<string, TerminalShortcut> _byName;
@@ -21,6 +28,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public string ConfigDirectory { get; }
 
     public string ConfigPath => string.Empty;
+
+    public Task PreloadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public IReadOnlyList<TerminalShortcut> GetShortcuts() => _byId.Values.ToList();
 
@@ -89,6 +98,15 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public void Upsert(TerminalShortcut shortcut, string? originalName = null)
     {
+        if (!string.IsNullOrWhiteSpace(originalName)
+            && _byName.TryGetValue(originalName, out var existing))
+        {
+            _byId.Remove(existing.Id);
+            _byName.Remove(originalName);
+        }
+
+        _byId[shortcut.Id] = shortcut;
+        _byName[shortcut.Name] = shortcut;
     }
 
     public bool Delete(string name) => false;
@@ -98,6 +116,10 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public bool MovePinned(string name, int direction) => false;
 
     public bool MovePinnedToEdge(string name, bool toTop) => false;
+
+    public bool MovePinnedById(string id, int direction) => false;
+
+    public bool MovePinnedToEdgeById(string id, bool toTop) => false;
 
     public void MarkUsed(string shortcutId)
     {

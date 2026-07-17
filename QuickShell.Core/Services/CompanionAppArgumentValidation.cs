@@ -174,10 +174,18 @@ internal static partial class CompanionAppArgumentValidation
             CompanionAppCatalog.PresetExplorer
                 or CompanionAppCatalog.PresetGitHubDesktop
                 or CompanionAppCatalog.PresetFork
+                or CompanionAppCatalog.PresetGitKraken
+                or CompanionAppCatalog.PresetSourcetree
                 or CompanionAppCatalog.PresetAzureDataStudio
                 or CompanionAppCatalog.PresetObsidian
                 or CompanionAppCatalog.PresetRider
-                or CompanionAppCatalog.PresetIntelliJIdea => new ArgumentRuleSet(
+                or CompanionAppCatalog.PresetIntelliJIdea
+                or CompanionAppCatalog.PresetWebStorm
+                or CompanionAppCatalog.PresetPyCharm
+                or CompanionAppCatalog.PresetGoLand
+                or CompanionAppCatalog.PresetCLion
+                or CompanionAppCatalog.PresetAndroidStudio
+                or CompanionAppCatalog.PresetNotepadPlusPlus => new ArgumentRuleSet(
                 "{folder}",
                 "{folder}",
                 "Use {folder} for the workspace path.",
@@ -185,7 +193,11 @@ internal static partial class CompanionAppArgumentValidation
                 ExpectDotShorthand: false,
                 ExpectSolutionToken: false),
             CompanionAppCatalog.PresetVsCode
+                or CompanionAppCatalog.PresetVsCodeInsiders
                 or CompanionAppCatalog.PresetCursor
+                or CompanionAppCatalog.PresetAntigravity
+                or CompanionAppCatalog.PresetDevin
+                or CompanionAppCatalog.PresetKiro
                 or CompanionAppCatalog.PresetSublime
                 or CompanionAppCatalog.PresetNeovide
                 or CompanionAppCatalog.PresetGvim
@@ -195,13 +207,6 @@ internal static partial class CompanionAppArgumentValidation
                 "Use . to open the workspace folder.",
                 ExpectFolderToken: false,
                 ExpectDotShorthand: true,
-                ExpectSolutionToken: false),
-            CompanionAppCatalog.PresetNotepadPlusPlus => new ArgumentRuleSet(
-                string.Empty,
-                string.Empty,
-                "Leave empty to launch without extra arguments.",
-                ExpectFolderToken: false,
-                ExpectDotShorthand: false,
                 ExpectSolutionToken: false),
             _ => new ArgumentRuleSet(
                 CompanionAppCatalog.GetDefaultArguments(preset),

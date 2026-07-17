@@ -6,6 +6,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[Collection(ProjectAnalysisStaticStateIsolation.Name)]
 public sealed class ProjectAnalysisServiceTests : IDisposable
 {
     private readonly string _root;
@@ -32,7 +33,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassifier.Classify(_root);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.Equal(viaLegacy.Labels, viaService.Labels);
@@ -54,7 +55,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassifier.Classify(_root);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.Contains("App.csproj", viaService.RunnableDotNetProjects);
@@ -81,7 +82,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassifier.Classify(_root);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.True(viaService.Has(ProjectStack.Rust));
@@ -94,7 +95,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassifier.Classify(_root);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.True(viaService.Has(ProjectStack.Python));
@@ -107,7 +108,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
         var viaService = service.Classify(_root);
-        var viaLegacy = ProjectClassifier.Classify(_root);
+        var viaLegacy = new ProjectClassificationCache(service).Classify(_root);
 
         Assert.Equal(viaLegacy.Stacks, viaService.Stacks);
         Assert.True(viaService.Has(ProjectStack.Go));
@@ -148,17 +149,18 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
         Directory.CreateDirectory(Path.Join(_root, ".vscode"));
 
         var service = _services.GetRequiredService<IProjectAnalysisService>();
+        var detector = _services.GetRequiredService<ICompanionAppDetector>();
         var viaService = service.TrySuggestCompanionApp(_root);
-        var viaStatic = CompanionAppDetection.TrySuggestFromDirectory(_root);
+        var viaDetector = detector.TrySuggest(_root);
 
-        if (viaStatic is null)
+        if (viaDetector is null)
         {
             Assert.Null(viaService);
             return;
         }
 
         Assert.NotNull(viaService);
-        Assert.Equal(viaStatic.PresetId, viaService.PresetId);
+        Assert.Equal(viaDetector.PresetId, viaService.PresetId);
     }
 
     public void Dispose()
@@ -172,7 +174,7 @@ public sealed class ProjectAnalysisServiceTests : IDisposable
                 Directory.Delete(_root, recursive: true);
             }
         }
-        catch (IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup.
         }

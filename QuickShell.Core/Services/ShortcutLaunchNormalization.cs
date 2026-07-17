@@ -93,6 +93,7 @@ internal static class ShortcutLaunchNormalization
 
         NormalizeLaunchOrders(shortcut);
         MirrorLegacyFieldsFromFirstLaunch(shortcut);
+        CompanionAppNormalization.NormalizeCompanions(shortcut);
     }
 
     public static IReadOnlyList<WorkspaceEntry> GetEnabledLaunches(TerminalShortcut shortcut) =>
@@ -224,7 +225,7 @@ internal static class ShortcutLaunchNormalization
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(entry.Id) || !ShortcutCommandIds.IsStableShortcutId(entry.Id))
+            if (string.IsNullOrWhiteSpace(entry.Id) || !CommandDescriptor.IsStableId(entry.Id))
             {
                 entry.Id = Guid.NewGuid().ToString("N");
             }
