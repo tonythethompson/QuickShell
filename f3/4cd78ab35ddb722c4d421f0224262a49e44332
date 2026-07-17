@@ -1,0 +1,71 @@
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditorFactory.cs
+  s_f7785fd078a403::t_4f7f3b794b603d 1-6
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditor.cs
+  s_f7785fd078a403::t_dad0a957a37b3f 1-52
+QuickShell/Services/WorkspaceEditor/WorkspaceEditState.cs
+  s_f7785fd078a403::t_9d924c06960462 1-22
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_f7785fd078a403::t_cee178afb88dd6 143
+  s_f7785fd078a403::t_7971125d3d71ca 95-100
+  s_f7785fd078a403::t_6a4cad5f885eb4 70,73,75-77,81,85
+  s_f7785fd078a403::t_be417dcaabbc82 144-145,147
+  s_f7785fd078a403::t_74ef6f8db5aa3e 1-69,71-72,74,78-80,82-84,86-94,101-142,146,148-222
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionParser.cs
+  s_f7785fd078a403::t_bd270f832a09c7 1-150
+QuickShell/Services/WorkspaceEditor/WorkspaceEditChangedEventArgs.cs
+  s_f7785fd078a403::t_489edef739a33c 1-11
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionKind.cs
+  s_f7785fd078a403::t_83fd6511eb6689 1-21
+QuickShell/Services/WorkspaceEditor/WorkspaceEditorFactory.cs
+  s_f7785fd078a403::t_4c444ef2c0784d 1-18
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_f7785fd078a403::t_c36eae11f5b9a8 114,413-415
+  s_f7785fd078a403::t_4c7850ab6427b7 374
+  s_f7785fd078a403::t_202a3d7e7aa43b 458,460,475-476
+  s_f7785fd078a403::t_becd99b033cc9a 1-4,6-8,10-13,15-81,83-113,115-152,154-170,172-202,204-222,224-240,242-373,375-412,416-457,459,461-474,477-821,823-1059,1061-1149,1151-1327
+  s_f7785fd078a403::t_cf8da9243453de 5,9,82
+  s_f7785fd078a403::t_0983147232ff2d 153,171,203,223,241,822,1060
+  s_f7785fd078a403::t_e391e31ad1c614 14
+  s_f7785fd078a403::t_1522cc7c92e65f 1150
+QuickShell.Core.Tests/WorkspaceFormActionParserTests.cs
+  s_f7785fd078a403::t_37377fa1b609e4 1-97
+QuickShell/Pages/ShortcutFormPage.cs
+  s_f7785fd078a403::t_d53784508adda8 8
+  s_f7785fd078a403::t_ccd8367e482414 15,17,22-25,28,35
+  s_7f50c38fe81888::t_8841879c7a4984 51,56,73,78,80-85,99-117,142,1841
+QuickShell/Services/WorkspaceEditor/WorkspaceEditResult.cs
+  s_f7785fd078a403::t_1daf5c68e7320a 1-30
+QuickShell/Services/WorkspaceEditor/WorkspaceFormAction.cs
+  s_f7785fd078a403::t_cf820ec771e934 1-10
+QuickShell/Pages/ShortcutForm.cs
+  s_f7785fd078a403::t_204709a93cabce 213
+  s_f7785fd078a403::t_9a748b05d2e4cd 9
+  s_f7785fd078a403::t_c341656df45776 1-8,10-12,14-19,21-23,25-176,178-185,187-212,214-262,264,266-273,275-312,322-364
+  s_f7785fd078a403::t_c26fab5bd35f3e 13,20,24,177,186
+  s_f7785fd078a403::t_de2b55e283f74a 263,313-321
+  s_f7785fd078a403::t_f6cad563357b8f 265,274
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f34cd78ab35ddb722c4d421f0224262a49e44332",
+  "prompts": {},
+  "sessions": {
+    "s_7f50c38fe81888": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "969032fc-5bae-4065-b467-2274fc866564",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_f7785fd078a403": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b449954d-aab6-4c38-bb4e-fa535a69a41b",
+        "model": "SWE-1.7 Max"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
