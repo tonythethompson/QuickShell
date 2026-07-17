@@ -1,0 +1,65 @@
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_51a1c9d129d830::t_8a13aa3833a082 41-42,54,74,85
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_51a1c9d129d830::t_ecf11e4b2b9cb5 75
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_6fad6f7a509527::t_e0424eb9bc60d2 26,100,123,143
+QuickShell/Commands/WorktreeBranchCommands.cs
+  s_51a1c9d129d830::t_aa294017d19ef8 69
+QuickShell/Pages/ShortcutFormPage.cs
+  s_51a1c9d129d830::t_fc0d18ae2861a0 593,620,1513,1650,1652
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_51a1c9d129d830::t_e5ede5193ac0aa 30-31,53,65,80,91,100-101,112
+QuickShell/Resources/Strings.cs
+  s_51a1c9d129d830::t_74d42f087e4be1 32-41
+QuickShell/Resources/Strings.de.resx
+  s_51a1c9d129d830::t_6244cbc1adb8bf 90-122
+QuickShell/Resources/Strings.es.resx
+  s_51a1c9d129d830::t_bff35243296890 90-122
+QuickShell/Resources/Strings.fr.resx
+  s_51a1c9d129d830::t_e4bc4b374e77c3 90-122
+QuickShell/Resources/Strings.it.resx
+  s_51a1c9d129d830::t_7a01158e204fd5 90-122
+QuickShell/Resources/Strings.ja.resx
+  s_51a1c9d129d830::t_3bbba1b330050b 90-122
+QuickShell/Resources/Strings.ko.resx
+  s_51a1c9d129d830::t_f76ce696e403f8 90-122
+QuickShell/Resources/Strings.pt-BR.resx
+  s_51a1c9d129d830::t_ce89e03b8b6fbe 90-122
+QuickShell/Resources/Strings.resx
+  s_51a1c9d129d830::t_ba5b2315607b79 93-122
+QuickShell/Resources/Strings.ru.resx
+  s_51a1c9d129d830::t_75b619ad011184 90-122
+QuickShell/Resources/Strings.zh-Hans.resx
+  s_51a1c9d129d830::t_ff89d9b6d9e458 90-122
+QuickShell/Resources/Strings.zh-Hant.resx
+  s_51a1c9d129d830::t_c9302c4442e4d3 90-122
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_51a1c9d129d830::t_f6a0e7d47f911e 191,232
+QuickShell/Services/ShortcutContextCommands.cs
+  s_51a1c9d129d830::t_fb55b03dbc196c 444
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "13ae6e759c682b429879d887e59d3efda7f780ca",
+  "prompts": {},
+  "sessions": {
+    "s_51a1c9d129d830": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e79dff3e-130e-4e69-9c6e-57daaea42589",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
