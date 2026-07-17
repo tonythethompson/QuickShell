@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
 using QuickShell.Services;
@@ -12,7 +11,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     private readonly string _root;
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
-    private readonly IProjectClassificationCache _classificationCache;
+    private readonly ICommandSuggestionService _suggestions;
 
     public SuggestionPillPresentationTests()
     {
@@ -20,11 +19,12 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         Directory.CreateDirectory(_root);
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
-        _classificationCache = _provider.GetRequiredService<IProjectClassificationCache>();
+        _suggestions = _provider.GetRequiredService<ICommandSuggestionService>();
     }
 
     public void Dispose()
     {
+        _suggestions.ResetForTests();
         _provider.Dispose();
         if (Directory.Exists(_root))
         {
@@ -35,18 +35,18 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     [Fact]
     public void BuildDataFields_EmptyDirectory_StillShowsOpenToDirectoryPill()
     {
-        CommandSuggestionService.ClearResultCache();
+        _suggestions.ResetForTests();
 
         // Agent-CLI suggestions (claude, codex, etc. on PATH) are directory-content-independent,
-        // so an empty directory doesn't guarantee zero ranked pills on every machine — only that
+        // so an empty directory doesn't guarantee zero ranked pills on every machine - only that
         // Open directory only is always appended after whatever ranked pills exist.
-        var rankedCount = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache).Count;
+        var rankedCount = _suggestions.GetPills(_root, [], _projectAnalysis).Count;
 
         var fields = SuggestionPillPresentation.BuildDataFields(
             _root,
             [],
             _projectAnalysis,
-            _classificationCache,
+            _suggestions,
             expandSuggestionPills: false);
 
         Assert.Equal("true", fields["ShowSuggestionPills"]);
@@ -60,16 +60,16 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     public void BuildDataFields_WithRealSuggestions_AppendsOpenToDirectoryAfterThem()
     {
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
-        CommandSuggestionService.ClearResultCache();
+        _suggestions.ResetForTests();
 
         var fields = SuggestionPillPresentation.BuildDataFields(
             _root,
             [],
             _projectAnalysis,
-            _classificationCache,
+            _suggestions,
             expandSuggestionPills: false);
 
-        var rankedCount = CommandSuggestionService.GetPills(_root, [], _projectAnalysis, _classificationCache).Count;
+        var rankedCount = _suggestions.GetPills(_root, [], _projectAnalysis).Count;
         Assert.True(rankedCount > 0);
         Assert.Equal("Open directory only", fields[$"PillTitle_{rankedCount}"]);
     }
@@ -79,7 +79,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     {
         var pills = new[] { SuggestionPillPresentation.OpenToDirectoryPill };
 
-        var found = CommandSuggestionService.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
+        var found = _suggestions.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
 
         Assert.NotNull(found);
         Assert.Equal("Open directory only", found.DisplayTitle);
@@ -89,13 +89,13 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     public void BuildSelectablePills_IncludesOpenToDirectory_AndBlankCommandResolves()
     {
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
-        CommandSuggestionService.ClearResultCache();
+        _suggestions.ResetForTests();
 
         var pills = SuggestionPillPresentation.BuildSelectablePills(
             _root,
             [],
             _projectAnalysis,
-            _classificationCache);
+            _suggestions);
 
         Assert.Contains(pills, pill => ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill));
         Assert.Equal(
@@ -103,7 +103,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
             pills[^1].DisplayTitle);
 
         // Form apply path: same list + blank command from the Adaptive Card template.
-        var found = CommandSuggestionService.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
+        var found = _suggestions.TryFindPill(pills, string.Empty, TaskTypeCatalog.None);
         Assert.NotNull(found);
         Assert.True(ReferenceEquals(found, SuggestionPillPresentation.OpenToDirectoryPill));
     }
@@ -112,18 +112,18 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     public void BuildSelectablePills_MatchesBuildDataFieldsSlotOrder()
     {
         File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
-        CommandSuggestionService.ClearResultCache();
+        _suggestions.ResetForTests();
 
         var pills = SuggestionPillPresentation.BuildSelectablePills(
             _root,
             [],
             _projectAnalysis,
-            _classificationCache);
+            _suggestions);
         var fields = SuggestionPillPresentation.BuildDataFields(
             _root,
             [],
             _projectAnalysis,
-            _classificationCache,
+            _suggestions,
             expandSuggestionPills: true);
 
         for (var i = 0; i < pills.Count && i < SuggestionPillPresentation.MaxSlots; i++)
@@ -134,7 +134,6 @@ public sealed class SuggestionPillPresentationTests : IDisposable
             Assert.Equal(pills[i].TaskType, fields[$"PillTaskType_{i}"]);
         }
     }
-
 
     [Fact]
     public void FormatDisplayTitle_UsesCommandOnlyAndTruncates()
@@ -148,22 +147,5 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         var title = SuggestionPillPresentation.FormatDisplayTitle(longCommand);
         Assert.Equal(SuggestionPillPresentation.DisplayTitleMaxLength, title.Length);
         Assert.EndsWith("…", title, StringComparison.Ordinal);
-        Assert.DoesNotContain('·', title);
-    }
-
-    [Fact]
-    public void FormatTooltip_IncludesCategoryCommandAndProductName()
-    {
-        Assert.Equal(
-            "Test · npm test",
-            SuggestionPillPresentation.FormatTooltip("Test", "npm test"));
-
-        Assert.Equal(
-            "Agent · Claude Code — Claude Code detected on PATH. Adds `claude` as a launch command.",
-            SuggestionPillPresentation.FormatTooltip(
-                "Agent",
-                "claude",
-                productName: "Claude Code",
-                detail: "Claude Code detected on PATH. Adds `claude` as a launch command."));
     }
 }

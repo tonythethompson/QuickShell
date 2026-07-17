@@ -16,6 +16,8 @@ internal interface IProjectAnalysisService
 
     string GetTaskTypeChoiceTooltip(string? directory, string? taskType, TaskTypePickContext pickContext);
 
+    string BuildTaskTypeChoicesJson(string? directory = null, TaskTypePickContext? pickContext = null, bool includePlaceholder = true);
+
     CompanionAppSuggestion? TrySuggestCompanionApp(string directory);
 
     string? TryDetectDevServerUrl(string directory);

@@ -31,4 +31,6 @@ internal sealed class FakeProjectAnalysisService : IProjectAnalysisService
     public string? TryDetectDevLaunchCommand(string directory) => null;
 
     public string FormatPackageScriptCommand(string directory, string scriptName) => scriptName;
+
+    public string BuildTaskTypeChoicesJson(string? d = null, TaskTypePickContext? p = null, bool ip = true) => "[]";
 }
