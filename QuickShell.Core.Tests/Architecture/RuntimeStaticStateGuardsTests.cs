@@ -52,7 +52,7 @@ public sealed class RuntimeStaticStateGuardsTests
         var repoRoot = FindRepoRoot();
         var violations = new List<string>();
 
-        foreach (var directory in ProductionRoots.Select(root => Path.Combine(repoRoot, root)))
+        foreach (var directory in ProductionRoots.Select(root => Path.Join(repoRoot, root)))
         {
             if (!Directory.Exists(directory))
             {
