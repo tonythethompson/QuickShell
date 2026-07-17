@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -126,7 +127,15 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
-        catch
+        catch (Win32Exception)
+        {
+            return [];
+        }
+        catch (InvalidOperationException)
+        {
+            return [];
+        }
+        catch (IOException)
         {
             return [];
         }
