@@ -17,6 +17,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
 {
     private const int GitProbeTimeoutMs = 1000;
     private const int GitEvaluationTimeoutMs = 2000;
+    private const int GitLaunchStatusTimeoutMs = 3000;
     private const int GitSwitchTimeoutMs = 3000;
 
     private readonly Func<string, IReadOnlyList<string>, GitCommandResult>? _runGit;
@@ -62,7 +63,13 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         return TryNormalizeWorktreeKey(topLevel.StandardOutput.Trim(), out worktreeKey);
     }
 
-    public bool TryGetStatus(string directory, out WorkspaceGitStatus status)
+    public bool TryGetStatus(string directory, out WorkspaceGitStatus status) =>
+        TryGetStatus(directory, GitProbeTimeoutMs, out status);
+
+    public bool TryGetStatusForLaunch(string directory, out WorkspaceGitStatus status) =>
+        TryGetStatus(directory, GitLaunchStatusTimeoutMs, out status);
+
+    private bool TryGetStatus(string directory, int timeoutMs, out WorkspaceGitStatus status)
     {
         status = null!;
 
@@ -86,7 +93,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         var result = RunGit(
             directory,
             ["status", "--porcelain=v2", "--branch"],
-            GitProbeTimeoutMs);
+            timeoutMs);
         if (!result.Succeeded)
         {
             return false;
@@ -101,7 +108,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         return true;
     }
 
-    private static WorkspaceGitStatus? ParsePorcelainV2Status(string output)
+    internal static WorkspaceGitStatus? ParsePorcelainV2Status(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {
@@ -112,15 +119,16 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         var isDetached = false;
         var isDirty = false;
 
-        foreach (var line in output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        foreach (var trimmed in output
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim()))
         {
-            var trimmed = line.AsSpan().Trim();
-            if (trimmed.IsEmpty)
+            if (trimmed.Length == 0)
             {
                 continue;
             }
 
-            if (trimmed.StartsWith("# branch.head ".AsSpan(), StringComparison.Ordinal))
+            if (trimmed.StartsWith("# branch.head ", StringComparison.Ordinal))
             {
                 var head = trimmed["# branch.head ".Length..].Trim().ToString();
                 if (string.Equals(head, "(detached)", StringComparison.Ordinal))
@@ -133,7 +141,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
                     branchName = head;
                 }
             }
-            else if (trimmed.Length > 0 && !trimmed.StartsWith("#".AsSpan(), StringComparison.Ordinal))
+            else if (!trimmed.StartsWith('#'))
             {
                 isDirty = true;
             }
