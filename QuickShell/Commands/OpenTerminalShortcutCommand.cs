@@ -35,13 +35,6 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
 
-        if (runAsStandard)
-        {
-            return needsRepair
-                ? ShortcutGlyphs.IncidentTriangle
-                : TerminalLaunchGlyphs.GetForShortcut(shortcut);
-        }
-
         if (runAsAdmin || shortcut.RunAsAdmin)
         {
             return ShortcutGlyphs.AdminLaunch;
@@ -59,10 +52,11 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         }
 
         var settings = _services.Settings;
+        var launchDefaults = settings.GetValidatedLaunchDefaults();
         var result = _services.LaunchExecutor.Launch(
             shortcut,
-            settings.TerminalApplicationId,
-            settings.DefaultProfileId,
+            launchDefaults.TerminalApplicationId,
+            launchDefaults.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,

@@ -64,10 +64,11 @@ internal static partial class GitRepoDiscovery
         IProjectAnalysisService projectAnalysis,
         IEnumerable<string>? extraRoots = null,
         int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism,
+        bool includeDefaultSearchRoots = true,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(projectAnalysis);
-        var roots = BuildSearchRoots(extraRoots);
+        var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots);
         if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
         {
             return [];
@@ -235,7 +236,7 @@ internal static partial class GitRepoDiscovery
         }
     }
 
-    private static List<string> BuildSearchRoots(IEnumerable<string>? extraRoots)
+    private static List<string> BuildSearchRoots(IEnumerable<string>? extraRoots, bool includeDefaultSearchRoots)
     {
         var roots = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -264,7 +265,8 @@ internal static partial class GitRepoDiscovery
             }
         }
 
-        if (IncludeDefaultSearchRoots && !string.IsNullOrWhiteSpace(userProfile))
+        var includeDefaults = includeDefaultSearchRoots && IncludeDefaultSearchRoots;
+        if (includeDefaults && !string.IsNullOrWhiteSpace(userProfile))
         {
             foreach (var child in CommonRootFolderNames)
             {
@@ -272,7 +274,7 @@ internal static partial class GitRepoDiscovery
             }
         }
 
-        if (IncludeDefaultSearchRoots || DefaultRootCandidatesOverride is not null)
+        if (includeDefaults || DefaultRootCandidatesOverride is not null)
         {
             foreach (var candidate in GetDefaultRootCandidates())
             {

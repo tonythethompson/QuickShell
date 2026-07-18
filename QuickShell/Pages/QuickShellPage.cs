@@ -36,6 +36,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _refreshQueued;
     private bool _forceQueryRefresh;
     private bool _disposed;
+    private WorkspaceRepositorySnapshot? _warmupSnapshotPendingPublication;
 
     private IListItem[]? _cachedPageActions;
     private bool _cachedPageActionsCanUndo;
@@ -137,7 +138,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
         }
 
-        return _items;
+        var items = _items;
+        WorkspaceRepositorySnapshot? warmupSnapshot;
+        lock (_refreshSync)
+        {
+            warmupSnapshot = _warmupSnapshotPendingPublication;
+            _warmupSnapshotPendingPublication = null;
+        }
+
+        if (warmupSnapshot is not null)
+        {
+            ScheduleWarmupAfterGetItemsReturns(warmupSnapshot.Value);
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -391,22 +405,33 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             using (StartupPerformanceTrace.Measure("CmdPal home list refresh"))
             {
             // One repository snapshot for the whole refresh — helpers must not re-query.
-            var snapshot = _services.Shortcuts.GetSnapshot();
+            WorkspaceRepositorySnapshot snapshot;
+            using (StartupPerformanceTrace.Measure("CmdPal home list: get snapshot"))
+            {
+                snapshot = _services.Shortcuts.GetSnapshot();
+            }
+
             var allShortcuts = snapshot.Shortcuts;
             PruneUnpinnedItemCache(allShortcuts);
             var pinnedInOrder = BuildPinnedInOrder(allShortcuts);
 
             var items = new List<IListItem>(capacity: Math.Max(16, allShortcuts.Count + 8));
-            foreach (var action in GetOrBuildPageActions(snapshot.CanUndo, snapshot.CanRedo))
+            using (StartupPerformanceTrace.Measure("CmdPal home list: page actions"))
             {
-                items.Add(action);
+                foreach (var action in GetOrBuildPageActions(snapshot.CanUndo, snapshot.CanRedo))
+                {
+                    items.Add(action);
+                }
             }
 
             if (string.IsNullOrWhiteSpace(normalizedQuery))
             {
-                foreach (var item in BuildHomeLayoutItems(snapshot.Layout, allShortcuts, pinnedInOrder))
+                using (StartupPerformanceTrace.Measure("CmdPal home list: layout items"))
                 {
-                    items.Add(item);
+                    foreach (var item in BuildHomeLayoutItems(snapshot.Layout, allShortcuts, pinnedInOrder))
+                    {
+                        items.Add(item);
+                    }
                 }
             }
             else
@@ -414,16 +439,22 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 // Search results: do not reuse home-cache rows (different ordering / set).
                 _unpinnedItemCache.Clear();
                 var anyMatch = false;
-                foreach (var taskAction in snapshot.SearchTaskActions(normalizedQuery))
+                using (StartupPerformanceTrace.Measure("CmdPal home list: search task actions"))
                 {
-                    anyMatch = true;
-                    items.Add(ShortcutTaskActionListItems.Create(_context, taskAction, Reload));
+                    foreach (var taskAction in snapshot.SearchTaskActions(normalizedQuery))
+                    {
+                        anyMatch = true;
+                        items.Add(ShortcutTaskActionListItems.Create(_context, taskAction, Reload));
+                    }
                 }
 
-                foreach (var shortcut in snapshot.Search(normalizedQuery))
+                using (StartupPerformanceTrace.Measure("CmdPal home list: search shortcuts"))
                 {
-                    anyMatch = true;
-                    items.Add(BuildShortcutItem(shortcut, pinnedInOrder));
+                    foreach (var shortcut in snapshot.Search(normalizedQuery))
+                    {
+                        anyMatch = true;
+                        items.Add(BuildShortcutItem(shortcut, pinnedInOrder));
+                    }
                 }
 
                 if (!anyMatch)
@@ -445,9 +476,15 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _items = items.ToArray();
             _hasLoadedWorkspaces = true;
             _workspacesStale = false;
+
             if (notifyHost)
             {
                 RaiseItemsChanged();
+                SignalWarmup(snapshot);
+            }
+            else
+            {
+                _warmupSnapshotPendingPublication = snapshot;
             }
 
             // #region agent log
@@ -514,6 +551,24 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
     }
 
+    private void ScheduleWarmupAfterGetItemsReturns(WorkspaceRepositorySnapshot snapshot)
+    {
+        var cancellationToken = _services.Lifetime.CancellationToken;
+        _ = Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken).ContinueWith(
+            _ => SignalWarmup(snapshot),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion,
+            TaskScheduler.Default);
+    }
+
+    private void SignalWarmup(WorkspaceRepositorySnapshot snapshot)
+    {
+        using (StartupPerformanceTrace.Measure("CmdPal home list: signal warmup"))
+        {
+            _context.WarmupCoordinator?.SignalFirstListPublished(snapshot);
+        }
+    }
+
     private IListItem[] GetOrBuildPageActions(bool canUndo, bool canRedo)
     {
         if (_cachedPageActions is not null
@@ -533,6 +588,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         TerminalShortcut shortcut,
         List<TerminalShortcut> pinnedInOrder)
     {
+        using var _ = StartupPerformanceTrace.Measure("CmdPal shortcut: build");
         var needsRepair = RequiresHomeRepair(shortcut);
         // Favorites always rebuild (move visibility depends on pin order among favorites).
         // Unpinned rows reuse cached ListItems when reordering favorites, avoiding ~40 menu rebuilds.
