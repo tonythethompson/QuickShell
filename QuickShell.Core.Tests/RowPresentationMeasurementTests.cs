@@ -27,7 +27,7 @@ public sealed class RowPresentationMeasurementTests : IDisposable
     public RowPresentationMeasurementTests(ITestOutputHelper output)
     {
         _output = output;
-        _tempRoot = Path.Combine(Path.GetTempPath(), "qs-row-perf-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(Path.GetTempPath(), "qs-row-perf-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
         RowPresentationDiagnostics.ResetForTests();
     }
