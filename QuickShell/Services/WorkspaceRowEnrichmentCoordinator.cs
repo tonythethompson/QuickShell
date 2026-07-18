@@ -206,7 +206,12 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             {
                 resolved.Add((work, _resolveIcon(work.Shortcut)));
             }
-            catch (Exception)
+            catch (InvalidOperationException)
+            {
+                // One row's enrichment failing must not stop the rest of the batch.
+                resolved.Add((work, null));
+            }
+            catch (ArgumentException)
             {
                 // One row's enrichment failing must not stop the rest of the batch.
                 resolved.Add((work, null));
