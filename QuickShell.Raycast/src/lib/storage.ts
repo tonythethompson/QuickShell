@@ -100,10 +100,7 @@ export class QuickShellStorage {
     const result = importParsedPayload(JSON.parse(raw) as unknown, existing);
     await this.save(result.data, { preserveSecurity: false, allowSubmittedSecurity: true });
     return result;
-    await this.save(result.data, {
-      preserveSecurity: false,
-      allowSubmittedSecurity: true,
-    });
+  }
 
   async save(
     data: StoredData,
