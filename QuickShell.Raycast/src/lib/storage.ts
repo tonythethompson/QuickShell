@@ -306,8 +306,12 @@ export class QuickShellStorage {
       updated.workspaceSecurity = { ...(updated.workspaceSecurity ?? {}) };
       updated.workspaceSecurity[result.id] = { ...sourceSecurity };
       await this.save(updated, { preserveSecurity: false });
-    }
-    return result;
+      updated.workspaceSecurity[result.id] = { isTrusted: false, revision: 1 };
+      await this.save(updated, {
+        preserveSecurity: false,
+        allowSubmittedSecurity: true,
+        recordHistory: false,
+      });
   }
 
   async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
