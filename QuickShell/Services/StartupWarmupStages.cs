@@ -80,9 +80,7 @@ internal static class StartupWarmupStages
         public void Execute(IStartupWarmupContext context, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ShortcutFormCatalogPrewarm.Warm(
-                _settings.TerminalApplicationId,
-                context.Services.ProjectAnalysis);
+            ShortcutFormCatalogPrewarm.Warm(_settings.TerminalApplicationId);
         }
     }
 

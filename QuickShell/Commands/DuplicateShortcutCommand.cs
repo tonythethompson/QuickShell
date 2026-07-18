@@ -14,7 +14,7 @@ internal sealed partial class DuplicateShortcutCommand : ShortcutFormPage
     public DuplicateShortcutCommand(TerminalShortcut source, Action onSaved, IQuickShellServices services)
         : base(services, existing: null, onSaved, services.Shortcuts.BuildDuplicateFrom(source))
     {
-        Id = $"com.quickshell.shortcut-form.duplicate.{Guid.NewGuid():N}";
+        Id = CommandDescriptor.DuplicateWorkspaceFormPageId();
         Name = Strings.Command_Duplicate_Name;
         Icon = new IconInfo(ShortcutGlyphs.Duplicate);
         Title = Strings.DuplicateWorkspace_Title;

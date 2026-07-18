@@ -34,8 +34,8 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
         _hasOnSaved = onSaved is not null;
         var isCreate = _existing is null;
         Id = isCreate
-            ? $"com.quickshell.shortcut-form.create.{Guid.NewGuid():N}"
-            : $"com.quickshell.shortcut-form.edit.{_existing!.Id}";
+            ? CommandDescriptor.NewWorkspaceFormPageId()
+            : CommandDescriptor.EditWorkspaceFormPageId(_existing!.Id);
         Icon = new IconInfo("\uE70F");
         Title = isCreate ? "New workspace" : $"Edit {_existing!.Name}";
         Name = isCreate ? "Create" : "Edit";

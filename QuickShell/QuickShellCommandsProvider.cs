@@ -35,29 +35,21 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     public QuickShellCommandsProvider()
     {
-        // #region agent log
-        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "start", hypothesisId: "B");
-        // #endregion
+        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "start");
 
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
-            // #region agent log
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager", hypothesisId: "A");
-            // #endregion
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager");
             // Settings + create/edit forms leave via SubmitForm — invalidate only (no list rebuild).
             _settingsManager = new QuickShellSettingsManager(InvalidatePagesAfterNavigation);
-            // #region agent log
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager", hypothesisId: "A");
-            // #endregion
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager");
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
         {
-            // #region agent log
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before composition root", hypothesisId: "B");
-            // #endregion
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before composition root");
             var collection = new ServiceCollection();
             var lifetime = new QuickShellLifetime();
             collection.AddQuickShellHost(_settingsManager, lifetime: lifetime);
@@ -73,30 +65,21 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             _warmupCoordinator = new StartupWarmupCoordinator(_lifetime, warmupContext, warmupStages);
 
             _context = new QuickShellPageContext(host, createShortcut, ReloadPages, _warmupCoordinator);
-            // #region agent log
-            SupportDiagnostics.Write(
-                "QuickShellCommandsProvider.cs:ctor",
-                "after composition root",
-                hypothesisId: "B");
-            // #endregion
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after composition root");
         }
 
         DisplayName = QuickShellBrand.DisplayName;
         Icon = QuickShellBrandIcons.App;
-        Id = "com.quickshell";
+        Id = CommandDescriptor.ProviderId;
         Settings = _settingsManager.Settings;
 
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
         {
-            // #region agent log
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before page setup", hypothesisId: "D");
-            // #endregion
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before page setup");
             _page = new QuickShellPage(_context);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;
-            // #region agent log
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after page setup", hypothesisId: "D");
-            // #endregion
+            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after page setup");
         }
 
         var settingsPage = _settingsManager.SettingsPage;
@@ -149,9 +132,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_context));
         _fallbacks = [new QuickShellFallback(_context, _fallbackPage)];
 
-        // #region agent log
-        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "complete", hypothesisId: "B");
-        // #endregion
+        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "complete");
     }
 
     public override ICommandItem[] TopLevelCommands() => _commands;
@@ -185,15 +166,8 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         }
     }
 
-    public override ICommandItem? GetCommandItem(string id)
-    {
-        if (_commandRouter.TryHandle(id, _context, out var item))
-        {
-            return item;
-        }
-
-        return base.GetCommandItem(id);
-    }
+    public override ICommandItem? GetCommandItem(string id) =>
+        _commandRouter.TryHandle(id, _context, out var item) ? item : base.GetCommandItem(id);
 
     public override void Dispose()
     {

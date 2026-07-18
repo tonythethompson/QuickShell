@@ -66,6 +66,6 @@ public sealed class CommandDescriptorTests
     {
         var shortcutId = Guid.NewGuid().ToString("N");
         var commandId = CommandDescriptor.OpenWorkspace(shortcutId, runAsAdmin: true, runAsStandard: true).Id;
-        Assert.EndsWith(".admin", commandId);
+        Assert.EndsWith(CommandDescriptor.AdminSuffix, commandId);
     }
 }

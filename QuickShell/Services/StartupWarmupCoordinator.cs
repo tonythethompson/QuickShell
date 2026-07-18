@@ -22,7 +22,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
     private readonly Stopwatch _queueWait = new();
     private readonly List<StartupWarmupStageResult> _results = new();
     private int _started;
-    private int _disposed;
+    private bool _disposed;
     private bool _completed;
     private Task? _runTask;
     private IDisposable? _queueWaitSpan;
@@ -40,36 +40,46 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
 
     public IReadOnlyList<IStartupWarmupStage> Stages => _stages;
 
-    public bool IsStarted => _started == 1;
+    public bool IsStarted => Volatile.Read(ref _started) == 1;
 
     public bool IsCompleted => Volatile.Read(ref _completed);
 
-    public IReadOnlyList<StartupWarmupStageResult> StageResults => _results.AsReadOnly();
+    public IReadOnlyList<StartupWarmupStageResult> StageResults
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _results.ToArray();
+            }
+        }
+    }
 
     public void SignalFirstListPublished(WorkspaceRepositorySnapshot? snapshot = null)
     {
-        if (Volatile.Read(ref _disposed) != 0 || _cts.IsCancellationRequested)
+        lock (_sync)
         {
-            return;
-        }
+            if (_disposed || _cts.IsCancellationRequested || _started != 0)
+            {
+                return;
+            }
 
-        if (Interlocked.CompareExchange(ref _started, 1, 0) != 0)
-        {
-            return;
-        }
+            _started = 1;
 
-        if (snapshot is not null)
-        {
-            _context.Snapshot = snapshot;
-        }
+            if (snapshot is not null)
+            {
+                _context.Snapshot = snapshot;
+            }
 
-        _queueWait.Restart();
-        _queueWaitSpan = StartupPerformanceTrace.Measure("Warmup queue wait");
-        _runTask = Task.Factory.StartNew(
-            RunStages,
-            _cts.Token,
-            TaskCreationOptions.LongRunning,
-            TaskScheduler.Default);
+            _queueWait.Restart();
+            _queueWaitSpan = StartupPerformanceTrace.Measure("Warmup queue wait");
+            var token = _cts.Token;
+            _runTask = Task.Factory.StartNew(
+                RunStages,
+                token,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+        }
     }
 
     private void RunStages()
@@ -98,7 +108,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                     stage.Execute(_context, _cts.Token);
                     lock (_sync)
                     {
-                        _results.Add(new StartupWarmupStageResult(stage.Name, sw.Elapsed, false, null));
+                        _results.Add(new StartupWarmupStageResult(stage.Name, sw.Elapsed, null));
                     }
 
                     StartupPerformanceTrace.Write($"Warmup stage completed: {stage.Name} {sw.Elapsed.TotalMilliseconds:0.###}ms");
@@ -107,28 +117,24 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                 {
                     lock (_sync)
                     {
-                        _results.Add(new StartupWarmupStageResult(stage.Name, sw.Elapsed, false, "cancelled"));
+                        _results.Add(new StartupWarmupStageResult(stage.Name, sw.Elapsed, "cancelled"));
                     }
 
                     StartupPerformanceTrace.Write($"Warmup stage cancelled: {stage.Name} {sw.Elapsed.TotalMilliseconds:0.###}ms");
                     break;
                 }
-                // codeql[cs/catch-of-all-exceptions]: intentional isolation boundary — a
-                // failing warmup stage (any exception type) must not take down startup or
-                // block later stages; the failure is recorded and traced instead.
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex) when (!IsCriticalException(ex))
                 {
                     lock (_sync)
                     {
-                        _results.Add(new StartupWarmupStageResult(stage.Name, sw.Elapsed, false, ex.GetType().Name));
+                        _results.Add(new StartupWarmupStageResult(stage.Name, sw.Elapsed, ex.GetType().Name));
                     }
 
                     StartupPerformanceTrace.Write($"Warmup stage failed: {stage.Name} {ex.GetType().Name}: {ex.Message}");
                     SupportDiagnostics.Write(
                         "StartupWarmupCoordinator",
                         "stage failed",
-                        new { stage = stage.Name, exception = ex.GetType().Name, message = ex.Message },
-                        runId: "warmup");
+                        new { stage = stage.Name, exception = ex.GetType().Name });
                     continue;
                 }
             }
@@ -138,32 +144,56 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
         _queueWait.Stop();
     }
 
+    private static bool IsCriticalException(Exception ex)
+    {
+        return ex is OutOfMemoryException
+            or StackOverflowException
+            or AccessViolationException
+            or AppDomainUnloadedException
+            or BadImageFormatException
+            or CannotUnloadAppDomainException
+            or InvalidProgramException
+            or ThreadAbortException;
+    }
+
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        Task? runTask;
+        IDisposable? queueWaitSpan;
+        lock (_sync)
         {
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _cts.Cancel();
+            runTask = _runTask;
+            queueWaitSpan = Interlocked.Exchange(ref _queueWaitSpan, null);
         }
 
-        _cts.Cancel();
         try
         {
-            _runTask?.Wait(TimeSpan.FromSeconds(2));
-        }
-        catch (AggregateException)
-        {
-            // Best effort: stage task faulted during shutdown.
+            runTask?.Wait(TimeSpan.FromSeconds(2));
         }
         catch (OperationCanceledException)
         {
-            // Best effort: cancellation during shutdown.
+            // Best effort: the process is shutting down.
         }
         catch (ObjectDisposedException)
         {
-            // Best effort: task/token already disposed during shutdown.
+            // Best effort: the process is shutting down.
+        }
+        catch (AggregateException)
+        {
+            // Best effort: the process is shutting down.
         }
 
-        _queueWaitSpan?.Dispose();
-        _cts.Dispose();
+        queueWaitSpan?.Dispose();
+        if (runTask is null || runTask.IsCompleted)
+        {
+            _cts.Dispose();
+        }
     }
 }

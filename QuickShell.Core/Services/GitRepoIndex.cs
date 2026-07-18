@@ -144,7 +144,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             return [];
         }
 
-        var cache = GetCacheForRootKey(rootKey);
+        var cache = GetCacheForRootKey(rootKey, includeDefaultSearchRoots: true);
         List<GitRepoCandidate>? results = null;
         foreach (var candidate in cache)
         {
@@ -177,7 +177,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
         EnsureFresh(extraRoots, includeDefaultSearchRoots: true, cancellationToken: cancellationToken);
-        return GetCacheForRootKey(rootKey);
+        return GetCacheForRootKey(rootKey, includeDefaultSearchRoots: true);
     }
 
     public void Prewarm(
@@ -344,7 +344,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 
     private IReadOnlyList<GitRepoCandidate> GetCacheForRootKey(
         string rootKey,
-        bool includeDefaultSearchRoots = true)
+        bool includeDefaultSearchRoots)
     {
         lock (_sync)
         {
@@ -419,13 +419,12 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             Task.Run(() => DiscoverForRefresh(rootSnapshot, includeDefaultSearchRoots, tokenForTask), tokenForTask),
             linkedCts);
 
+        _refreshInFlight = inFlight;
         _ = inFlight.Task.ContinueWith(
             task => CompleteRefresh(inFlight, task, tokenForTask),
             CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
-
-        _refreshInFlight = inFlight;
     }
 
     private IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(

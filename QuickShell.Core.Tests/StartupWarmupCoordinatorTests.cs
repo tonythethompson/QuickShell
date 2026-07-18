@@ -214,36 +214,65 @@ public class StartupWarmupCoordinatorTests
     }
 
     [Fact]
-    public void ShortcutFormCatalogPrewarm_UsesDefaultFormTaskTypeCacheKey()
+    public void FirstListSignal_RacingDispose_DoesNotThrow()
     {
-        var analysis = new FakeProjectAnalysisService();
-        ShortcutFormTemplateCache.Invalidate();
-
-        try
+        var settings = new QuickShellSettingsManager();
+        var services = TestQuickShellServicesFactory.Create(
+            new FakeShortcutRepository(NoShortcuts),
+            new ShortcutDraftStore(new FakeShortcutRepository(NoShortcuts)),
+            settings,
+            new FakeProjectAnalysisService(),
+            new QuickShellLifetime());
+        var context = new StartupWarmupContext(services, settings, services.Lifetime);
+        var stages = new List<IStartupWarmupStage>
         {
-            ShortcutFormCatalogPrewarm.Warm(TerminalHostIds.WindowsTerminal, analysis);
+            new LambdaStage("race", _ => { }),
+        };
+        var exceptions = new System.Collections.Concurrent.ConcurrentQueue<Exception>();
 
-            var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
-            var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(analysis, string.Empty);
-            var rebuilt = false;
-
-            _ = ShortcutFormTemplateCache.GetOrBuild(
-                commandCount: 1,
-                TerminalHostIds.WindowsTerminal,
-                companionChoicesJson,
-                taskTypeChoicesJson,
+        for (var iteration = 0; iteration < 50; iteration++)
+        {
+            using var coordinator = new StartupWarmupCoordinator(services.Lifetime, context, stages);
+            Parallel.Invoke(
                 () =>
                 {
-                    rebuilt = true;
-                    return "unexpected rebuild";
+                    try
+                    {
+                        coordinator.SignalFirstListPublished();
+                    }
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                        and not StackOverflowException
+                        and not AccessViolationException
+                        and not AppDomainUnloadedException
+                        and not BadImageFormatException
+                        and not CannotUnloadAppDomainException
+                        and not InvalidProgramException
+                        and not ThreadAbortException)
+                    {
+                        exceptions.Enqueue(ex);
+                    }
+                },
+                () =>
+                {
+                    try
+                    {
+                        coordinator.Dispose();
+                    }
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                        and not StackOverflowException
+                        and not AccessViolationException
+                        and not AppDomainUnloadedException
+                        and not BadImageFormatException
+                        and not CannotUnloadAppDomainException
+                        and not InvalidProgramException
+                        and not ThreadAbortException)
+                    {
+                        exceptions.Enqueue(ex);
+                    }
                 });
+        }
 
-            Assert.False(rebuilt);
-        }
-        finally
-        {
-            ShortcutFormTemplateCache.Invalidate();
-        }
+        Assert.Empty(exceptions);
     }
 
     [Fact]

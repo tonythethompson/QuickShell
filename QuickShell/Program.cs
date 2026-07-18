@@ -1,4 +1,4 @@
-﻿using Microsoft.CommandPalette.Extensions;
+using Microsoft.CommandPalette.Extensions;
 using QuickShell.Services;
 using Shmuelie.WinRTServer;
 using Shmuelie.WinRTServer.CsWinRT;
@@ -15,28 +15,24 @@ public class Program
         RepositoryDiagnostics.Sink = (location, eventName, elapsedMs) =>
             SupportDiagnostics.Write(location, eventName, elapsedMs is null ? null : new { elapsedMs });
 
-        // #region agent log
         AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
         {
             if (eventArgs.ExceptionObject is Exception ex)
             {
-                SupportDiagnostics.WriteException("Program.cs:UnhandledException", ex, hypothesisId: "E");
+                SupportDiagnostics.WriteException("Program.cs:UnhandledException", ex);
             }
             else
             {
                 SupportDiagnostics.Write(
                     "Program.cs:UnhandledException",
                     "non-exception unhandled",
-                    new { value = eventArgs.ExceptionObject?.ToString() },
-                    hypothesisId: "E");
+                    new { value = eventArgs.ExceptionObject?.ToString() });
             }
         };
         SupportDiagnostics.Write(
             "Program.cs:Main",
             "entry",
-            new { argCount = args.Length, firstArg = args.Length > 0 ? args[0] : null },
-            hypothesisId: "E");
-        // #endregion
+            new { argCount = args.Length, firstArg = args.Length > 0 ? args[0] : null });
 
         if (args.Length == 0 || string.Equals(args[0], "-RegisterProcessAsComServer", StringComparison.OrdinalIgnoreCase))
         {
@@ -49,9 +45,7 @@ public class Program
 
     private static void RunComServer()
     {
-        // #region agent log
-        SupportDiagnostics.Write("Program.cs:RunComServer", "start", hypothesisId: "E");
-        // #endregion
+        SupportDiagnostics.Write("Program.cs:RunComServer", "start");
 
         global::Shmuelie.WinRTServer.ComServer server = new();
 
@@ -59,49 +53,33 @@ public class Program
         QuickShellExtension extensionInstance;
         try
         {
-            // #region agent log
-            SupportDiagnostics.Write("Program.cs:RunComServer", "creating extension", hypothesisId: "E");
-            // #endregion
+            SupportDiagnostics.Write("Program.cs:RunComServer", "creating extension");
             extensionInstance = new QuickShellExtension(extensionDisposedEvent);
-            // #region agent log
-            SupportDiagnostics.Write("Program.cs:RunComServer", "extension created", hypothesisId: "E");
-            // #endregion
+            SupportDiagnostics.Write("Program.cs:RunComServer", "extension created");
         }
         catch (Exception ex)
         {
-            // #region agent log
-            SupportDiagnostics.WriteException("Program.cs:RunComServer", ex, hypothesisId: "E");
-            // #endregion
+            SupportDiagnostics.WriteException("Program.cs:RunComServer", ex);
             throw;
         }
 
         server.RegisterClass<QuickShellExtension, IExtension>(() => extensionInstance);
         server.Start();
 
-        // #region agent log
-        SupportDiagnostics.Write("Program.cs:RunComServer", "com server started", hypothesisId: "E");
-        // #endregion
+        SupportDiagnostics.Write("Program.cs:RunComServer", "com server started");
 
         try
         {
             Console.CancelKeyPress += (_, e) =>
             {
                 e.Cancel = true;
-                // #region agent log
-                SupportDiagnostics.Write(
-                    "Program.cs:CancelKeyPress",
-                    "signal-exit",
-                    runId: "post-fix",
-                    hypothesisId: "S");
-                // #endregion
+                SupportDiagnostics.Write("Program.cs:CancelKeyPress", "signal-exit");
                 extensionDisposedEvent.Set();
             };
         }
         catch (Exception ex)
         {
-            // #region agent log
-            SupportDiagnostics.WriteException("Program.cs:CancelKeyPress", ex, hypothesisId: "S", runId: "post-fix");
-            // #endregion
+            SupportDiagnostics.WriteException("Program.cs:CancelKeyPress", ex);
         }
 
         extensionDisposedEvent.WaitOne();

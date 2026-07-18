@@ -36,10 +36,13 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _refreshQueued;
     private bool _forceQueryRefresh;
     private bool _disposed;
+    private WorkspaceRepositorySnapshot? _warmupSnapshotPendingPublication;
 
     private IListItem[]? _cachedPageActions;
     private bool _cachedPageActionsCanUndo;
     private bool _cachedPageActionsCanRedo;
+
+    internal static Action<Action>? DirectoryRepairProbeSchedulerOverride { get; set; }
 
     public QuickShellPage(QuickShellPageContext context)
     {
@@ -137,7 +140,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
         }
 
-        return _items;
+        var items = _items;
+        WorkspaceRepositorySnapshot? warmupSnapshot;
+        lock (_refreshSync)
+        {
+            warmupSnapshot = _warmupSnapshotPendingPublication;
+            _warmupSnapshotPendingPublication = null;
+        }
+
+        if (warmupSnapshot is not null)
+        {
+            ScheduleWarmupAfterGetItemsReturns(warmupSnapshot.Value);
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -370,7 +386,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _query = normalizedQuery;
         }
 
-        // #region agent log
         var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         SupportDiagnostics.Write(
             "QuickShellPage.cs:RefreshItems",
@@ -381,10 +396,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 notifyHost,
                 startedUtc = refreshStartedUtc,
                 unpinnedCache = _unpinnedItemCache.Count,
-            },
-            runId: "post-fix",
-            hypothesisId: "D");
-        // #endregion
+            });
 
         try
         {
@@ -463,18 +475,16 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _hasLoadedWorkspaces = true;
             _workspacesStale = false;
 
-            // Optional warmups start only after the first real list is published.
-            using (StartupPerformanceTrace.Measure("CmdPal home list: signal warmup"))
-            {
-                _context.WarmupCoordinator?.SignalFirstListPublished(snapshot);
-            }
-
             if (notifyHost)
             {
                 RaiseItemsChanged();
+                SignalWarmup(snapshot);
+            }
+            else
+            {
+                _warmupSnapshotPendingPublication = snapshot;
             }
 
-            // #region agent log
             SupportDiagnostics.Write(
                 "QuickShellPage.cs:RefreshItems",
                 "complete",
@@ -484,17 +494,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                     notifyHost,
                     unpinnedCache = _unpinnedItemCache.Count,
                     elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
-                },
-                runId: "post-form",
-                hypothesisId: "D");
-            // #endregion
+                });
             }
         }
         catch (Exception ex)
         {
-            // #region agent log
-            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-form");
-            // #endregion
+            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex);
 
             var items = new List<IListItem>();
             items.AddRange(GetOrBuildPageActions(_cachedPageActionsCanUndo, _cachedPageActionsCanRedo));
@@ -535,6 +540,24 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             {
                 RefreshItems(queuedQuery, notifyHost: true);
             }
+        }
+    }
+
+    private void ScheduleWarmupAfterGetItemsReturns(WorkspaceRepositorySnapshot snapshot)
+    {
+        var cancellationToken = _services.Lifetime.CancellationToken;
+        _ = Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken).ContinueWith(
+            _ => SignalWarmup(snapshot),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion,
+            TaskScheduler.Default);
+    }
+
+    private void SignalWarmup(WorkspaceRepositorySnapshot snapshot)
+    {
+        using (StartupPerformanceTrace.Measure("CmdPal home list: signal warmup"))
+        {
+            _context.WarmupCoordinator?.SignalFirstListPublished(snapshot);
         }
     }
 
@@ -712,7 +735,15 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         if (_directoryRepairChecks.TryAdd(key, 0))
         {
-            _ = Task.Run(() => ProbeDirectoryRepairState(shortcut, key));
+            Action probe = () => ProbeDirectoryRepairState(shortcut, key);
+            if (DirectoryRepairProbeSchedulerOverride is { } scheduleOverride)
+            {
+                scheduleOverride(probe);
+            }
+            else
+            {
+                _ = Task.Run(probe);
+            }
         }
 
         return false;

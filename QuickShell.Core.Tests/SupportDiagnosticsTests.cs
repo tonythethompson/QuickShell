@@ -28,12 +28,12 @@ public sealed class SupportDiagnosticsTests : IDisposable
     {
         const string secret = @"C:\private\secret-project\launch.cmd";
 
-        SupportDiagnostics.WriteError("workspace.launch.failed", new InvalidOperationException(secret));
+        SupportDiagnostics.WriteError("workspace_launch_failed", new InvalidOperationException(secret));
 
         var logPath = Assert.Single(Directory.GetFiles(_root, "*.jsonl"));
         var line = Assert.Single(File.ReadAllLines(logPath));
         using var document = JsonDocument.Parse(line);
-        Assert.Equal("workspace.launch.failed", document.RootElement.GetProperty("eventCode").GetString());
+        Assert.Equal("workspace_launch_failed", document.RootElement.GetProperty("eventCode").GetString());
         Assert.Equal("Error", document.RootElement.GetProperty("severity").GetString());
         Assert.Equal("InvalidOperationException", document.RootElement.GetProperty("exceptionType").GetString());
         Assert.DoesNotContain(secret, line, StringComparison.Ordinal);
@@ -41,16 +41,11 @@ public sealed class SupportDiagnosticsTests : IDisposable
     }
 
     [Fact]
-    public void Write_RedactsCompatibilityParametersAsBoundedTags()
+    public void Write_RedactsMessageAndDataAsBoundedTags()
     {
         const string secret = @"C:\private\secret-project\npm.cmd";
 
-        SupportDiagnostics.Write(
-            "Program.cs:Main",
-            secret,
-            new { command = secret },
-            hypothesisId: "A",
-            runId: secret);
+        SupportDiagnostics.Write("Program.cs:Main", secret, new { command = secret });
 
         var logPath = Assert.Single(Directory.GetFiles(_root, "*.jsonl"));
         var line = Assert.Single(File.ReadAllLines(logPath));
@@ -60,9 +55,7 @@ public sealed class SupportDiagnosticsTests : IDisposable
             .ToArray();
 
         Assert.Contains("data:present", tags);
-        Assert.Contains("hypothesis:a", tags);
         Assert.Contains(tags, tag => tag is not null && tag.StartsWith("message:sha256:", StringComparison.Ordinal));
-        Assert.Contains(tags, tag => tag is not null && tag.StartsWith("run:sha256:", StringComparison.Ordinal));
         Assert.DoesNotContain(secret, line, StringComparison.Ordinal);
     }
 
