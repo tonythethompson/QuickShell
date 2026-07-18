@@ -149,7 +149,7 @@ public sealed class QuickShellSettingsLaunchTests
 
     private static string CreateConfigDirectory()
     {
-        var path = Path.Combine(
+        var path = Path.Join(
             Path.GetTempPath(),
             "qs-launch-settings-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
