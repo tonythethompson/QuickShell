@@ -253,6 +253,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         return reload;
     }
 
+    // Measures the first execution, including cache population and first-call costs.
     private static TimeSpan TimeCold(Action action)
     {
         var sw = Stopwatch.StartNew();
@@ -261,6 +262,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         return sw.Elapsed;
     }
 
+    // Performs one warm-up invocation, then measures the following execution.
     private static TimeSpan TimeWarm(Action action)
     {
         // Warm up once so JIT / first-call costs don't dominate the reported number.

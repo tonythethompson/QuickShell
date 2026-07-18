@@ -10,10 +10,12 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
     public ShortcutLaunchExecutorTests()
     {
         LaunchExecutorTestEnvironment.Apply();
+        CompanionAppPreference.WriteLastUsedOverride = _ => { };
     }
 
     public void Dispose()
     {
+        CompanionAppPreference.WriteLastUsedOverride = null;
         LaunchExecutorTestEnvironment.Reset();
     }
 
@@ -118,6 +120,156 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
 
         Assert.Equal(2, bundle.ProcessStarter.Started.Count);
         Assert.All(bundle.ProcessStarter.Started, c => Assert.Equal("wt.exe", c.FileName));
+    }
+
+    [Fact]
+    public void Launch_OpensTerminalBeforeCompanion()
+    {
+        var events = new List<string>();
+        var starter = new FakeProcessStarter
+        {
+            ShouldSucceed = startInfo =>
+            {
+                events.Add(Path.GetFileName(startInfo.FileName));
+                return true;
+            },
+        };
+        var bundle = LaunchTestServices.CreateBundle(processStarter: starter);
+
+        var result = bundle.Executor.Launch(
+            BuildShortcutWithCompanion(),
+            "wt",
+            "default",
+            new ShortcutLaunchOptions(IncludeCompanionApp: true));
+
+        Assert.True(result.Dismiss, result.StayOpenMessage);
+        Assert.Equal(["wt.exe", "explorer.exe"], events);
+    }
+
+    [Fact]
+    public void Launch_TerminalFailure_SkipsCompanion()
+    {
+        var starter = new FakeProcessStarter
+        {
+            ShouldSucceed = startInfo =>
+                !Path.GetFileName(startInfo.FileName).Equals("wt.exe", StringComparison.OrdinalIgnoreCase),
+        };
+        var bundle = LaunchTestServices.CreateBundle(processStarter: starter);
+
+        var result = bundle.Executor.Launch(
+            BuildShortcutWithCompanion(),
+            "wt",
+            "default",
+            new ShortcutLaunchOptions(IncludeCompanionApp: true));
+
+        Assert.False(result.Dismiss);
+        Assert.False(bundle.Companion.LastLaunchAttempted);
+        Assert.Single(starter.Started);
+        Assert.Equal("wt.exe", Path.GetFileName(starter.Started[0].FileName), ignoreCase: true);
+    }
+
+    [Fact]
+    public void Launch_CompanionFailure_RemainsSoftAndDoesNotRecordProcessStart()
+    {
+        var starter = new FakeProcessStarter
+        {
+            ShouldSucceed = startInfo =>
+                !Path.GetFileName(startInfo.FileName).Equals("explorer.exe", StringComparison.OrdinalIgnoreCase),
+        };
+        var bundle = LaunchTestServices.CreateBundle(processStarter: starter);
+
+        var result = bundle.Executor.Launch(
+            BuildShortcutWithCompanion(),
+            "wt",
+            "default",
+            new ShortcutLaunchOptions(IncludeCompanionApp: true));
+
+        Assert.False(result.Dismiss);
+        Assert.True(result.MarkUsed);
+        Assert.NotNull(result.Diagnostics);
+        Assert.True(result.Diagnostics.ProcessStartCounts.ContainsKey("wt.exe"));
+        Assert.False(result.Diagnostics.ProcessStartCounts.ContainsKey("explorer.exe"));
+        Assert.Contains(
+            result.Diagnostics.Entries,
+            entry => entry.Kind == LaunchDiagnosticKind.CompanionAppUnavailable);
+    }
+
+    [Fact]
+    public void LaunchAll_OpensTerminalGroupBeforeCompanion()
+    {
+        var events = new List<string>();
+        var starter = new FakeProcessStarter
+        {
+            ShouldSucceed = startInfo =>
+            {
+                events.Add(Path.GetFileName(startInfo.FileName));
+                return true;
+            },
+        };
+        var bundle = LaunchTestServices.CreateBundle(processStarter: starter);
+
+        var result = bundle.Executor.Launch(
+            BuildShortcutWithCompanion(launchCount: 2),
+            "wt",
+            "default",
+            new ShortcutLaunchOptions(IncludeCompanionApp: true));
+
+        Assert.True(result.Dismiss, result.StayOpenMessage);
+        Assert.Equal(["wt.exe", "explorer.exe"], events);
+    }
+
+    [Fact]
+    public void Launch_MultipleCompanions_RecordsEachActualExecutable()
+    {
+        var bundle = LaunchTestServices.CreateBundle();
+        var shortcut = BuildShortcutWithCompanion(
+            companionPaths: ["explorer.exe", "notepad.exe"]);
+
+        var result = bundle.Executor.Launch(
+            shortcut,
+            "wt",
+            "default",
+            new ShortcutLaunchOptions(IncludeCompanionApp: true));
+
+        Assert.NotNull(result.Diagnostics);
+        Assert.Equal(1, result.Diagnostics.ProcessStartCounts["wt.exe"]);
+        Assert.Equal(1, result.Diagnostics.ProcessStartCounts["explorer.exe"]);
+        Assert.Equal(1, result.Diagnostics.ProcessStartCounts["notepad.exe"]);
+    }
+
+    private static TerminalShortcut BuildShortcutWithCompanion(
+        int launchCount = 1,
+        IReadOnlyList<string>? companionPaths = null)
+    {
+        companionPaths ??= ["explorer.exe"];
+        var launches = Enumerable.Range(0, launchCount)
+            .Select(index => new WorkspaceEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Label = $"Launch {index + 1}",
+                Terminal = "wt",
+                Command = $"echo {index + 1}",
+                IsEnabled = true,
+                Order = index,
+            })
+            .ToList();
+
+        return new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Companion ordering",
+            Directory = Environment.CurrentDirectory,
+            Launches = launches,
+            CompanionApps = companionPaths
+                .Select((path, index) => new CompanionAppEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Path = path,
+                    OpenOnLaunch = true,
+                    Order = index,
+                })
+                .ToList(),
+        };
     }
 
     private static int CountOccurrences(string haystack, string needle) =>

@@ -58,7 +58,7 @@ internal sealed class WorkspaceGitLaunchGate
         bool blockDirtyBranchSwitch,
         bool persistTargetOnFailure)
     {
-        if (!_git.TryGetStatus(directory, out var status))
+        if (!_git.TryGetStatusForLaunch(directory, out var status))
         {
             return WorkspaceGitLaunchGateResult.StayOpen(
                 persistTargetOnFailure
