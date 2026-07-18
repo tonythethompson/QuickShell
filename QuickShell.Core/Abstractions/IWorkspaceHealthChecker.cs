@@ -17,5 +17,6 @@ internal interface IWorkspaceHealthChecker
         WorkspaceEntry entry,
         string terminalApplicationId,
         string defaultProfileId,
-        bool includeVolatile = true);
+        bool includeVolatile = true,
+        bool includeGit = true);
 }

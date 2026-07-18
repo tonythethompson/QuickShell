@@ -47,7 +47,8 @@ internal static class ShortcutContextCommands
         PinnedMoveVisibility moveVisibility = default,
         Action? onFavoritesReordered = null,
         bool? includePageCommands = null,
-        bool includePinnedMoveCommands = true)
+        bool includePinnedMoveCommands = true,
+        bool? needsRepair = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(shortcut);
@@ -56,7 +57,9 @@ internal static class ShortcutContextCommands
         includePageCommands ??= false;
 
         // Context menus should expose the repair actions for missing workspace folders.
-        if (ShortcutHealth.WouldNeedRepair(shortcut))
+        // Callers building the home list precompute this with requireDirectoryExists=false
+        // to avoid blocking first paint on WSL/network directory probes.
+        if (needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut))
         {
             return BuildRepairOnly(context, shortcut, onChanged);
         }
@@ -173,7 +176,7 @@ internal static class ShortcutContextCommands
         Action onChanged,
         bool? needsRepair = null,
         PinnedMoveVisibility moveVisibility = default) =>
-        needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut)
+        (needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
             ? BuildRepairOnly(context, shortcut, onChanged)
             : Build(
                 context,
@@ -182,7 +185,8 @@ internal static class ShortcutContextCommands
                 includeEdit: true,
                 moveVisibility,
                 includePageCommands: false,
-                includePinnedMoveCommands: false);
+                includePinnedMoveCommands: false,
+                needsRepair: false);
 
     public static CommandContextItem[] BuildRepairOnly(
         QuickShellPageContext context,
