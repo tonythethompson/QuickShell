@@ -7,7 +7,6 @@ using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
-using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 
@@ -30,7 +29,7 @@ public sealed class CriticalPathContractTests : IDisposable
 
     public CriticalPathContractTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "qs-contract-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(Path.GetTempPath(), "qs-contract-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
     }
 
@@ -43,7 +42,11 @@ public sealed class CriticalPathContractTests : IDisposable
                 Directory.Delete(_tempRoot, recursive: true);
             }
         }
-        catch
+        catch (IOException)
+        {
+            // Best effort.
+        }
+        catch (UnauthorizedAccessException)
         {
             // Best effort.
         }
@@ -54,7 +57,7 @@ public sealed class CriticalPathContractTests : IDisposable
     [Fact]
     public void ProviderConstruction_DoesNotScanForGitRepositories()
     {
-        var localAppData = Path.Combine(_tempRoot, "localappdata");
+        var localAppData = Path.Join(_tempRoot, "localappdata");
         Directory.CreateDirectory(localAppData);
         var originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
         Environment.SetEnvironmentVariable("LOCALAPPDATA", localAppData);
@@ -126,23 +129,36 @@ public sealed class CriticalPathContractTests : IDisposable
     [InlineData(@"\\wsl$\NoSuchDistro-QuickShellContract\home\dev")]
     [InlineData(@"\\wsl.localhost\NoSuchDistro-QuickShellContract\home\dev")]
     [InlineData(@"\\no-such-server-quickshell-contract\share\repo")]
-    public void FirstListConstruction_WslAndUncPaths_DoesNotProbeDirectoryExistence(string directory)
+    public void FirstListConstruction_WslAndUncPaths_DoesNotSynchronouslyProbeDirectoryExistence(string directory)
     {
-        // A real probe of a nonexistent WSL distro or unreachable UNC host carries multi-second
-        // OS-level timeouts. Building the row must not touch the filesystem at all.
-        var shortcut = BuildShortcut("ws-remote", directory);
-        var repository = new FakeShortcutRepository([shortcut]);
-        var context = BuildPageContext(repository, out _);
-        using var page = new QuickShellPage(context);
+        var directoryExistenceProbes = 0;
+        var scheduledDirectoryProbes = 0;
+        ShortcutValidation.DirectoryExistsOverride = _ =>
+        {
+            Interlocked.Increment(ref directoryExistenceProbes);
+            return false;
+        };
+        QuickShellPage.DirectoryRepairProbeSchedulerOverride =
+            _ => Interlocked.Increment(ref scheduledDirectoryProbes);
 
-        var stopwatch = Stopwatch.StartNew();
-        var items = page.GetItems();
-        stopwatch.Stop();
+        try
+        {
+            var shortcut = BuildShortcut("ws-remote", directory);
+            var repository = new FakeShortcutRepository([shortcut]);
+            var context = BuildPageContext(repository, out _);
+            using var page = new QuickShellPage(context);
 
-        Assert.True(items.Length >= 1);
-        Assert.True(
-            stopwatch.ElapsedMilliseconds < 1000,
-            $"First list construction for '{directory}' took {stopwatch.ElapsedMilliseconds}ms — it probed the path.");
+            var items = page.GetItems();
+
+            Assert.True(items.Length >= 1);
+            Assert.Equal(0, Volatile.Read(ref directoryExistenceProbes));
+            Assert.Equal(1, Volatile.Read(ref scheduledDirectoryProbes));
+        }
+        finally
+        {
+            QuickShellPage.DirectoryRepairProbeSchedulerOverride = null;
+            ShortcutValidation.DirectoryExistsOverride = null;
+        }
     }
 
     // --- Root palette ---------------------------------------------------------------------
@@ -193,21 +209,22 @@ public sealed class CriticalPathContractTests : IDisposable
         try
         {
             var healthCalls = 0;
-            var gitGateCalls = 0;
-            var probe = LaunchTestServices.CreateHealthyProbe();
+            var gitStatusCalls = 0;
+            var launchDirectory = Path.Join(_tempRoot, "launch-target");
+            Directory.CreateDirectory(launchDirectory);
             var gitOps = LaunchTestServices.CreateGit(getStatus: _ =>
             {
-                Interlocked.Increment(ref gitGateCalls);
-                return null;
+                Interlocked.Increment(ref gitStatusCalls);
+                return new WorkspaceGitStatus("main", IsDirty: false, IsDetached: false);
             });
-            var health = new CountingHealthChecker(new WorkspaceHealthCheck(probe, gitOps), () => Interlocked.Increment(ref healthCalls));
+            var health = new CountingHealthChecker(() => Interlocked.Increment(ref healthCalls));
             var terminal = new TerminalLauncher(LaunchTestServices.CreateProcessStarter());
             var companion = new CompanionAppLauncher(LaunchTestServices.CreateProcessStarter());
             var gate = new WorkspaceGitLaunchGate(gitOps);
             var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate);
 
-            var shortcut = BuildShortcut("ws-launch", Path.Combine(_tempRoot, "launch-target"));
-            Directory.CreateDirectory(shortcut.Directory);
+            var shortcut = BuildShortcut("ws-launch", launchDirectory);
+            WorktreeBranchTargetStore.GetTargetForDirectoryOverride = (_, _) => "main";
 
             _ = executor.Launch(shortcut, "wt", "wt-default");
             _ = executor.Launch(shortcut, "wt", "wt-default");
@@ -216,6 +233,7 @@ public sealed class CriticalPathContractTests : IDisposable
             // Nothing about launch should short-circuit after the first call — trust and
             // health are re-derived from current repository/process state every time.
             Assert.Equal(3, Volatile.Read(ref healthCalls));
+            Assert.Equal(3, Volatile.Read(ref gitStatusCalls));
         }
         finally
         {
@@ -292,12 +310,10 @@ public sealed class CriticalPathContractTests : IDisposable
 
     private sealed class CountingHealthChecker : IWorkspaceHealthChecker
     {
-        private readonly IWorkspaceHealthChecker _inner;
         private readonly Action _onCheck;
 
-        public CountingHealthChecker(IWorkspaceHealthChecker inner, Action onCheck)
+        public CountingHealthChecker(Action onCheck)
         {
-            _inner = inner;
             _onCheck = onCheck;
         }
 
@@ -309,7 +325,7 @@ public sealed class CriticalPathContractTests : IDisposable
             bool includeGit = true)
         {
             _onCheck();
-            return _inner.Check(shortcut, terminalApplicationId, defaultProfileId, includeVolatile, includeGit);
+            return new WorkspaceHealthResult([]);
         }
 
         public WorkspaceHealthResult CheckEntry(
@@ -321,7 +337,7 @@ public sealed class CriticalPathContractTests : IDisposable
             bool includeGit = true)
         {
             _onCheck();
-            return _inner.CheckEntry(shortcut, entry, terminalApplicationId, defaultProfileId, includeVolatile, includeGit);
+            return new WorkspaceHealthResult([]);
         }
     }
 }

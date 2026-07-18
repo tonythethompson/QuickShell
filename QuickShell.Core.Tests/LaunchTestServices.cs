@@ -58,6 +58,7 @@ internal static class LaunchTestServices
 
         // Ignore on-disk branch targets so a dirty worktree + saved target cannot block launches.
         WorktreeBranchTargetStore.GetTargetOverride = _ => null;
+        WorktreeBranchTargetStore.GetTargetForDirectoryOverride = null;
     }
 
     public static void ResetTerminalDiscoveryStubs()
@@ -66,6 +67,7 @@ internal static class LaunchTestServices
         WtProfilesService.InvalidateCache();
         TerminalCatalog.InvalidateCache();
         WorktreeBranchTargetStore.GetTargetOverride = null;
+        WorktreeBranchTargetStore.GetTargetForDirectoryOverride = null;
         CompanionAppPreference.ReadLastUsedOverride = null;
         CompanionAppPreference.WriteLastUsedOverride = null;
 

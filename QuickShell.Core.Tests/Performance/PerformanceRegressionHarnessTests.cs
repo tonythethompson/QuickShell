@@ -56,6 +56,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
 
     public void Dispose()
     {
+        DrainAllGitActivity();
         Environment.SetEnvironmentVariable("LOCALAPPDATA", _originalLocalAppData);
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
@@ -112,22 +113,29 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         provider!.Dispose();
         report.Add(ctorStats);
 
-        var (context, page) = CreatePageHarness(workspaceCount: 0, out _, out _, out _);
-        report.Add(BenchmarkRunner.MeasureOnce(
-            "first placeholder GetItems (no workspaces loaded yet)",
-            category,
-            () => _ = page.GetItems()));
+        using (var placeholderHarness = CreatePageHarness(workspaceCount: 0))
+        {
+            report.Add(BenchmarkRunner.MeasureOnce(
+                "first placeholder GetItems (no workspaces loaded yet)",
+                category,
+                () => _ = placeholderHarness.Page.GetItems()));
+        }
 
-        var (warmupContext, warmupPage) = CreatePageHarness(workspaceCount: 25, out var services, out var settings, out var lifetime);
-        _ = warmupPage.GetItems(); // publish the first real list before warmup starts
+        using var warmupHarness = CreatePageHarness(workspaceCount: 25);
         report.Add(BenchmarkRunner.MeasureOnce(
             "first real workspace list (25 workspaces)",
             category,
-            warmupPage.Reload));
+            () => _ = warmupHarness.Page.GetItems()));
 
-        var warmupCtx = new StartupWarmupContext(services, settings, lifetime);
+        var warmupCtx = new StartupWarmupContext(
+            warmupHarness.Services,
+            warmupHarness.Settings,
+            warmupHarness.Lifetime);
         var stages = StartupWarmupStages.Create(warmupCtx);
-        using var coordinator = new StartupWarmupCoordinator(lifetime, warmupCtx, stages);
+        using var coordinator = new StartupWarmupCoordinator(
+            warmupHarness.Lifetime,
+            warmupCtx,
+            stages);
         var startStats = BenchmarkRunner.MeasureOnce(
             "staged warmup start (signal only, stages run in background)",
             category,
@@ -142,6 +150,9 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         }
 
         completionStopwatch.Stop();
+        Assert.True(
+            coordinator.IsCompleted,
+            $"Warmup did not complete. Finished stages: {coordinator.StageResults.Count}/{stages.Count}");
         report.Add(new BenchmarkStats(
             "staged warmup completion (all stages, from signal)",
             category,
@@ -160,18 +171,18 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
     private void MeasureWorkspaceListConstruction(BenchmarkReport report, int workspaceCount)
     {
         const string category = "workspace-list";
-        var (context, page) = CreatePageHarness(workspaceCount, out _, out _, out _, includeMixedShapes: true);
+        using var harness = CreatePageHarness(workspaceCount, includeMixedShapes: true);
 
         var coldStats = BenchmarkRunner.MeasureOnce(
             $"cold home-list construction ({workspaceCount} workspaces)",
             category,
-            () => _ = page.GetItems());
+            () => _ = harness.Page.GetItems());
         report.Add(coldStats);
 
         var warmStats = BenchmarkRunner.Measure(
             $"warm home-list construction ({workspaceCount} workspaces)",
             category,
-            () => page.Reload(),
+            () => harness.Page.Reload(),
             iterations: workspaceCount >= ShortcutValidation.MaxShortcutCount ? 3 : 5);
         report.Add(warmStats);
     }
@@ -181,8 +192,8 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
     private void MeasureRootPalette(BenchmarkReport report)
     {
         const string category = "root-palette";
-        var (context, page) = CreatePageHarness(workspaceCount: 200, out var services, out _, out _);
-        var snapshot = services.Shortcuts.GetSnapshot();
+        using var harness = CreatePageHarness(workspaceCount: 200);
+        var snapshot = harness.Services.Shortcuts.GetSnapshot();
         var abbreviated = new TerminalShortcut
         {
             Id = "ws-abbrev",
@@ -201,32 +212,32 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         report.Add(BenchmarkRunner.Measure(
             "abbreviation hit",
             category,
-            () => _ = index.Search(abbreviationHit, services.GitRepos)));
+            () => _ = index.Search(abbreviationHit, harness.Services.GitRepos)));
 
         report.Add(BenchmarkRunner.Measure(
             "workspace-name hit",
             category,
-            () => _ = index.Search(nameHit, services.GitRepos)));
+            () => _ = index.Search(nameHit, harness.Services.GitRepos)));
 
         report.Add(BenchmarkRunner.Measure(
             "task-action hit",
             category,
-            () => _ = index.Search("echo", services.GitRepos)));
+            () => _ = index.Search("echo", harness.Services.GitRepos)));
 
         report.Add(BenchmarkRunner.Measure(
             "no local hit (falls through to git search)",
             category,
-            () => _ = index.Search("zzz-no-such-workspace-zzz", services.GitRepos)));
+            () => _ = index.Search("zzz-no-such-workspace-zzz", harness.Services.GitRepos)));
 
         report.Add(BenchmarkRunner.Measure(
             "one-character query (suppressed before git search)",
             category,
-            () => _ = index.Search("a", services.GitRepos)));
+            () => _ = index.Search("a", harness.Services.GitRepos)));
 
         report.Add(BenchmarkRunner.Measure(
             "explicit discover query",
             category,
-            () => _ = index.Search("discover", services.GitRepos)));
+            () => _ = index.Search("discover", harness.Services.GitRepos)));
 
         var indexBuildCold = BenchmarkRunner.MeasureOnce(
             "cold query index build (200 workspaces)",
@@ -240,7 +251,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
             () =>
             {
                 var reused = index.Revision == snapshot.Version ? index : new RootPaletteSearchIndex(snapshot);
-                _ = reused.Search(nameHit, services.GitRepos);
+                _ = reused.Search(nameHit, harness.Services.GitRepos);
             }));
 
         var bumped = new WorkspaceRepositorySnapshot(snapshot.Version + 1, snapshot.Shortcuts, snapshot.Layout);
@@ -255,7 +266,10 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
     private void MeasureGitDiscovery(BenchmarkReport report)
     {
         const string category = "git-discovery";
-        var projectAnalysis = BuildProjectAnalysisService();
+        var collection = new ServiceCollection();
+        collection.AddQuickShellCore();
+        using var provider = collection.BuildServiceProvider();
+        var projectAnalysis = provider.GetRequiredService<IProjectAnalysisService>();
 
         foreach (var repoCount in new[] { 10, 100 })
         {
@@ -369,11 +383,8 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
 
     // --- Shared fixtures -----------------------------------------------------------------
 
-    private (QuickShellPageContext Context, QuickShellPage Page) CreatePageHarness(
+    private PageHarness CreatePageHarness(
         int workspaceCount,
-        out QuickShellServices services,
-        out QuickShellSettingsManager settings,
-        out IQuickShellLifetime lifetime,
         bool includeMixedShapes = false)
     {
         var configDir = Path.Combine(_tempRoot, "cfg-" + Guid.NewGuid().ToString("N"));
@@ -388,9 +399,9 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         var provider = collection.BuildServiceProvider();
         var drafts = provider.GetRequiredService<IDraftStore>();
         var analysis = provider.GetRequiredService<IProjectAnalysisService>();
-        settings = new QuickShellSettingsManager();
-        lifetime = provider.GetRequiredService<IQuickShellLifetime>();
-        services = TestQuickShellServicesFactory.Create(repository, drafts, settings, analysis, lifetime);
+        var settings = new QuickShellSettingsManager();
+        var lifetime = provider.GetRequiredService<IQuickShellLifetime>();
+        var services = TestQuickShellServicesFactory.Create(repository, drafts, settings, analysis, lifetime);
         _createdGitIndices.Add(services.GitRepos);
 
         var context = new QuickShellPageContext(
@@ -398,7 +409,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
             new CreateShortcutCommand(() => { }, services),
             () => { });
         var page = new QuickShellPage(context);
-        return (context, page);
+        return new PageHarness(provider, page, services, settings, lifetime);
     }
 
     private static List<TerminalShortcut> BuildWorkspaces(string configDir, int count, bool includeMixedShapes)
@@ -423,7 +434,8 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         }
 
         // WSL/UNC-style rows are structurally present but never probed for existence during
-        // list construction (see CriticalPathContractTests.FirstListConstruction_WslAndUncPaths).
+        // list construction (see
+        // CriticalPathContractTests.FirstListConstruction_WslAndUncPaths_DoesNotSynchronouslyProbeDirectoryExistence).
         shortcuts.Add(new TerminalShortcut
         {
             Id = "ws-wsl",
@@ -447,14 +459,6 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         return shortcuts;
     }
 
-    private static IProjectAnalysisService BuildProjectAnalysisService()
-    {
-        var collection = new ServiceCollection();
-        collection.AddQuickShellCore();
-        var provider = collection.BuildServiceProvider();
-        return provider.GetRequiredService<IProjectAnalysisService>();
-    }
-
     private void DrainAllGitActivity()
     {
         var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -475,6 +479,39 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
             var dir = Path.Combine(root, "group-" + (i % 5), "project-" + i);
             Directory.CreateDirectory(dir);
             Directory.CreateDirectory(Path.Combine(dir, ".git"));
+        }
+    }
+
+    private sealed class PageHarness : IDisposable
+    {
+        private readonly ServiceProvider _provider;
+
+        public PageHarness(
+            ServiceProvider provider,
+            QuickShellPage page,
+            QuickShellServices services,
+            QuickShellSettingsManager settings,
+            IQuickShellLifetime lifetime)
+        {
+            _provider = provider;
+            Page = page;
+            Services = services;
+            Settings = settings;
+            Lifetime = lifetime;
+        }
+
+        public QuickShellPage Page { get; }
+
+        public QuickShellServices Services { get; }
+
+        public QuickShellSettingsManager Settings { get; }
+
+        public IQuickShellLifetime Lifetime { get; }
+
+        public void Dispose()
+        {
+            Page.Dispose();
+            _provider.Dispose();
         }
     }
 }

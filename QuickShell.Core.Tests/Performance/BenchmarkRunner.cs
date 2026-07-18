@@ -34,16 +34,10 @@ internal static class BenchmarkRunner
         Func<IReadOnlyDictionary<string, long>>? countersAfter = null)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (iterations < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(iterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(iterations, 1);
 
         // Untimed warm-up: JIT, first-call caching, etc. must not skew the samples.
         action();
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
 
         var samplesMs = new double[iterations];
         var allocatedBytes = new long[iterations];

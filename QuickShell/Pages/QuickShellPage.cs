@@ -42,6 +42,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _cachedPageActionsCanUndo;
     private bool _cachedPageActionsCanRedo;
 
+    internal static Action<Action>? DirectoryRepairProbeSchedulerOverride { get; set; }
+
     public QuickShellPage(QuickShellPageContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -733,7 +735,15 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         if (_directoryRepairChecks.TryAdd(key, 0))
         {
-            _ = Task.Run(() => ProbeDirectoryRepairState(shortcut, key));
+            Action probe = () => ProbeDirectoryRepairState(shortcut, key);
+            if (DirectoryRepairProbeSchedulerOverride is { } scheduleOverride)
+            {
+                scheduleOverride(probe);
+            }
+            else
+            {
+                _ = Task.Run(probe);
+            }
         }
 
         return false;
