@@ -315,6 +315,15 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         foreach (var launch in enabled)
         {
             var launchShortcut = ShortcutLaunchNormalization.ToLaunchShortcut(launch, shortcut);
+            if (!ShortcutValidation.TryNormalizeDirectory(
+                    launchShortcut.Directory,
+                    out var normalizedDirectory,
+                    out var directoryError))
+            {
+                throw new InvalidOperationException(directoryError);
+            }
+
+            launchShortcut.Directory = normalizedDirectory;
             var target = TerminalCatalog.ResolveForShortcut(launchShortcut, effectiveTerminalApplicationId, defaultProfileId);
             var resolved = new ResolvedLaunch(launchShortcut, target);
             var effectiveElevation = !options.RunAsStandard && (options.RunAsAdmin || launch.RunAsAdmin);

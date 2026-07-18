@@ -267,6 +267,39 @@ public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
     }
 
     [Fact]
+    public void CachedPlan_UsesNormalizedLaunchDirectory()
+    {
+        var root = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var child = Path.Join(root, "child");
+        Directory.CreateDirectory(child);
+
+        try
+        {
+            var rawDirectory = Path.Join(child, "..");
+            var normalizedDirectory = Path.GetFullPath(rawDirectory);
+            var shortcut = CreateShortcut(s => s.Directory = rawDirectory);
+            var (executor, _, starter) = CreateExecutor(shortcut);
+
+            var first = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
+            var second = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
+
+            Assert.True(first.Dismiss, first.StayOpenMessage);
+            Assert.True(second.Dismiss, second.StayOpenMessage);
+            Assert.Equal(1, CacheHitCount(second));
+            Assert.Equal(2, starter.Started.Count);
+            Assert.All(starter.Started, start =>
+            {
+                Assert.Contains(normalizedDirectory, start.Arguments, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("..", start.Arguments, StringComparison.Ordinal);
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void GitState_NotCached()
     {
         var shortcut = CreateShortcut();
