@@ -80,7 +80,7 @@ public sealed class WorkspaceSecurityPolicyTests
     {
         using var repository = CreateRepository();
         repository.Upsert(CreateWorkspace());
-        var importPath = Path.Combine(repository.ConfigDirectory, "import.json");
+        var importPath = Path.Join(repository.ConfigDirectory, "import.json");
         var imported = CreateWorkspace();
         imported.Id = "imported-workspace";
         imported.Name = "Imported";
