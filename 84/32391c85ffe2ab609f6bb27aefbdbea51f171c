@@ -1,0 +1,37 @@
+QuickShell.Core.Tests/WorkspaceRowEnrichmentCoordinatorTests.cs
+  s_ceda2a0e846368::t_3b7723ec0ae7ed 52,59,81,84,86-89,91,93-94,97-98,102-121,126,130,134,143,146-147,149,157-201,206,210,213,230,235-236,249,256-257
+QuickShell.Core.Tests/WorkspaceRowPresentationCacheTests.cs
+  s_ceda2a0e846368::t_33b807c4a7cce8 93-107
+QuickShell.Core/Services/WorkspaceRowPresentationCache.cs
+  s_ceda2a0e846368::t_ecf554e0ccc542 79-96
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_ceda2a0e846368::t_e76a08a3f27d6b 140,142,178-180,187
+QuickShell/Pages/QuickShellPage.cs
+  s_da2fe96a63da9d::t_0791c163272808 32,422-424,613-620,642-645
+QuickShell/Services/WorkspaceRowEnrichmentCoordinator.cs
+  s_ceda2a0e846368::t_42432f502351e9 11,13,22-26,29-52,66-67,69,73,75,78-83,93-95,101-102,104-107,119-120,123,128,130-144,148-155,164,195,199,201-202,206,211,215-216,218-227,230-237,243,245-246,248-252,254-255,257-260,262-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "8432391c85ffe2ab609f6bb27aefbdbea51f171c",
+  "prompts": {},
+  "sessions": {
+    "s_ceda2a0e846368": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a610b5d6-051f-4c80-9b8d-f80351b6658c",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_da2fe96a63da9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73df-18c0-7f93-8470-eec7711f2370",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
