@@ -15,7 +15,7 @@ internal sealed partial class ShortcutDetailsFormPage : ContentPage
         Action<TerminalShortcut> onChanged,
         IWorkspaceGitOperations gitOperations)
     {
-        Id = $"com.quickshell.shortcut.details.{Guid.NewGuid():N}";
+        Id = CommandDescriptor.ShortcutDetailsPageId();
         Icon = new IconInfo("\uE70F");
         Title = Strings.ShortcutDetails_PageTitle;
         Name = Strings.ShortcutDetails_PageName;

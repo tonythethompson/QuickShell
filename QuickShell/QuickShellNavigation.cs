@@ -6,7 +6,7 @@ namespace QuickShell;
 
 internal static class QuickShellNavigation
 {
-    public const string HomePageId = "com.quickshell.home";
+    public const string HomePageId = CommandDescriptor.HomePageId;
 
     public static CommandResult ReturnHome(string? toastMessage = null)
     {
