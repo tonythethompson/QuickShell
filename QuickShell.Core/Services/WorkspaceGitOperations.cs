@@ -64,14 +64,22 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
     }
 
     public bool TryGetStatus(string directory, out WorkspaceGitStatus status) =>
-        TryGetStatus(directory, GitProbeTimeoutMs, out status);
+        TryGetStatus(directory, GitProbeTimeoutMs, out status, out _);
 
-    public bool TryGetStatusForLaunch(string directory, out WorkspaceGitStatus status) =>
-        TryGetStatus(directory, GitLaunchStatusTimeoutMs, out status);
+    public bool TryGetStatusForLaunch(
+        string directory,
+        out WorkspaceGitStatus status,
+        out bool timedOut) =>
+        TryGetStatus(directory, GitLaunchStatusTimeoutMs, out status, out timedOut);
 
-    private bool TryGetStatus(string directory, int timeoutMs, out WorkspaceGitStatus status)
+    private bool TryGetStatus(
+        string directory,
+        int timeoutMs,
+        out WorkspaceGitStatus status,
+        out bool timedOut)
     {
         status = null!;
+        timedOut = false;
 
         if (_getStatus is { } statusOverride)
         {
@@ -94,6 +102,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             directory,
             ["status", "--porcelain=v2", "--branch"],
             timeoutMs);
+        timedOut = result.TimedOut;
         if (!result.Succeeded)
         {
             return false;
