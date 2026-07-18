@@ -64,7 +64,8 @@ internal static class ShortcutListItems
                         includeEdit,
                         moveVisibility,
                         onFavoritesReordered: onFavoritesReordered,
-                        includePageCommands: true);
+                        includePageCommands: true,
+                        needsRepair: needsRepair);
         }
 
         return item;

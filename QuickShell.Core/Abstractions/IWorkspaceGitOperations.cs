@@ -8,6 +8,11 @@ internal interface IWorkspaceGitOperations
 
     bool TryGetStatus(string directory, out WorkspaceGitStatus status);
 
+    bool TryGetStatusForLaunch(
+        string directory,
+        out WorkspaceGitStatus status,
+        out bool timedOut);
+
     IReadOnlyList<string> ListLocalBranches(string directory);
 
     bool TrySwitchBranch(string directory, string branch, out string? error);

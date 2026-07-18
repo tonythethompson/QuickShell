@@ -17,6 +17,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
 {
     private const int GitProbeTimeoutMs = 1000;
     private const int GitEvaluationTimeoutMs = 2000;
+    private const int GitLaunchStatusTimeoutMs = 3000;
     private const int GitSwitchTimeoutMs = 3000;
 
     private readonly Func<string, IReadOnlyList<string>, GitCommandResult>? _runGit;
@@ -62,9 +63,23 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         return TryNormalizeWorktreeKey(topLevel.StandardOutput.Trim(), out worktreeKey);
     }
 
-    public bool TryGetStatus(string directory, out WorkspaceGitStatus status)
+    public bool TryGetStatus(string directory, out WorkspaceGitStatus status) =>
+        TryGetStatus(directory, GitProbeTimeoutMs, out status, out _);
+
+    public bool TryGetStatusForLaunch(
+        string directory,
+        out WorkspaceGitStatus status,
+        out bool timedOut) =>
+        TryGetStatus(directory, GitLaunchStatusTimeoutMs, out status, out timedOut);
+
+    private bool TryGetStatus(
+        string directory,
+        int timeoutMs,
+        out WorkspaceGitStatus status,
+        out bool timedOut)
     {
         status = null!;
+        timedOut = false;
 
         if (_getStatus is { } statusOverride)
         {
@@ -86,7 +101,8 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         var result = RunGit(
             directory,
             ["status", "--porcelain=v2", "--branch"],
-            GitProbeTimeoutMs);
+            timeoutMs);
+        timedOut = result.TimedOut;
         if (!result.Succeeded)
         {
             return false;
@@ -101,7 +117,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         return true;
     }
 
-    private static WorkspaceGitStatus? ParsePorcelainV2Status(string output)
+    internal static WorkspaceGitStatus? ParsePorcelainV2Status(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {
