@@ -1,0 +1,24 @@
+QuickShell/Pages/QuickShellPage.cs
+  s_4435bbf1ef89bd::t_ee1cf3287c6025 34
+  s_4435bbf1ef89bd::t_f7eb3dcb53a91e 136-149,469-473,540-557
+QuickShell.Core.Tests/GitRepoIndexCacheTests.cs
+  s_4435bbf1ef89bd::t_951844fe0c0702 301-335
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_4435bbf1ef89bd::t_4e5fdf575227c1 147,169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c16033a83d2d7a196a33a59e0a959640596946c5",
+  "prompts": {},
+  "sessions": {
+    "s_4435bbf1ef89bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e59eeaad-3624-4f52-8fcf-d1310c48026f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
