@@ -1,0 +1,29 @@
+QuickShell.Core.Tests/ShortcutLaunchExecutorCacheTests.cs
+  s_30807b1652269c::t_51190d72890837 269-301
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_952c40e81e3519::t_099a7808ba7624 318-326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "d3ea7da08325883d3cf4f271eaecaaa882896c69",
+  "prompts": {},
+  "sessions": {
+    "s_30807b1652269c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ce01a96b-70bf-41b8-902e-dcb014a5b498",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_952c40e81e3519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7331ad8-6b10-4aa9-b924-7494aac13226",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
