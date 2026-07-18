@@ -1,0 +1,68 @@
+QuickShell.Core.Tests/QuickShellSettingsLaunchTests.cs
+  s_4435bbf1ef89bd::t_eaec82cbaabee5 1-36,38-73,75-158
+  s_4435bbf1ef89bd::t_21bec40a46ea2e 37,74
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_4435bbf1ef89bd::t_9a578edf4b1afe 18,22,32-36,46-53,55-57,62-63,66
+  s_4435bbf1ef89bd::t_8144cff7bdf272 54
+  s_350ae2edc84263::t_499e5f59b6bdc1 58-61,64-65,67-70,147,180,202,278-279,285,308,345-347,351,371,380,382,385-388,396-397,418,422,434,457,557
+QuickShell/QuickShellSettingsManager.cs
+  s_4435bbf1ef89bd::t_0443f9e7e2e407 24-28,64,68-69,74-76
+  s_4435bbf1ef89bd::t_96aa667ba7b2c9 56-63,65-67,70,73,219,226
+  s_4435bbf1ef89bd::t_00d829f5793f71 218
+  s_4435bbf1ef89bd::t_d5a5ab70106e02 220-225
+  s_4435bbf1ef89bd::t_d6258ad0ef4fac 227
+  s_4435bbf1ef89bd::t_b5338f52c369bc 230-239,272-281,291-299,301-304,306-317,323,332-333,337,354,362,379,385
+QuickShell/Services/QuickShellJsonSettingsStore.cs
+  s_4435bbf1ef89bd::t_d4caa8bd798f78 8
+  s_da2fe96a63da9d::t_e84dc1536913af 10-17
+QuickShell.Core.Tests/StartupWarmupCoordinatorTests.cs
+  s_4435bbf1ef89bd::t_e1680e2b47df40 216-264
+QuickShell/Commands/OpenShortcutLaunchCommand.cs
+  s_3eadce20a854ab::t_0238baa1a2a42c 51,55-56
+QuickShell/Services/StartupWarmupCoordinator.cs
+  s_4435bbf1ef89bd::t_054985f4277aaf 43,60,62-65,67,69-72,74-75,77-78,80-82,111,120,130,162,164,166-173,179,196,198
+QuickShell.Core.Tests/GitRepoIndexCacheTests.cs
+  s_da2fe96a63da9d::t_d66e8714e0a620 226-300
+QuickShell/Commands/OpenTerminalShortcutCommand.cs
+  s_da2fe96a63da9d::t_8da6e33edfe30b 55,58-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "fd7e26917994e4e41d53e53f9913c08f9073225c",
+  "prompts": {},
+  "sessions": {
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_3eadce20a854ab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ca0fdfee-7030-4fa0-8a32-77498fadac97",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_4435bbf1ef89bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e59eeaad-3624-4f52-8fcf-d1310c48026f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_da2fe96a63da9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73df-18c0-7f93-8470-eec7711f2370",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
