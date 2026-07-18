@@ -172,6 +172,19 @@ public sealed class RootPaletteSearchTests : IDisposable
         Assert.Equal(2, repository.GetSnapshotCallCount);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("Quick Shell")]
+    public void UpdateQuery_SuppressedQueriesDoNotAcquireSnapshot(string query)
+    {
+        var repository = new FakeShortcutRepository([CreateWorkspace("Alpha", MakeDirectory("alpha"))]);
+        var fallback = CreateFallback(repository, new FakeGitRepoIndex());
+
+        fallback.UpdateQuery(query);
+
+        Assert.Equal(0, repository.GetSnapshotCallCount);
+    }
+
     [Fact]
     public void UpdateQuery_SingleTaskAction_RoutesDirectly()
     {
@@ -272,7 +285,7 @@ public sealed class RootPaletteSearchTests : IDisposable
         var temp = Path.Join(_configDirectory, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temp);
         var repository = new ShortcutRepository(temp);
-        var directory = Path.Combine(temp, "alpha");
+        var directory = Path.Join(temp, "alpha");
         Directory.CreateDirectory(directory);
         repository.Upsert(CreateWorkspace("Alpha", directory));
 

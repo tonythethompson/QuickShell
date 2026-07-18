@@ -44,6 +44,12 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         _lastQuery = querySnapshot;
         var generation = Interlocked.Increment(ref _queryGeneration);
 
+        if (ShouldSuppress(querySnapshot))
+        {
+            ClearResult();
+            return;
+        }
+
         try
         {
             var snapshot = _context.Services.Shortcuts.GetSnapshot();
@@ -209,4 +215,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             _listPage.Value.ClearResults();
         }
     }
+
+    private static bool ShouldSuppress(string query) =>
+        string.IsNullOrWhiteSpace(query) ||
+        query.Contains("quick shell", StringComparison.OrdinalIgnoreCase);
 }
