@@ -1,0 +1,21 @@
+QuickShell.Raycast/package.json
+  s_1469586a92bcee::t_933fc17c1a5a14 10
+docs/_layouts/default.html
+  s_1469586a92bcee::t_f325c977b85bb1 125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "1db3fe7c76aab1a35320d72f648de145dadbd77d",
+  "prompts": {},
+  "sessions": {
+    "s_1469586a92bcee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "799ef689-a261-411c-8293-4094caa988b0",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
