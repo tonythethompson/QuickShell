@@ -1,0 +1,21 @@
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_350ae2edc84263::t_3e1b9af821d8e8 1,9,52,83-108,110-159
+docs/architecture/deep-link-schema.md
+  s_350ae2edc84263::t_93971f06646ebb 35-44,56-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6cacf4e016bdfd57a90d38f3ffe5d4ad6f450d10",
+  "prompts": {},
+  "sessions": {
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
