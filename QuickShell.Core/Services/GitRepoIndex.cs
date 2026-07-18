@@ -103,7 +103,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             return [];
         }
 
-        var rootKey = BuildRootKey(SnapshotRoots(searchRoots));
+        var rootKey = BuildRootKey(SnapshotRoots(searchRoots), includeDefaultSearchRoots: true);
         EnsureFresh(searchRoots, includeDefaultSearchRoots: true, cancellationToken: cancellationToken);
         savedDirectories ??= EmptySet.Instance;
 
@@ -145,7 +145,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
     {
         ThrowIfDisposed();
 
-        var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
+        var rootKey = BuildRootKey(SnapshotRoots(extraRoots), includeDefaultSearchRoots: true);
         EnsureFresh(extraRoots, includeDefaultSearchRoots: true, cancellationToken: cancellationToken);
         return GetCacheForRootKey(rootKey);
     }
@@ -328,7 +328,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         CancellationToken cancellationToken = default)
     {
         var rootSnapshot = SnapshotRoots(extraRoots);
-        var rootKey = BuildRootKey(rootSnapshot);
+        var rootKey = BuildRootKey(rootSnapshot, includeDefaultSearchRoots);
 
         lock (_sync)
         {
@@ -469,8 +469,10 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             .ToArray()
         ?? [];
 
-    internal static string BuildRootKey(IEnumerable<string> roots) =>
-        string.Join('\n', roots);
+    internal static string BuildRootKey(
+        IEnumerable<string> roots,
+        bool includeDefaultSearchRoots = true) =>
+        $"{(includeDefaultSearchRoots ? "full" : "saved")}\n{string.Join('\n', roots)}";
 
     private void WithLock(Action action)
     {

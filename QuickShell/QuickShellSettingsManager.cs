@@ -21,6 +21,7 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _recentWorkspaceCountSetting;
     private readonly TextSetting _blockDirtyBranchSwitchSetting;
     private readonly TextSetting _multiLaunchPresentationSetting;
+    private readonly object _terminalDefaultsSync = new();
     private Pages.QuickShellExtensionSettingsPage? _settingsPage;
     private readonly Action? _onReload;
     private IQuickShellServices _quickShellServices = null!;
@@ -181,6 +182,20 @@ internal sealed class QuickShellSettingsManager
     public string DefaultProfileId =>
         NormalizeStoredDefaultProfile(_settings.GetSetting<string>(DefaultProfileSettingId));
 
+    /// <summary>
+    /// Validates terminal defaults at the point they are consumed for a launch. This keeps
+    /// provider construction off terminal discovery while still recovering from stale hosts.
+    /// </summary>
+    internal (string TerminalApplicationId, string DefaultProfileId) GetValidatedTerminalDefaults()
+    {
+        lock (_terminalDefaultsSync)
+        {
+            var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+            var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
+            return (app, profile);
+        }
+    }
+
     public int RecentWorkspaceCount => ReadRecentWorkspaceCount();
 
     public bool BlockDirtyBranchSwitch => ReadBlockDirtyBranchSwitch();
@@ -192,10 +207,13 @@ internal sealed class QuickShellSettingsManager
     {
         app = EnsureValidTerminalApplication(app);
         profile = EnsureValidDefaultProfile(app, profile);
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        SyncDefaultProfileChoices();
-        PersistSettings();
+        lock (_terminalDefaultsSync)
+        {
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
+            _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
+            SyncDefaultProfileChoices();
+            PersistSettings();
+        }
     }
 
     internal void UpdateRecentWorkspaceCount(int count)
@@ -243,14 +261,17 @@ internal sealed class QuickShellSettingsManager
     /// </summary>
     internal void PrewarmTerminalCatalog()
     {
-        var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
-        var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
-
+        // Populate the expensive catalog before entering the settings-update critical section.
         _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(app);
-
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-        _settingsStore.SaveSettings();
+        lock (_terminalDefaultsSync)
+        {
+            // Re-read after discovery so a settings edit made while warming is never overwritten.
+            var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+            var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
+            _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(app);
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
+            _settingsStore.SaveSettings();
+        }
     }
 
     private void SyncDefaultProfileChoices()
@@ -298,8 +319,6 @@ internal sealed class QuickShellSettingsManager
 
         // For unknown IDs, return the trimmed original unchanged
         return trimmed;
-
-        return normalized;
     }
 
     private static string EnsureValidTerminalApplication(string? value)
