@@ -74,9 +74,7 @@ internal sealed class QuickShellSettingsManager
         _hasTerminalApplication = hasTerminalApplication ?? TerminalCatalog.HasTerminalApplication;
         _getTerminalApplicationChoices = getTerminalApplicationChoices ?? TerminalCatalogChoices.GetTerminalApplicationChoices;
         _getDefaultProfileChoices = getDefaultProfileChoices ?? TerminalCatalogChoices.GetDefaultProfileChoices;
-        // #region agent log
-        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
-        // #endregion
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start");
 
         _settings = _settingsStore.Settings;
 
@@ -130,13 +128,10 @@ internal sealed class QuickShellSettingsManager
         _settings.Add(_multiLaunchPresentationSetting);
         _settingsStore.LoadSettings();
 
-        // #region agent log
         SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
             "after LoadSettings",
-            new { settingsPath = _settingsStore.FilePath, exists = File.Exists(_settingsStore.FilePath) },
-            hypothesisId: "A");
-        // #endregion
+            new { exists = File.Exists(_settingsStore.FilePath) });
 
         var usedLegacyDefaults = false;
         var initialApp = _settings.GetSetting<string>(TerminalApplicationSettingId);
@@ -158,22 +153,17 @@ internal sealed class QuickShellSettingsManager
 
         // Terminal/profile catalog choices and final validation are deferred to the
         // staged startup coordinator so provider construction stays off the hot path.
-        // #region agent log
         SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
             "terminal defaults deferred",
-            new { initialApp, initialProfile },
-            hypothesisId: "C");
-        // #endregion
+            new { initialApp, initialProfile });
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
         {
             _settingsStore.SaveSettings();
         }
 
-        // #region agent log
-        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "complete", hypothesisId: "A");
-        // #endregion
+        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "complete");
     }
 
     public event EventHandler? SettingsChanged;

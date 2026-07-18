@@ -46,6 +46,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _cachedPageActionsCanUndo;
     private bool _cachedPageActionsCanRedo;
 
+    internal static Action<Action>? DirectoryRepairProbeSchedulerOverride { get; set; }
+
     public QuickShellPage(QuickShellPageContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -390,7 +392,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _query = normalizedQuery;
         }
 
-        // #region agent log
         var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         SupportDiagnostics.Write(
             "QuickShellPage.cs:RefreshItems",
@@ -401,10 +402,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 notifyHost,
                 startedUtc = refreshStartedUtc,
                 unpinnedCache = _unpinnedItemCache.Count,
-            },
-            runId: "post-fix",
-            hypothesisId: "D");
-        // #endregion
+            });
 
         try
         {
@@ -511,17 +509,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                     notifyHost,
                     unpinnedCache = _unpinnedItemCache.Count,
                     elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - refreshStartedUtc,
-                },
-                runId: "post-form",
-                hypothesisId: "D");
-            // #endregion
+                });
             }
         }
         catch (Exception ex)
         {
-            // #region agent log
-            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex, hypothesisId: "D", runId: "post-form");
-            // #endregion
+            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex);
 
             var items = new List<IListItem>();
             items.AddRange(GetOrBuildPageActions(_cachedPageActionsCanUndo, _cachedPageActionsCanRedo));
@@ -750,7 +743,15 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         if (_directoryRepairChecks.TryAdd(key, 0))
         {
-            _ = Task.Run(() => ProbeDirectoryRepairState(shortcut, key));
+            Action probe = () => ProbeDirectoryRepairState(shortcut, key);
+            if (DirectoryRepairProbeSchedulerOverride is { } scheduleOverride)
+            {
+                scheduleOverride(probe);
+            }
+            else
+            {
+                _ = Task.Run(probe);
+            }
         }
 
         return false;
