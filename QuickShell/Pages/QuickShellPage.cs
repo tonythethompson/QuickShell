@@ -32,6 +32,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _forceQueryRefresh;
     private bool _disposed;
 
+    private IListItem[]? _cachedPageActions;
+    private bool _cachedPageActionsCanUndo;
+    private bool _cachedPageActionsCanRedo;
+
     public QuickShellPage(QuickShellPageContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -373,20 +377,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             using (StartupPerformanceTrace.Measure("CmdPal home list refresh"))
             {
             // One repository snapshot for the whole refresh — helpers must not re-query.
-            var allShortcuts = _services.Shortcuts.GetShortcuts();
+            var snapshot = _services.Shortcuts.GetSnapshot();
+            var allShortcuts = snapshot.Shortcuts;
             PruneUnpinnedItemCache(allShortcuts);
             var pinnedInOrder = BuildPinnedInOrder(allShortcuts);
 
             var items = new List<IListItem>(capacity: Math.Max(16, allShortcuts.Count + 8));
-            foreach (var action in QuickShellPageActions.BuildItems(_context))
+            foreach (var action in GetOrBuildPageActions(snapshot.CanUndo, snapshot.CanRedo))
             {
                 items.Add(action);
             }
 
             if (string.IsNullOrWhiteSpace(normalizedQuery))
             {
-                var layout = _services.Shortcuts.GetLayout();
-                foreach (var item in BuildHomeLayoutItems(layout, allShortcuts, pinnedInOrder))
+                foreach (var item in BuildHomeLayoutItems(snapshot.Layout, allShortcuts, pinnedInOrder))
                 {
                     items.Add(item);
                 }
@@ -396,13 +400,13 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 // Search results: do not reuse home-cache rows (different ordering / set).
                 _unpinnedItemCache.Clear();
                 var anyMatch = false;
-                foreach (var taskAction in _services.Shortcuts.SearchTaskActions(normalizedQuery))
+                foreach (var taskAction in snapshot.SearchTaskActions(normalizedQuery))
                 {
                     anyMatch = true;
                     items.Add(ShortcutTaskActionListItems.Create(_context, taskAction, Reload));
                 }
 
-                foreach (var shortcut in _services.Shortcuts.Search(normalizedQuery))
+                foreach (var shortcut in snapshot.Search(normalizedQuery))
                 {
                     anyMatch = true;
                     items.Add(BuildShortcutItem(shortcut, pinnedInOrder));
@@ -455,7 +459,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             // #endregion
 
             var items = new List<IListItem>();
-            items.AddRange(QuickShellPageActions.BuildItems(_context));
+            items.AddRange(GetOrBuildPageActions(_cachedPageActionsCanUndo, _cachedPageActionsCanRedo));
             items.Add(CreateStatusItem(
                 "Could not load workspaces",
                 string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message));
@@ -494,6 +498,21 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 RefreshItems(queuedQuery, notifyHost: true);
             }
         }
+    }
+
+    private IListItem[] GetOrBuildPageActions(bool canUndo, bool canRedo)
+    {
+        if (_cachedPageActions is not null
+            && _cachedPageActionsCanUndo == canUndo
+            && _cachedPageActionsCanRedo == canRedo)
+        {
+            return _cachedPageActions;
+        }
+
+        _cachedPageActions = QuickShellPageActions.BuildItems(_context).ToArray();
+        _cachedPageActionsCanUndo = canUndo;
+        _cachedPageActionsCanRedo = canRedo;
+        return _cachedPageActions;
     }
 
     private ListItem BuildShortcutItem(

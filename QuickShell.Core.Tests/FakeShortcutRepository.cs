@@ -35,6 +35,9 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public IReadOnlyList<ShortcutLayoutEntry> GetLayout() => [];
 
+    public WorkspaceRepositorySnapshot GetSnapshot() =>
+        new(0, GetShortcuts(), GetLayout());
+
     public TerminalShortcut? GetByName(string name) =>
         _byName.TryGetValue(name, out var shortcut) ? shortcut : null;
 

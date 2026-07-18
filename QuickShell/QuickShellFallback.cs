@@ -45,7 +45,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
 
         try
         {
-            var taskActions = _context.Services.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
+            var snapshot = _context.Services.Shortcuts.GetSnapshot();
+            var taskActions = snapshot.SearchTaskActions(_lastQuery).ToArray();
             if (taskActions.Length > 0)
             {
                 if (taskActions.Length == 1)
@@ -60,7 +61,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
                 return;
             }
 
-            var shortcuts = _context.Services.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
+            var shortcuts = snapshot.SearchForRootPalette(_lastQuery).ToArray();
             if (shortcuts.Length > 0)
             {
                 var listPage = _listPage.Value;
@@ -76,7 +77,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
                 return;
             }
 
-            var allShortcuts = _context.Services.Shortcuts.GetShortcuts();
+            var allShortcuts = snapshot.Shortcuts;
             var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts).ToList();
             var savedDirectories = allShortcuts
                 .Select(shortcut => shortcut.Directory)

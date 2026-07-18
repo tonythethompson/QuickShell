@@ -58,8 +58,16 @@ internal sealed class WorkspaceGitLaunchGate
         bool blockDirtyBranchSwitch,
         bool persistTargetOnFailure)
     {
-        if (!_git.TryGetStatusForLaunch(directory, out var status))
+        if (!_git.TryGetStatusForLaunch(directory, out var status, out var timedOut))
         {
+            if (timedOut)
+            {
+                return WorkspaceGitLaunchGateResult.StayOpen(
+                    persistTargetOnFailure
+                        ? $"Target set to {target}, but Git status timed out before the branch could be checked."
+                        : "Git status timed out before the configured branch target could be checked.");
+            }
+
             return WorkspaceGitLaunchGateResult.StayOpen(
                 persistTargetOnFailure
                     ? $"Target set to {target}, but this folder is not a git repository."
