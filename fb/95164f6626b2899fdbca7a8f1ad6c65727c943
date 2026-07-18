@@ -1,0 +1,40 @@
+QuickShell.Core.Tests/ShortcutListItemsTests.cs
+  s_d711731c0f8875::t_ec7a2210a0acf7 58
+  s_d711731c0f8875::t_a81c925d34ebee 3-57,59,61-68
+  s_d711731c0f8875::t_14cf6c5d825bd0 1,60
+  s_d711731c0f8875::t_1758396690b25b 2
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_350ae2edc84263::t_2f441aa2ab7d92 61,63-70
+QuickShell.Core.Tests/WorktreeBranchTests.cs
+  s_d711731c0f8875::t_40f96ba09b4884 185-203,467-468,478,496-497,598-599
+QuickShell.Core/Abstractions/IWorkspaceGitOperations.cs
+  s_d711731c0f8875::t_67232874858529 11-14
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_d711731c0f8875::t_3c98a7d66d85f6 67-79,82,105
+QuickShell/Services/ShortcutListItems.cs
+  s_d711731c0f8875::t_bf4789985cc1b1 66-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "fb95164f6626b2899fdbca7a8f1ad6c65727c943",
+  "prompts": {},
+  "sessions": {
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_d711731c0f8875": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "018e7e29-8252-461f-aeb1-c0d609aa7989",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
