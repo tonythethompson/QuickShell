@@ -1,0 +1,48 @@
+QuickShell.Core/Services/ShortcutFormCatalogPrewarm.cs
+  s_30807b1652269c::t_425eb75ff90e94 3
+  s_30807b1652269c::t_d8467a17680b9a 14-16,18-19,34-38,43
+QuickShell.Core.Tests/StartupWarmupCoordinatorTests.cs
+  s_30807b1652269c::t_7bae2e286ed2cd 216-248
+QuickShell/Services/StartupWarmupStages.cs
+  s_30807b1652269c::t_b68ba2b7910a35 83-85
+QuickShell.Core.Tests/FakeGitRepoIndex.cs
+  s_30807b1652269c::t_a84ba84a7009b5 1-77
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_30807b1652269c::t_9bd4901da61156 46-52
+QuickShell.Core.Tests/RootPaletteSearchTests.cs
+  s_30807b1652269c::t_fff862b9d52ba3 1-546
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_30807b1652269c::t_ee32a43facc842 7,156-170
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_30807b1652269c::t_5611b049d9c8b7 18-32
+QuickShell.Core/Services/RootPaletteSearchIndex.cs
+  s_30807b1652269c::t_daefcb6d586018 1-449
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_30807b1652269c::t_a982bab4ef9738 14
+QuickShell.Core/Services/WorkspaceRepositorySnapshot.cs
+  s_30807b1652269c::t_2b208a77037975 2,38-41
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_30807b1652269c::t_c3796036a16bc1 19-20,38,48,92-93
+QuickShell/Pages/QuickShellPage.cs
+  s_30807b1652269c::t_c1cf3032e53722 6,26-29,148-152,186-189,561,577-578,599,634-635,637,699-787
+QuickShell/QuickShellFallback.cs
+  s_30807b1652269c::t_f56ad9332ce728 7,20,22-24,43-45,47,56-57,59,61-62,65,68-69,74,80-83,85,87-128,131,133,140-141,166,168-169,175,177,184-185,218-221
+QuickShell/Services/ShortcutListItems.cs
+  s_30807b1652269c::t_e4d9f053b42f23 18-19,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "345e0cd6a2b8c36c8460ce2e0c394a0b398388db",
+  "prompts": {},
+  "sessions": {
+    "s_30807b1652269c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ce01a96b-70bf-41b8-902e-dcb014a5b498",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
