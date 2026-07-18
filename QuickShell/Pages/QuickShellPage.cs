@@ -710,17 +710,26 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 return;
             }
 
+            // Only rebuild the home list when the probe flips the visible
+            // repair state. A healthy probe that confirms an already-healthy
+            // (or already-known-bad) directory does not need a full rebuild
+            // and would otherwise raise ItemsChanged N times for N shortcuts.
+            var stateChanged = !_directoryRepairStates.TryGetValue(key, out var previous)
+                || previous != needsRepair;
             _directoryRepairStates[key] = needsRepair;
             // Drop the in-flight marker so a later refresh (e.g. a previously
             // offline drive coming back) can schedule another probe instead of
             // returning the stale cached state forever.
             _directoryRepairChecks.TryRemove(key, out _);
-            if (!string.IsNullOrWhiteSpace(shortcut.Id))
+            if (stateChanged && !string.IsNullOrWhiteSpace(shortcut.Id))
             {
                 _unpinnedItemCache.Remove(shortcut.Id);
             }
 
-            Reload();
+            if (stateChanged)
+            {
+                Reload();
+            }
         });
     }
 
