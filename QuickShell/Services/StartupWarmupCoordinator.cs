@@ -134,8 +134,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                     SupportDiagnostics.Write(
                         "StartupWarmupCoordinator",
                         "stage failed",
-                        new { stage = stage.Name, exception = ex.GetType().Name, message = ex.Message },
-                        runId: "warmup");
+                        new { stage = stage.Name, exception = ex.GetType().Name });
                     continue;
                 }
             }

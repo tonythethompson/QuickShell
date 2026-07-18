@@ -14,6 +14,8 @@ internal static class ShortcutValidation
     public const int MaxCompanionAppArgumentsLength = 2048;
     public const int MaxShortcutCount = 500;
 
+    internal static Func<string, bool>? DirectoryExistsOverride { get; set; }
+
     public static bool TryValidate(TerminalShortcut shortcut, out string error) =>
         TryValidate(shortcut, requireDirectoryExists: true, out error);
 
@@ -175,6 +177,11 @@ internal static class ShortcutValidation
         if (string.IsNullOrWhiteSpace(directory))
         {
             return false;
+        }
+
+        if (DirectoryExistsOverride is { } existsOverride)
+        {
+            return existsOverride(directory);
         }
 
         if (WslPathResolver.TryParse(directory, out var wslLocation))
