@@ -42,6 +42,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private List<ShortcutLayoutEntry> _layout = [];
     private List<ShortcutLayoutEntry> _lastGoodLayout = [];
     private long _snapshotVersion;
+    private long _structuralVersion;
     private WorkspaceRepositorySnapshot _cachedSnapshot;
     private readonly Dictionary<string, TerminalShortcut> _shortcutsByName = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TerminalShortcut> _shortcutsById = new(StringComparer.OrdinalIgnoreCase);
@@ -98,7 +99,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     Array.AsReadOnly(snapshotShortcuts),
                     snapshotLayout.AsReadOnly(),
                     _undoHistory.Count > 0,
-                    _redoHistory.Count > 0);
+                    _redoHistory.Count > 0,
+                    _structuralVersion);
             }
 
             return _cachedSnapshot;
@@ -1076,7 +1078,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
 
             entry.Shortcut.LastUsedUtc = now;
-            SyncShortcutsFromLayout(_layout);
+            // Usage-only change: bump _snapshotVersion (UI staleness) but not
+            // _structuralVersion, so the launch plan cache does not thrash on
+            // every repeat launch.
+            SyncShortcutsFromLayout(_layout, bumpStructuralVersion: false);
             SchedulePersistLocked();
         });
     }
@@ -1211,6 +1216,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
 
         _snapshotVersion++;
+        _structuralVersion++;
         _layout = [];
         _shortcuts = [];
         RebuildShortcutIndexes();
@@ -1287,6 +1293,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         {
             WriteLayoutAtomic([]);
             _snapshotVersion++;
+            _structuralVersion++;
             _lastGoodLayout = [];
             _layout = [];
             _shortcuts = [];
@@ -1651,9 +1658,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         return normalized;
     }
 
-    private void SyncShortcutsFromLayout(List<ShortcutLayoutEntry> layout)
+    private void SyncShortcutsFromLayout(List<ShortcutLayoutEntry> layout, bool bumpStructuralVersion = true)
     {
         _snapshotVersion++;
+        if (bumpStructuralVersion)
+        {
+            _structuralVersion++;
+        }
+
         _shortcuts = ShortcutLayoutJson.ExtractShortcuts(layout).Select(Clone).ToArray();
         RebuildShortcutIndexes();
     }

@@ -18,14 +18,15 @@ Options injected by UI: `RunAsAdmin`, `RunAsStandard`, `BlockDirtyBranchSwitch`,
 
 ```
 ShortcutLaunchExecutor.Launch / LaunchEntry
-  1. EnsureLaunchesFromLegacy
-  2. WorkspaceHealthCheck.Check / CheckEntry     ← blocking Errors stop
-  3. Directory exists
-  4. WorkspaceGitLaunchGate                     ← target branch / dirty
-  5. CompanionAppLauncher (full workspace only) ← soft fail
-  6. Single row → TerminalLauncher.Open
-     Multi     → Resolve all → GroupPlans → OpenResolved / OpenGroup
-  7. BuildPostLaunchResult (dev server URL, warnings, dismiss/stay)
+  1. Resolve shortcut from repository and get repository version
+  2. Build or reuse resolved launch plan from `WorkspaceLaunchPlanCache`
+  3. WorkspaceHealthCheck.Check / CheckEntry     ← blocking Errors stop (always reevaluated)
+  4. Directory exists                            ← always reevaluated
+  5. WorkspaceGitLaunchGate                      ← target branch / dirty (always evaluated)
+  6. Execute plan: CompanionAppLauncher (full workspace only) ← soft fail
+  7. Execute plan: Single row → TerminalLauncher.OpenResolved
+     Multi     → OpenGroup (grouped by tab host + elevation)
+  8. BuildPostLaunchResult (dev server URL, warnings, dismiss/stay)
 ```
 
 Primary types:
@@ -34,6 +35,8 @@ Primary types:
 - `TerminalLauncher.cs` / `TerminalLauncherArgs.cs`
 - `TerminalCatalog.cs` / `TerminalHostIds.cs`
 - `WorkspaceHealthCheck.cs` / `WorkspaceGitLaunchGate.cs`
+- `WorkspaceLaunchPlanCache.cs` / `LaunchPlanCacheKey.cs`
+- `ResolvedWorkspaceLaunchPlan.cs` / `ResolvedLaunchGroup.cs` / `ResolvedLaunchPlanEntry.cs`
 
 ## Preflight
 
@@ -95,6 +98,25 @@ wt.exe  <tab0>  ; new-tab  <tab1>  ; new-tab  <tab2>
 
 Raycast mirrors grouping in `launch-grouping.ts` / `windows-launch.ts`.
 
+## Launch plan cache
+
+Deterministic plan preparation is cached so repeated launches of the same workspace avoid re-resolving terminals, profiles, and tab groups. Volatile checks (health, directory existence, git gate, companion availability, process start) are always reevaluated against the cached plan.
+
+Cache key (`LaunchPlanCacheKey`) includes:
+
+- Workspace id
+- Repository version
+- Effective terminal application id
+- Default profile id
+- `SeparateWindowsForMultiLaunch`
+- `RunAsAdmin` / `RunAsStandard`
+- Launch entry id (for `LaunchEntry`)
+- Terminal catalog fingerprint (`TerminalCatalog.GetFingerprint`)
+
+Invalidation is explicit: shortcut edits bump the repository version; terminal application / default profile / run-as / tab-mode settings change the settings fingerprint; terminal catalog changes (installed terminals, WT profiles, WSL distros) change the catalog fingerprint. The cache is bounded with LRU eviction and single-flighted so concurrent requests for the same key share one build.
+
+Instrumentation diagnostics: `PlanCacheHit`, `PlanCacheMiss`, `PlanCacheBuild`, `PlanCacheEvicted`.
+
 ## Command argv (`TerminalLauncherArgs`)
 
 | Mode | Who owns `cd` |
@@ -133,7 +155,7 @@ else partition by (tabHost, elevation)
 
 ## Tests
 
-- `ShortcutLaunchExecutorTests`, `TerminalLauncher*Tests`, `TerminalLauncherArgsTests`
+- `ShortcutLaunchExecutorTests`, `ShortcutLaunchExecutorCacheTests`, `WorkspaceLaunchPlanCacheTests`, `LaunchPlanCacheMeasurementsTests`, `TerminalLauncher*Tests`, `TerminalLauncherArgsTests`
 - Raycast: `launch-grouping.test.ts`, `windows-launch.test.ts`
 
 ## Related

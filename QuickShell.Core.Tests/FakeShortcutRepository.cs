@@ -29,6 +29,14 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public string ConfigPath => string.Empty;
 
+    public long Version { get; set; }
+
+    // Mirrors the real repository's structural-vs-usage version split (see
+    // WorkspaceRepositorySnapshot.StructuralVersion). BumpVersion() bumps both, matching
+    // existing tests that use it to represent structural changes (edit/delete/reorder);
+    // BumpUsageOnlyVersion() bumps only Version, simulating a MarkUsed-only update.
+    public long StructuralVersion { get; set; }
+
     public Task PreloadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public IReadOnlyList<TerminalShortcut> GetShortcuts() => _byId.Values.ToList();
@@ -40,14 +48,28 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public WorkspaceRepositorySnapshot GetSnapshot()
     {
         GetSnapshotCallCount++;
-        return new(0, GetShortcuts(), GetLayout());
+        return new(Version, GetShortcuts(), GetLayout(), StructuralVersion: StructuralVersion);
+    }
+
+    public void BumpVersion()
+    {
+        Version++;
+        StructuralVersion++;
+    }
+
+    public void BumpUsageOnlyVersion() => Version++;
+
+    public void Clear()
+    {
+        _byId.Clear();
+        _byName.Clear();
     }
 
     public TerminalShortcut? GetByName(string name) =>
         _byName.TryGetValue(name, out var shortcut) ? shortcut : null;
 
     public TerminalShortcut? GetById(string id) =>
-        _byId.TryGetValue(id, out var shortcut) ? shortcut : null;
+        _byId.TryGetValue(id, out var shortcut) ? ShortcutRepository.Clone(shortcut) : null;
 
     public TerminalShortcut? GetByNameReadOnly(string name) => GetByName(name);
 
