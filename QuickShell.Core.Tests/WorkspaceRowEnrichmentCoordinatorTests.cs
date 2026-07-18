@@ -202,7 +202,10 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     [Fact]
     public void Dispose_DiscardsPendingAndInFlightWork()
     {
-        using var coordinator = CreateCoordinator();
+        // A resolvable icon so Flush() actually queues an apply callback — the empty-icon
+        // default resolver used elsewhere in this file never reaches the apply path at all,
+        // which would make this test pass trivially without exercising disposal.
+        using var coordinator = CreateCoordinator(_ => "icon");
         var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var flushedItem = CreateItem();
@@ -211,9 +214,13 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         coordinator.Flush();
 
         coordinator.ScheduleIconUpgrade(CreateShortcut("ws-pending"), generation, CreateItem());
+
+        // Dispose before the queued apply callback runs: the resolved-but-unapplied "flushed"
+        // batch must be discarded at apply time, and the never-flushed "pending" row must be
+        // cancelled outright.
+        coordinator.Dispose();
         _queue.Drain();
 
-        // The already-resolved batch is discarded at apply time; the un-flushed row is cancelled.
         Assert.Same(flushedIcon, flushedItem.Icon);
         Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
         Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentCancelled));
