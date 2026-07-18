@@ -205,7 +205,11 @@ internal static class ShortcutLayoutJson
                     Revision = security.Revision <= 0 ? 1 : security.Revision,
                 };
         }
-        catch
+        catch (JsonException)
+        {
+            return new WorkspaceSecurityMetadata();
+        }
+        catch (NotSupportedException)
         {
             return new WorkspaceSecurityMetadata();
         }
