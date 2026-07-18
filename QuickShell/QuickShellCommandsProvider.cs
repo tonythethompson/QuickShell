@@ -83,7 +83,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
         DisplayName = QuickShellBrand.DisplayName;
         Icon = QuickShellBrandIcons.App;
-        Id = "com.quickshell";
+        Id = CommandDescriptor.ProviderId;
         Settings = _settingsManager.Settings;
 
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
@@ -183,6 +183,66 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         {
             _fallbackPage.Value.ClearResults();
         }
+    }
+
+    private void KickoffGitRepoIndexPrewarm()
+    {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
+        // Resolve the required services before starting the background task so we
+        // do not access the root ServiceProvider after it has been disposed.
+        var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
+        var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
+        var cancellationToken = _lifetime.CancellationToken;
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var shortcuts = shortcutRepository.GetShortcuts();
+                gitRepoIndex.Prewarm(
+                    GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
+                    cancellationToken);
+            }
+            catch
+            {
+                // Best effort; discover/create still work without the warm cache.
+            }
+        }, cancellationToken);
+    }
+
+    private void KickoffFormCatalogPrewarm()
+    {
+        if (_disposed || _lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var terminalApplicationId = _settingsManager.TerminalApplicationId;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (_disposed || _lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                FormCatalogPrewarm.Warm(terminalApplicationId);
+            }
+            catch
+            {
+                // Best effort; first form open pays cold cost instead.
+            }
+        }, _lifetime.CancellationToken);
     }
 
     public override ICommandItem? GetCommandItem(string id)
