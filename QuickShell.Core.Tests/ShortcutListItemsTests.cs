@@ -16,7 +16,7 @@ public sealed class ShortcutListItemsTests
     [Fact]
     public void CreateOpen_MissingDirectory_UsesStructuralRepairStateForAllContextMenus()
     {
-        var configDirectory = Path.Combine(
+        var configDirectory = Path.Join(
             Path.GetTempPath(),
             "qs-list-item-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(configDirectory);
@@ -46,7 +46,7 @@ public sealed class ShortcutListItemsTests
             {
                 Id = "missing",
                 Name = "Missing",
-                Directory = Path.Combine(configDirectory, "does-not-exist"),
+                Directory = Path.Join(configDirectory, "does-not-exist"),
             };
 
             var item = ShortcutListItems.CreateOpen(
