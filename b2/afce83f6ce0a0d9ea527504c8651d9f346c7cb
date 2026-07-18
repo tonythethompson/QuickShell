@@ -1,0 +1,21 @@
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_8bc16d4b4562ae::t_a0559e9a2fcb82 137
+QuickShell.Raycast/src/lib/storage.ts
+  s_8bc16d4b4562ae::t_5e1bfbbb0e1843 103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b2afce83f6ce0a0d9ea527504c8651d9f346c7cb",
+  "prompts": {},
+  "sessions": {
+    "s_8bc16d4b4562ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "91c23d30-96d5-4c33-9491-ac7d6500153a",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
