@@ -12,10 +12,10 @@ internal sealed class QuickShellJsonSettingsStore : JsonSettingsManager
     internal QuickShellJsonSettingsStore(string? configDirectory)
     {
         var directory = configDirectory
-            ?? Path.Combine(
+            ?? Path.Join(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "QuickShell");
         Directory.CreateDirectory(directory);
-        FilePath = Path.Combine(directory, "settings.json");
+        FilePath = Path.Join(directory, "settings.json");
     }
 }
