@@ -1,0 +1,57 @@
+QuickShell.Core.Tests/ShortcutRepositoryPerformanceShapeTests.cs
+  s_4cc800aa75606a::t_bdd3963b59a080 4
+  s_4cc800aa75606a::t_8819cc49dfa189 88-158,201-203,228-230,437,461
+QuickShell.Core.Tests/ShortcutLaunchExecutorTests.cs
+  s_4cc800aa75606a::t_bdd3963b59a080 13,18,125-211,213-215,217-219,221,223,228,230-232,234,238,243,247,258,272-273,383,385,387,419,421-422,424,427,435,439
+  s_4cc800aa75606a::t_f4d77bfd255e0d 212,216,220,222,224-227,229,233,235-237,239-242,244-246,248-257,259-271,274,382,384,386,388-418,420,423,425-426,428-434,436-438
+QuickShell.Core/Services/CompanionLaunchResult.cs
+  s_4cc800aa75606a::t_bdd3963b59a080 1-6
+QuickShell.Core.Tests/ShortcutListItemsTests.cs
+  s_4cc800aa75606a::t_bdd3963b59a080 1-68
+QuickShell.Core.Tests/WorkspaceGitOperationsTests.cs
+  s_4cc800aa75606a::t_bdd3963b59a080 1-93
+QuickShell.Core.Tests/CompanionAppLauncherTests.cs
+  s_4cc800aa75606a::t_c90080d9ab00cf 187,189-190,192
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_4cc800aa75606a::t_be2148edee32b8 293,302
+QuickShell.Core.Tests/WorktreeBranchTests.cs
+  s_4cc800aa75606a::t_e9c5701daf49b1 185-203,467-468,478,496-497,598-599
+QuickShell.Core/Abstractions/ICompanionAppLauncher.cs
+  s_4cc800aa75606a::t_fcc19435afa343 5-6,13-14
+QuickShell.Core/Abstractions/IWorkspaceGitOperations.cs
+  s_4cc800aa75606a::t_b3dd382043bf10 11-15
+QuickShell.Core/Services/CompanionAppLauncher.cs
+  s_4cc800aa75606a::t_9ead425a09b45d 30-36,50,55-58,63-66,71,74,81,87,90,95,98-102,104,141
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_4cc800aa75606a::t_ceedb1ac093c95 579-585
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_4cc800aa75606a::t_abf46bee1fb68a 93-100
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_4cc800aa75606a::t_8aaddb12d35352 61,63-70
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_4cc800aa75606a::t_a7f84f12fbfaea 20,66-79,82,104-105,120
+QuickShell.Core/Services/WorkspaceRepositorySnapshot.cs
+  s_4cc800aa75606a::t_8bfd0f6236919a 13-15,109-111
+QuickShell.Raycast/package.json
+  s_4cc800aa75606a::t_2c4861c1f98e1e 10
+QuickShell/Pages/QuickShellPage.cs
+  s_4cc800aa75606a::t_433e0d9b9e7cb0 393,486,527
+QuickShell/Services/ShortcutListItems.cs
+  s_4cc800aa75606a::t_c8524ab2782172 67-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "604ab48aecfbe0accb961344e1fe478527c7bb1d",
+  "prompts": {},
+  "sessions": {
+    "s_4cc800aa75606a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1c77d56b-2911-4c82-a064-a3d907d92442",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
