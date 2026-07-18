@@ -1,0 +1,60 @@
+QuickShell.Raycast/src/lib/launch-executor.ts
+  s_952c40e81e3519::t_dfb78179699302 3
+  s_952c40e81e3519::t_752d7d6a1a17f7 22,48
+QuickShell.Raycast/src/__tests__/post-launch-actions.test.ts
+  s_952c40e81e3519::t_b68b8ec950a489 2-13,27-29
+  s_952c40e81e3519::t_d6ec47174d91f3 30-32
+  s_952c40e81e3519::t_a67351d87eb8be 33-43
+QuickShell.Raycast/src/lib/post-launch-actions.ts
+  s_952c40e81e3519::t_6f698a91dc49f4 4
+  s_952c40e81e3519::t_98b71581999dc4 14-16
+  s_952c40e81e3519::t_4eaadfd0f3fd2b 17
+  s_952c40e81e3519::t_855c7ce5ddde6e 18-19
+  s_952c40e81e3519::t_80457e4b112fb7 21,62-66,69-72
+QuickShell.Core/Services/WorkspaceSecurityPolicy.cs
+  s_14c3fc64e2a8a6::t_68d38a47095830 158-163,168,179-182,187-190,200-203,209-212
+QuickShell.Raycast/src/lib/storage.ts
+  s_8bc16d4b4562ae::t_69a1b2988d713a 101-104,310-315
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_952c40e81e3519::t_69a19a4e5d1a86 54-71
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_952c40e81e3519::t_ebd9006377572f 212-311
+QuickShell.Raycast/src/lib/security.ts
+  s_952c40e81e3519::t_95df412a2c1cb5 118-121,123,128,135-141,143,311-314,316,331
+QuickShell.Raycast/src/open-workspace.tsx
+  s_952c40e81e3519::t_ad572f9894a1df 39,210-232,246-248
+QuickShell.Core.Tests/WorkspaceSecurityPolicyTests.cs
+  s_952c40e81e3519::t_0cca2524af4a1e 97-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "fd7ead4d005d789cf2287a44df80dba38af4d90c",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-fable-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_8bc16d4b4562ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "91c23d30-96d5-4c33-9491-ac7d6500153a",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_952c40e81e3519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7331ad8-6b10-4aa9-b924-7494aac13226",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
