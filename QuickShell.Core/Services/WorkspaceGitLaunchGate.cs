@@ -11,6 +11,7 @@ internal sealed record WorkspaceGitLaunchGateResult(bool CanProceed, string? Sta
 
 internal sealed class WorkspaceGitLaunchGate
 {
+    private const int LaunchGitStatusTimeoutMs = 3000;
     private readonly IWorkspaceGitOperations _git;
 
     public WorkspaceGitLaunchGate(IWorkspaceGitOperations git)

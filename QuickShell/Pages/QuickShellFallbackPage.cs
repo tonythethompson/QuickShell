@@ -16,8 +16,8 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private readonly SearchDebouncer _searchDebouncer;
     private IListItem[] _items = [];
     private string _query = string.Empty;
-    private WorkspaceTaskAction[] _taskActions = [];
-    private TerminalShortcut[] _shortcuts = [];
+    private IReadOnlyList<WorkspaceTaskAction> _taskActions = [];
+    private IReadOnlyList<TerminalShortcut> _shortcuts = [];
     private IReadOnlyList<GitRepoCandidate> _gitRepos = [];
     private bool _showDiscoverEntry;
 
@@ -35,7 +35,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         Name = "Open";
     }
 
-    public void SetTaskResults(string query, WorkspaceTaskAction[] taskActions)
+    public void SetTaskResults(string query, IReadOnlyList<WorkspaceTaskAction> taskActions)
     {
         _query = query ?? string.Empty;
         _taskActions = taskActions;
@@ -45,7 +45,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         RefreshItems();
     }
 
-    public void SetWorkspaceResults(string query, TerminalShortcut[] shortcuts)
+    public void SetWorkspaceResults(string query, IReadOnlyList<TerminalShortcut> shortcuts)
     {
         _query = query ?? string.Empty;
         _taskActions = [];
@@ -89,8 +89,8 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     {
         var normalized = newSearch ?? string.Empty;
         if (string.Equals(_query, normalized, StringComparison.Ordinal)
-            && _taskActions.Length == 0
-            && _shortcuts.Length == 0
+            && _taskActions.Count == 0
+            && _shortcuts.Count == 0
             && _gitRepos.Count == 0
             && !_showDiscoverEntry)
         {

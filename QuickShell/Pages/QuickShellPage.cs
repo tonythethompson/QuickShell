@@ -3,6 +3,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +22,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// favorite moves so only favorites (~few rows) are recreated.
     /// </summary>
     private readonly Dictionary<string, ListItem> _unpinnedItemCache =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, bool> _directoryRepairStates =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, byte> _directoryRepairChecks =
         new(StringComparer.OrdinalIgnoreCase);
     private IListItem[] _items = [];
     private string _query = string.Empty;
@@ -154,6 +159,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// </summary>
     public void Reload()
     {
+        // Drop cached directory-repair state so a stale probe result
+        // (e.g. an offline drive that has come back online, or a folder
+        // that has since been deleted) does not freeze the home list.
+        _directoryRepairStates.Clear();
+        _directoryRepairChecks.Clear();
         Reload(preserveUnpinnedItemCache: false);
     }
 
@@ -187,6 +197,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         // Edits may change titles/subtitles — drop cached rows so next paint is fresh.
         _unpinnedItemCache.Clear();
+        // Drop directory-repair caches too: a renamed/relocated folder
+        // should be re-probed under its new key on the next paint.
+        _directoryRepairStates.Clear();
+        _directoryRepairChecks.Clear();
         _workspacesStale = true;
         try
         {
@@ -575,6 +589,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         List<TerminalShortcut> pinnedInOrder)
     {
         using var _ = StartupPerformanceTrace.Measure("CmdPal shortcut: build");
+        var needsRepair = RequiresHomeRepair(shortcut);
         // Favorites always rebuild (move visibility depends on pin order among favorites).
         // Unpinned rows reuse cached ListItems when reordering favorites, avoiding ~40 menu rebuilds.
         if (!shortcut.IsPinned
@@ -590,7 +605,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             Reload,
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
             onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true),
-            useHomePinContextMenu: true);
+            useHomePinContextMenu: true,
+            needsRepairOverride: needsRepair);
 
         ScheduleProfileIconUpgrade(shortcut, item);
 
@@ -611,7 +627,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     private void ScheduleProfileIconUpgrade(TerminalShortcut shortcut, ListItem item)
     {
-        if (shortcut.RunAsAdmin || ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+        if (shortcut.RunAsAdmin || RequiresHomeRepair(shortcut))
         {
             return;
         }
@@ -646,10 +662,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         // of which section a shortcut ends up rendered in.
         var pinnedList = pinnedInOrder.ToList();
 
-        // Use requireDirectoryExists=false so first paint does not block on WSL/network
-        // directory probes. Missing-folder detection is deferred to the launch health check.
+        // Directory reachability is populated asynchronously, preserving first-paint latency
+        // while returning missing folders to the repair path as soon as it is known.
         var needsAttention = allShortcuts
-            .Where(shortcut => ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+            .Where(RequiresHomeRepair)
             .OrderBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var needsAttentionIds = needsAttention.Count == 0
@@ -711,4 +727,93 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
         }
     }
+
+    private bool RequiresHomeRepair(TerminalShortcut shortcut)
+    {
+        if (ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+        {
+            return true;
+        }
+
+        var key = GetDirectoryRepairKey(shortcut);
+        if (_directoryRepairStates.TryGetValue(key, out var needsRepair))
+        {
+            return needsRepair;
+        }
+
+        if (_directoryRepairChecks.TryAdd(key, 0))
+        {
+            _ = Task.Run(() => ProbeDirectoryRepairState(shortcut, key));
+        }
+
+        return false;
+    }
+
+    private void ProbeDirectoryRepairState(TerminalShortcut shortcut, string key)
+    {
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
+        if (_disposed)
+        {
+            return;
+        }
+
+        // Only rebuild the home list when the probe flips the visible repair state. A
+        // healthy probe that confirms an already-healthy (or already-known-bad) directory
+        // does not need a full rebuild and would otherwise raise ItemsChanged N times for
+        // N shortcuts. _directoryRepairStates/_directoryRepairChecks are ConcurrentDictionary,
+        // so this is safe to compute and apply directly from the probe thread.
+        var stateChanged = !_directoryRepairStates.TryGetValue(key, out var previous)
+            || previous != needsRepair;
+        _directoryRepairStates[key] = needsRepair;
+        // Drop the in-flight marker so a later refresh (e.g. a previously
+        // offline drive coming back) can schedule another probe instead of
+        // returning the stale cached state forever.
+        _directoryRepairChecks.TryRemove(key, out _);
+
+        if (!stateChanged)
+        {
+            return;
+        }
+
+        _services.CallbackQueue.Enqueue(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // _unpinnedItemCache is a plain Dictionary (not concurrent), so this must run
+            // on the COM/fetch thread via the callback queue, not directly on the probe
+            // thread.
+            if (!string.IsNullOrWhiteSpace(shortcut.Id))
+            {
+                _unpinnedItemCache.Remove(shortcut.Id);
+            }
+
+            // Use the private overload: it does not clear
+            // _directoryRepairStates/_directoryRepairChecks, which would
+            // erase the state just written above before the next paint
+            // reads it and cause the probe to re-run indefinitely.
+            Reload(preserveUnpinnedItemCache: true);
+        });
+
+        // Wake the host now. GetItems() is the only place that drains the callback queue,
+        // so without this, the queued reload above only runs the next time GetItems() is
+        // called for some other reason (e.g. the user searching) — which may never happen
+        // if they just open the list and wait, leaving a missing/offline folder shown as
+        // launchable instead of moving to Needs Attention.
+        try
+        {
+            RaiseItemsChanged();
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // Nested/cross-thread ItemsChanged can throw 0x800706BA (see
+            // InvalidateWorkspaces). The queued reload above still runs the next time
+            // GetItems() executes for any other reason.
+        }
+    }
+
+    private static string GetDirectoryRepairKey(TerminalShortcut shortcut) =>
+        string.Concat(shortcut.Id, "|", shortcut.Directory);
 }

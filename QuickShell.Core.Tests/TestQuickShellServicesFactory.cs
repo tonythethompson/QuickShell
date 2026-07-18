@@ -17,6 +17,21 @@ internal static class TestQuickShellServicesFactory
         return new QuickShellServices(repository, drafts, settings, analysis, commandSuggestions, bundle.Executor, bundle.Git, bundle.Companion, bundle.Health, bundle.GitGate, lifetime, gitRepos, classificationCache, new ExtensionCallbackQueue());
     }
 
+    public static QuickShellServices Create(
+        IShortcutRepository repository,
+        IDraftStore drafts,
+        QuickShellSettingsManager settings,
+        IProjectAnalysisService analysis,
+        IQuickShellLifetime lifetime,
+        IGitRepoIndex gitRepos,
+        LaunchTestBundle? launch = null)
+    {
+        var bundle = launch ?? LaunchTestServices.CreateBundle();
+        var classificationCache = new ProjectClassificationCache(analysis);
+        var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
+        return new QuickShellServices(repository, drafts, settings, analysis, commandSuggestions, bundle.Executor, bundle.Git, bundle.Companion, bundle.Health, bundle.GitGate, lifetime, gitRepos, classificationCache, new ExtensionCallbackQueue());
+    }
+
     public static QuickShellServices CreateFromProvider(
         IServiceProvider provider,
         IShortcutRepository repository,
