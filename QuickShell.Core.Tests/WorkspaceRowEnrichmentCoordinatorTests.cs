@@ -202,7 +202,7 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     [Fact]
     public void Dispose_DiscardsPendingAndInFlightWork()
     {
-        var coordinator = CreateCoordinator();
+        using var coordinator = CreateCoordinator();
         var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var flushedItem = CreateItem();
@@ -211,7 +211,6 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         coordinator.Flush();
 
         coordinator.ScheduleIconUpgrade(CreateShortcut("ws-pending"), generation, CreateItem());
-        coordinator.Dispose();
         _queue.Drain();
 
         // The already-resolved batch is discarded at apply time; the un-flushed row is cancelled.
