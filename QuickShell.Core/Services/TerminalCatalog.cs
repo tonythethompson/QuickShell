@@ -201,6 +201,30 @@ internal static class TerminalCatalog
             return shortcut.WtProfile;
         }
 
+        // Common host identifiers can be labeled without building the catalog,
+        // keeping first-list rendering off the expensive discovery path.
+        if (id.Equals(TerminalHostIds.WindowsTerminal, StringComparison.OrdinalIgnoreCase))
+        {
+            return "Windows Terminal";
+        }
+
+        if (id.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase))
+        {
+            return "Intelligent Terminal";
+        }
+
+        if (id.Equals("wsl", StringComparison.OrdinalIgnoreCase))
+        {
+            return "WSL";
+        }
+
+        // Avoid forcing a catalog build during first paint; the staged warmup will
+        // populate the snapshot and a later list refresh can show richer labels.
+        if (_snapshot is null)
+        {
+            return FormatFallback(shortcut);
+        }
+
         var snapshot = EnsureCached();
         if (snapshot.ById.TryGetValue(id, out var target)
             && !string.IsNullOrWhiteSpace(target.ProfileOrDistro))

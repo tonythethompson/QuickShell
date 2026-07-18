@@ -10,6 +10,7 @@ using QuickShell.Pages;
 using QuickShell.Services;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 
 namespace QuickShell.Core.Tests;
@@ -129,6 +130,42 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Assert.True(discoverCold.TotalMilliseconds >= 0);
         Assert.True(ctorMs >= 0);
         Assert.True(listReloadMs.TotalMilliseconds >= 0);
+    }
+
+    [Fact]
+    public void Measure_WarmupStartsAfterFirstList()
+    {
+        // Build a provider exactly as CmdPal does. No warmup should run yet.
+        using var provider = new QuickShellCommandsProvider();
+        var traceBeforeFirstList = _trace.Builder.ToString();
+
+        // Get the top-level page and force the first list; this is the signal.
+        var commands = provider.TopLevelCommands();
+        var commandItem = commands[0];
+        var page = (QuickShellPage)commandItem.Command;
+        var getItemsMs = TimeCold(() => page.GetItems()).TotalMilliseconds;
+
+        // Wait for the staged coordinator to finish.
+        var coordinatorField = typeof(QuickShellCommandsProvider).GetField(
+            "_warmupCoordinator",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(coordinatorField);
+        var coordinator = coordinatorField.GetValue(provider)!;
+        var isCompletedProperty = coordinator.GetType().GetProperty("IsCompleted");
+        Assert.NotNull(isCompletedProperty);
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!(bool)isCompletedProperty.GetValue(coordinator)! && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(20);
+        }
+
+        var traceAfterWarmup = _trace.Builder.ToString();
+        _output.WriteLine("=== Staged warmup trace ===");
+        _output.WriteLine($"GetItems (first list) : {getItemsMs:0.###} ms");
+        _output.WriteLine(traceAfterWarmup.TrimEnd());
+
+        Assert.DoesNotContain("Warmup stage", traceBeforeFirstList);
+        Assert.Contains("Warmup stage", traceAfterWarmup);
     }
 
     private TimeSpan MeasureListReloadFromRealShortcuts(out TimeSpan getItemsMs, out int workspaceCount)

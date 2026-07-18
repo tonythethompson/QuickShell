@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Commands;
+using QuickShell.Pages;
 using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Services;
@@ -150,6 +151,21 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         var item = ShortcutListItems.CreateOpen(_context, shortcut);
 
         Assert.True(item.MoreCommands is null || item.MoreCommands.Length == 0);
+    }
+
+    [Fact]
+    public void CreateOpen_DirectoryProbeRepairState_UsesRepairCommands()
+    {
+        var shortcut = CreateHealthyShortcut("MissingAfterProbe");
+        var item = ShortcutListItems.CreateOpen(
+            _context,
+            shortcut,
+            onChanged: () => { },
+            needsRepairOverride: true);
+
+        Assert.IsType<ShortcutFormPage>(item.Command);
+        Assert.Contains(Strings.Menu_Edit, GetTitles(item.MoreCommands!));
+        Assert.DoesNotContain(Strings.Command_Duplicate_Name, GetTitles(item.MoreCommands!));
     }
 
     [Fact]

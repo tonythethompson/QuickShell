@@ -12,6 +12,14 @@ internal static class StartupPerformanceTrace
             ? new Measurement(name)
             : NoopDisposable.Instance;
 
+    public static void Write(string message)
+    {
+        if (IsEnabledValue(Environment.GetEnvironmentVariable(EnabledEnvironmentVariable)))
+        {
+            Trace.WriteLine($"QuickShell startup: {message}");
+        }
+    }
+
     internal static bool IsEnabledValue(string? value) =>
         value is not null
         && (value.Equals("1", StringComparison.OrdinalIgnoreCase)

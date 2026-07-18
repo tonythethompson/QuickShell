@@ -4,6 +4,7 @@ using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
 using QuickShell.Commands;
+using System.Threading;
 
 namespace QuickShell;
 
@@ -16,7 +17,12 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
     private readonly QuickShellPageContext _context;
     private readonly Lazy<QuickShellFallbackPage> _listPage;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
+    private readonly object _searchIndexSync = new();
     private string _lastQuery = string.Empty;
+    private bool _awaitingGitRefresh;
+    private bool _disposed;
+    private long _queryGeneration;
+    private RootPaletteSearchIndex? _cachedSearchIndex;
 
     public QuickShellFallback(
         QuickShellPageContext context,
@@ -35,9 +41,11 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
 
     public override void UpdateQuery(string query)
     {
-        _lastQuery = query ?? string.Empty;
+        var querySnapshot = query ?? string.Empty;
+        _lastQuery = querySnapshot;
+        var generation = Interlocked.Increment(ref _queryGeneration);
 
-        if (ShouldSuppress(query))
+        if (ShouldSuppress(querySnapshot))
         {
             ClearResult();
             return;
@@ -46,66 +54,93 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         try
         {
             var snapshot = _context.Services.Shortcuts.GetSnapshot();
-            var taskActions = snapshot.SearchTaskActions(_lastQuery).ToArray();
-            if (taskActions.Length > 0)
+            RootPaletteSearchIndex searchIndex;
+            lock (_searchIndexSync)
             {
-                if (taskActions.Length == 1)
+                if (_cachedSearchIndex is null || _cachedSearchIndex.Revision != snapshot.Version)
                 {
-                    ApplyTaskResult(taskActions[0]);
-                    return;
+                    _cachedSearchIndex = new RootPaletteSearchIndex(snapshot);
                 }
 
-                var listPage = _listPage.Value;
-                listPage.SetTaskResults(_lastQuery, taskActions);
-                ApplyTaskResults(taskActions);
+                searchIndex = _cachedSearchIndex;
+            }
+
+            var result = searchIndex.Search(querySnapshot, _context.Services.GitRepos);
+            if (generation != Volatile.Read(ref _queryGeneration))
+            {
                 return;
             }
 
-            var shortcuts = snapshot.SearchForRootPalette(_lastQuery).ToArray();
-            if (shortcuts.Length > 0)
+            ApplyResult(result, querySnapshot, searchIndex.Revision);
+            if (result.Kind == RootPaletteResultKind.None)
             {
-                var listPage = _listPage.Value;
-                listPage.SetWorkspaceResults(_lastQuery, shortcuts, snapshot.Version);
-                ApplyWorkspaceResult(shortcuts, snapshot.Version);
-                return;
-            }
-
-            if (GitRepoIndex.IsDiscoverQuery(_lastQuery))
-            {
-                _listPage.Value.SetDiscoverEntry(_lastQuery);
-                ApplyDiscoverResult();
-                return;
-            }
-
-            var allShortcuts = snapshot.Shortcuts;
-            var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts).ToList();
-            var savedDirectories = allShortcuts
-                .Select(shortcut => shortcut.Directory)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var gitRepos = _context.Services.GitRepos
-                .Search(_lastQuery, extraRoots, savedDirectories)
-                .ToArray();
-            if (gitRepos.Length > 0)
-            {
-                var listPage = _listPage.Value;
-                listPage.SetGitRepoResults(_lastQuery, gitRepos);
-                ApplyGitRepoResult(gitRepos);
-                return;
+                RegisterForGitRefresh();
             }
         }
         catch (TimeoutException)
         {
             // The shortcut store lock was stuck; fall through to no-result rather than
             // surfacing a host error on a fallback keystroke.
+            if (generation == Volatile.Read(ref _queryGeneration))
+            {
+                ClearResult();
+            }
         }
-
-        ClearResult();
     }
 
-    private void ApplyWorkspaceResult(TerminalShortcut[] shortcuts, long repositoryVersion)
+    private void ApplyResult(
+        in RootPaletteSearchResult result,
+        string query,
+        long repositoryVersion)
     {
-        if (shortcuts.Length == 1)
+        switch (result.Kind)
+        {
+            case RootPaletteResultKind.TaskActions:
+                if (result.TaskActions!.Count == 1)
+                {
+                    ApplyTaskResult(result.TaskActions[0]);
+                }
+                else
+                {
+                    var listPage = _listPage.Value;
+                    listPage.SetTaskResults(query, result.TaskActions);
+                    ApplyTaskResults(result.TaskActions, query);
+                }
+                break;
+
+            case RootPaletteResultKind.Workspaces:
+                {
+                    var listPage = _listPage.Value;
+                    listPage.SetWorkspaceResults(query, result.Workspaces!, repositoryVersion);
+                    ApplyWorkspaceResult(result.Workspaces!, query, repositoryVersion);
+                }
+                break;
+
+            case RootPaletteResultKind.Discover:
+                _listPage.Value.SetDiscoverEntry(query);
+                ApplyDiscoverResult();
+                break;
+
+            case RootPaletteResultKind.GitRepos:
+                {
+                    var listPage = _listPage.Value;
+                    listPage.SetGitRepoResults(query, result.GitRepos!);
+                    ApplyGitRepoResult(result.GitRepos!, query);
+                }
+                break;
+
+            default:
+                ClearResult();
+                break;
+        }
+    }
+
+    private void ApplyWorkspaceResult(
+        IReadOnlyList<TerminalShortcut> shortcuts,
+        string query,
+        long repositoryVersion)
+    {
+        if (shortcuts.Count == 1)
         {
             // Reuse the shared row presentation so root-palette and list-page rows agree.
             var presentation = _context.Services.RowPresentation.GetOrBuild(
@@ -118,8 +153,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         }
         else
         {
-            Title = $"{shortcuts.Length} workspaces";
-            Subtitle = $"Matching \"{_lastQuery}\"";
+            Title = $"{shortcuts.Count} workspaces";
+            Subtitle = $"Matching \"{query}\"";
         }
 
         Icon = QuickShellBrandIcons.App;
@@ -144,26 +179,51 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         UpdateQuery(query);
     }
 
-    private void ApplyTaskResults(WorkspaceTaskAction[] taskActions)
+    private void RegisterForGitRefresh()
     {
-        Title = $"{taskActions.Length} task actions";
-        Subtitle = $"Matching \"{_lastQuery}\"";
+        if (_awaitingGitRefresh)
+        {
+            return;
+        }
+
+        _awaitingGitRefresh = true;
+        if (!_context.Services.GitRepos.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
+        {
+            _awaitingGitRefresh = false;
+        }
+    }
+
+    private void OnGitRefreshCompleted()
+    {
+        _awaitingGitRefresh = false;
+        if (_disposed)
+        {
+            return;
+        }
+
+        ReloadCurrentQuery();
+    }
+
+    private void ApplyTaskResults(IReadOnlyList<WorkspaceTaskAction> taskActions, string query)
+    {
+        Title = $"{taskActions.Count} task actions";
+        Subtitle = $"Matching \"{query}\"";
         Icon = QuickShellBrandIcons.App;
         Command = _listPage.Value;
         MoreCommands = [];
     }
 
-    private void ApplyGitRepoResult(GitRepoCandidate[] gitRepos)
+    private void ApplyGitRepoResult(IReadOnlyList<GitRepoCandidate> gitRepos, string query)
     {
-        if (gitRepos.Length == 1)
+        if (gitRepos.Count == 1)
         {
             Title = $"Add {gitRepos[0].Name}";
             Subtitle = ShortcutDisplay.ShortenPathForDisplay(gitRepos[0].Directory);
         }
         else
         {
-            Title = $"{gitRepos.Length} git repos";
-            Subtitle = $"Matching \"{_lastQuery}\"";
+            Title = $"{gitRepos.Count} git repos";
+            Subtitle = $"Matching \"{query}\"";
         }
 
         Icon = new IconInfo(ShortcutGlyphs.Discover);
@@ -180,18 +240,9 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         MoreCommands = [];
     }
 
-    private static bool ShouldSuppress(string? query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return true;
-        }
-
-        return query.Contains("quick shell", StringComparison.OrdinalIgnoreCase);
-    }
-
     public void Dispose()
     {
+        _disposed = true;
         _discoverGitReposCommand.Dispose();
     }
 
@@ -206,4 +257,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             _listPage.Value.ClearResults();
         }
     }
+
+    private static bool ShouldSuppress(string query) =>
+        string.IsNullOrWhiteSpace(query) ||
+        query.Contains("quick shell", StringComparison.OrdinalIgnoreCase);
 }
