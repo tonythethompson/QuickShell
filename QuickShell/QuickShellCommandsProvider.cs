@@ -83,7 +83,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
         DisplayName = QuickShellBrand.DisplayName;
         Icon = QuickShellBrandIcons.App;
-        Id = "com.quickshell";
+        Id = CommandDescriptor.ProviderId;
         Settings = _settingsManager.Settings;
 
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
@@ -185,15 +185,8 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         }
     }
 
-    public override ICommandItem? GetCommandItem(string id)
-    {
-        if (_commandRouter.TryHandle(id, _context, out var item))
-        {
-            return item;
-        }
-
-        return base.GetCommandItem(id);
-    }
+    public override ICommandItem? GetCommandItem(string id) =>
+        _commandRouter.TryHandle(id, _context, out var item) ? item : base.GetCommandItem(id);
 
     public override void Dispose()
     {
