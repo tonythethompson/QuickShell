@@ -1,0 +1,60 @@
+QuickShell.Core.Tests/Performance/CriticalPathContractTests.cs
+  s_14c3fc64e2a8a6::t_dfc6bde82e53d5 65-76,78
+  s_14c3fc64e2a8a6::t_0480e9601a46f9 11
+  s_14c3fc64e2a8a6::t_a65b380964cd3c 91,96
+  s_14c3fc64e2a8a6::t_adc22a20eccf8e 1-10,12-64,77,79-90,92-95,97-152,163-165,167-327
+  s_14c3fc64e2a8a6::t_f70c417ad84bc1 153-162,166
+QuickShell.Core.Tests/Performance/BenchmarkReport.cs
+  s_14c3fc64e2a8a6::t_eedbf1fa628da8 1-137
+docs/architecture/performance.md
+  s_14c3fc64e2a8a6::t_30275dfe8ba92e 1-181
+QuickShell/Program.cs
+  s_14c3fc64e2a8a6::t_4d5a947fc20018 1,22,29,35,48,56,58,62,69,76,82
+QuickShell.Core.Tests/Performance/PerformanceRegressionHarnessTests.cs
+  s_14c3fc64e2a8a6::t_ea96523641ac2c 1,3-34,42-89,92-106,108-110,113-125,127-185,197-381,386,388,390-392,395-403,405,407-408,410-416,418-421,423-426,428-433,435-440,442-446,448-457,470-486
+  s_14c3fc64e2a8a6::t_65626b33f824c6 382-385,387,389,393,404,406,409,417,422,427,434,441,447
+  s_14c3fc64e2a8a6::t_3f1f71cb4965dd 107,111-112
+  s_14c3fc64e2a8a6::t_0b7ba8ab4befd0 35-41
+  s_14c3fc64e2a8a6::t_097fc7bf06bfbe 126
+  s_14c3fc64e2a8a6::t_87556c7f40321b 90-91
+  s_14c3fc64e2a8a6::t_0de3b1b0de558d 2
+  s_14c3fc64e2a8a6::t_68912204e058b9 186-196
+  s_14c3fc64e2a8a6::t_f89ae254cb44a6 394
+  s_14c3fc64e2a8a6::t_0f5f5c0a117648 458-469
+QuickShell.Core.Tests/Performance/BenchmarkRunner.cs
+  s_14c3fc64e2a8a6::t_d32d57d36c0cd7 1-131
+QuickShell.Core.Tests/SupportDiagnosticsTests.cs
+  s_14c3fc64e2a8a6::t_c539714821a1e4 44,48
+QuickShell/Pages/QuickShellPage.cs
+  s_14c3fc64e2a8a6::t_b3eda947bda360 397,495,500
+QuickShell/QuickShellCommandsProvider.cs
+  s_14c3fc64e2a8a6::t_f05ea75c1ad825 38,44,47,52,68,78,82,135
+QuickShell/QuickShellSettingsManager.cs
+  s_14c3fc64e2a8a6::t_799d17b5145b8f 77,134,159,166
+QuickShell/Services/ExtensionCallbackQueue.cs
+  s_14c3fc64e2a8a6::t_5cb96d98f59927 36
+QuickShell/Services/PackageServicingShutdownWatcher.cs
+  s_14c3fc64e2a8a6::t_a2b7eee1c92c62 50,78,88,124,132,153,160,201
+QuickShell/Services/StartupWarmupCoordinator.cs
+  s_14c3fc64e2a8a6::t_012cb1ca668341 137
+QuickShell/Services/SupportDiagnostics.cs
+  s_14c3fc64e2a8a6::t_3719061bb26b0a 39,43,47,52,228
+.gitignore
+  s_14c3fc64e2a8a6::t_471ce9bb7bbe79 44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "080de244363117ccfd840608d21228766830deb7",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
