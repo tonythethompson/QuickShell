@@ -22,7 +22,7 @@ public sealed class RootPaletteSearchTests : IDisposable
     public RootPaletteSearchTests(ITestOutputHelper output)
     {
         _output = output;
-        _configDirectory = Path.Combine(Path.GetTempPath(), "qs-root-palette-" + Guid.NewGuid().ToString("N"));
+        _configDirectory = Path.Join(Path.GetTempPath(), "qs-root-palette-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_configDirectory);
     }
 
