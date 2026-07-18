@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Abstractions;
 using QuickShell.Models;
+using System;
 using System.Threading.Tasks;
 
 namespace QuickShell.Services;
@@ -205,7 +206,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             {
                 resolved.Add((work, _resolveIcon(work.Shortcut)));
             }
-            catch
+            catch (Exception)
             {
                 // One row's enrichment failing must not stop the rest of the batch.
                 resolved.Add((work, null));
