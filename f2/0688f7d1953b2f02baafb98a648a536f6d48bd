@@ -1,0 +1,72 @@
+QuickShell/QuickShellFallback.cs
+  s_2d8115e2f146d0::t_c96bba8ed766f8 7,20,43-44
+  s_0062497065de24::t_3915d2d0d181df 45,50-51,53-59,62-63,68,74-77,81,93-94,101-102,107,114-115,125,135,160,163,169,179
+QuickShell.Core.Tests/FakeGitRepoIndex.cs
+  s_2d8115e2f146d0::t_b63103efc11a90 8
+  s_3eadce20a854ab::t_db1e83d12c2b83 28-32
+QuickShell/Pages/QuickShellPage.cs
+  s_2d8115e2f146d0::t_bf3a6211580c72 6,26-28
+  s_3eadce20a854ab::t_e7a3b0434a627c 29,529,545-546,567,602-603,605,667-715
+QuickShell.Core.Tests/RootPaletteSearchTests.cs
+  s_4435bbf1ef89bd::t_5406ace2cd8b62 305-336,359-360
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_4435bbf1ef89bd::t_0ef4bc813cf5f3 7,156-170
+QuickShell.Core/Abstractions/IWorkspaceGitOperations.cs
+  s_da2fe96a63da9d::t_776b2146d2102e 9
+QuickShell.Core/Services/RootPaletteSearchIndex.cs
+  s_da2fe96a63da9d::t_235435dcab376e 178-181
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_da2fe96a63da9d::t_e4d4b852c5e04d 14,62
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_da2fe96a63da9d::t_60f3b489860e8b 65,89
+QuickShell/Services/ShortcutListItems.cs
+  s_3eadce20a854ab::t_5440adbcdd86b0 18-19,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f20688f7d1953b2f02baafb98a648a536f6d48bd",
+  "prompts": {},
+  "sessions": {
+    "s_0062497065de24": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7df217f6-c343-4ed3-86d4-1ad785e7c8d6",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_2d8115e2f146d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73e3-bac8-7e53-8679-4ad1d848879c",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_3eadce20a854ab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ca0fdfee-7030-4fa0-8a32-77498fadac97",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_4435bbf1ef89bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e59eeaad-3624-4f52-8fcf-d1310c48026f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_da2fe96a63da9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73df-18c0-7f93-8470-eec7711f2370",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
