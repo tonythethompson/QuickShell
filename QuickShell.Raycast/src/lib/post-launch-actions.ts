@@ -39,9 +39,9 @@ export async function runPostLaunchActions(
     }
   }
 
-  if (includeDevServer && workspace.openDevServerOnLaunch && workspace.devServerUrl?.trim()) {
+  if (includeDevServer && workspace.openDevServerOnLaunch && workspace.devServerUrl) {
     try {
-      await openUrl(workspace.devServerUrl.trim());
+      await openUrl(workspace.devServerUrl);
       devServerOpened = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Dev server link failed.";
@@ -53,7 +53,7 @@ export async function runPostLaunchActions(
 }
 
 async function launchCompanionEntry(entry: CompanionAppEntry, directory: string): Promise<void> {
-  const executable = entry.path?.trim();
+  const executable = entry.path;
   if (!executable) {
     throw new Error("Companion app path is empty.");
   }
@@ -63,7 +63,7 @@ async function launchCompanionEntry(entry: CompanionAppEntry, directory: string)
 }
 
 export function buildCompanionArguments(rawArguments: string | null | undefined, directory: string): string[] {
-  if (!rawArguments?.trim()) {
+  if (!rawArguments || !rawArguments.trim()) {
     return [directory];
   }
 

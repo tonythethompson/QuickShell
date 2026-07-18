@@ -37,6 +37,11 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
         services.AddSingleton<IShortcutRepository>(sp =>
             new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));
+        services.AddSingleton<IWorkspaceLaunchService>(sp =>
+            new WorkspaceLaunchService(
+                sp.GetRequiredService<IShortcutRepository>(),
+                sp.GetRequiredService<IShortcutLaunchExecutor>(),
+                sp.GetRequiredService<ICompanionAppLauncher>()));
         services.AddSingleton<IDraftStore>(sp =>
             new ShortcutDraftStore(
                 sp.GetRequiredService<IShortcutRepository>(),

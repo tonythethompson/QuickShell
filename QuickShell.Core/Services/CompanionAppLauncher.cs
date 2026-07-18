@@ -155,14 +155,13 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
             return string.Empty;
         }
 
-        var trimmed = arguments.Trim();
-        if (string.Equals(trimmed, ".", StringComparison.Ordinal))
+        if (string.Equals(arguments, ".", StringComparison.Ordinal))
         {
             return QuoteIfNeeded(workspaceDirectory);
         }
 
         var solution = WorkspaceCompanionSignals.TryFindSolutionFile(workspaceDirectory);
-        var expanded = trimmed
+        var expanded = arguments
             .Replace("{folder}", QuoteIfNeeded(workspaceDirectory), StringComparison.OrdinalIgnoreCase)
             .Replace(
                 "{solution}",

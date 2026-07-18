@@ -302,7 +302,7 @@ internal sealed class TerminalLauncher : ITerminalLauncher
         LaunchTarget target,
         bool omitDirectoryChange = false)
     {
-        var command = shortcut.Command?.Trim();
+        var command = shortcut.Command;
 
         if (WslPathResolver.TryParse(shortcut.Directory, out var wslLocation))
         {

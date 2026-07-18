@@ -40,6 +40,7 @@ Data root: `%LOCALAPPDATA%\QuickShell\` (`shortcuts.json`, `settings.json`, draf
 | [git-and-discover.md](./git-and-discover.md) | Worktree targets, git gate UI, discover repos |
 | [hosts.md](./hosts.md) | CmdPal vs Run vs Raycast parity |
 | [post-launch.md](./post-launch.md) | Dev-server URL, companion timing, link actions |
+| [trust-model.md](./trust-model.md) | Repository-owned trust, authorization, ingress, and threat model |
 | [roadmap-next-steps.md](./roadmap-next-steps.md) | Clean / fix / improve / optimize priorities and PR sequence |
 | [proposal-status.md](./proposal-status.md) | **Tier 0.1** — 0001–0005 landed / partial / not started |
 | [parity-matrix.md](./parity-matrix.md) | **Tier 0.2** — CmdPal / Run / Raycast capability matrix |

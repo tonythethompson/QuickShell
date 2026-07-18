@@ -340,7 +340,7 @@ internal static class ShortcutValidation
             }
             else
             {
-                var arguments = entry.Arguments.Trim();
+                var arguments = entry.Arguments;
                 if (arguments.Length > MaxCompanionAppArgumentsLength)
                 {
                     error = $"Companion app arguments must be {MaxCompanionAppArgumentsLength} characters or fewer.";

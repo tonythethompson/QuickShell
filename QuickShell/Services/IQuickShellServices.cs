@@ -11,6 +11,8 @@ internal interface IQuickShellServices
 {
     IShortcutRepository Shortcuts { get; }
 
+    IWorkspaceLaunchService WorkspaceLaunch { get; }
+
     IDraftStore Drafts { get; }
 
     QuickShellSettingsManager Settings { get; }

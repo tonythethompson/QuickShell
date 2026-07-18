@@ -245,7 +245,7 @@ export function buildWorkspaceLaunchPlan(
     const resolved = resolveTerminalForLaunch(launch, settings, previousTerminal);
     previousTerminal = resolved.terminal;
     const target = resolveLaunchTarget(resolved.terminal, resolved.wtProfile);
-    const command = launch.command?.trim() || null;
+    const command = launch.command || null;
     const wantsAdmin = launch.runAsAdmin || workspace.runAsAdmin;
     const runAsAdmin = options.runAsStandard ? false : (options.runAsAdmin ?? wantsAdmin);
 

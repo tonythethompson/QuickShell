@@ -1678,7 +1678,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
                 Label = LabelBox.Text.Trim(),
 
-                Command = string.IsNullOrWhiteSpace(CommandBox.Text) ? null : CommandBox.Text.Trim(),
+                Command = string.IsNullOrWhiteSpace(CommandBox.Text) ? null : CommandBox.Text,
 
                 RunAsAdmin = AdminBox.IsChecked == true,
 

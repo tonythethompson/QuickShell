@@ -35,8 +35,13 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public IReadOnlyList<ShortcutLayoutEntry> GetLayout() => [];
 
-    public WorkspaceRepositorySnapshot GetSnapshot() =>
-        new(0, GetShortcuts(), GetLayout());
+    public int GetSnapshotCallCount { get; private set; }
+
+    public WorkspaceRepositorySnapshot GetSnapshot()
+    {
+        GetSnapshotCallCount++;
+        return new(0, GetShortcuts(), GetLayout());
+    }
 
     public TerminalShortcut? GetByName(string name) =>
         _byName.TryGetValue(name, out var shortcut) ? shortcut : null;
@@ -49,6 +54,25 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public TerminalShortcut? GetByIdReadOnly(string id) => GetById(id);
 
     public TerminalShortcut? ResolveForOpenCommand(string key) => GetById(key) ?? GetByName(key);
+
+    public StoredWorkspace? GetStoredWorkspace(string id)
+    {
+        var shortcut = GetById(id);
+        return shortcut is null
+            ? null
+            : new StoredWorkspace(shortcut, new WorkspaceSecurityMetadata(), 1);
+    }
+
+    public WorkspaceReviewSnapshot BeginTrustReview(string workspaceId) =>
+        new(GetStoredWorkspace(workspaceId), null,
+            new WorkspaceAuthorizationResult(true, null, [], [],
+                new WorkspaceEffectiveValues(null, null, null, null, null, null), 1));
+
+    public TrustTransitionResult GrantTrust(string workspaceId, WorkspaceReviewToken reviewToken) =>
+        new(TrustTransitionStatus.AlreadyInRequestedState, string.Empty);
+
+    public TrustTransitionResult RevokeTrust(string workspaceId) =>
+        new(TrustTransitionStatus.AlreadyInRequestedState, string.Empty);
 
     public void Reload()
     {

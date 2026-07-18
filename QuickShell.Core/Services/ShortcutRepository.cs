@@ -45,6 +45,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private WorkspaceRepositorySnapshot _cachedSnapshot;
     private readonly Dictionary<string, TerminalShortcut> _shortcutsByName = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TerminalShortcut> _shortcutsById = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, WorkspaceSecurityMetadata> _pendingDuplicateSecurity = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<List<ShortcutLayoutEntry>> _undoHistory = [];
     private readonly List<List<ShortcutLayoutEntry>> _redoHistory = [];
     private DateTime _lastWriteTimeUtc = DateTime.MinValue;
@@ -135,6 +136,152 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             return _shortcutsById.TryGetValue(id, out var shortcut) ? Clone(shortcut) : null;
         });
     }
+
+    public StoredWorkspace? GetStoredWorkspace(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        return WithLock(() =>
+        {
+            EnsureLoaded();
+            var entry = _layout.FirstOrDefault(candidate =>
+                candidate.Kind == ShortcutLayoutEntryKind.Shortcut
+                && candidate.Shortcut is not null
+                && candidate.Shortcut.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            if (entry?.Shortcut is null)
+            {
+                return null;
+            }
+
+            var security = entry.Security ?? new WorkspaceSecurityMetadata();
+            return new StoredWorkspace(
+                WorkspaceClone.Clone(entry.Shortcut),
+                security with { },
+                Math.Max(1, security.Revision));
+        });
+    }
+
+    public WorkspaceReviewSnapshot BeginTrustReview(string workspaceId)
+    {
+        var stored = GetStoredWorkspace(workspaceId);
+        if (stored is null)
+        {
+            return new WorkspaceReviewSnapshot(
+                null,
+                null,
+                new WorkspaceAuthorizationResult(
+                    false,
+                    WorkspaceIssueCode.WorkspaceNotFound,
+                    [new(WorkspaceIssueCode.WorkspaceNotFound, "Workspace was not found.")],
+                    [],
+                    new WorkspaceEffectiveValues(null, null, null, null, null, null),
+                    0));
+        }
+
+        var reviewWorkspace = stored with
+        {
+            Content = WorkspaceClone.Clone(stored.Content),
+            Security = stored.Security with { },
+        };
+        var assessment = WorkspaceSecurityPolicy.Authorize(reviewWorkspace, WorkspaceAction.GrantTrust);
+        return new WorkspaceReviewSnapshot(
+            stored,
+            WorkspaceSecurityPolicy.CreateReviewToken(reviewWorkspace),
+            assessment);
+    }
+
+    public TrustTransitionResult GrantTrust(string workspaceId, WorkspaceReviewToken reviewToken) =>
+        WithLock(() =>
+        {
+            EnsureLoaded();
+            var entry = FindEntryById(_layout, workspaceId);
+            if (entry?.Shortcut is null)
+            {
+                return new TrustTransitionResult(TrustTransitionStatus.WorkspaceNotFound, "Workspace was not found.");
+            }
+
+            var stored = ToStoredWorkspace(entry);
+            if (stored.Security.IsTrusted)
+            {
+                return new TrustTransitionResult(
+                    TrustTransitionStatus.AlreadyInRequestedState,
+                    "Workspace is already trusted.");
+            }
+
+            if (reviewToken is null || !WorkspaceSecurityPolicy.MatchesReviewToken(stored, reviewToken))
+            {
+                return new TrustTransitionResult(
+                    TrustTransitionStatus.WorkspaceChangedSinceReview,
+                    "Workspace changed since it was reviewed. Review it again before granting trust.");
+            }
+
+            var assessment = WorkspaceSecurityPolicy.Authorize(stored, WorkspaceAction.GrantTrust);
+            if (assessment.Issues.Count > 0)
+            {
+                return new TrustTransitionResult(
+                    TrustTransitionStatus.WorkspaceInvalid,
+                    assessment.Issues[0].Message);
+            }
+
+            var beforeTransition = CloneLayout(_layout);
+            var trustedSecurity = entry.Security ?? new WorkspaceSecurityMetadata();
+            entry.Security = trustedSecurity with
+            {
+                IsTrusted = true,
+                Revision = Math.Max(1, trustedSecurity.Revision) + 1,
+            };
+            try
+            {
+                SaveLayoutLocked(CloneLayout(_layout), preserveRepositorySecurity: false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                _layout = beforeTransition;
+                SyncShortcutsFromLayout(_layout);
+                return new TrustTransitionResult(TrustTransitionStatus.PersistenceFailed, ex.Message);
+            }
+            return new TrustTransitionResult(TrustTransitionStatus.Granted, "Workspace trusted.");
+        });
+
+    public TrustTransitionResult RevokeTrust(string workspaceId) =>
+        WithLock(() =>
+        {
+            EnsureLoaded();
+            var entry = FindEntryById(_layout, workspaceId);
+            if (entry?.Shortcut is null)
+            {
+                return new TrustTransitionResult(TrustTransitionStatus.WorkspaceNotFound, "Workspace was not found.");
+            }
+
+            var currentSecurity = entry.Security ?? new WorkspaceSecurityMetadata();
+            if (!currentSecurity.IsTrusted)
+            {
+                return new TrustTransitionResult(
+                    TrustTransitionStatus.AlreadyInRequestedState,
+                    "Workspace is already untrusted.");
+            }
+
+            var beforeTransition = CloneLayout(_layout);
+            entry.Security = currentSecurity with
+            {
+                IsTrusted = false,
+                Revision = Math.Max(1, currentSecurity.Revision) + 1,
+            };
+            try
+            {
+                SaveLayoutLocked(CloneLayout(_layout), preserveRepositorySecurity: false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                _layout = beforeTransition;
+                SyncShortcutsFromLayout(_layout);
+                return new TrustTransitionResult(TrustTransitionStatus.PersistenceFailed, ex.Message);
+            }
+            return new TrustTransitionResult(TrustTransitionStatus.Revoked, "Workspace trust revoked.");
+        });
 
     public TerminalShortcut? GetByNameReadOnly(string name)
     {
@@ -495,7 +642,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     shortcut.PinOrder = NextPinOrder(ShortcutLayoutJson.ExtractShortcuts(layout));
                 }
 
-                layout.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
+                layout.Add(ShortcutLayoutEntry.FromShortcut(
+                    shortcut,
+                    new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 }));
                 importedCount++;
             }
 
@@ -564,7 +713,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     continue;
                 }
 
-                valid.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
+                valid.Add(ShortcutLayoutEntry.FromShortcut(
+                    shortcut,
+                    new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 }));
             }
 
             if (CountValidShortcuts(valid) == 0)
@@ -586,9 +737,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 };
             }
 
-            NormalizeLayout(valid);
             RecordHistoryLayoutLocked(previous, valid);
-            SaveLayoutLocked(valid);
+            SaveLayoutLocked(valid, preserveRepositorySecurity: false);
 
             return new ShortcutTransferResult
             {
@@ -712,7 +862,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
             else
             {
-                AssignShortcutId(cloned, ShortcutLayoutJson.ExtractShortcuts(layout));
+                if (!_pendingDuplicateSecurity.ContainsKey(cloned.Id))
+                {
+                    AssignShortcutId(cloned, ShortcutLayoutJson.ExtractShortcuts(layout));
+                }
             }
 
             if (cloned.IsPinned && cloned.PinOrder is null)
@@ -726,11 +879,15 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             }
             else
             {
-                layout.Add(ShortcutLayoutEntry.FromShortcut(cloned));
+                layout.Add(ShortcutLayoutEntry.FromShortcut(
+                    cloned,
+                    _pendingDuplicateSecurity.Remove(cloned.Id, out var duplicateSecurity)
+                        ? duplicateSecurity
+                        : new WorkspaceSecurityMetadata { IsTrusted = true, Revision = 1 }));
             }
 
             RecordHistoryLayoutLocked(previous, layout);
-            SaveLayoutLocked(layout);
+            SaveLayoutLocked(layout, trustNewEntries: true);
         });
     }
 
@@ -938,6 +1095,13 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         copy.IsPinned = false;
         copy.PinOrder = null;
         copy.LastUsedUtc = null;
+
+        var sourceSecurity = GetStoredWorkspace(source.Id)?.Security;
+        if (sourceSecurity is not null)
+        {
+            _pendingDuplicateSecurity[copy.Id] = sourceSecurity with { Revision = 1 };
+        }
+
         return copy;
     }
 
@@ -1097,7 +1261,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             return;
         }
 
-        SaveLayoutLocked(layout);
+        SaveLayoutLocked(layout, trustNewEntries: true);
         WorkspaceLegacyMigration.ArchiveWorkspacesFile(ConfigDirectory);
     }
 
@@ -1152,6 +1316,15 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 continue;
             }
 
+            // Alternate files are restore/import ingress, so their content must
+            // not inherit authority from the source file or a local collision.
+            layout = layout
+                .Select(entry => entry.Kind == ShortcutLayoutEntryKind.Shortcut && entry.Shortcut is not null
+                    ? ShortcutLayoutEntry.FromShortcut(
+                        Clone(entry.Shortcut),
+                        new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 })
+                    : ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle))
+                .ToList();
             ApplyLoadedLayout(layout);
             WriteLayoutAtomic(_layout);
             _lastGoodLayout = CloneLayout(_layout);
@@ -1288,16 +1461,76 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
     }
 
-    private void SaveLayoutLocked(List<ShortcutLayoutEntry> layout)
+    private void SaveLayoutLocked(
+        List<ShortcutLayoutEntry> layout,
+        bool preserveRepositorySecurity = true,
+        bool trustNewEntries = false)
     {
         Directory.CreateDirectory(ConfigDirectory);
-        var normalized = NormalizeLayout(CloneLayout(layout));
+        var prepared = preserveRepositorySecurity
+            ? MergeRepositorySecurity(layout, trustNewEntries)
+            : CloneLayout(layout);
+        var normalized = NormalizeLayout(prepared);
         WriteLayoutAtomic(normalized);
         _layout = normalized;
         SyncShortcutsFromLayout(_layout);
         _lastGoodLayout = CloneLayout(_layout);
         _lastWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigPath);
         RaiseWorkspacesChanged();
+    }
+
+    private List<ShortcutLayoutEntry> MergeRepositorySecurity(
+        List<ShortcutLayoutEntry> layout,
+        bool trustNewEntries)
+    {
+        var result = new List<ShortcutLayoutEntry>(layout.Count);
+        foreach (var entry in layout)
+        {
+            if (entry.Kind == ShortcutLayoutEntryKind.Separator)
+            {
+                result.Add(ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle));
+                continue;
+            }
+
+            if (entry.Shortcut is null)
+            {
+                continue;
+            }
+
+            var incoming = ShortcutLayoutEntry.FromShortcut(
+                Clone(entry.Shortcut),
+                entry.Security ?? new WorkspaceSecurityMetadata());
+            var current = FindEntryById(_layout, entry.Shortcut.Id);
+            if (current?.Shortcut is not null)
+            {
+                var currentSecurity = current.Security is null
+                    ? new WorkspaceSecurityMetadata()
+                    : current.Security with { };
+                if (!ShortcutEquals(current.Shortcut, entry.Shortcut))
+                {
+                    currentSecurity = currentSecurity with
+                    {
+                        Revision = Math.Max(1, currentSecurity.Revision) + 1,
+                    };
+                }
+
+                incoming.Security = currentSecurity;
+            }
+            else if (!trustNewEntries)
+            {
+                var security = incoming.Security ?? new WorkspaceSecurityMetadata();
+                security = security with
+                {
+                    IsTrusted = false,
+                    Revision = Math.Max(1, security.Revision),
+                };
+                incoming.Security = security;
+            }
+
+            result.Add(incoming);
+        }
+
+        return result;
     }
 
     private void SchedulePersistLocked()
@@ -1355,7 +1588,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             throw new InvalidOperationException($"At most {ShortcutValidation.MaxShortcutCount} shortcuts are supported.");
         }
 
-        var payload = ShortcutLayoutJson.Serialize(layout);
+        var payload = ShortcutLayoutJson.Serialize(layout, includeSecurity: true);
         if (payload.Length > MaxConfigBytes)
         {
             throw new InvalidOperationException("Shortcut data is too large to save.");
@@ -1409,7 +1642,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             var shortcut = Clone(entry.Shortcut);
             ShortcutLaunchNormalization.NormalizeShortcut(shortcut);
             Normalize(shortcut);
-            normalized.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
+            normalized.Add(ShortcutLayoutEntry.FromShortcut(
+                shortcut,
+                entry.Security ?? new WorkspaceSecurityMetadata()));
         }
 
         AssignMissingShortcutIds(ShortcutLayoutJson.ExtractShortcuts(normalized));
@@ -1458,6 +1693,21 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             entry.Shortcut.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
     }
 
+    private static ShortcutLayoutEntry? FindEntryById(List<ShortcutLayoutEntry> layout, string id) =>
+        layout.FirstOrDefault(entry =>
+            entry.Kind == ShortcutLayoutEntryKind.Shortcut
+            && entry.Shortcut is not null
+            && entry.Shortcut.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+    private static StoredWorkspace ToStoredWorkspace(ShortcutLayoutEntry entry)
+    {
+        var security = entry.Security ?? new WorkspaceSecurityMetadata();
+        return new StoredWorkspace(
+            WorkspaceClone.Clone(entry.Shortcut!),
+            security with { },
+            Math.Max(1, security.Revision));
+    }
+
     private static bool RemoveShortcutEntry(List<ShortcutLayoutEntry> layout, string name) =>
         layout.RemoveAll(entry =>
             entry.Kind == ShortcutLayoutEntryKind.Shortcut &&
@@ -1468,7 +1718,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         layout.Select(entry => entry.Kind switch
         {
             ShortcutLayoutEntryKind.Separator => ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle),
-            _ => ShortcutLayoutEntry.FromShortcut(Clone(entry.Shortcut!)),
+            _ => ShortcutLayoutEntry.FromShortcut(
+                Clone(entry.Shortcut!),
+                entry.Security ?? new WorkspaceSecurityMetadata()),
         }).ToList();
 
     private void RecordHistoryLayoutLocked(
@@ -1604,7 +1856,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     private static string BuildImportMessage(int imported, int skipped, int renamed)
     {
-        var parts = new List<string> { $"Imported {imported} shortcut{(imported == 1 ? "" : "s")}." };
+        var parts = new List<string>
+        {
+            $"Imported {imported} shortcut{(imported == 1 ? "" : "s")}. Imported workspaces are untrusted until reviewed and trusted.",
+        };
 
         if (renamed > 0)
         {

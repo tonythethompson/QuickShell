@@ -179,7 +179,7 @@ export function normalizeWorkspace(workspace: Workspace): Workspace {
     directory: workspace.directory.trim(),
     terminal: workspace.terminal?.trim() || DEFAULT_TERMINAL,
     wtProfile: workspace.wtProfile?.trim() || null,
-    command: firstEnabled?.command ?? workspace.command?.trim() ?? null,
+    command: firstEnabled?.command ?? workspace.command ?? null,
     launches,
     companionApps,
     openCompanionAppOnLaunch: primaryCompanion?.openOnLaunch ?? false,
@@ -196,7 +196,7 @@ export function normalizeCompanionApps(workspace: Workspace): CompanionAppEntry[
     .map((entry, index) => ({
       id: entry.id?.trim() || createStableId(),
       path: entry.path.trim(),
-      arguments: entry.arguments?.trim() || null,
+      arguments: entry.arguments || null,
       openOnLaunch: Boolean(entry.openOnLaunch),
       order: index,
     }))
@@ -215,7 +215,7 @@ export function normalizeCompanionApps(workspace: Workspace): CompanionAppEntry[
     {
       id: createStableId(),
       path,
-      arguments: workspace.companionAppArguments?.trim() || null,
+    arguments: workspace.companionAppArguments || null,
       openOnLaunch: Boolean(workspace.openCompanionAppOnLaunch),
       order: 0,
     },
@@ -249,7 +249,7 @@ export function normalizeLaunches(launches: LaunchEntry[], workspace: Workspace)
     label: entry.label.trim(),
     terminal: entry.terminal?.trim() || DEFAULT_TERMINAL,
     wtProfile: entry.wtProfile?.trim() || null,
-    command: entry.command?.trim() || null,
+    command: entry.command || null,
     order: index,
     taskType: entry.taskType?.trim() || "none",
   }));

@@ -50,7 +50,7 @@ internal static class TerminalLauncherArgs
     /// </summary>
     public static string ToWindowsTerminalPowerShellSuffix(TerminalShortcut shortcut, string executable)
     {
-        var command = shortcut.Command?.Trim();
+        var command = shortcut.Command;
         if (string.IsNullOrWhiteSpace(command))
         {
             return executable;
@@ -61,7 +61,7 @@ internal static class TerminalLauncherArgs
 
     public static string ToWindowsTerminalNushellSuffix(TerminalShortcut shortcut, string executable)
     {
-        var command = shortcut.Command?.Trim();
+        var command = shortcut.Command;
         if (string.IsNullOrWhiteSpace(command))
         {
             return executable;
@@ -158,7 +158,7 @@ internal static class TerminalLauncherArgs
 
     public static string BuildWindowsTerminalCmdSuffix(TerminalShortcut shortcut, bool omitDirectoryChange = false)
     {
-        var command = shortcut.Command?.Trim();
+        var command = shortcut.Command;
 
         if (omitDirectoryChange)
         {

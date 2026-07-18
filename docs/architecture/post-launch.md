@@ -4,6 +4,8 @@ What happens **after** (or alongside) terminal handoff on a **full** workspace o
 
 Terminal launch itself: [launch.md](./launch.md). Companions detail: [companions.md](./companions.md).
 
+Companion and URL effects are authorized independently at the current workspace revision. Untrusted workspaces cannot start companions or open repository/dev-server links. See [trust-model.md](./trust-model.md).
+
 ## Full workspace open order (Core)
 
 ```

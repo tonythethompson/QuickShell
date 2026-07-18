@@ -22,13 +22,20 @@ internal sealed partial class CopyShortcutPathCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = _services.Shortcuts.GetById(_shortcutId);
-        if (shortcut is null)
+        var workspace = _services.Shortcuts.GetStoredWorkspace(_shortcutId);
+        if (workspace is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
-        if (!FolderPathActions.TryCopyPath(shortcut.Directory, out var error))
+        var authorization = WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.CopyPath);
+        var directory = authorization.EffectiveValues.Directory;
+        if (!authorization.IsAllowed || string.IsNullOrWhiteSpace(directory))
+        {
+            return QuickShellNavigation.StayOpen("The workspace path is invalid.");
+        }
+
+        if (!FolderPathActions.TryCopyPath(directory, out var error))
         {
             return QuickShellNavigation.StayOpen(error);
         }
@@ -69,13 +76,20 @@ internal sealed partial class OpenShortcutFolderInExplorerCommand : InvokableCom
 
     public override CommandResult Invoke()
     {
-        var shortcut = _services.Shortcuts.GetById(_shortcutId);
-        if (shortcut is null)
+        var workspace = _services.Shortcuts.GetStoredWorkspace(_shortcutId);
+        if (workspace is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
-        if (!FolderPathActions.TryOpenInExplorer(shortcut.Directory, out var error))
+        var authorization = WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.OpenDirectory);
+        var directory = authorization.EffectiveValues.Directory;
+        if (!authorization.IsAllowed || string.IsNullOrWhiteSpace(directory))
+        {
+            return QuickShellNavigation.StayOpen("Trust this workspace before opening its directory.");
+        }
+
+        if (!FolderPathActions.TryOpenInExplorer(directory, out var error))
         {
             return QuickShellNavigation.StayOpen(error);
         }
@@ -138,14 +152,20 @@ internal sealed partial class OpenWorkspaceLinkCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = _services.Shortcuts.GetById(_shortcutId);
-        if (shortcut is null)
+        var workspace = _services.Shortcuts.GetStoredWorkspace(_shortcutId);
+        if (workspace is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
-        var url = _kind == WorkspaceLinkKind.DevServer ? shortcut.DevServerUrl : shortcut.RepoUrl;
-        if (!WorkspaceLinkActions.TryOpenLink(url, out var error))
+        var url = _kind == WorkspaceLinkKind.DevServer ? workspace.Content.DevServerUrl : workspace.Content.RepoUrl;
+        var authorization = WorkspaceSecurityPolicy.AuthorizeUrl(workspace, url);
+        if (!authorization.IsAllowed || string.IsNullOrWhiteSpace(authorization.EffectiveValues.Url))
+        {
+            return QuickShellNavigation.StayOpen("Trust this workspace before opening external links.");
+        }
+
+        if (!WorkspaceLinkActions.TryOpenLink(authorization.EffectiveValues.Url, out var error))
         {
             return QuickShellNavigation.StayOpen(error);
         }
@@ -172,13 +192,28 @@ internal sealed partial class OpenCompanionAppCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = _services.Shortcuts.GetById(_shortcutId);
-        if (shortcut is null)
+        var workspace = _services.Shortcuts.GetStoredWorkspace(_shortcutId);
+        if (workspace is null)
         {
             return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
         }
 
-        if (!_services.CompanionApps.TryLaunch(shortcut, onDemand: true, out var error))
+        var authorization = WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.StartCompanion);
+        if (!authorization.IsAllowed)
+        {
+            return QuickShellNavigation.StayOpen("Trust and repair this workspace before starting companion apps.");
+        }
+
+        var content = WorkspaceClone.Clone(workspace.Content);
+        var configured = CompanionAppNormalization.GetConfigured(content);
+        if (configured.Count > 0 && !string.IsNullOrWhiteSpace(authorization.EffectiveValues.ExecutablePath))
+        {
+            configured[0].Path = authorization.EffectiveValues.ExecutablePath;
+            configured[0].Arguments = authorization.EffectiveValues.Arguments;
+            CompanionAppNormalization.MirrorLegacyFieldsFromPrimary(content);
+        }
+
+        if (!_services.CompanionApps.TryLaunch(content, onDemand: true, out var error))
         {
             return QuickShellNavigation.StayOpen(error ?? Strings.CompanionAppLaunchFailed);
         }

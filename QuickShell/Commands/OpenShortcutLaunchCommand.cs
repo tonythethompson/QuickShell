@@ -35,22 +35,10 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = _services.Shortcuts.GetById(_shortcutId);
-        if (shortcut is null)
-        {
-            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
-        }
-
-        var launch = shortcut.Launches.FirstOrDefault(entry => entry.Id.Equals(_launchId, StringComparison.OrdinalIgnoreCase));
-        if (launch is null || !launch.IsEnabled)
-        {
-            return QuickShellNavigation.StayOpen("That launch entry was not found.");
-        }
-
         var settings = _services.Settings;
-        var result = _services.LaunchExecutor.LaunchEntry(
-            shortcut,
-            launch,
+        var result = _services.WorkspaceLaunch.LaunchEntry(
+            _shortcutId,
+            _launchId,
             settings.TerminalApplicationId,
             settings.DefaultProfileId,
             new ShortcutLaunchOptions(

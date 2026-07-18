@@ -197,6 +197,8 @@ Launch / LaunchEntry
 
 ### 4.7 Security / trust surface
 
+Implementation status: addressed by the repository-owned trust boundary, centralized action authorization, revision-bound review confirmation, and host launch audit described in [trust-model.md](./trust-model.md).
+
 **Evidence:**
 
 - Workspaces can run arbitrary commands (`Command` field) and can be launched elevated (`RunAsAdmin`).

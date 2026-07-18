@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Windows.Controls;
+using System.Windows;
 using ManagedCommon;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PowerToys.Settings.UI.Library;
@@ -43,11 +44,11 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private ServiceProvider? _serviceProvider;
     private IQuickShellLifetime? _lifetime;
     private IShortcutRepository? _shortcuts;
+    private IWorkspaceLaunchService? _workspaceLaunch;
     private QuickShellSettingsReader? _settings;
     private QuickShellRunSettingsPanel? _settingsPanel;
     private IProjectAnalysisService? _projectAnalysis;
     private ICommandSuggestionService? _commandSuggestions;
-    private IShortcutLaunchExecutor? _launchExecutor;
     private IWorkspaceHealthChecker? _healthChecker;
     private IWorkspaceGitOperations? _gitOperations;
     private string _lastQuery = string.Empty;
@@ -71,9 +72,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             _serviceProvider = collection.BuildServiceProvider();
             _lifetime = _serviceProvider.GetRequiredService<IQuickShellLifetime>();
             _shortcuts = _serviceProvider.GetRequiredService<IShortcutRepository>();
+            _workspaceLaunch = _serviceProvider.GetRequiredService<IWorkspaceLaunchService>();
             _projectAnalysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
             _commandSuggestions = _serviceProvider.GetRequiredService<ICommandSuggestionService>();
-            _launchExecutor = _serviceProvider.GetRequiredService<IShortcutLaunchExecutor>();
             _healthChecker = _serviceProvider.GetRequiredService<IWorkspaceHealthChecker>();
             _gitOperations = _serviceProvider.GetRequiredService<IWorkspaceGitOperations>();
             _settings = _serviceProvider.GetRequiredService<QuickShellSettingsReader>();
@@ -125,6 +126,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         _serviceProvider = null;
         _lifetime = null;
         _shortcuts = null;
+        _workspaceLaunch = null;
         GC.SuppressFinalize(this);
     }
 
@@ -157,6 +159,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private QuickShellSettingsReader Settings =>
         _settings ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
+
+    private IWorkspaceLaunchService WorkspaceLaunch =>
+        _workspaceLaunch ?? throw new InvalidOperationException("Quick Shell launch service is not initialized.");
 
     public List<Result> Query(Query query)
     {
@@ -271,7 +276,27 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             return repairMenus;
         }
 
-        return
+        var menus = new List<ContextMenuResult>();
+        var storedWorkspace = Shortcuts.GetStoredWorkspace(shortcut.Id);
+        if (storedWorkspace is not null)
+        {
+            if (storedWorkspace.Security.IsTrusted)
+            {
+                menus.Add(CreateContextMenu("Revoke workspace trust", "\uE72E", _ =>
+                {
+                    var transition = Shortcuts.RevokeTrust(shortcut.Id);
+                    NotifyStatus(transition.Message);
+                    RefreshResults();
+                    return false;
+                }));
+            }
+            else
+            {
+                menus.Add(CreateContextMenu("Trust workspace", "\uE72E", _ => TrustWorkspace(storedWorkspace)));
+            }
+        }
+
+        menus.AddRange(
         [
             CreateContextMenu("Edit shortcut", "\uE70F", _ =>
             {
@@ -307,16 +332,24 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             }),
             CreateContextMenu("Run as administrator", "\uEA18", _ =>
             {
-                Launch(shortcut, runAsAdmin: true);
+                Launch(shortcut.Id, runAsAdmin: true);
                 return true;
             }),
-            CreateContextMenu("Open containing folder", "\uE838", _ => OpenContainingFolder(shortcut.Directory)),
+            CreateContextMenu("Open containing folder", "\uE838", _ => OpenContainingFolder(shortcut.Id)),
             CreateContextMenu("Copy path", ShortcutGlyphs.CopyPath, _ =>
             {
-                CopyPath(shortcut.Directory);
+                var current = Shortcuts.GetStoredWorkspace(shortcut.Id);
+                var authorization = current is null
+                    ? null
+                    : WorkspaceSecurityPolicy.Authorize(current, WorkspaceAction.CopyPath);
+                if (authorization?.IsAllowed == true && !string.IsNullOrWhiteSpace(authorization.EffectiveValues.Directory))
+                {
+                    CopyPath(authorization.EffectiveValues.Directory);
+                }
                 return true;
             }),
-        ];
+        ]);
+        return menus;
     }
 
     private IEnumerable<Result> GetManageResults(string search)
@@ -451,15 +484,13 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private Result CreateShortcutResult(TerminalShortcut shortcut, string search, bool directActivationBrowse)
     {
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
+        var trustPrefix = Shortcuts.GetStoredWorkspace(shortcut.Id)?.Security.IsTrusted == false
+            ? "Untrusted · "
+            : string.Empty;
         var result = new Result
         {
             Title = shortcut.Name,
-            SubTitle = RunWorkspaceSubtitle.Build(
-                shortcut,
-                Settings,
-                HealthChecker,
-                GitOperations,
-                listMode: true),
+            SubTitle = trustPrefix + RunWorkspaceSubtitle.Build(shortcut, Settings, HealthChecker, GitOperations, listMode: true),
             Score = RunQueryScoring.ComputeShortcutScore(shortcut, search, directActivationBrowse),
             ContextData = new RunContextData(RunContextKind.Shortcut, shortcut.Id),
             Action = action =>
@@ -471,7 +502,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
                 }
 
                 var forceAdmin = action.SpecialKeyState.CtrlPressed && action.SpecialKeyState.ShiftPressed;
-                Launch(shortcut, runAsAdmin: forceAdmin || shortcut.RunAsAdmin);
+                Launch(shortcut.Id, runAsAdmin: forceAdmin || shortcut.RunAsAdmin);
                 return true;
             },
         };
@@ -491,19 +522,16 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         return Shortcuts.Search(search);
     }
 
-    private IShortcutLaunchExecutor LaunchExecutor =>
-        _launchExecutor ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
-
     private IWorkspaceHealthChecker HealthChecker =>
         _healthChecker ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
 
     private IWorkspaceGitOperations GitOperations =>
         _gitOperations ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
 
-    private void Launch(TerminalShortcut shortcut, bool runAsAdmin = false, bool runAsStandard = false)
+    private void Launch(string workspaceId, bool runAsAdmin = false, bool runAsStandard = false)
     {
-        var result = LaunchExecutor.Launch(
-            shortcut,
+        var result = WorkspaceLaunch.Launch(
+            workspaceId,
             Settings!.TerminalApplicationId,
             Settings.DefaultProfileId,
             new ShortcutLaunchOptions(
@@ -514,13 +542,41 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
         if (result.MarkUsed)
         {
-            Shortcuts!.MarkUsed(shortcut.Id);
+            Shortcuts!.MarkUsed(workspaceId);
         }
 
         if (!result.Dismiss && !string.IsNullOrWhiteSpace(result.StayOpenMessage))
         {
             _context?.API.ShowMsg("Quick Shell", result.StayOpenMessage, string.Empty);
         }
+    }
+
+    private bool TrustWorkspace(StoredWorkspace storedWorkspace)
+    {
+        var review = Shortcuts.BeginTrustReview(storedWorkspace.Content.Id);
+        if (review.Token is null || !review.Assessment.IsAllowed)
+        {
+            NotifyStatus("Repair this workspace before trusting it.");
+            return false;
+        }
+
+        var risks = review.Assessment.Risks.Count == 0
+            ? "No command, elevation, companion, or URL risks were detected."
+            : string.Join(" ", review.Assessment.Risks.Select(risk => risk.Description));
+        var confirmation = MessageBox.Show(
+            "Trust applies to this editable local workspace. It can execute arbitrary code, and later command or launch-setting edits remain trusted until you revoke trust. " + risks,
+            "Trust workspace?",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return false;
+        }
+
+        var transition = Shortcuts.GrantTrust(storedWorkspace.Content.Id, review.Token);
+        NotifyStatus(transition.Message);
+        RefreshResults();
+        return false;
     }
 
     private static bool IsActionKeywordQuery(Query query) =>
@@ -547,14 +603,17 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         };
     }
 
-    private static bool OpenContainingFolder(string directory)
+    private bool OpenContainingFolder(string workspaceId)
     {
-        if (!ShortcutValidation.TryNormalizeDirectory(directory, out var normalized, out _))
+        var workspace = Shortcuts.GetStoredWorkspace(workspaceId);
+        if (workspace is null)
         {
             return false;
         }
 
-        if (!ShortcutValidation.DirectoryExists(normalized))
+        var authorization = WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.OpenDirectory);
+        var normalized = authorization.EffectiveValues.Directory;
+        if (!authorization.IsAllowed || string.IsNullOrWhiteSpace(normalized))
         {
             return false;
         }

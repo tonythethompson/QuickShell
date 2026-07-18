@@ -2,6 +2,8 @@
 
 End-to-end path from “open workspace” to `Process.Start`, including resolve, health, git gate, multi-launch grouping, and command argv.
 
+Before this pipeline, `IWorkspaceLaunchService` resolves the current workspace by ID and applies the action-specific trust policy. A cached CmdPal/Run/Raycast item is not proof of trust; revocation therefore fails closed on the next invocation. See [trust-model.md](./trust-model.md).
+
 ## Host entry points
 
 | Host | Full workspace | Single launch row |

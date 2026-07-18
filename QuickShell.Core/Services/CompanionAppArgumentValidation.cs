@@ -42,7 +42,7 @@ internal static partial class CompanionAppArgumentValidation
             return ResolveRuleSet(preset, path).DefaultArguments;
         }
 
-        return arguments.Trim();
+        return arguments;
     }
 
     public static string? BuildArgumentWarning(
@@ -57,7 +57,7 @@ internal static partial class CompanionAppArgumentValidation
         }
 
         var ruleSet = ResolveRuleSet(preset, path);
-        var normalized = string.IsNullOrWhiteSpace(arguments) ? ruleSet.DefaultArguments : arguments.Trim();
+        var normalized = string.IsNullOrWhiteSpace(arguments) ? ruleSet.DefaultArguments : arguments;
         return TryGetPresetMismatchWarning(ruleSet, normalized, workspaceDirectory);
     }
 
