@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_ceda2a0e846368::t_48ec13762937ee 1-255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "944e49c51e14f9162c125c20c32f07fe15c0e2b3",
+  "prompts": {},
+  "sessions": {
+    "s_ceda2a0e846368": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a610b5d6-051f-4c80-9b8d-f80351b6658c",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
