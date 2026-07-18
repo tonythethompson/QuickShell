@@ -485,10 +485,10 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             companionAttempted,
             diagnostics);
 
-        var successPrefix = openedCommands == totalEntries
-            ? singleSuccessPrefix
-            : multiSuccessPrefix;
         var partialLaunch = openedCommands < totalEntries;
+        var successPrefix = partialLaunch
+            ? $"Workspace partially launched: {openedCommands} of {totalEntries} commands launched"
+            : totalEntries == 1 ? singleSuccessPrefix : multiSuccessPrefix;
 
         if (partialLaunch)
         {

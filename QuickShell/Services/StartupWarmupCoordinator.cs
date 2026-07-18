@@ -22,7 +22,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
     private readonly Stopwatch _queueWait = new();
     private readonly List<StartupWarmupStageResult> _results = new();
     private int _started;
-    private bool _disposed;
+    private int _disposed;
     private bool _completed;
     private Task? _runTask;
     private IDisposable? _queueWaitSpan;
@@ -48,7 +48,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
 
     public void SignalFirstListPublished(WorkspaceRepositorySnapshot? snapshot = null)
     {
-        if (Volatile.Read(ref _disposed) || _cts.IsCancellationRequested)
+        if (Volatile.Read(ref _disposed) != 0 || _cts.IsCancellationRequested)
         {
             return;
         }
@@ -137,7 +137,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, true))
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
