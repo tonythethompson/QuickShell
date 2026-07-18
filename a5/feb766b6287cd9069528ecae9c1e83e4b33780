@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/Performance/PerformanceRegressionHarnessTests.cs
+  s_4f1328b4292b40::t_3f426cde1ae8c6 45,48,70-74,99,102-103,280,294,301,317,394,483,485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a5feb766b6287cd9069528ecae9c1e83e4b33780",
+  "prompts": {},
+  "sessions": {
+    "s_4f1328b4292b40": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "91413e40-e3ba-4a2f-9912-96f5db904857",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
