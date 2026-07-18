@@ -750,7 +750,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         {
             RaiseItemsChanged();
         }
-        catch
+        catch (System.Runtime.InteropServices.COMException)
         {
             // Nested/cross-thread ItemsChanged can throw 0x800706BA (see
             // InvalidateWorkspaces). The queued reload above still runs the next time
