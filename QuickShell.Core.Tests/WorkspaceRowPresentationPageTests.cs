@@ -80,7 +80,11 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
                 Directory.Delete(_configDirectory, recursive: true);
             }
         }
-        catch
+        catch (IOException)
+        {
+            // Best effort.
+        }
+        catch (UnauthorizedAccessException)
         {
             // Best effort.
         }
