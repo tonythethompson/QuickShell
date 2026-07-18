@@ -183,6 +183,25 @@ public sealed class WorktreeBranchTests : IDisposable
     }
 
     [Fact]
+    public void Launch_StatusTimeout_ReportsTimeoutInsteadOfNonGit()
+    {
+        var repoRoot = Path.Combine(_root, "repo");
+        Directory.CreateDirectory(repoRoot);
+        ConfigureRepo(
+            repoRoot,
+            currentBranch: "main",
+            topLevel: repoRoot,
+            statusTimesOut: true);
+        SetTarget(repoRoot, "feature/foo");
+
+        var result = _gate.EvaluateBeforeLaunch(repoRoot, blockDirtyBranchSwitch: true);
+
+        Assert.False(result.CanProceed);
+        Assert.Contains("timed out", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("not a git repository", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Launch_DirtyMismatchWithBlockOff_RunsSingleSwitchBeforeTerminalBatch()
     {
         var repoRoot = Path.Combine(_root, "repo");
@@ -445,7 +464,8 @@ public sealed class WorktreeBranchTests : IDisposable
         bool isDirty = false,
         bool isDetached = false,
         IReadOnlyList<string>? localBranches = null,
-        bool failSwitch = false)
+        bool failSwitch = false,
+        bool statusTimesOut = false)
     {
         _repos[topLevel] = new GitRepoState
         {
@@ -455,6 +475,7 @@ public sealed class WorktreeBranchTests : IDisposable
             IsDetached = isDetached,
             LocalBranches = localBranches?.ToList() ?? [currentBranch is "HEAD" ? "main" : currentBranch],
             FailSwitch = failSwitch,
+            StatusTimesOut = statusTimesOut,
         };
     }
 
@@ -472,6 +493,8 @@ public sealed class WorktreeBranchTests : IDisposable
             ["rev-parse", "--show-toplevel"] => Success(repo.TopLevel),
             ["rev-parse", "--abbrev-ref", "HEAD"] => Success(repo.IsDetached ? "HEAD" : repo.CurrentBranch),
             ["status", "--porcelain"] => Success(repo.IsDirty ? " M file.txt" : string.Empty),
+            ["status", "--porcelain=v2", "--branch"] when repo.StatusTimesOut =>
+                new GitCommandResult(-1, string.Empty, string.Empty, TimedOut: true),
             ["status", "--porcelain=v2", "--branch"] => Success(BuildPorcelainV2(repo)),
             ["for-each-ref", "refs/heads", "--format=%(refname:short)"] => Success(string.Join('\n', repo.LocalBranches)),
             ["switch", var branch] => HandleSwitch(repo, branch),
@@ -572,5 +595,7 @@ public sealed class WorktreeBranchTests : IDisposable
         public List<string> LocalBranches { get; set; } = [];
 
         public bool FailSwitch { get; set; }
+
+        public bool StatusTimesOut { get; set; }
     }
 }

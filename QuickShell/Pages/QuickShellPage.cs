@@ -390,7 +390,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             var items = new List<IListItem>(capacity: Math.Max(16, allShortcuts.Count + 8));
             using (StartupPerformanceTrace.Measure("CmdPal home list: page actions"))
             {
-                foreach (var action in GetOrBuildPageActions())
+                foreach (var action in GetOrBuildPageActions(snapshot.CanUndo, snapshot.CanRedo))
                 {
                     items.Add(action);
                 }
@@ -483,7 +483,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             // #endregion
 
             var items = new List<IListItem>();
-            items.AddRange(GetOrBuildPageActions());
+            items.AddRange(GetOrBuildPageActions(_cachedPageActionsCanUndo, _cachedPageActionsCanRedo));
             items.Add(CreateStatusItem(
                 "Could not load workspaces",
                 string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message));
@@ -524,10 +524,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
     }
 
-    private IListItem[] GetOrBuildPageActions()
+    private IListItem[] GetOrBuildPageActions(bool canUndo, bool canRedo)
     {
-        var canUndo = _services.Shortcuts.CanUndo;
-        var canRedo = _services.Shortcuts.CanRedo;
         if (_cachedPageActions is not null
             && _cachedPageActionsCanUndo == canUndo
             && _cachedPageActionsCanRedo == canRedo)

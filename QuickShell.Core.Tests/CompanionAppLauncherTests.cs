@@ -184,11 +184,12 @@ public sealed class CompanionAppLauncherTests : IDisposable
             ],
         };
 
-        var success = launcher.TryLaunch(shortcut, onDemand: false, out var error);
+        var result = launcher.Launch(shortcut, onDemand: false);
 
-        Assert.True(success);
-        Assert.Null(error);
+        Assert.True(result.Success);
+        Assert.Null(result.Error);
         Assert.Equal(2, launcher.LastLaunchCount);
+        Assert.Equal(["explorer.exe", "cmd.exe"], result.StartedExecutables);
         Assert.Equal(2, starter.Started.Count);
         Assert.Contains(starter.Started, item => item.FileName.Contains("explorer", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(starter.Started, item => item.FileName.Contains("cmd", StringComparison.OrdinalIgnoreCase));
