@@ -113,7 +113,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                     StartupPerformanceTrace.Write($"Warmup stage cancelled: {stage.Name} {sw.Elapsed.TotalMilliseconds:0.###}ms");
                     break;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     lock (_sync)
                     {
