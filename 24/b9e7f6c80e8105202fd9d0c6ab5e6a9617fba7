@@ -1,0 +1,29 @@
+QuickShell.Core.Tests/QuickShellSettingsLaunchTests.cs
+  s_952c40e81e3519::t_cda00d37f74762 84-120
+QuickShell/QuickShellSettingsManager.cs
+  s_14c3fc64e2a8a6::t_9220f8df338874 285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "24b9e7f6c80e8105202fd9d0c6ab5e6a9617fba7",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-fable-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_952c40e81e3519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7331ad8-6b10-4aa9-b924-7494aac13226",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
