@@ -1,0 +1,41 @@
+QuickShell.Core.Tests/FakeGitRepoIndex.cs
+  s_d711731c0f8875::t_c06d9a66e16cbc 1-77
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_d711731c0f8875::t_07874aa25843cb 38-44
+QuickShell.Core.Tests/RootPaletteSearchTests.cs
+  s_d711731c0f8875::t_6f679451cfb920 1-546
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_d711731c0f8875::t_99a5149c5da85c 7,156-170
+QuickShell.Core/Services/RootPaletteSearchIndex.cs
+  s_d711731c0f8875::t_b564e01707b434 1-449
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_d711731c0f8875::t_c4d39f73f8750a 14
+QuickShell.Core/Services/WorkspaceRepositorySnapshot.cs
+  s_d711731c0f8875::t_0bafde741ef624 2,31-34
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_d711731c0f8875::t_ef48dd72628f6a 19-20,38,48,92-93
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_d711731c0f8875::t_01dca0d8a2fc3e 18-32
+QuickShell/Pages/QuickShellPage.cs
+  s_d711731c0f8875::t_6dd7ffb44e171a 6,26-29,162-166,200-203,592,608-609,630,665-666,668,730-818
+QuickShell/QuickShellFallback.cs
+  s_d711731c0f8875::t_0296adb8551f7a 7,20,24-25,44-46,48,57-58,60,62,65,68-69,74-75,77,84-87,89,91-132,135,137,144-145,195,197-198,204,206,213-214,248-251
+QuickShell/Services/ShortcutListItems.cs
+  s_d711731c0f8875::t_7f85938c40a1b4 18-19,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "d4462d5487f74854387accc3ff9e42192373f155",
+  "prompts": {},
+  "sessions": {
+    "s_d711731c0f8875": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "018e7e29-8252-461f-aeb1-c0d609aa7989",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
