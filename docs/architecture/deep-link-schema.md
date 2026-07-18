@@ -32,16 +32,16 @@ IDs below are built from stable prefixes followed by arguments. Workspace and la
 
 | `CommandKind` | Format | Example | Payload encoding rules | Backward compatibility |
 |---|---|---|---|---|
-| `OpenWorkspace` | `com.quickshell.shortcut.open.<workspaceId>` | `com.quickshell.shortcut.open.a1b2c3d4e5f6...` | `workspaceId` may be a stable 32-char hex ID or a legacy name key. | Frozen since v0. |
-| `OpenWorkspace` (admin) | `com.quickshell.shortcut.open.<workspaceId>.admin` | `com.quickshell.shortcut.open.a1b2c3d4e5f6....admin` | Append `.admin` after the workspace ID. | Frozen since v0. |
-| `OpenWorkspace` (standard) | `com.quickshell.shortcut.open.<workspaceId>.standard` | `com.quickshell.shortcut.open.a1b2c3d4e5f6....standard` | Append `.standard` after the workspace ID. | Frozen since v0. |
-| `OpenLaunch` | `com.quickshell.shortcut.open.<workspaceId>.launch.<launchId>` | `com.quickshell.shortcut.open.a1b2c3d4e5f6....launch.c3d4e5f6...` | Both IDs must be 32-char hex. The `.launch.` separator is checked before the bare `OpenWorkspace` prefix so launch IDs are never swallowed. | Frozen since v0. |
-| `OpenLaunch` (admin/standard) | append `.admin` or `.standard` to the launch ID segment | `com.quickshell.shortcut.open.a1b2c3d4e5f6....launch.c3d4e5f6....admin` | Variant suffix is stripped during parsing; admin wins if both are supplied. | Frozen since v0. |
-| `DiscoverCreateWorkspace` | `com.quickshell.discover.create.<hexUtf8Directory>` | `com.quickshell.discover.create.633a...` | Directory is trimmed of trailing separators, normalized with `Path.GetFullPath` (best-effort), then UTF-8 hex-encoded in lowercase. | Frozen since v0. |
-| `WorkspaceStatus` | `com.quickshell.workspace-status.<workspaceId>` | `com.quickshell.workspace-status.a1b2c3d4e5f6...` | `workspaceId` must be 32-char hex. | Frozen since v0. |
-| `WorktreeBranchPicker` | `com.quickshell.worktree-branch.picker.page.<workspaceId>` | `com.quickshell.worktree-branch.picker.page.a1b2c3d4e5f6...` | `workspaceId` must be 32-char hex. | Frozen since v0. |
-| `WorktreeBranchSelect` | `com.quickshell.worktree-branch.select.<workspaceId>.<branch>` | `com.quickshell.worktree-branch.select.a1b2c3d4e5f6....main` | `workspaceId` must be 32-char hex. `branch` is everything after the first dot following the prefix and may contain additional dots. | Frozen since v0. |
-| `WorktreeBranchClear` | `com.quickshell.worktree-branch.clear.<workspaceId>` | `com.quickshell.worktree-branch.clear.a1b2c3d4e5f6...` | `workspaceId` must be 32-char hex. | Frozen since v0. |
+| `OpenWorkspace` | `com.quickshell.shortcut.open.<workspaceId>` | `com.quickshell.shortcut.open.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4` | `workspaceId` may be a stable 32-char hex ID or a legacy name key. | Frozen since v0. |
+| `OpenWorkspace` (admin) | `com.quickshell.shortcut.open.<workspaceId>.admin` | `com.quickshell.shortcut.open.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.admin` | Append `.admin` after the workspace ID. | Frozen since v0. |
+| `OpenWorkspace` (standard) | `com.quickshell.shortcut.open.<workspaceId>.standard` | `com.quickshell.shortcut.open.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.standard` | Append `.standard` after the workspace ID. | Frozen since v0. |
+| `OpenLaunch` | `com.quickshell.shortcut.open.<workspaceId>.launch.<launchId>` | `com.quickshell.shortcut.open.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.launch.c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6` | Both IDs must be 32-char hex. The `.launch.` separator is checked before the bare `OpenWorkspace` prefix so launch IDs are never swallowed. | Frozen since v0. |
+| `OpenLaunch` (admin/standard) | append `.admin` or `.standard` to the launch ID segment | `com.quickshell.shortcut.open.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.launch.c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6.admin` | Variant suffix is stripped during parsing; admin wins if both are supplied. | Frozen since v0. |
+| `DiscoverCreateWorkspace` | `com.quickshell.discover.create.<hexUtf8Directory>` | `com.quickshell.discover.create.633a5c74657374` | Directory is trimmed of trailing separators, normalized with `Path.GetFullPath` (best-effort), then UTF-8 hex-encoded in lowercase. | Frozen since v0. |
+| `WorkspaceStatus` | `com.quickshell.workspace-status.<workspaceId>` | `com.quickshell.workspace-status.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4` | `workspaceId` must be 32-char hex. | Frozen since v0. |
+| `WorktreeBranchPicker` | `com.quickshell.worktree-branch.picker.page.<workspaceId>` | `com.quickshell.worktree-branch.picker.page.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4` | `workspaceId` must be 32-char hex. | Frozen since v0. |
+| `WorktreeBranchSelect` | `com.quickshell.worktree-branch.select.<workspaceId>.<branch>` | `com.quickshell.worktree-branch.select.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.main` | `workspaceId` must be 32-char hex. `branch` is everything after the first dot following the prefix and may contain additional dots. | Frozen since v0. |
+| `WorktreeBranchClear` | `com.quickshell.worktree-branch.clear.<workspaceId>` | `com.quickshell.worktree-branch.clear.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4` | `workspaceId` must be 32-char hex. | Frozen since v0. |
 
 ### Variant suffixes
 
@@ -53,8 +53,8 @@ The following IDs are used only inside CmdPal context menus. They are intentiona
 
 | `CommandKind` | Format | Example | Payload encoding rules |
 |---|---|---|---|
-| `FavoriteToggle` | `com.quickshell.shortcut.favorite.<hexUtf8Name>` | `com.quickshell.shortcut.favorite.6d792d...` | Workspace name is UTF-8 hex-encoded in lowercase so legacy name-based keys remain stable. |
-| `FavoriteMove` | `com.quickshell.shortcut.move.<workspaceId>.<moveKind>` | `com.quickshell.shortcut.move.a1b2c3d4e5f6....Up` | `workspaceId` may be a stable ID or hex-encoded legacy name. `moveKind` is one of `Up`, `Down`, `ToTop`, `ToBottom`. |
+| `FavoriteToggle` | `com.quickshell.shortcut.favorite.<hexUtf8Name>` | `com.quickshell.shortcut.favorite.6d792d776f726b7370616365` | Workspace name is UTF-8 hex-encoded in lowercase so legacy name-based keys remain stable. |
+| `FavoriteMove` | `com.quickshell.shortcut.move.<workspaceId>.<moveKind>` | `com.quickshell.shortcut.move.a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.Up` | `workspaceId` may be a stable ID or hex-encoded legacy name. `moveKind` is one of `Up`, `Down`, `ToTop`, `ToBottom`. |
 
 ## Form and page IDs
 
