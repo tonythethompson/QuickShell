@@ -315,7 +315,7 @@ public class StartupWarmupCoordinatorTests
     {
         var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
-        Directory.CreateDirectory(Path.Combine(path, ".git"));
+        Directory.CreateDirectory(Path.Join(path, ".git"));
         return path;
     }
 

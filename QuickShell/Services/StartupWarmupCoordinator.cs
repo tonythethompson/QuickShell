@@ -113,6 +113,9 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                     StartupPerformanceTrace.Write($"Warmup stage cancelled: {stage.Name} {sw.Elapsed.TotalMilliseconds:0.###}ms");
                     break;
                 }
+                // codeql[cs/catch-of-all-exceptions]: intentional isolation boundary — a
+                // failing warmup stage (any exception type) must not take down startup or
+                // block later stages; the failure is recorded and traced instead.
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     lock (_sync)
@@ -147,6 +150,9 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
         {
             _runTask?.Wait(TimeSpan.FromSeconds(2));
         }
+        // codeql[cs/catch-of-all-exceptions]: intentional — Dispose must not throw during
+        // process shutdown regardless of why the wait failed (cancellation, aggregate
+        // exception from the stage task, timeout).
         catch
         {
             // Best effort: the process is shutting down.
