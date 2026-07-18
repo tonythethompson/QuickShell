@@ -150,12 +150,17 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
         {
             _runTask?.Wait(TimeSpan.FromSeconds(2));
         }
-        // codeql[cs/catch-of-all-exceptions]: intentional — Dispose must not throw during
-        // process shutdown regardless of why the wait failed (cancellation, aggregate
-        // exception from the stage task, timeout).
-        catch
+        catch (AggregateException)
         {
-            // Best effort: the process is shutting down.
+            // Best effort: stage task faulted during shutdown.
+        }
+        catch (OperationCanceledException)
+        {
+            // Best effort: cancellation during shutdown.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Best effort: task/token already disposed during shutdown.
         }
 
         _queueWaitSpan?.Dispose();
