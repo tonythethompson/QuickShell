@@ -160,7 +160,10 @@ internal sealed record CommandDescriptor(
     {
         if (runAsAdmin && runAsStandard)
         {
-            System.Diagnostics.Debug.Fail("VariantSuffix called with both runAsAdmin and runAsStandard true; preferring admin suffix.");
+            // Debug.Fail is the wrong tool here: xunit's test-host trace listener converts it
+            // into a thrown DebugAssertException, but this branch is deliberately exercised by
+            // tests to verify the graceful-degrade behavior (admin wins), not an actual bug.
+            RepositoryDiagnostics.Report("CommandDescriptor.VariantSuffix", "both-variant-flags-set");
             runAsStandard = false;
         }
 
