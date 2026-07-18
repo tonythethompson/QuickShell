@@ -248,12 +248,17 @@ internal sealed class QuickShellSettingsManager
 
     public void RefreshTerminalChoices()
     {
-        var app = TerminalApplicationId;
-        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        app = EnsureValidTerminalApplication(app);
-        SyncDefaultProfileChoices();
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{app}}","{{DefaultProfileSettingId}}":"{{DefaultProfileId}}"}""");
-        PersistSettings();
+        // Serialize with UpdateTerminalDefaults and PrewarmTerminalCatalog so
+        // a user-saved change cannot be silently overwritten by this refresh.
+        lock (_terminalDefaultsSync)
+        {
+            var app = TerminalApplicationId;
+            _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
+            app = EnsureValidTerminalApplication(app);
+            SyncDefaultProfileChoices();
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{app}}","{{DefaultProfileSettingId}}":"{{DefaultProfileId}}"}""");
+            PersistSettings();
+        }
     }
 
     /// <summary>
@@ -263,14 +268,20 @@ internal sealed class QuickShellSettingsManager
     /// </summary>
     internal void PrewarmTerminalCatalog()
     {
-        var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
-        var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
-
-        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(app);
-
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-        _settingsStore.SaveSettings();
+        // Serialize with UpdateTerminalDefaults so a user-saved terminal
+        // default is not silently overwritten by the staged-warmup read/write
+        // of the same values.
+        lock (_terminalDefaultsSync)
+        {
+            var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+            var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
+    
+            _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
+            _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(app);
+    
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
+            _settingsStore.SaveSettings();
+        }
     }
 
     private void SyncDefaultProfileChoices()
