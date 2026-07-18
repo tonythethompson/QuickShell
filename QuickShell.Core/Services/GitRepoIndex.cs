@@ -104,7 +104,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         }
 
         var rootKey = BuildRootKey(SnapshotRoots(searchRoots));
-        EnsureFresh(searchRoots, cancellationToken);
+        EnsureFresh(searchRoots, includeDefaultSearchRoots: true, cancellationToken: cancellationToken);
         savedDirectories ??= EmptySet.Instance;
 
         // Single linear pass with early exit — index size is bounded by discovery, not workspaces.
@@ -146,7 +146,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         ThrowIfDisposed();
 
         var rootKey = BuildRootKey(SnapshotRoots(extraRoots));
-        EnsureFresh(extraRoots, cancellationToken);
+        EnsureFresh(extraRoots, includeDefaultSearchRoots: true, cancellationToken: cancellationToken);
         return GetCacheForRootKey(rootKey);
     }
 
@@ -155,7 +155,10 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        EnsureFresh(searchRoots, cancellationToken);
+        // Prewarm only scans roots derived from the supplied workspace snapshot.
+        // Default drive scanning is left to on-demand Search/GetAll so activation
+        // does not enumerate the filesystem broadly.
+        EnsureFresh(searchRoots, includeDefaultSearchRoots: false, cancellationToken: cancellationToken);
     }
 
     public void Invalidate()
@@ -321,6 +324,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 
     private void EnsureFresh(
         IEnumerable<string>? extraRoots,
+        bool includeDefaultSearchRoots = true,
         CancellationToken cancellationToken = default)
     {
         var rootSnapshot = SnapshotRoots(extraRoots);
@@ -333,7 +337,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
                 return;
             }
 
-            StartRefreshLocked(rootKey, rootSnapshot, cancellationToken);
+            StartRefreshLocked(rootKey, rootSnapshot, includeDefaultSearchRoots, cancellationToken);
         }
     }
 
@@ -345,6 +349,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
     private void StartRefreshLocked(
         string rootKey,
         string[] rootSnapshot,
+        bool includeDefaultSearchRoots,
         CancellationToken cancellationToken)
     {
         if (_refreshInFlight is not null
@@ -369,7 +374,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         var tokenForTask = linkedCts.Token;
         var inFlight = new RefreshInFlight(
             rootKey,
-            Task.Run(() => DiscoverForRefresh(rootSnapshot, tokenForTask), tokenForTask),
+            Task.Run(() => DiscoverForRefresh(rootSnapshot, includeDefaultSearchRoots, tokenForTask), tokenForTask),
             linkedCts);
 
         _ = inFlight.Task.ContinueWith(
@@ -383,9 +388,10 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 
     private IReadOnlyList<GitRepoCandidate> DiscoverForRefresh(
         IReadOnlyList<string> rootSnapshot,
+        bool includeDefaultSearchRoots,
         CancellationToken cancellationToken) =>
         _discoverOverride?.Invoke(rootSnapshot)
-        ?? GitRepoDiscovery.Discover(_projectAnalysis, rootSnapshot, cancellationToken: cancellationToken);
+        ?? GitRepoDiscovery.Discover(_projectAnalysis, rootSnapshot, includeDefaultSearchRoots: includeDefaultSearchRoots, cancellationToken: cancellationToken);
 
     private void CompleteRefresh(
         RefreshInFlight inFlight,

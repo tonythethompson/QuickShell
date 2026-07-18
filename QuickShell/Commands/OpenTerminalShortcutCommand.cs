@@ -35,13 +35,6 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
 
-        if (runAsStandard)
-        {
-            return needsRepair
-                ? ShortcutGlyphs.IncidentTriangle
-                : TerminalLaunchGlyphs.GetForShortcut(shortcut);
-        }
-
         if (runAsAdmin || shortcut.RunAsAdmin)
         {
             return ShortcutGlyphs.AdminLaunch;

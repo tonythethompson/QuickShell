@@ -57,9 +57,15 @@ internal sealed class QuickShellSettingsManager
         _settingsStore = new QuickShellJsonSettingsStore();
         _settings = _settingsStore.Settings;
 
+        // Choices are populated by PrewarmTerminalCatalog after the first workspace list
+        // is published so terminal discovery (WT settings, vswhere, PATH) does not run
+        // during provider construction.
         _terminalApplicationSetting = new ChoiceSetSetting(
             TerminalApplicationSettingId,
-            TerminalCatalogChoices.GetTerminalApplicationChoices())
+            new List<ChoiceSetSetting.Choice>
+            {
+                new("Let Windows choose", TerminalHostIds.LetWindowsChoose),
+            })
         {
             Label = "Terminal application",
             Description = "The terminal host used for Default workspaces and profile launches. Matches Windows Terminal's \"Default terminal application\" setting.",
@@ -67,7 +73,10 @@ internal sealed class QuickShellSettingsManager
 
         _defaultProfileSetting = new ChoiceSetSetting(
             DefaultProfileSettingId,
-            TerminalCatalogChoices.GetMinimalDefaultProfileChoices())
+            new List<ChoiceSetSetting.Choice>
+            {
+                new("Default profile for this app", TerminalHostIds.DefaultProfile),
+            })
         {
             Label = "Default profile",
             Description = "Profile used when a workspace is set to Default. Per-workspace profile choices stay on each workspace.",
@@ -116,7 +125,7 @@ internal sealed class QuickShellSettingsManager
             usedLegacyDefaults = true;
         }
 
-        initialApp = EnsureValidTerminalApplication(initialApp);
+        initialApp = NormalizeTerminalApplication(initialApp);
         initialProfile = NormalizeStoredDefaultProfile(initialProfile);
         var initialRecentCount = ReadRecentWorkspaceCount();
         var initialBlockDirtyBranchSwitch = ReadBlockDirtyBranchSwitch();
@@ -124,16 +133,14 @@ internal sealed class QuickShellSettingsManager
 
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}","{{MultiLaunchPresentationSettingId}}":"{{initialMultiLaunchPresentation}}"}""");
 
+        // Terminal/profile catalog choices and final validation are deferred to the
+        // staged startup coordinator so provider construction stays off the hot path.
         // #region agent log
         SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
-            "before SyncDefaultProfileChoices",
+            "terminal defaults deferred",
             new { initialApp, initialProfile },
             hypothesisId: "C");
-        // #endregion
-        SyncDefaultProfileChoices();
-        // #region agent log
-        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
         // #endregion
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
@@ -160,11 +167,19 @@ internal sealed class QuickShellSettingsManager
 
     internal void PrewarmSettingsContent() => TypedSettingsPage.PrewarmContent();
 
+    /// <summary>
+    /// Returns the configured terminal application without forcing a catalog scan.
+    /// Validation and choice population are performed by <see cref="PrewarmTerminalCatalog"/>.
+    /// </summary>
     public string TerminalApplicationId =>
-        EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+        NormalizeTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
 
+    /// <summary>
+    /// Returns the configured default profile without forcing a catalog scan.
+    /// Validation and choice population are performed by <see cref="PrewarmTerminalCatalog"/>.
+    /// </summary>
     public string DefaultProfileId =>
-        EnsureValidDefaultProfile(TerminalApplicationId, _settings.GetSetting<string>(DefaultProfileSettingId));
+        NormalizeStoredDefaultProfile(_settings.GetSetting<string>(DefaultProfileSettingId));
 
     public int RecentWorkspaceCount => ReadRecentWorkspaceCount();
 
@@ -221,6 +236,23 @@ internal sealed class QuickShellSettingsManager
         PersistSettings();
     }
 
+    /// <summary>
+    /// Warms the terminal/profile catalogs and finalizes the default terminal settings.
+    /// Called by the staged startup coordinator after the first workspace list is published
+    /// so provider construction does not pay the discovery cost.
+    /// </summary>
+    internal void PrewarmTerminalCatalog()
+    {
+        var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+        var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
+
+        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
+        _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(app);
+
+        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
+        _settingsStore.SaveSettings();
+    }
+
     private void SyncDefaultProfileChoices()
     {
         var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
@@ -231,6 +263,23 @@ internal sealed class QuickShellSettingsManager
         {
             _settings.Update($$"""{"{{DefaultProfileSettingId}}":"{{TerminalHostIds.DefaultProfile}}"}""");
         }
+    }
+
+    private static string NormalizeTerminalApplication(string? value)
+    {
+        var normalized = string.IsNullOrWhiteSpace(value)
+            ? TerminalHostIds.LetWindowsChoose
+            : value.Trim().ToLowerInvariant();
+
+        if (normalized.Equals(TerminalHostIds.LetWindowsChoose, StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals(TerminalHostIds.WindowsConsoleHost, StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals(TerminalHostIds.WindowsTerminal, StringComparison.OrdinalIgnoreCase))
+        {
+            return normalized;
+        }
+
+        return normalized;
     }
 
     private static string EnsureValidTerminalApplication(string? value)

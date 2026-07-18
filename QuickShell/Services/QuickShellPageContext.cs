@@ -11,11 +11,13 @@ internal sealed class QuickShellPageContext
     public QuickShellPageContext(
         QuickShellHostServices host,
         CreateShortcutCommand createShortcut,
-        Action reloadRootPages)
+        Action reloadRootPages,
+        IStartupWarmupCoordinator? warmupCoordinator = null)
     {
         Host = host ?? throw new ArgumentNullException(nameof(host));
         CreateShortcut = createShortcut ?? throw new ArgumentNullException(nameof(createShortcut));
         ReloadRootPages = reloadRootPages ?? throw new ArgumentNullException(nameof(reloadRootPages));
+        WarmupCoordinator = warmupCoordinator;
     }
 
     public QuickShellHostServices Host { get; }
@@ -29,4 +31,6 @@ internal sealed class QuickShellPageContext
     public CreateShortcutCommand CreateShortcut { get; }
 
     public Action ReloadRootPages { get; }
+
+    public IStartupWarmupCoordinator? WarmupCoordinator { get; }
 }

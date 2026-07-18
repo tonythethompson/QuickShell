@@ -30,6 +30,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
     private readonly EventHandler _settingsChangedHandler;
+    private readonly StartupWarmupCoordinator _warmupCoordinator;
     private volatile bool _disposed;
 
     public QuickShellCommandsProvider()
@@ -66,15 +67,18 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             var host = _services.GetRequiredService<QuickShellHostServices>();
             var createShortcut = new CreateShortcutCommand(ReloadPages, host.Services);
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
-            _context = new QuickShellPageContext(host, createShortcut, ReloadPages);
+
+            var warmupContext = new StartupWarmupContext(host.Services, _settingsManager, _lifetime);
+            var warmupStages = StartupWarmupStages.Create(warmupContext);
+            _warmupCoordinator = new StartupWarmupCoordinator(_lifetime, warmupContext, warmupStages);
+
+            _context = new QuickShellPageContext(host, createShortcut, ReloadPages, _warmupCoordinator);
             // #region agent log
             SupportDiagnostics.Write(
                 "QuickShellCommandsProvider.cs:ctor",
                 "after composition root",
                 hypothesisId: "B");
             // #endregion
-            KickoffGitRepoIndexPrewarm();
-            KickoffFormCatalogPrewarm();
         }
 
         DisplayName = QuickShellBrand.DisplayName;
@@ -96,18 +100,8 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         }
 
         var settingsPage = _settingsManager.SettingsPage;
-        // Build settings Adaptive Card off the activation path so first open is warm.
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                _settingsManager.PrewarmSettingsContent();
-            }
-            catch
-            {
-                // Best effort.
-            }
-        });
+        // Settings card, form catalogs, and Git discovery are warmed by the coordinator
+        // after the first real workspace list is published.
 
         _commands =
         [
@@ -191,66 +185,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         }
     }
 
-    private void KickoffGitRepoIndexPrewarm()
-    {
-        if (_disposed || _lifetime.IsCancellationRequested)
-        {
-            return;
-        }
-
-        // Resolve the required services before starting the background task so we
-        // do not access the root ServiceProvider after it has been disposed.
-        var shortcutRepository = _services.GetRequiredService<IShortcutRepository>();
-        var gitRepoIndex = _services.GetRequiredService<IGitRepoIndex>();
-        var cancellationToken = _lifetime.CancellationToken;
-
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                var shortcuts = shortcutRepository.GetShortcuts();
-                gitRepoIndex.Prewarm(
-                    GitRepoSearchRoots.FromShortcuts(shortcuts).ToList(),
-                    cancellationToken);
-            }
-            catch
-            {
-                // Best effort; discover/create still work without the warm cache.
-            }
-        }, cancellationToken);
-    }
-
-    private void KickoffFormCatalogPrewarm()
-    {
-        if (_disposed || _lifetime.IsCancellationRequested)
-        {
-            return;
-        }
-
-        var terminalApplicationId = _settingsManager.TerminalApplicationId;
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                if (_disposed || _lifetime.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                FormCatalogPrewarm.Warm(terminalApplicationId);
-            }
-            catch
-            {
-                // Best effort; first form open pays cold cost instead.
-            }
-        }, _lifetime.CancellationToken);
-    }
-
     public override ICommandItem? GetCommandItem(string id)
     {
         if (_commandRouter.TryHandle(id, _context, out var item))
@@ -270,6 +204,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
         _disposed = true;
         _lifetime.Cancel();
+        _warmupCoordinator.Dispose();
         _settingsManager.SettingsChanged -= _settingsChangedHandler;
         _page.Dispose();
         if (_fallbackPage.IsValueCreated)

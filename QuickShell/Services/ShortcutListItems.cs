@@ -23,6 +23,7 @@ internal static class ShortcutListItems
         var settings = context.Settings;
         const bool requireDirectoryExists = false;
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
+
         ICommand primaryCommand = needsRepair
             ? new ShortcutFormPage(services, shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, services);
