@@ -35,9 +35,13 @@ public sealed class RootPaletteSearchTests : IDisposable
                 Directory.Delete(_configDirectory, recursive: true);
             }
         }
-        catch
+        catch (IOException ex)
         {
-            // Best effort.
+            _output.WriteLine($"Best-effort cleanup failed for '{_configDirectory}': {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _output.WriteLine($"Best-effort cleanup unauthorized for '{_configDirectory}': {ex.Message}");
         }
     }
 
