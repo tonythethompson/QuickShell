@@ -1,0 +1,29 @@
+QuickShell/QuickShellSettingsManager.cs
+  s_da2fe96a63da9d::t_930efc306d55ec 24
+  s_da2fe96a63da9d::t_c7262ded6af58d 185-198,210-216,264,266-274
+QuickShell/Services/StartupWarmupCoordinator.cs
+  s_da2fe96a63da9d::t_e7fbb735b138ee 47,49,51-54,56,58-60,163
+  s_da2fe96a63da9d::t_8b2f44fdb77255 62-65,67-71,73-81,110,119,129,161-162,165-174,179,194-198
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_da2fe96a63da9d::t_1f2547ad951200 106,148,331,472-475
+QuickShell/Commands/OpenShortcutLaunchCommand.cs
+  s_da2fe96a63da9d::t_2349d21ce26036 51,55-56
+QuickShell/Commands/OpenTerminalShortcutCommand.cs
+  s_da2fe96a63da9d::t_330e761a74d230 55,58-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c095fa1affc0ad961fbd053ab332adb5059d77d8",
+  "prompts": {},
+  "sessions": {
+    "s_da2fe96a63da9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73df-18c0-7f93-8470-eec7711f2370",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
