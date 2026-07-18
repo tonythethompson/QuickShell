@@ -1,0 +1,91 @@
+QuickShell.Raycast/src/__tests__/post-launch-actions.test.ts
+  s_c452d638773a57::t_4bb89714f3175a 2,20,31-32
+  s_c452d638773a57::t_fa8777308e6241 16-19,21-23,29-30,33-52,56-61
+  s_c452d638773a57::t_6c535f5a50096d 24-28,53-55
+QuickShell.Raycast/src/lib/storage.ts
+  s_c452d638773a57::t_50ddb8f5243974 14,443-458
+  s_c452d638773a57::t_780b599c5783b2 101,306-310
+QuickShell.Raycast/src/lib/post-launch-actions.ts
+  s_c452d638773a57::t_ca15cd71be73f0 14-15,18-20
+  s_c452d638773a57::t_959df68f9a7b08 2,11,21,23-24,27,32-38,42,44,55-57
+QuickShell.Raycast/src/lib/launch-executor.ts
+  s_c452d638773a57::t_b81a0701e9c757 3-4
+  s_c452d638773a57::t_2bb6a720e78703 18-22,28,50-54,62
+QuickShell.Raycast/src/lib/windows-launch.ts
+  s_c452d638773a57::t_8930ffd70c36f6 39-43,45,47-61,312
+  s_c452d638773a57::t_273caedd93b6e8 32-36,44,46,62-95,100,103,237-241,244-245,309,314,369-371,373-377,379
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_c452d638773a57::t_dd7dccc13aeae2 6,283-287,295-312
+  s_c452d638773a57::t_128bdc57291866 5,7-35,243-282,313
+  s_c452d638773a57::t_592bb54c7fa727 288-294
+QuickShell.Raycast/src/__tests__/windows-launch.test.ts
+  s_c452d638773a57::t_4958c9900aaf2a 4-5,8,119-125,127-137,188-225
+  s_c452d638773a57::t_ec03dd9f2f28ee 126,138-187
+QuickShell.Core.Tests/WorkspaceSecurityPolicyTests.cs
+  s_697738635c8e82::t_62df2fccc68c7e 105-151
+  s_697738635c8e82::t_95006b47ae79f5 91-95
+  s_697738635c8e82::t_5991b0daf85a2c 152-200
+  s_697738635c8e82::t_f375b0638f34c6 1,27-90,96-104,201-251,366,378,390,396,399,408,414
+  s_5774d25f17d246::t_450b5cb0a29b25 364-365,367-377,379-389,391-395,397-398,400-407,409-413
+QuickShell.Raycast/src/open-workspace.tsx
+  s_c452d638773a57::t_6ad855b24704d3 38,205-206,220,224-226,228,290,309,327
+  s_c452d638773a57::t_c020c3585f2cfb 37,188-191,200,202-204
+  s_c452d638773a57::t_19813008bef34d 201
+  s_c452d638773a57::t_38c4196ed18da5 227
+QuickShell.Raycast/src/lib/security.ts
+  s_c452d638773a57::t_2ea8edaaf4cb04 109-110,112-116,132-135
+  s_c452d638773a57::t_850430283f8415 4,7-8,10-15,52-65,69,151-157,166-167,170,175-176,179-195,204-206,208-211,219,237,239,251,257-264,272-284,286-306,389
+  s_c452d638773a57::t_f0b3973b3dae07 9,87-105,111,124,131,207
+  s_c452d638773a57::t_e7ea84876c3021 384-386,390
+  s_c452d638773a57::t_6bf76d4075a964 265-271
+  s_c452d638773a57::t_b01c036e755bd6 177-178,324-325,330,333-335
+  s_c452d638773a57::t_de9778a6c936ee 123
+  s_c452d638773a57::t_31e325c380fdc4 5,387-388
+  s_5774d25f17d246::t_85fd28af1552d7 285,307
+QuickShell.Core/Services/WorkspaceSecurityPolicy.cs
+  s_697738635c8e82::t_3f05356ca22bb7 158,164
+  s_697738635c8e82::t_36b576a06f5227 99-124,135,137-141,149-157,159-163,165-183,185-189,191,194,214,237,242,245,248,250-251,256,258,270-271,276,278,290,298,304,313
+  s_5774d25f17d246::t_1f63478b535aed 190,192-193,195,197,199,201,205-206,208-213,215-236,238-241,243-244,246-247,249,252-255,257,259,267,269,272-275,277,279-280,283-286,288,292-297,299-300,302,306-312,314-315,330-332,335,344,347,349,352-355,398-399
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_c452d638773a57::t_0039da48d67819 110-119,121-136,150-151
+  s_c452d638773a57::t_acde3333118f81 2,32-34,38,83-108,152-193
+  s_c452d638773a57::t_ebf713b036b5e4 120,137-149,194-215
+  s_c452d638773a57::t_3efb62ec84260b 48-76,79
+  s_c452d638773a57::t_18d5b1bae3c2e2 109
+QuickShell.Core/Services/WorkspaceLaunchService.cs
+  s_5774d25f17d246::t_5f7b9a750ebf14 59,61-89,137,175-176,181,184-187
+QuickShell.Raycast/src/__tests__/launch-executor.test.ts
+  s_c452d638773a57::t_2cd5896dfcb0d6 52,67-77,79,84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "2fc1d01a5462e1b20403ddd574a6ad3c29cf3f97",
+  "prompts": {},
+  "sessions": {
+    "s_5774d25f17d246": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a66ed27b-176d-4f60-b88b-7e7f83429f48",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_697738635c8e82": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b7ecad0f-adb7-4d9e-86ed-36f56b39a1c8",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_c452d638773a57": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "da8b2f10-d5d7-4ddb-afe8-fdaf903dacda",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
