@@ -206,17 +206,15 @@ internal static class WorkspaceSecurityPolicy
             risks.Add(new("dev-server", "This workspace opens a configured URL after launch."));
         }
 
-        if (!workspace.Security.IsTrusted)
-        {
-            if (action is WorkspaceAction.LaunchTerminal
+        if (!workspace.Security.IsTrusted
+            && (action is WorkspaceAction.LaunchTerminal
                 or WorkspaceAction.LaunchEntry
                 or WorkspaceAction.StartCompanion
                 or WorkspaceAction.OpenUrl
                 or WorkspaceAction.OpenDevServer
-                or WorkspaceAction.OpenDirectory)
-            {
-                issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
-            }
+                or WorkspaceAction.OpenDirectory))
+        {
+            issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
         }
 
         if (action == WorkspaceAction.OpenDirectory)
