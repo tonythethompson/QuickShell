@@ -306,6 +306,38 @@ public sealed class RootPaletteSearchTests : IDisposable
         Assert.True(second > first);
     }
 
+    [Fact]
+    public async Task UpdateQuery_DoesNotApplyAnOlderOverlappingResult()
+    {
+        using var firstSearchStarted = new ManualResetEventSlim();
+        using var releaseFirstSearch = new ManualResetEventSlim();
+        var repository = new FakeShortcutRepository([CreateWorkspace("Beta", MakeDirectory("beta"))]);
+        var git = new FakeGitRepoIndex
+        {
+            SearchOverride = query =>
+            {
+                if (query == "alpha")
+                {
+                    firstSearchStarted.Set();
+                    releaseFirstSearch.Wait(TimeSpan.FromSeconds(5));
+                    return [new GitRepoCandidate { Name = "Alpha", Directory = MakeDirectory("alpha") }];
+                }
+
+                return [];
+            },
+        };
+        var fallback = CreateFallback(repository, git);
+
+        var first = Task.Run(() => fallback.UpdateQuery("alpha"));
+        Assert.True(firstSearchStarted.Wait(TimeSpan.FromSeconds(5)));
+
+        fallback.UpdateQuery("beta");
+        releaseFirstSearch.Set();
+        await first;
+
+        Assert.Equal("Beta", fallback.Title);
+    }
+
     [Theory]
     [InlineData(10)]
     [InlineData(100)]
@@ -328,6 +360,8 @@ public sealed class RootPaletteSearchTests : IDisposable
         };
 
         RunBenchmark(count, "RootPaletteSearchIndex", query => index.Search(query, git));
+        RunBenchmark(count, "RootPaletteSearchIndex cold", query =>
+            new RootPaletteSearchIndex(snapshot).Search(query, git));
     }
 
     [Theory]

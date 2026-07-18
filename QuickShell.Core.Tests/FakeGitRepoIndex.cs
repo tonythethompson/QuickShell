@@ -5,6 +5,7 @@ namespace QuickShell.Core.Tests;
 
 internal sealed class FakeGitRepoIndex : IGitRepoIndex
 {
+    public Func<string, IReadOnlyList<GitRepoCandidate>>? SearchOverride { get; set; }
     public IReadOnlyList<GitRepoCandidate> Repos { get; set; } = [];
 
     public bool IsRefreshInFlight => false;
@@ -24,6 +25,11 @@ internal sealed class FakeGitRepoIndex : IGitRepoIndex
         int maxResults = 8,
         CancellationToken cancellationToken = default)
     {
+        if (SearchOverride is not null)
+        {
+            return SearchOverride(query);
+        }
+
         var trimmed = query.Trim();
         if (string.IsNullOrWhiteSpace(trimmed))
         {

@@ -3,6 +3,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Services;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +22,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// favorite moves so only favorites (~few rows) are recreated.
     /// </summary>
     private readonly Dictionary<string, ListItem> _unpinnedItemCache =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, bool> _directoryRepairStates =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, byte> _directoryRepairChecks =
         new(StringComparer.OrdinalIgnoreCase);
     private IListItem[] _items = [];
     private string _query = string.Empty;
@@ -521,6 +526,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         TerminalShortcut shortcut,
         List<TerminalShortcut> pinnedInOrder)
     {
+        var needsRepair = RequiresHomeRepair(shortcut);
         // Favorites always rebuild (move visibility depends on pin order among favorites).
         // Unpinned rows reuse cached ListItems when reordering favorites, avoiding ~40 menu rebuilds.
         if (!shortcut.IsPinned
@@ -536,7 +542,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             Reload,
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
             onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true),
-            useHomePinContextMenu: true);
+            useHomePinContextMenu: true,
+            needsRepairOverride: needsRepair);
 
         ScheduleProfileIconUpgrade(shortcut, item);
 
@@ -557,7 +564,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     private void ScheduleProfileIconUpgrade(TerminalShortcut shortcut, ListItem item)
     {
-        if (shortcut.RunAsAdmin || ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+        if (shortcut.RunAsAdmin || RequiresHomeRepair(shortcut))
         {
             return;
         }
@@ -592,10 +599,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         // of which section a shortcut ends up rendered in.
         var pinnedList = pinnedInOrder.ToList();
 
-        // Use requireDirectoryExists=false so first paint does not block on WSL/network
-        // directory probes. Missing-folder detection is deferred to the launch health check.
+        // Directory reachability is populated asynchronously, preserving first-paint latency
+        // while returning missing folders to the repair path as soon as it is known.
         var needsAttention = allShortcuts
-            .Where(shortcut => ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+            .Where(RequiresHomeRepair)
             .OrderBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var needsAttentionIds = needsAttention.Count == 0
@@ -657,4 +664,53 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
         }
     }
+
+    private bool RequiresHomeRepair(TerminalShortcut shortcut)
+    {
+        if (ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
+        {
+            return true;
+        }
+
+        var key = GetDirectoryRepairKey(shortcut);
+        if (_directoryRepairStates.TryGetValue(key, out var needsRepair))
+        {
+            return needsRepair;
+        }
+
+        if (_directoryRepairChecks.TryAdd(key, 0))
+        {
+            _ = Task.Run(() => ProbeDirectoryRepairState(shortcut, key));
+        }
+
+        return false;
+    }
+
+    private void ProbeDirectoryRepairState(TerminalShortcut shortcut, string key)
+    {
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
+        if (_disposed)
+        {
+            return;
+        }
+
+        _services.CallbackQueue.Enqueue(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _directoryRepairStates[key] = needsRepair;
+            if (!string.IsNullOrWhiteSpace(shortcut.Id))
+            {
+                _unpinnedItemCache.Remove(shortcut.Id);
+            }
+
+            Reload();
+        });
+    }
+
+    private static string GetDirectoryRepairKey(TerminalShortcut shortcut) =>
+        string.Concat(shortcut.Id, "|", shortcut.Directory);
 }

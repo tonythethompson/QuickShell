@@ -175,6 +175,7 @@ internal sealed class RootPaletteSearchIndex
                     continue;
                 }
 
+                // Root-palette search runs per keystroke; directory reachability belongs to launch health.
                 requiresRepair ??= ShortcutHealth.WouldNeedRepair(
                     workspace.Shortcut,
                     requireDirectoryExists: false);

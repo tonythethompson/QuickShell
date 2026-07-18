@@ -4,6 +4,7 @@ using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
 using QuickShell.Commands;
+using System.Threading;
 
 namespace QuickShell;
 
@@ -16,6 +17,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
     private readonly QuickShellPageContext _context;
     private readonly Lazy<QuickShellFallbackPage> _listPage;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
+    private readonly object _searchIndexSync = new();
     private string _lastQuery = string.Empty;
     private long _queryGeneration;
     private RootPaletteSearchIndex? _cachedSearchIndex;
@@ -38,35 +40,45 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
 
     public override void UpdateQuery(string query)
     {
-        _lastQuery = query ?? string.Empty;
-        var generation = ++_queryGeneration;
+        var querySnapshot = query ?? string.Empty;
+        _lastQuery = querySnapshot;
+        var generation = Interlocked.Increment(ref _queryGeneration);
 
         try
         {
             var snapshot = _context.Services.Shortcuts.GetSnapshot();
-            if (_cachedSearchIndex is null || _cachedSearchIndex.Revision != snapshot.Version)
+            RootPaletteSearchIndex searchIndex;
+            lock (_searchIndexSync)
             {
-                _cachedSearchIndex = new RootPaletteSearchIndex(snapshot);
-                _cachedSearchRevision = snapshot.Version;
+                if (_cachedSearchIndex is null || _cachedSearchIndex.Revision != snapshot.Version)
+                {
+                    _cachedSearchIndex = new RootPaletteSearchIndex(snapshot);
+                    _cachedSearchRevision = snapshot.Version;
+                }
+
+                searchIndex = _cachedSearchIndex;
             }
 
-            var result = _cachedSearchIndex.Search(_lastQuery, _context.Services.GitRepos, generation);
-            if (result.Generation != generation)
+            var result = searchIndex.Search(querySnapshot, _context.Services.GitRepos);
+            if (generation != Volatile.Read(ref _queryGeneration))
             {
                 return;
             }
 
-            ApplyResult(result);
+            ApplyResult(result, querySnapshot);
         }
         catch (TimeoutException)
         {
             // The shortcut store lock was stuck; fall through to no-result rather than
             // surfacing a host error on a fallback keystroke.
-            ClearResult();
+            if (generation == Volatile.Read(ref _queryGeneration))
+            {
+                ClearResult();
+            }
         }
     }
 
-    private void ApplyResult(in RootPaletteSearchResult result)
+    private void ApplyResult(in RootPaletteSearchResult result, string query)
     {
         switch (result.Kind)
         {
@@ -78,29 +90,29 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
                 else
                 {
                     var listPage = _listPage.Value;
-                    listPage.SetTaskResults(_lastQuery, result.TaskActions);
-                    ApplyTaskResults(result.TaskActions);
+                    listPage.SetTaskResults(query, result.TaskActions);
+                    ApplyTaskResults(result.TaskActions, query);
                 }
                 break;
 
             case RootPaletteResultKind.Workspaces:
                 {
                     var listPage = _listPage.Value;
-                    listPage.SetWorkspaceResults(_lastQuery, result.Workspaces!);
-                    ApplyWorkspaceResult(result.Workspaces!);
+                    listPage.SetWorkspaceResults(query, result.Workspaces!);
+                    ApplyWorkspaceResult(result.Workspaces!, query);
                 }
                 break;
 
             case RootPaletteResultKind.Discover:
-                _listPage.Value.SetDiscoverEntry(_lastQuery);
+                _listPage.Value.SetDiscoverEntry(query);
                 ApplyDiscoverResult();
                 break;
 
             case RootPaletteResultKind.GitRepos:
                 {
                     var listPage = _listPage.Value;
-                    listPage.SetGitRepoResults(_lastQuery, result.GitRepos!);
-                    ApplyGitRepoResult(result.GitRepos!);
+                    listPage.SetGitRepoResults(query, result.GitRepos!);
+                    ApplyGitRepoResult(result.GitRepos!, query);
                 }
                 break;
 
@@ -110,7 +122,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         }
     }
 
-    private void ApplyWorkspaceResult(IReadOnlyList<TerminalShortcut> shortcuts)
+    private void ApplyWorkspaceResult(IReadOnlyList<TerminalShortcut> shortcuts, string query)
     {
         if (shortcuts.Count == 1)
         {
@@ -120,7 +132,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         else
         {
             Title = $"{shortcuts.Count} workspaces";
-            Subtitle = $"Matching \"{_lastQuery}\"";
+            Subtitle = $"Matching \"{query}\"";
         }
 
         Icon = QuickShellBrandIcons.App;
@@ -145,16 +157,16 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         UpdateQuery(query);
     }
 
-    private void ApplyTaskResults(IReadOnlyList<WorkspaceTaskAction> taskActions)
+    private void ApplyTaskResults(IReadOnlyList<WorkspaceTaskAction> taskActions, string query)
     {
         Title = $"{taskActions.Count} task actions";
-        Subtitle = $"Matching \"{_lastQuery}\"";
+        Subtitle = $"Matching \"{query}\"";
         Icon = QuickShellBrandIcons.App;
         Command = _listPage.Value;
         MoreCommands = [];
     }
 
-    private void ApplyGitRepoResult(IReadOnlyList<GitRepoCandidate> gitRepos)
+    private void ApplyGitRepoResult(IReadOnlyList<GitRepoCandidate> gitRepos, string query)
     {
         if (gitRepos.Count == 1)
         {
@@ -164,7 +176,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         else
         {
             Title = $"{gitRepos.Count} git repos";
-            Subtitle = $"Matching \"{_lastQuery}\"";
+            Subtitle = $"Matching \"{query}\"";
         }
 
         Icon = new IconInfo(ShortcutGlyphs.Discover);

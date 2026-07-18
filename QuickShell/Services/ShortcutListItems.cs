@@ -15,14 +15,15 @@ internal static class ShortcutListItems
         PinnedMoveVisibility moveVisibility = default,
         bool includeEdit = true,
         Action? onFavoritesReordered = null,
-        bool useHomePinContextMenu = false)
+        bool useHomePinContextMenu = false,
+        bool? needsRepairOverride = null)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var services = context.Services;
         var settings = context.Settings;
         const bool requireDirectoryExists = false;
-        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
+        var needsRepair = needsRepairOverride ?? ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
             ? new ShortcutFormPage(services, shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, services);
