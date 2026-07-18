@@ -7,7 +7,7 @@
   "author": "tonythethompson",
   "platforms": ["Windows"],
   "categories": ["Developer Tools", "Productivity"],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": ["quickshell", "terminal", "windows terminal", "workspace", "developer", "powershell", "wsl", "git"],
   "preferences": [
     {
