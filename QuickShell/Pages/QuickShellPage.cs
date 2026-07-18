@@ -701,6 +701,24 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             return;
         }
 
+        // Only rebuild the home list when the probe flips the visible repair state. A
+        // healthy probe that confirms an already-healthy (or already-known-bad) directory
+        // does not need a full rebuild and would otherwise raise ItemsChanged N times for
+        // N shortcuts. _directoryRepairStates/_directoryRepairChecks are ConcurrentDictionary,
+        // so this is safe to compute and apply directly from the probe thread.
+        var stateChanged = !_directoryRepairStates.TryGetValue(key, out var previous)
+            || previous != needsRepair;
+        _directoryRepairStates[key] = needsRepair;
+        // Drop the in-flight marker so a later refresh (e.g. a previously
+        // offline drive coming back) can schedule another probe instead of
+        // returning the stale cached state forever.
+        _directoryRepairChecks.TryRemove(key, out _);
+
+        if (!stateChanged)
+        {
+            return;
+        }
+
         _services.CallbackQueue.Enqueue(() =>
         {
             if (_disposed)
@@ -708,31 +726,36 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 return;
             }
 
-            // Only rebuild the home list when the probe flips the visible
-            // repair state. A healthy probe that confirms an already-healthy
-            // (or already-known-bad) directory does not need a full rebuild
-            // and would otherwise raise ItemsChanged N times for N shortcuts.
-            var stateChanged = !_directoryRepairStates.TryGetValue(key, out var previous)
-                || previous != needsRepair;
-            _directoryRepairStates[key] = needsRepair;
-            // Drop the in-flight marker so a later refresh (e.g. a previously
-            // offline drive coming back) can schedule another probe instead of
-            // returning the stale cached state forever.
-            _directoryRepairChecks.TryRemove(key, out _);
-            if (stateChanged && !string.IsNullOrWhiteSpace(shortcut.Id))
+            // _unpinnedItemCache is a plain Dictionary (not concurrent), so this must run
+            // on the COM/fetch thread via the callback queue, not directly on the probe
+            // thread.
+            if (!string.IsNullOrWhiteSpace(shortcut.Id))
             {
                 _unpinnedItemCache.Remove(shortcut.Id);
             }
 
-            if (stateChanged)
-            {
-                // Use the private overload: it does not clear
-                // _directoryRepairStates/_directoryRepairChecks, which would
-                // erase the state just written above before the next paint
-                // reads it and cause the probe to re-run indefinitely.
-                Reload(preserveUnpinnedItemCache: true);
-            }
+            // Use the private overload: it does not clear
+            // _directoryRepairStates/_directoryRepairChecks, which would
+            // erase the state just written above before the next paint
+            // reads it and cause the probe to re-run indefinitely.
+            Reload(preserveUnpinnedItemCache: true);
         });
+
+        // Wake the host now. GetItems() is the only place that drains the callback queue,
+        // so without this, the queued reload above only runs the next time GetItems() is
+        // called for some other reason (e.g. the user searching) — which may never happen
+        // if they just open the list and wait, leaving a missing/offline folder shown as
+        // launchable instead of moving to Needs Attention.
+        try
+        {
+            RaiseItemsChanged();
+        }
+        catch
+        {
+            // Nested/cross-thread ItemsChanged can throw 0x800706BA (see
+            // InvalidateWorkspaces). The queued reload above still runs the next time
+            // GetItems() executes for any other reason.
+        }
     }
 
     private static string GetDirectoryRepairKey(TerminalShortcut shortcut) =>
