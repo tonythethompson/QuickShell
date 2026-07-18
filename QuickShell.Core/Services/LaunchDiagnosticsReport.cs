@@ -26,6 +26,10 @@ internal enum LaunchDiagnosticKind
     PartialLaunch,
     ProfileFallback,
     ExternalProcessStarted,
+    PlanCacheHit,
+    PlanCacheMiss,
+    PlanCacheBuild,
+    PlanCacheEvicted,
 }
 
 internal sealed record LaunchDiagnosticEntry(

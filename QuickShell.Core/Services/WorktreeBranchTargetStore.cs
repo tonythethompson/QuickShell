@@ -10,6 +10,8 @@ internal static class WorktreeBranchTargetStore
 
     internal static Func<string, string?>? GetTargetOverride { get; set; }
 
+    internal static Func<string, IWorkspaceGitOperations, string?>? GetTargetForDirectoryOverride { get; set; }
+
     internal static Action<string, string?>? SetTargetOverride { get; set; }
 
     private static readonly object Sync = new();
@@ -40,6 +42,11 @@ internal static class WorktreeBranchTargetStore
     public static string? GetTargetForDirectory(string directory, IWorkspaceGitOperations git)
     {
         ArgumentNullException.ThrowIfNull(git);
+
+        if (GetTargetForDirectoryOverride is { } getOverride)
+        {
+            return getOverride(directory, git);
+        }
 
         if (!git.TryResolveWorktreeKey(directory, out var worktreeKey))
         {
