@@ -234,10 +234,13 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
                 }
             }
 
-            if (pending.Wait(TimeSpan.FromMilliseconds(50)))
-            {
-                return;
-            }
+            // pending is the raw discovery Task, not its CompleteRefresh continuation (which
+            // clears _refreshInFlight under _sync once the cache is actually updated). That
+            // continuation runs with ExecuteSynchronously as a hint only, so it can still land
+            // on a different thread moments later — waiting on `pending` and returning as soon
+            // as it completes can race ahead of the cache write. Loop back to _refreshInFlight
+            // itself so this only returns once the continuation has actually run.
+            pending.Wait(TimeSpan.FromMilliseconds(50));
         }
 
         throw new TimeoutException("GitRepoIndex refresh did not complete.");
