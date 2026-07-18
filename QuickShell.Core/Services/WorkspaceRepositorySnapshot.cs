@@ -1,4 +1,5 @@
 using QuickShell.Models;
+using System.Linq;
 
 namespace QuickShell.Services;
 
@@ -25,13 +26,11 @@ internal readonly record struct WorkspaceRepositorySnapshot(
         }
 
         List<TerminalShortcut>? matches = null;
-        foreach (var shortcut in Shortcuts)
+        foreach (var shortcut in Shortcuts.Where(shortcut =>
+                     Matches(shortcut, query, queryStart, queryLength)))
         {
-            if (Matches(shortcut, query, queryStart, queryLength))
-            {
-                matches ??= [];
-                matches.Add(ShortcutRepository.Clone(shortcut));
-            }
+            matches ??= [];
+            matches.Add(ShortcutRepository.Clone(shortcut));
         }
 
         return matches is null ? [] : matches.ToArray();
