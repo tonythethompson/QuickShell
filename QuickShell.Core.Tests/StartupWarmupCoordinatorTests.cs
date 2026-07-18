@@ -240,7 +240,14 @@ public class StartupWarmupCoordinatorTests
                     {
                         coordinator.SignalFirstListPublished();
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                        and not StackOverflowException
+                        and not AccessViolationException
+                        and not AppDomainUnloadedException
+                        and not BadImageFormatException
+                        and not CannotUnloadAppDomainException
+                        and not InvalidProgramException
+                        and not ThreadAbortException)
                     {
                         exceptions.Enqueue(ex);
                     }
@@ -251,7 +258,14 @@ public class StartupWarmupCoordinatorTests
                     {
                         coordinator.Dispose();
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                        and not StackOverflowException
+                        and not AccessViolationException
+                        and not AppDomainUnloadedException
+                        and not BadImageFormatException
+                        and not CannotUnloadAppDomainException
+                        and not InvalidProgramException
+                        and not ThreadAbortException)
                     {
                         exceptions.Enqueue(ex);
                     }
