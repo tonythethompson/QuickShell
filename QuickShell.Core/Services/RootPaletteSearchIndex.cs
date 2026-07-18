@@ -175,11 +175,11 @@ internal sealed class RootPaletteSearchIndex
                     continue;
                 }
 
-                requiresRepair ??= ShortcutHealth.WouldNeedRepair(workspace.Shortcut);
-                if (requiresRepair.Value)
                 requiresRepair ??= ShortcutHealth.WouldNeedRepair(
                     workspace.Shortcut,
                     requireDirectoryExists: false);
+                if (requiresRepair.Value)
+                {
                     break;
                 }
 
