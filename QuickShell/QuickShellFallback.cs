@@ -17,6 +17,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
     private readonly Lazy<QuickShellFallbackPage> _listPage;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private string _lastQuery = string.Empty;
+    private bool _awaitingGitRefresh;
+    private bool _disposed;
 
     public QuickShellFallback(
         QuickShellPageContext context,
@@ -93,6 +95,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
                 ApplyGitRepoResult(gitRepos);
                 return;
             }
+
+            RegisterForGitRefresh();
         }
         catch (TimeoutException)
         {
@@ -136,6 +140,31 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         var query = _lastQuery;
         ClearResult();
         UpdateQuery(query);
+    }
+
+    private void RegisterForGitRefresh()
+    {
+        if (_awaitingGitRefresh)
+        {
+            return;
+        }
+
+        _awaitingGitRefresh = true;
+        if (!_context.Services.GitRepos.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
+        {
+            _awaitingGitRefresh = false;
+        }
+    }
+
+    private void OnGitRefreshCompleted()
+    {
+        _awaitingGitRefresh = false;
+        if (_disposed)
+        {
+            return;
+        }
+
+        ReloadCurrentQuery();
     }
 
     private void ApplyTaskResults(WorkspaceTaskAction[] taskActions)
@@ -186,6 +215,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
 
     public void Dispose()
     {
+        _disposed = true;
         _discoverGitReposCommand.Dispose();
     }
 
