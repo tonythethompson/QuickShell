@@ -29,6 +29,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly ConcurrentDictionary<string, byte> _directoryRepairChecks =
         new(StringComparer.OrdinalIgnoreCase);
     private long _refreshSnapshotVersion;
+    private long _refreshEnrichmentGeneration;
     private string _refreshSettingsFingerprint = string.Empty;
     private IListItem[] _items = [];
     private string _query = string.Empty;
@@ -418,7 +419,9 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
             _refreshSnapshotVersion = snapshot.Version;
             _refreshSettingsFingerprint = _settings.RowPresentationFingerprint;
-            _rowEnrichment.SetRepositoryVersion(snapshot.Version);
+            _refreshEnrichmentGeneration = _rowEnrichment.BeginRefresh(
+                snapshot.Version,
+                _refreshSettingsFingerprint);
             var allShortcuts = snapshot.Shortcuts;
             PruneUnpinnedItemCache(allShortcuts);
             var pinnedInOrder = BuildPinnedInOrder(allShortcuts);
@@ -607,6 +610,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             && !string.IsNullOrWhiteSpace(shortcut.Id)
             && _unpinnedItemCache.TryGetValue(shortcut.Id, out var cached))
         {
+            if (!needsRepair)
+            {
+                _rowEnrichment.ScheduleIconUpgrade(
+                    shortcut,
+                    _refreshEnrichmentGeneration,
+                    cached);
+            }
+
             return cached;
         }
 
@@ -628,7 +639,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         if (!needsRepair)
         {
-            _rowEnrichment.ScheduleIconUpgrade(shortcut, _refreshSnapshotVersion, item);
+            _rowEnrichment.ScheduleIconUpgrade(
+                shortcut,
+                _refreshEnrichmentGeneration,
+                item);
         }
 
         if (!string.IsNullOrWhiteSpace(shortcut.Id))

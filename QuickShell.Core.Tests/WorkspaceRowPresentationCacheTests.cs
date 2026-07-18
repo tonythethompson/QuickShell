@@ -91,6 +91,21 @@ public sealed class WorkspaceRowPresentationCacheTests : IDisposable
     }
 
     [Fact]
+    public void GetOrBuild_OlderRepositoryVersion_DoesNotReinsertPrunedEntry()
+    {
+        var shortcut = CreateShortcut();
+        var current = _cache.GetOrBuild(shortcut, 2, Fingerprint, WorkspaceRowPresentationMode.Home);
+
+        var stale = _cache.GetOrBuild(shortcut, 1, Fingerprint, WorkspaceRowPresentationMode.Home);
+
+        Assert.Equal(1, stale.RepositoryVersion);
+        Assert.Equal(1, _cache.Count);
+        Assert.Same(
+            current,
+            _cache.GetOrBuild(shortcut, 2, Fingerprint, WorkspaceRowPresentationMode.Home));
+    }
+
+    [Fact]
     public void GetOrBuild_SettingsFingerprintChange_RebuildsPresentation()
     {
         var shortcut = CreateShortcut();

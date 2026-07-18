@@ -49,14 +49,14 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     public void Flush_AppliesIconsOnlyThroughCallbackQueue_AsOneBatch()
     {
         using var coordinator = CreateCoordinator();
-        coordinator.SetRepositoryVersion(1);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var items = new List<ListItem>();
         for (var i = 0; i < 3; i++)
         {
             var item = CreateItem();
             items.Add(item);
-            coordinator.ScheduleIconUpgrade(CreateShortcut("ws-" + i), 1, item);
+            coordinator.ScheduleIconUpgrade(CreateShortcut("ws-" + i), generation, item);
         }
 
         var initialIcons = items.Select(item => item.Icon).ToArray();
@@ -78,33 +78,60 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     }
 
     [Fact]
-    public void ScheduleIconUpgrade_DeduplicatesByWorkspaceAndVersion()
+    public void ScheduleIconUpgrade_DeduplicatesResolutionAndAppliesEveryMaterializedItem()
     {
         using var coordinator = CreateCoordinator();
-        coordinator.SetRepositoryVersion(1);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
         var shortcut = CreateShortcut();
+        var first = CreateItem();
+        var second = CreateItem();
+        var firstIcon = first.Icon;
+        var secondIcon = second.Icon;
 
-        coordinator.ScheduleIconUpgrade(shortcut, 1, CreateItem());
-        coordinator.ScheduleIconUpgrade(shortcut, 1, CreateItem());
+        coordinator.ScheduleIconUpgrade(shortcut, generation, first);
         coordinator.Flush();
+        coordinator.ScheduleIconUpgrade(shortcut, generation, second);
+        _queue.Drain();
 
         Assert.Single(_resolvedIds);
+        Assert.NotSame(firstIcon, first.Icon);
+        Assert.NotSame(secondIcon, second.Icon);
         Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
+    }
+
+    [Fact]
+    public void ScheduleIconUpgrade_AppliesResolvedIconToItemAddedAfterCallback()
+    {
+        using var coordinator = CreateCoordinator();
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
+        var shortcut = CreateShortcut();
+
+        coordinator.ScheduleIconUpgrade(shortcut, generation, CreateItem());
+        coordinator.Flush();
+        _queue.Drain();
+
+        var later = CreateItem();
+        var fallbackIcon = later.Icon;
+        coordinator.ScheduleIconUpgrade(shortcut, generation, later);
+        _queue.Drain();
+
+        Assert.Single(_resolvedIds);
+        Assert.NotSame(fallbackIcon, later.Icon);
     }
 
     [Fact]
     public void StaleRepositoryVersion_CannotOverwriteNewerRows()
     {
         using var coordinator = CreateCoordinator();
-        coordinator.SetRepositoryVersion(1);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var staleItem = CreateItem();
         var staleIcon = staleItem.Icon;
-        coordinator.ScheduleIconUpgrade(CreateShortcut(), 1, staleItem);
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), generation, staleItem);
         coordinator.Flush();
 
         // Repository moved on before the UI thread drained the queue.
-        coordinator.SetRepositoryVersion(2);
+        coordinator.BeginRefresh(2, "wt|profile-a");
         _queue.Drain();
 
         Assert.Same(staleIcon, staleItem.Icon);
@@ -113,13 +140,13 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     }
 
     [Fact]
-    public void SetRepositoryVersion_DropsPendingWorkForOlderVersion()
+    public void BeginRefresh_DropsPendingWorkForOlderGeneration()
     {
         using var coordinator = CreateCoordinator();
-        coordinator.SetRepositoryVersion(1);
-        coordinator.ScheduleIconUpgrade(CreateShortcut(), 1, CreateItem());
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), generation, CreateItem());
 
-        coordinator.SetRepositoryVersion(2);
+        coordinator.BeginRefresh(2, "wt|profile-a");
         coordinator.Flush();
         _queue.Drain();
 
@@ -128,17 +155,62 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public void SettingsChangeAtSameRepositoryVersion_DiscardsOldGeneration()
+    {
+        using var coordinator = CreateCoordinator();
+        var oldGeneration = coordinator.BeginRefresh(1, "wt|profile-a");
+        var staleItem = CreateItem();
+        var staleIcon = staleItem.Icon;
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), oldGeneration, staleItem);
+        coordinator.Flush();
+
+        var newGeneration = coordinator.BeginRefresh(1, "wt|profile-b");
+        var currentItem = CreateItem();
+        var currentIcon = currentItem.Icon;
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), newGeneration, currentItem);
+        coordinator.Flush();
+        _queue.Drain();
+
+        Assert.Same(staleIcon, staleItem.Icon);
+        Assert.NotSame(currentIcon, currentItem.Icon);
+        Assert.Equal(2, _resolvedIds.Count);
+        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
+    }
+
+    [Fact]
+    public void SameVersionRefresh_EnrichesNewlyMaterializedItem()
+    {
+        using var coordinator = CreateCoordinator();
+        var firstGeneration = coordinator.BeginRefresh(1, "wt|profile-a");
+        var staleItem = CreateItem();
+        var staleIcon = staleItem.Icon;
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), firstGeneration, staleItem);
+        coordinator.Flush();
+
+        var nextGeneration = coordinator.BeginRefresh(1, "wt|profile-a");
+        var currentItem = CreateItem();
+        var currentIcon = currentItem.Icon;
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), nextGeneration, currentItem);
+        coordinator.Flush();
+        _queue.Drain();
+
+        Assert.Same(staleIcon, staleItem.Icon);
+        Assert.NotSame(currentIcon, currentItem.Icon);
+        Assert.Equal(2, _resolvedIds.Count);
+    }
+
+    [Fact]
     public void Dispose_DiscardsPendingAndInFlightWork()
     {
         var coordinator = CreateCoordinator();
-        coordinator.SetRepositoryVersion(1);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var flushedItem = CreateItem();
         var flushedIcon = flushedItem.Icon;
-        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-flushed"), 1, flushedItem);
+        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-flushed"), generation, flushedItem);
         coordinator.Flush();
 
-        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-pending"), 1, CreateItem());
+        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-pending"), generation, CreateItem());
         coordinator.Dispose();
         _queue.Drain();
 
@@ -155,13 +227,13 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
             shortcut.Id == "ws-bad"
                 ? throw new InvalidOperationException("icon source unreadable")
                 : "");
-        coordinator.SetRepositoryVersion(1);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var good = CreateItem();
         var goodIcon = good.Icon;
         var bad = CreateItem();
-        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-bad"), 1, bad);
-        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-good"), 1, good);
+        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-bad"), generation, bad);
+        coordinator.ScheduleIconUpgrade(CreateShortcut("ws-good"), generation, good);
 
         coordinator.Flush();
         _queue.Drain();
@@ -174,15 +246,15 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
     public void RowsThatNeverUpgrade_AreNotQueued()
     {
         using var coordinator = CreateCoordinator();
-        coordinator.SetRepositoryVersion(1);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
 
         var admin = CreateShortcut("ws-admin");
         admin.RunAsAdmin = true;
         var broken = CreateShortcut("ws-broken");
         broken.Directory = string.Empty;
 
-        coordinator.ScheduleIconUpgrade(admin, 1, CreateItem());
-        coordinator.ScheduleIconUpgrade(broken, 1, CreateItem());
+        coordinator.ScheduleIconUpgrade(admin, generation, CreateItem());
+        coordinator.ScheduleIconUpgrade(broken, generation, CreateItem());
         coordinator.Flush();
 
         Assert.Empty(_resolvedIds);

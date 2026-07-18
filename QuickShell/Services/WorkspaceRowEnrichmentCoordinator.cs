@@ -8,9 +8,9 @@ namespace QuickShell.Services;
 /// <summary>
 /// Defers optional row enrichment (terminal profile icon upgrades) off the first-paint
 /// path. Rows are published with a stable fallback glyph; enrichment is scheduled here,
-/// deduplicated by workspace id + repository version + kind, resolved in one background
+/// deduplicated by workspace id per refresh, resolved in one background
 /// batch, and applied through <see cref="IExtensionCallbackQueue"/> so the host thread
-/// owns the UI mutation. Results for an older repository version, or arriving after
+/// owns the UI mutation. Results for an older refresh, or arriving after
 /// disposal, are discarded.
 /// </summary>
 internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
@@ -19,12 +19,37 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
     private readonly Func<TerminalShortcut, string?> _resolveIcon;
     private readonly Action<Action> _runInBackground;
     private readonly object _sync = new();
-    private readonly HashSet<string> _scheduledKeys = new(StringComparer.OrdinalIgnoreCase);
-    private readonly List<PendingRow> _pending = [];
-    private long _currentVersion = long.MinValue;
+    private readonly Dictionary<string, EnrichmentWork> _workByWorkspaceId =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<EnrichmentWork> _pending = [];
+    private RefreshIdentity _currentRefresh;
+    private long _refreshSequence;
     private bool _disposed;
 
-    private sealed record PendingRow(string WorkspaceId, long RepositoryVersion, TerminalShortcut Shortcut, ListItem Item);
+    private readonly record struct RefreshIdentity(
+        long Sequence,
+        long RepositoryVersion,
+        string SettingsFingerprint);
+
+    private sealed class EnrichmentWork(
+        RefreshIdentity refresh,
+        TerminalShortcut shortcut,
+        ListItem firstItem)
+    {
+        public RefreshIdentity Refresh { get; } = refresh;
+
+        public TerminalShortcut Shortcut { get; } = shortcut;
+
+        public List<ListItem> Items { get; } = [firstItem];
+
+        public string? ResolvedIcon { get; set; }
+
+        public bool ResolutionCompleted { get; set; }
+
+        public bool ApplyQueued { get; set; }
+
+        public int AppliedItemCount { get; set; }
+    }
 
     public WorkspaceRowEnrichmentCoordinator(
         IExtensionCallbackQueue callbackQueue,
@@ -38,20 +63,24 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
     }
 
     /// <summary>
-    /// Observes the repository version for the refresh in progress. Pending work for an
-    /// older version is dropped; dedup keys from older versions are forgotten.
+    /// Starts a new row-materialization generation. Repository version and settings are
+    /// captured in the identity so callbacks from any older refresh are discarded.
     /// </summary>
-    public void SetRepositoryVersion(long repositoryVersion)
+    public long BeginRefresh(long repositoryVersion, string settingsFingerprint)
     {
         lock (_sync)
         {
-            if (repositoryVersion == _currentVersion)
+            if (_disposed)
             {
-                return;
+                return 0;
             }
 
-            _currentVersion = repositoryVersion;
-            _scheduledKeys.Clear();
+            _refreshSequence++;
+            _currentRefresh = new RefreshIdentity(
+                _refreshSequence,
+                repositoryVersion,
+                settingsFingerprint ?? string.Empty);
+
             if (_pending.Count > 0)
             {
                 for (var i = 0; i < _pending.Count; i++)
@@ -61,14 +90,21 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 
                 _pending.Clear();
             }
+
+            _workByWorkspaceId.Clear();
+            return _refreshSequence;
         }
     }
 
     /// <summary>
     /// Queues an icon upgrade for a freshly built row. Rows that would never upgrade
-    /// (admin launch, needs repair) are skipped; duplicates per (id, version) are ignored.
+    /// (admin launch, needs repair) are skipped. Duplicate rows share one resolution while
+    /// each materialized item remains an apply target.
     /// </summary>
-    public void ScheduleIconUpgrade(TerminalShortcut shortcut, long repositoryVersion, ListItem item)
+    public void ScheduleIconUpgrade(
+        TerminalShortcut shortcut,
+        long refreshGeneration,
+        ListItem item)
     {
         ArgumentNullException.ThrowIfNull(shortcut);
         ArgumentNullException.ThrowIfNull(item);
@@ -80,23 +116,43 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             return;
         }
 
+        EnrichmentWork? completedWork = null;
+        var queuedResolution = false;
         lock (_sync)
         {
-            if (_disposed || repositoryVersion != _currentVersion)
+            if (_disposed || refreshGeneration != _currentRefresh.Sequence)
             {
                 return;
             }
 
-            var key = $"{shortcut.Id}|{repositoryVersion}|icon";
-            if (!_scheduledKeys.Add(key))
+            if (_workByWorkspaceId.TryGetValue(shortcut.Id, out var existing))
             {
-                return;
+                existing.Items.Add(item);
+                if (existing.ResolutionCompleted
+                    && existing.ResolvedIcon is not null
+                    && !existing.ApplyQueued)
+                {
+                    existing.ApplyQueued = true;
+                    completedWork = existing;
+                }
             }
-
-            _pending.Add(new PendingRow(shortcut.Id, repositoryVersion, shortcut, item));
+            else
+            {
+                var work = new EnrichmentWork(_currentRefresh, shortcut, item);
+                _workByWorkspaceId.Add(shortcut.Id, work);
+                _pending.Add(work);
+                queuedResolution = true;
+            }
         }
 
-        RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentQueued);
+        if (completedWork is not null)
+        {
+            QueueApply([completedWork]);
+        }
+        else if (queuedResolution)
+        {
+            RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentQueued);
+        }
     }
 
     /// <summary>
@@ -105,7 +161,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
     /// </summary>
     public void Flush()
     {
-        PendingRow[] batch;
+        EnrichmentWork[] batch;
         lock (_sync)
         {
             if (_disposed || _pending.Count == 0)
@@ -136,66 +192,80 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             }
 
             _pending.Clear();
-            _scheduledKeys.Clear();
+            _workByWorkspaceId.Clear();
         }
     }
 
-    private void RunBatch(PendingRow[] batch)
+    private void RunBatch(EnrichmentWork[] batch)
     {
-        var resolved = new List<(PendingRow Row, string Icon)>(batch.Length);
-        foreach (var row in batch)
+        var resolved = new List<(EnrichmentWork Work, string? Icon)>(batch.Length);
+        foreach (var work in batch)
         {
             try
             {
-                var icon = _resolveIcon(row.Shortcut);
-                if (!string.IsNullOrWhiteSpace(icon))
-                {
-                    resolved.Add((row, icon));
-                }
+                resolved.Add((work, _resolveIcon(work.Shortcut)));
             }
             catch
             {
                 // One row's enrichment failing must not stop the rest of the batch.
+                resolved.Add((work, null));
             }
         }
 
-        if (resolved.Count == 0)
+        var readyToApply = new List<EnrichmentWork>(resolved.Count);
+        lock (_sync)
         {
-            return;
+            foreach (var (work, icon) in resolved)
+            {
+                work.ResolutionCompleted = true;
+                work.ResolvedIcon = string.IsNullOrWhiteSpace(icon) ? null : icon;
+                if (work.ResolvedIcon is not null && !work.ApplyQueued)
+                {
+                    work.ApplyQueued = true;
+                    readyToApply.Add(work);
+                }
+            }
         }
 
+        if (readyToApply.Count > 0)
+        {
+            QueueApply(readyToApply);
+        }
+    }
+
+    private void QueueApply(IReadOnlyList<EnrichmentWork> workItems)
+    {
         _callbackQueue.Enqueue(() =>
         {
             var appliedAny = false;
             lock (_sync)
             {
-                if (_disposed)
+                foreach (var work in workItems)
                 {
-                    for (var i = 0; i < resolved.Count; i++)
+                    work.ApplyQueued = false;
+                    if (_disposed || work.Refresh != _currentRefresh)
                     {
-                        RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentDiscardedStale);
+                        var staleCount = work.Items.Count - work.AppliedItemCount;
+                        for (var i = 0; i < staleCount; i++)
+                        {
+                            RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentDiscardedStale);
+                        }
+
+                        continue;
                     }
 
-                    return;
-                }
-            }
+                    if (work.ResolvedIcon is null)
+                    {
+                        continue;
+                    }
 
-            foreach (var (row, icon) in resolved)
-            {
-                long currentVersion;
-                lock (_sync)
-                {
-                    currentVersion = _currentVersion;
+                    while (work.AppliedItemCount < work.Items.Count)
+                    {
+                        work.Items[work.AppliedItemCount].Icon = new IconInfo(work.ResolvedIcon);
+                        work.AppliedItemCount++;
+                        appliedAny = true;
+                    }
                 }
-
-                if (row.RepositoryVersion != currentVersion)
-                {
-                    RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentDiscardedStale);
-                    continue;
-                }
-
-                row.Item.Icon = new IconInfo(icon);
-                appliedAny = true;
             }
 
             if (appliedAny)

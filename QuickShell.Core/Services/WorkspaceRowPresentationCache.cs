@@ -76,6 +76,24 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
 
         lock (_sync)
         {
+            if (repositoryVersion < _newestVersion)
+            {
+                // A newer snapshot won the race while this entry was being built.
+                // Return the immutable value to the caller without reviving stale state.
+                return built;
+            }
+
+            if (repositoryVersion > _newestVersion)
+            {
+                _newestVersion = repositoryVersion;
+                PruneOlderVersionsLocked(repositoryVersion);
+            }
+
+            if (_entries.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
             if (_entries.Count >= MaxEntries)
             {
                 // Overflow means fingerprint churn beyond a snapshot's worth of rows;

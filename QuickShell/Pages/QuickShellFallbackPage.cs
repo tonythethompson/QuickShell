@@ -137,8 +137,9 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         }
         else
         {
+            var settingsFingerprint = _settings.RowPresentationFingerprint;
             items.AddRange(_taskActions.Select(BuildTaskActionItem));
-            items.AddRange(_shortcuts.Select(BuildShortcutItem));
+            items.AddRange(_shortcuts.Select(shortcut => BuildShortcutItem(shortcut, settingsFingerprint)));
             items.AddRange(BuildGitRepoItems(_gitRepos));
         }
 
@@ -174,14 +175,16 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         _onReload();
     }
 
-    private ListItem BuildShortcutItem(TerminalShortcut shortcut)
+    private ListItem BuildShortcutItem(
+        TerminalShortcut shortcut,
+        string settingsFingerprint)
     {
         // Shared presentation cache: same data as the home page but SearchResult mode,
         // which uses the directory subtitle for healthy rows. Commands stay page-local.
         var presentation = _services.RowPresentation.GetOrBuild(
             shortcut,
             _repositoryVersion,
-            _settings.RowPresentationFingerprint,
+            settingsFingerprint,
             WorkspaceRowPresentationMode.SearchResult);
 
         return ShortcutListItems.CreateOpen(
