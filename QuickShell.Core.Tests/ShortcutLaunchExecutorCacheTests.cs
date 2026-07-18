@@ -83,18 +83,38 @@ public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
     }
 
     [Fact]
-    public void RepositoryVersionChange_CausesCacheMiss()
+    public void StructuralRepositoryVersionChange_CausesCacheMiss()
     {
         var shortcut = CreateShortcut();
         var (executor, repo, starter) = CreateExecutor(shortcut, version: 1);
 
         var first = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
-        repo.Version = 2;
+        repo.BumpVersion();
         var second = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
 
         Assert.Equal(1, CacheBuildCount(first));
         Assert.Equal(1, CacheBuildCount(second));
         Assert.Equal(0, CacheHitCount(second));
+        Assert.Equal(2, starter.Started.Count);
+    }
+
+    [Fact]
+    public void UsageOnlyVersionChange_DoesNotCauseCacheMiss()
+    {
+        // Regression test: MarkUsed (called after every successful launch) used to bump
+        // the same repository version the launch plan cache keyed on, so a repeat launch
+        // more than ~2s after the previous one always missed the cache. The cache must key
+        // on structural changes only and ignore usage-only version bumps.
+        var shortcut = CreateShortcut();
+        var (executor, repo, starter) = CreateExecutor(shortcut, version: 1);
+
+        var first = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
+        repo.BumpUsageOnlyVersion();
+        var second = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
+
+        Assert.Equal(1, CacheBuildCount(first));
+        Assert.Equal(0, CacheBuildCount(second));
+        Assert.Equal(1, CacheHitCount(second));
         Assert.Equal(2, starter.Started.Count);
     }
 

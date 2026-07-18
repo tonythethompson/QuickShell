@@ -7,12 +7,19 @@ namespace QuickShell.Services;
 /// All reads against a single snapshot see the same shortcuts and layout, and the
 /// version token makes cache invalidation cheap for consumers like pages.
 /// </summary>
+/// <param name="StructuralVersion">
+/// Bumps only on structural changes (add/edit/delete/reorder/import). Unlike
+/// <see cref="Version"/>, this does not change on usage-only updates (e.g. <c>MarkUsed</c>),
+/// so callers that cache on repository state without caring about last-used timestamps
+/// (e.g. the launch plan cache) can key on this instead of thrashing on every launch.
+/// </param>
 internal readonly record struct WorkspaceRepositorySnapshot(
     long Version,
     IReadOnlyList<TerminalShortcut> Shortcuts,
     IReadOnlyList<ShortcutLayoutEntry> Layout,
     bool CanUndo = false,
-    bool CanRedo = false)
+    bool CanRedo = false,
+    long StructuralVersion = 0)
 {
     public IEnumerable<TerminalShortcut> Search(string query)
     {

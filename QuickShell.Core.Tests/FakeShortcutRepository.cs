@@ -31,6 +31,12 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public long Version { get; set; }
 
+    // Mirrors the real repository's structural-vs-usage version split (see
+    // WorkspaceRepositorySnapshot.StructuralVersion). BumpVersion() bumps both, matching
+    // existing tests that use it to represent structural changes (edit/delete/reorder);
+    // BumpUsageOnlyVersion() bumps only Version, simulating a MarkUsed-only update.
+    public long StructuralVersion { get; set; }
+
     public Task PreloadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public IReadOnlyList<TerminalShortcut> GetShortcuts() => _byId.Values.ToList();
@@ -38,9 +44,15 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public IReadOnlyList<ShortcutLayoutEntry> GetLayout() => [];
 
     public WorkspaceRepositorySnapshot GetSnapshot() =>
-        new(Version, GetShortcuts(), GetLayout());
+        new(Version, GetShortcuts(), GetLayout(), StructuralVersion: StructuralVersion);
 
-    public void BumpVersion() => Version++;
+    public void BumpVersion()
+    {
+        Version++;
+        StructuralVersion++;
+    }
+
+    public void BumpUsageOnlyVersion() => Version++;
 
     public void Clear()
     {

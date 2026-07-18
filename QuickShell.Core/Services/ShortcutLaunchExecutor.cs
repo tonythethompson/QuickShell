@@ -245,11 +245,14 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         var fresh = _repository.GetById(shortcut.Id);
         if (fresh is null)
         {
-            return (null, snapshot.Version);
+            return (null, snapshot.StructuralVersion);
         }
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(fresh);
-        return (fresh, snapshot.Version);
+        // Key the launch plan cache on structural changes only: Version also bumps on
+        // usage-only updates (MarkUsed), which would otherwise bust the cache on every
+        // repeat launch instead of just when launch-affecting fields actually change.
+        return (fresh, snapshot.StructuralVersion);
     }
 
     private static ShortcutLaunchResult WorkspaceNotFound(string workspaceId)
