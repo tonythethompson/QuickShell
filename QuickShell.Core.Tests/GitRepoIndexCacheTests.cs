@@ -227,6 +227,8 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     public void GetAll_AfterCompletedRestrictedPrewarm_StartsFullDiscovery()
     {
         var scopes = new List<bool>();
+        using var fullStarted = new ManualResetEventSlim(false);
+        using var releaseFull = new ManualResetEventSlim(false);
         using var index = new GitRepoIndex(
             _projectAnalysis,
             _lifetime,
@@ -236,6 +238,12 @@ public sealed class GitRepoIndexCacheTests : IDisposable
                 lock (scopes)
                 {
                     scopes.Add(includeDefaultSearchRoots);
+                }
+
+                if (includeDefaultSearchRoots)
+                {
+                    fullStarted.Set();
+                    releaseFull.Wait(TimeSpan.FromSeconds(5));
                 }
 
                 return includeDefaultSearchRoots
@@ -254,6 +262,8 @@ public sealed class GitRepoIndexCacheTests : IDisposable
         index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
 
         Assert.Empty(index.GetAll([@"C:\saved"]));
+        Assert.True(fullStarted.Wait(TimeSpan.FromSeconds(5)));
+        releaseFull.Set();
         index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
 
         Assert.Equal(2, index.GetAll([@"C:\saved"]).Count);
@@ -266,6 +276,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
         using var restrictedStarted = new ManualResetEventSlim(false);
         using var releaseRestricted = new ManualResetEventSlim(false);
         using var fullStarted = new ManualResetEventSlim(false);
+        using var releaseFull = new ManualResetEventSlim(false);
         using var index = new GitRepoIndex(
             _projectAnalysis,
             _lifetime,
@@ -280,6 +291,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
                 }
 
                 fullStarted.Set();
+                releaseFull.Wait(TimeSpan.FromSeconds(5));
                 return
                 [
                     new GitRepoCandidate { Name = "Saved", Directory = @"C:\saved" },
@@ -292,6 +304,7 @@ public sealed class GitRepoIndexCacheTests : IDisposable
 
         Assert.Empty(index.GetAll([@"C:\saved"]));
         Assert.True(fullStarted.Wait(TimeSpan.FromSeconds(5)));
+        releaseFull.Set();
         index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
         releaseRestricted.Set();
 
