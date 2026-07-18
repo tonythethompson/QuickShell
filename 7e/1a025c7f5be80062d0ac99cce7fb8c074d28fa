@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/WorkspaceRowEnrichmentCoordinatorTests.cs
+  s_9a5e86c1ae7be7::t_5d7c4e079b3a96 205-208,217-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7e1a025c7f5be80062d0ac99cce7fb8c074d28fa",
+  "prompts": {},
+  "sessions": {
+    "s_9a5e86c1ae7be7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6c105ec-125e-49b5-8a58-e6ca80394c45",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
