@@ -58,7 +58,7 @@ public sealed class RowPresentationMeasurementTests : IDisposable
     [InlineData(ShortcutValidation.MaxShortcutCount)]
     public void Measure_HomeAndSearchRowConstruction(int workspaceCount)
     {
-        var configDir = Path.Combine(_tempRoot, "cfg-" + workspaceCount);
+        var configDir = Path.Join(_tempRoot, "cfg-" + workspaceCount);
         Directory.CreateDirectory(configDir);
 
         var services = new ServiceCollection();
