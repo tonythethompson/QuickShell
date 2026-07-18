@@ -1,0 +1,205 @@
+docs/architecture/README.md
+  s_952c40e81e3519::t_ed7102fb0173db 43
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_952c40e81e3519::t_13d6aca7eb4f57 26
+QuickShell/Services/ShortcutContextCommands.cs
+  s_952c40e81e3519::t_8c547e681f6991 85-86,207-208,436-465
+QuickShell/Commands/OpenTerminalShortcutCommand.cs
+  s_952c40e81e3519::t_245b19d43fc216 56-57
+QuickShell.Core/Services/CompanionAppNormalization.cs
+  s_952c40e81e3519::t_093c22a773cdf6 41,67,83,129
+QuickShell.Raycast/src/lib/migration.ts
+  s_952c40e81e3519::t_1347a43c454cae 35-53,58
+QuickShell.Core.Tests/WorkspaceSecurityPolicyTests.cs
+  s_952c40e81e3519::t_aeaf0c7097d367 1-138
+QuickShell.Core/Services/TerminalLauncher.cs
+  s_952c40e81e3519::t_8263032afb89ac 305
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_952c40e81e3519::t_894ca222e831a8 1681
+QuickShell.Core/Services/CompanionAppLauncher.cs
+  s_952c40e81e3519::t_3df22e6ae57bd2 158,164
+QuickShell.Raycast/src/lib/schema.ts
+  s_952c40e81e3519::t_804b96d18f0e61 52-63,77
+docs/architecture/hosts.md
+  s_952c40e81e3519::t_5402e4b62c8874 5-6
+QuickShell.Core/Services/ShortcutLayoutJson.cs
+  s_952c40e81e3519::t_c7ee91b98de56b 57-59,67,122-130,136,142-145,169-176,178-183,189-213
+QuickShell.Raycast/src/lib/security.ts
+  s_952c40e81e3519::t_585b26a7e2fe64 1-267
+docs/architecture/launch.md
+  s_952c40e81e3519::t_92cd055b811613 5-6
+QuickShell/Pages/QuickShellPage.cs
+  s_265ac3fcb9e78a::t_1077c4b16ac29e 609-610,612
+  s_6fad6f7a509527::t_7a23b8dd943920 680,686,691,702,720,727,735-752,758
+  s_e8a7a2830aa368::t_7e3052b5228810 574
+  3af83272f818a182 552-553
+  s_952c40e81e3519::t_01251c132c2f15 6,26-29,148-152,186-189,536,674-679,681-685,687-690,692-701,703-719,721-726,728-734,753-757,759-762
+QuickShell/Commands/OpenShortcutLaunchCommand.cs
+  s_952c40e81e3519::t_144addb45d935b 39-41
+QuickShell.Core/Services/ShortcutValidation.cs
+  s_952c40e81e3519::t_819e5749163da6 343
+QuickShell/Services/IQuickShellServices.cs
+  s_952c40e81e3519::t_81bcbd6c18c79b 14-15
+QuickShell.Core/Services/TerminalLauncherArgs.cs
+  s_952c40e81e3519::t_165b23b9a5f3c0 53,64,161
+QuickShell.Raycast/src/lib/windows-launch.ts
+  s_952c40e81e3519::t_7249567175651f 248
+QuickShell.Core/Services/WorkspaceClone.cs
+  s_952c40e81e3519::t_75192f624957d8 1-29
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_952c40e81e3519::t_d146ac045e8663 17,32
+  s_6b39fe9720ece6::t_a239fc610a88cd 18-31,36
+QuickShell.Raycast/src/lib/storage.ts
+  s_952c40e81e3519::t_69dfec99393494 1-8,14,64,84,92-93,104-108,110-111,117,120-136,159-220,258-259,262,295-303,417,419-421,424-444
+QuickShell.Core/Services/IWorkspaceLaunchService.cs
+  s_952c40e81e3519::t_6596d85c924263 1-27
+QuickShell/Commands/WorkspaceTrustCommands.cs
+  s_952c40e81e3519::t_edf03cfd10d8b8 1-91
+QuickShell.Raycast/src/open-workspace.tsx
+  s_952c40e81e3519::t_830eade61bfe67 38,43,67-69,73-75,182-187,190-191,195-229,305-310,312,318-364,392,438-441,475,477,500-504
+QuickShell.Raycast/src/lib/workspace-form-state.ts
+  s_952c40e81e3519::t_0ee6e508c24c12 65,83
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_14c3fc64e2a8a6::t_3019d0114fd441 48,140-285,645-647,716-718,741,865-868,882-886,890,1098-1104,1264,1319-1327,1464-1467,1470-1473,1482-1535,1591,1645-1647,1696-1710,1721-1723,1859-1862
+QuickShell.Core/Services/WorkspaceLaunchService.cs
+  s_952c40e81e3519::t_34b383fcbe0271 129
+  s_952c40e81e3519::t_1ae5bb0cf81c05 1
+  s_952c40e81e3519::t_f97c2bafa93792 2-61,63-84,86-128,130-170
+  s_952c40e81e3519::t_f5d83559681934 62
+  s_952c40e81e3519::t_5a506b24ec147e 85
+QuickShell.Core/Services/IShortcutRepository.cs
+  s_952c40e81e3519::t_ba473d27a68c51 33-40
+QuickShell.Core/Services/CompanionAppArgumentValidation.cs
+  s_952c40e81e3519::t_c83fc475db7618 45,60
+QuickShell.Core/Models/WorkspaceSecurityMetadata.cs
+  s_952c40e81e3519::t_cbc4d9950b59b2 1-19
+docs/architecture/QuickShell-TechDebt-Overview.md
+  s_952c40e81e3519::t_3662220f371e06 200-201
+QuickShell.Raycast/src/lib/post-launch-actions.ts
+  s_952c40e81e3519::t_ebd143fc658c36 42,44,56,66
+QuickShell.Core/Services/WorkspaceSecurityPolicy.cs
+  s_952c40e81e3519::t_019b5a8a6454ff 1-357
+docs/architecture/post-launch.md
+  s_952c40e81e3519::t_ac77968a783e16 7-8
+docs/architecture/trust-model.md
+  s_952c40e81e3519::t_69eb9de449c712 1-28
+QuickShell.Run/Main.cs
+  s_952c40e81e3519::t_aab47698a2d1f5 5,47,75
+  s_952c40e81e3519::t_7277d1f19d5304 129,163-165,279-299,335,338,341-348,351-352,487-489,493,505,531,533-534,545,554-581,606,608-609,614-616
+QuickShell/QuickShellFallback.cs
+  s_7cacaa318abe5a::t_856db0d01219b3 57,59,61-62,69,74
+  s_350ae2edc84263::t_93446a0bd05b62 56,65
+  s_952c40e81e3519::t_35e6e7a19f464a 7,20,22-24,43-45,47,68,80-83,85,87-128,131,133,140-141,166,168-169,175,177,184-185,218-221
+QuickShell/Services/FolderPathActions.cs
+  s_952c40e81e3519::t_5a958364922ce6 9-19,41-49
+QuickShell.Core/QuickShellJsonContext.cs
+  s_952c40e81e3519::t_66093bd0c27f35 23
+QuickShell/Commands/WorkspaceUtilityCommands.cs
+  s_14c3fc64e2a8a6::t_4308568bc48527 25,33-34,36,79,87-88,90,155,164,166,195,203,205,210,214
+  s_952c40e81e3519::t_590e7510a84c17 26,31-32,35,37,80,86,156,196
+  s_14c3fc64e2a8a6::t_baf7192da8e254 38,85,89,91-92,161-163,165,167-168,201-202,204,206-209,211-213,215-216
+QuickShell.Raycast/src/lib/import-export.ts
+  s_952c40e81e3519::t_d66b643446046c 16-17,109-119
+docs/architecture/persistence.md
+  s_952c40e81e3519::t_e47a21d68f5f3c 42-43
+QuickShell.Core/Models/ShortcutLayoutEntry.cs
+  s_952c40e81e3519::t_85442ec6c85c1e 15-17,20-22,27
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_952c40e81e3519::t_396cb3993b6287 1-55
+QuickShell.Core/Services/ShortcutFormDraftStore.cs
+  s_952c40e81e3519::t_7164c2bc56e1c5 566,584
+QuickShell.Raycast/src/lib/validation.ts
+  s_952c40e81e3519::t_73d629d3c2b2aa 182,199,218,252
+QuickShell.Core.Tests/FakeGitRepoIndex.cs
+  s_952c40e81e3519::t_078424c43654fa 1-77
+QuickShell.Core.Tests/RootPaletteSearchTests.cs
+  s_952c40e81e3519::t_73d8ef448820ca 1-546
+QuickShell.Core/Services/RootPaletteSearchIndex.cs
+  s_952c40e81e3519::t_2723b1fcb7b855 1-449
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_952c40e81e3519::t_783d7cd725b3be 14
+QuickShell.Core/Services/WorkspaceRepositorySnapshot.cs
+  s_952c40e81e3519::t_b5497d707bf011 2,31-34
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_952c40e81e3519::t_8112aac75bbef6 19-20,38,48,92-93
+QuickShell/Services/ShortcutListItems.cs
+  s_6b39fe9720ece6::t_6be040950cdd05 18-19,26,31-32,36
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_952c40e81e3519::t_1df665986aec6a 38-44,58-76
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_14c3fc64e2a8a6::t_20893daba45840 40-44
+QuickShell/Services/QuickShellServices.cs
+  s_952c40e81e3519::t_f7be00d17ffcc3 12-14,31,47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7cf26b1eae195f0ed5f6b554d489b90334855c5f",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-fable-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_6b39fe9720ece6": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_089f8aa3cffeX5tN0Vy3LS1STo",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_6fad6f7a509527": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a95b2be-9726-42c8-b864-2821c9a1919e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_7cacaa318abe5a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7767d51-6999-4078-80d3-7741accbd322",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_952c40e81e3519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7331ad8-6b10-4aa9-b924-7494aac13226",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": null
+    },
+    "s_e8a7a2830aa368": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6853-898b-7cc1-83e4-ebbeb719d867",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
