@@ -113,7 +113,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                     StartupPerformanceTrace.Write($"Warmup stage cancelled: {stage.Name} {sw.Elapsed.TotalMilliseconds:0.###}ms");
                     break;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!IsCriticalException(ex))
                 {
                     lock (_sync)
                     {
@@ -133,6 +133,18 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
 
         Volatile.Write(ref _completed, true);
         _queueWait.Stop();
+    }
+
+    private static bool IsCriticalException(Exception ex)
+    {
+        return ex is OutOfMemoryException
+            or StackOverflowException
+            or AccessViolationException
+            or AppDomainUnloadedException
+            or BadImageFormatException
+            or CannotUnloadAppDomainException
+            or InvalidProgramException
+            or ThreadAbortException;
     }
 
     public void Dispose()
