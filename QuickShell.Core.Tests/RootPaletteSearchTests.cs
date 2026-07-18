@@ -282,7 +282,7 @@ public sealed class RootPaletteSearchTests : IDisposable
         fallback.UpdateQuery("alpha");
         var firstRevision = GetCachedIndex(fallback).Revision;
 
-        var betaDirectory = Path.Combine(temp, "beta");
+        var betaDirectory = Path.Join(temp, "beta");
         Directory.CreateDirectory(betaDirectory);
         repository.Upsert(CreateWorkspace("Beta", betaDirectory));
         fallback.UpdateQuery("beta");
