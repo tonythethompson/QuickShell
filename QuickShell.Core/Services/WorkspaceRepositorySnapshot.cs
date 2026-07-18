@@ -1,4 +1,5 @@
 using QuickShell.Models;
+using System.Linq;
 
 namespace QuickShell.Services;
 
@@ -27,6 +28,10 @@ internal readonly record struct WorkspaceRepositorySnapshot(
         }
 
         List<TerminalShortcut>? matches = null;
+        // Explicit foreach+if, not Shortcuts.Where(...): LINQ's Where allocates a closure
+        // and iterator on every call, which busts the allocation budget this hot,
+        // keystroke-driven path is tested against below (CodeQL flags this as a lint
+        // suggestion, but applying it here is a real perf regression).
         foreach (var shortcut in Shortcuts)
         {
             if (Matches(shortcut, query, queryStart, queryLength))
