@@ -159,4 +159,43 @@ public sealed class CommandIdParserTests
         var shortcutId = Guid.NewGuid().ToString("N");
         Assert.False(_parser.TryParse(CommandDescriptor.FavoriteMove(shortcutId, "up").Id, out _));
     }
+
+    [Fact]
+    public void TryParse_round_trips_all_deep_link_command_kinds()
+    {
+        var shortcutId = Guid.NewGuid().ToString("N");
+        var launchId = Guid.NewGuid().ToString("N");
+        var directory = @"C:\repos\sample";
+
+        var descriptors = new[]
+        {
+            CommandDescriptor.Settings(),
+            CommandDescriptor.ImportConflict(),
+            CommandDescriptor.PendingShortcutEdit(),
+            CommandDescriptor.CreateWorkspace(),
+            CommandDescriptor.DiscoverGitRepos(),
+            CommandDescriptor.DiscoverCreate(directory),
+            CommandDescriptor.OpenWorkspace(shortcutId),
+            CommandDescriptor.OpenWorkspace(shortcutId, runAsAdmin: true),
+            CommandDescriptor.OpenWorkspace(shortcutId, runAsStandard: true),
+            CommandDescriptor.OpenWorkspace(shortcutId, runAsAdmin: true, runAsStandard: true),
+            CommandDescriptor.OpenLaunch(shortcutId, launchId),
+            CommandDescriptor.OpenLaunch(shortcutId, launchId, runAsAdmin: true),
+            CommandDescriptor.OpenLaunch(shortcutId, launchId, runAsStandard: true),
+            CommandDescriptor.WorkspaceStatus(shortcutId),
+            CommandDescriptor.WorktreeBranchPicker(shortcutId),
+            CommandDescriptor.WorktreeBranchSelect(shortcutId, "feature/x"),
+            CommandDescriptor.WorktreeBranchClear(shortcutId),
+        };
+
+        foreach (var expected in descriptors)
+        {
+            Assert.True(_parser.TryParse(expected.Id, out var actual));
+            Assert.Equal(expected.Kind, actual.Kind);
+            Assert.Equal(expected.WorkspaceId, actual.WorkspaceId);
+            Assert.Equal(expected.LaunchId, actual.LaunchId);
+            Assert.Equal(expected.Directory, actual.Directory);
+            Assert.Equal(expected.Branch, actual.Branch);
+        }
+    }
 }

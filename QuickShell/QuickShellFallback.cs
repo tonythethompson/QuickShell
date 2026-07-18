@@ -10,7 +10,7 @@ namespace QuickShell;
 
 internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposable
 {
-    private const string CommandId = "com.quickshell.fallback";
+    private const string CommandId = CommandDescriptor.FallbackCommandId;
 
     private static readonly NoOpCommand BaseCommand = new() { Id = CommandId };
 
