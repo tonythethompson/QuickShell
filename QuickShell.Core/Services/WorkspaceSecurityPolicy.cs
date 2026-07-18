@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -146,13 +147,11 @@ internal static class WorkspaceSecurityPolicy
             issues.Add(new(WorkspaceIssueCode.InvalidCommand, "Workspace command contains invalid control characters or exceeds the limit."));
         }
 
-        foreach (var launch in content.Launches ?? [])
+        foreach (var launch in (content.Launches ?? []).Where(launch =>
+                     !ShortcutValidation.TryValidateCommand(launch.Command, out _)
+                     || !ShortcutValidation.TryValidateWtProfile(launch.WtProfile, out _)))
         {
-            if (!ShortcutValidation.TryValidateCommand(launch.Command, out _)
-                || !ShortcutValidation.TryValidateWtProfile(launch.WtProfile, out _))
-            {
-                issues.Add(new(WorkspaceIssueCode.InvalidLaunch, $"Launch '{launch.Label}' contains invalid command or profile data."));
-            }
+            issues.Add(new(WorkspaceIssueCode.InvalidLaunch, $"Launch '{launch.Label}' contains invalid command or profile data."));
         }
 
         if (!ShortcutValidation.TryValidateOptionalLinkUrl(content.DevServerUrl, out _, out normalizedUrl))
