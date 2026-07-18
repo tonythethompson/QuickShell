@@ -17,6 +17,9 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
     private readonly Lazy<QuickShellFallbackPage> _listPage;
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private string _lastQuery = string.Empty;
+    private long _queryGeneration;
+    private RootPaletteSearchIndex? _cachedSearchIndex;
+    private long _cachedSearchRevision = -1;
 
     public QuickShellFallback(
         QuickShellPageContext context,
@@ -36,83 +39,87 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
     public override void UpdateQuery(string query)
     {
         _lastQuery = query ?? string.Empty;
-
-        if (ShouldSuppress(query))
-        {
-            ClearResult();
-            return;
-        }
+        var generation = ++_queryGeneration;
 
         try
         {
             var snapshot = _context.Services.Shortcuts.GetSnapshot();
-            var taskActions = snapshot.SearchTaskActions(_lastQuery).ToArray();
-            if (taskActions.Length > 0)
+            if (_cachedSearchIndex is null || _cachedSearchIndex.Revision != snapshot.Version)
             {
-                if (taskActions.Length == 1)
-                {
-                    ApplyTaskResult(taskActions[0]);
-                    return;
-                }
+                _cachedSearchIndex = new RootPaletteSearchIndex(snapshot);
+                _cachedSearchRevision = snapshot.Version;
+            }
 
-                var listPage = _listPage.Value;
-                listPage.SetTaskResults(_lastQuery, taskActions);
-                ApplyTaskResults(taskActions);
+            var result = _cachedSearchIndex.Search(_lastQuery, _context.Services.GitRepos, generation);
+            if (result.Generation != generation)
+            {
                 return;
             }
 
-            var shortcuts = snapshot.SearchForRootPalette(_lastQuery).ToArray();
-            if (shortcuts.Length > 0)
-            {
-                var listPage = _listPage.Value;
-                listPage.SetWorkspaceResults(_lastQuery, shortcuts);
-                ApplyWorkspaceResult(shortcuts);
-                return;
-            }
-
-            if (GitRepoIndex.IsDiscoverQuery(_lastQuery))
-            {
-                _listPage.Value.SetDiscoverEntry(_lastQuery);
-                ApplyDiscoverResult();
-                return;
-            }
-
-            var allShortcuts = snapshot.Shortcuts;
-            var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts).ToList();
-            var savedDirectories = allShortcuts
-                .Select(shortcut => shortcut.Directory)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var gitRepos = _context.Services.GitRepos
-                .Search(_lastQuery, extraRoots, savedDirectories)
-                .ToArray();
-            if (gitRepos.Length > 0)
-            {
-                var listPage = _listPage.Value;
-                listPage.SetGitRepoResults(_lastQuery, gitRepos);
-                ApplyGitRepoResult(gitRepos);
-                return;
-            }
+            ApplyResult(result);
         }
         catch (TimeoutException)
         {
             // The shortcut store lock was stuck; fall through to no-result rather than
             // surfacing a host error on a fallback keystroke.
+            ClearResult();
         }
-
-        ClearResult();
     }
 
-    private void ApplyWorkspaceResult(TerminalShortcut[] shortcuts)
+    private void ApplyResult(in RootPaletteSearchResult result)
     {
-        if (shortcuts.Length == 1)
+        switch (result.Kind)
+        {
+            case RootPaletteResultKind.TaskActions:
+                if (result.TaskActions!.Count == 1)
+                {
+                    ApplyTaskResult(result.TaskActions[0]);
+                }
+                else
+                {
+                    var listPage = _listPage.Value;
+                    listPage.SetTaskResults(_lastQuery, result.TaskActions);
+                    ApplyTaskResults(result.TaskActions);
+                }
+                break;
+
+            case RootPaletteResultKind.Workspaces:
+                {
+                    var listPage = _listPage.Value;
+                    listPage.SetWorkspaceResults(_lastQuery, result.Workspaces!);
+                    ApplyWorkspaceResult(result.Workspaces!);
+                }
+                break;
+
+            case RootPaletteResultKind.Discover:
+                _listPage.Value.SetDiscoverEntry(_lastQuery);
+                ApplyDiscoverResult();
+                break;
+
+            case RootPaletteResultKind.GitRepos:
+                {
+                    var listPage = _listPage.Value;
+                    listPage.SetGitRepoResults(_lastQuery, result.GitRepos!);
+                    ApplyGitRepoResult(result.GitRepos!);
+                }
+                break;
+
+            default:
+                ClearResult();
+                break;
+        }
+    }
+
+    private void ApplyWorkspaceResult(IReadOnlyList<TerminalShortcut> shortcuts)
+    {
+        if (shortcuts.Count == 1)
         {
             Title = shortcuts[0].Name;
             Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcuts[0]);
         }
         else
         {
-            Title = $"{shortcuts.Length} workspaces";
+            Title = $"{shortcuts.Count} workspaces";
             Subtitle = $"Matching \"{_lastQuery}\"";
         }
 
@@ -138,25 +145,25 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         UpdateQuery(query);
     }
 
-    private void ApplyTaskResults(WorkspaceTaskAction[] taskActions)
+    private void ApplyTaskResults(IReadOnlyList<WorkspaceTaskAction> taskActions)
     {
-        Title = $"{taskActions.Length} task actions";
+        Title = $"{taskActions.Count} task actions";
         Subtitle = $"Matching \"{_lastQuery}\"";
         Icon = QuickShellBrandIcons.App;
         Command = _listPage.Value;
         MoreCommands = [];
     }
 
-    private void ApplyGitRepoResult(GitRepoCandidate[] gitRepos)
+    private void ApplyGitRepoResult(IReadOnlyList<GitRepoCandidate> gitRepos)
     {
-        if (gitRepos.Length == 1)
+        if (gitRepos.Count == 1)
         {
             Title = $"Add {gitRepos[0].Name}";
             Subtitle = ShortcutDisplay.ShortenPathForDisplay(gitRepos[0].Directory);
         }
         else
         {
-            Title = $"{gitRepos.Length} git repos";
+            Title = $"{gitRepos.Count} git repos";
             Subtitle = $"Matching \"{_lastQuery}\"";
         }
 
@@ -172,16 +179,6 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         Icon = new IconInfo(ShortcutGlyphs.Discover);
         Command = _discoverGitReposCommand;
         MoreCommands = [];
-    }
-
-    private static bool ShouldSuppress(string? query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return true;
-        }
-
-        return query.Contains("quick shell", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose()
