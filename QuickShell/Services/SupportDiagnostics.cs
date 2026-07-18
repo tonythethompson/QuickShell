@@ -36,24 +36,20 @@ internal static class SupportDiagnostics
     internal static void Write(
         string location,
         string message,
-        object? data = null,
-        string? hypothesisId = null,
-        string? runId = null) =>
+        object? data = null) =>
         WriteEvent(
             SupportLogSeverity.Info,
             NormalizeEventCode(location),
-            tags: BuildRedactedTags(message, data, hypothesisId, runId));
+            tags: BuildRedactedTags(message, data));
 
     internal static void WriteException(
         string location,
-        Exception exception,
-        string? hypothesisId = null,
-        string? runId = null) =>
+        Exception exception) =>
         WriteEvent(
             SupportLogSeverity.Error,
             NormalizeEventCode(location),
             exception,
-            BuildRedactedTags(message: null, data: null, hypothesisId, runId));
+            BuildRedactedTags(message: null, data: null));
 
     internal static void WriteEvent(
         SupportLogSeverity severity,
@@ -229,11 +225,7 @@ internal static class SupportDiagnostics
         return "host." + new string(characters).Trim('.');
     }
 
-    private static List<string>? BuildRedactedTags(
-        string? message,
-        object? data,
-        string? hypothesisId,
-        string? runId)
+    private static List<string>? BuildRedactedTags(string? message, object? data)
     {
         List<string>? tags = null;
         AddHashTag(ref tags, "message", message);
@@ -242,8 +234,6 @@ internal static class SupportDiagnostics
             (tags ??= []).Add("data:present");
         }
 
-        AddBoundedTag(ref tags, "hypothesis", hypothesisId);
-        AddBoundedTag(ref tags, "run", runId);
         return tags;
     }
 
@@ -256,26 +246,6 @@ internal static class SupportDiagnostics
 
         (tags ??= []).Add($"{name}:sha256:{HashToken(value)}");
     }
-
-    private static void AddBoundedTag(ref List<string>? tags, string name, string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return;
-        }
-
-        var trimmed = value.Trim();
-        var tagValue = IsSafeTagValue(trimmed)
-            ? trimmed.ToLowerInvariant()
-            : $"sha256:{HashToken(trimmed)}";
-        (tags ??= []).Add($"{name}:{tagValue}");
-    }
-
-    private static bool IsSafeTagValue(string value) =>
-        value.Length is > 0 and <= 32
-        && value.All(character =>
-            char.IsAsciiLetterOrDigit(character)
-            || character is '-' or '_' or '.');
 
     private static string HashToken(string value)
     {

@@ -41,6 +41,7 @@ _upload.zip
 # Generated artifacts and local backup archives (not source).
 # NOTE: QuickShell.Raycast/package-lock.json is intentionally tracked (npm ci in CI).
 /package-lock.json
+/artifacts/
 *.tar.gz
 *.tgz
 pr5-threads.json
