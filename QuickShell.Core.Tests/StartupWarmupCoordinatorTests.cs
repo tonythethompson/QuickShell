@@ -313,9 +313,9 @@ public class StartupWarmupCoordinatorTests
 
     private static string CreateGitRepoRoot()
     {
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
-        Directory.CreateDirectory(Path.Combine(path, ".git"));
+        Directory.CreateDirectory(Path.Join(path, ".git"));
         return path;
     }
 
