@@ -145,6 +145,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// </summary>
     public void Reload()
     {
+        // Drop cached directory-repair state so a stale probe result
+        // (e.g. an offline drive that has come back online, or a folder
+        // that has since been deleted) does not freeze the home list.
+        _directoryRepairStates.Clear();
+        _directoryRepairChecks.Clear();
         Reload(preserveUnpinnedItemCache: false);
     }
 
@@ -178,6 +183,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         // Edits may change titles/subtitles — drop cached rows so next paint is fresh.
         _unpinnedItemCache.Clear();
+        // Drop directory-repair caches too: a renamed/relocated folder
+        // should be re-probed under its new key on the next paint.
+        _directoryRepairStates.Clear();
+        _directoryRepairChecks.Clear();
         _workspacesStale = true;
         try
         {
@@ -702,6 +711,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
 
             _directoryRepairStates[key] = needsRepair;
+            // Drop the in-flight marker so a later refresh (e.g. a previously
+            // offline drive coming back) can schedule another probe instead of
+            // returning the stale cached state forever.
+            _directoryRepairChecks.TryRemove(key, out _);
             if (!string.IsNullOrWhiteSpace(shortcut.Id))
             {
                 _unpinnedItemCache.Remove(shortcut.Id);
