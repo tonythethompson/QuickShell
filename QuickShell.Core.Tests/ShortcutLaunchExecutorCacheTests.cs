@@ -298,7 +298,7 @@ public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
     [Fact]
     public void CompanionExecutableAvailability_CheckedOnEveryLaunch()
     {
-        var notepadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "notepad.exe");
+        var notepadPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.System), "notepad.exe");
         var shortcut = CreateShortcut(s =>
         {
             s.CompanionApps =
