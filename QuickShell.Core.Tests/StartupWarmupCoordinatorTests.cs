@@ -232,7 +232,7 @@ public class StartupWarmupCoordinatorTests
 
         for (var iteration = 0; iteration < 50; iteration++)
         {
-            var coordinator = new StartupWarmupCoordinator(services.Lifetime, context, stages);
+            using var coordinator = new StartupWarmupCoordinator(services.Lifetime, context, stages);
             Parallel.Invoke(
                 () =>
                 {
@@ -270,7 +270,6 @@ public class StartupWarmupCoordinatorTests
                         exceptions.Enqueue(ex);
                     }
                 });
-            coordinator.Dispose();
         }
 
         Assert.Empty(exceptions);
