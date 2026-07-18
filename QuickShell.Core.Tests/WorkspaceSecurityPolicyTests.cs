@@ -112,7 +112,7 @@ public sealed class WorkspaceSecurityPolicyTests
 
     private static ShortcutRepository CreateRepository()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "QuickShellSecurityTests", Guid.NewGuid().ToString("N"));
+        var directory = Path.Join(Path.GetTempPath(), "QuickShellSecurityTests", Guid.NewGuid().ToString("N"));
         return new ShortcutRepository(directory);
     }
 
