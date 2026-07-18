@@ -1,0 +1,57 @@
+QuickShell.Core.Tests/ShortcutLaunchExecutorTests.cs
+  s_3eadce20a854ab::t_527cdf8ad61bc4 13,18,125-274
+QuickShell.Core.Tests/ShortcutRepositoryPerformanceShapeTests.cs
+  s_da2fe96a63da9d::t_79c8af04bfb7e0 129-131,156-158
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_da2fe96a63da9d::t_d438fc63ae56cc 256,265
+QuickShell.Core.Tests/WorkspaceGitOperationsTests.cs
+  s_3eadce20a854ab::t_5b33082f461902 1-93
+QuickShell.Core/Abstractions/ICompanionAppLauncher.cs
+  s_3eadce20a854ab::t_a1172eccbcb442 5-6,13-14
+QuickShell.Core/Abstractions/IWorkspaceGitOperations.cs
+  s_3eadce20a854ab::t_d6b80e218fe054 11-12
+QuickShell.Core/Services/CompanionAppLauncher.cs
+  s_3eadce20a854ab::t_b4fb9e7c103159 30-36,50,55-58,63-66,71,74,81,87,90,95,98-102,104,141
+QuickShell.Core/Services/CompanionLaunchResult.cs
+  s_3eadce20a854ab::t_a4ad3888e301ee 1-6
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_da2fe96a63da9d::t_b9da6c05ad03b7 579-585
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_3eadce20a854ab::t_e74e42d55dd506 61
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_4435bbf1ef89bd::t_5131c5721cec37 20,66-72,96,111
+QuickShell.Raycast/package.json
+  s_da2fe96a63da9d::t_086ebea02dca28 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c753ebfd6fdfe3c8ab4fad61cf94799ec67ba2f1",
+  "prompts": {},
+  "sessions": {
+    "s_3eadce20a854ab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ca0fdfee-7030-4fa0-8a32-77498fadac97",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_4435bbf1ef89bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e59eeaad-3624-4f52-8fcf-d1310c48026f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_da2fe96a63da9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73df-18c0-7f93-8470-eec7711f2370",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
