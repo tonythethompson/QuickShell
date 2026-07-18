@@ -18,6 +18,8 @@ internal interface IShortcutRepository
 
     IReadOnlyList<ShortcutLayoutEntry> GetLayout();
 
+    WorkspaceRepositorySnapshot GetSnapshot();
+
     TerminalShortcut? GetByName(string name);
 
     TerminalShortcut? GetById(string id);
