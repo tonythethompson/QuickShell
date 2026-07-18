@@ -1,0 +1,63 @@
+QuickShell.Core/Services/RootPaletteSearchIndex.cs
+  s_350ae2edc84263::t_c275e1f666fe90 410
+  s_350ae2edc84263::t_17ab2a4ac08a0d 1-141,143-144,146-184,191-409,411-446
+  s_350ae2edc84263::t_10a94cbce49e00 185-190
+  s_350ae2edc84263::t_2784dca7b2ac91 142,145
+QuickShell.Core.Tests/RootPaletteSearchTests.cs
+  s_350ae2edc84263::t_5e4b1da95d35c2 47
+  s_350ae2edc84263::t_5eb16d57745614 268-270
+  s_350ae2edc84263::t_867772f2346443 90,92,94
+  s_350ae2edc84263::t_f20843fc0fed78 281-283
+  s_350ae2edc84263::t_81d163128b7414 326-351,353-392,394-395,401,411,426
+  s_350ae2edc84263::t_dcf6bd09f71f6d 68
+  s_350ae2edc84263::t_60301498ada45d 60-61,67
+  s_350ae2edc84263::t_3c94901f2df9a6 430
+  s_350ae2edc84263::t_4ab9119b6b3bb4 148,163,176,193,206,222,242,257,276,295
+  s_350ae2edc84263::t_230d38856065bc 352
+  s_350ae2edc84263::t_c805611162e89d 1-46,48-59,62-66,69-89,91,93,95-122,124-125,127,129-147,149-162,164-175,177-192,194-205,207-221,223-241,243-256,258-267,271-275,277-280,284-294,296-325,393,396-400,402-410,412-425,427-429,431-438,440-445,448-495
+  s_350ae2edc84263::t_633962b5a58ec6 123,126,128
+  s_350ae2edc84263::t_3660c3d8bcec92 439,446-447
+QuickShell/QuickShellFallback.cs
+  s_350ae2edc84263::t_99573a1aad6406 20-22,42,47,49-50,53-54,59
+  s_350ae2edc84263::t_e663ebce7840a6 65,67,69-110,113,115,122,148,150,157,159,166
+QuickShell.Core.Tests/FakeGitRepoIndex.cs
+  s_350ae2edc84263::t_433ae73b0f8c12 1-71
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_350ae2edc84263::t_0461732a353bdf 19-20,38,48,92-93
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_d711731c0f8875::t_dec826b21eda2f 38-44
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_4037eedc6bc8c1::t_72d8ebc531c0c3 18-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "509c5db7053807316660a250f916e2eda276125c",
+  "prompts": {},
+  "sessions": {
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_4037eedc6bc8c1": {
+      "agent_id": {
+        "tool": "devin",
+        "id": "s_4037eedc6bc8c1",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_d711731c0f8875": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "018e7e29-8252-461f-aeb1-c0d609aa7989",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
