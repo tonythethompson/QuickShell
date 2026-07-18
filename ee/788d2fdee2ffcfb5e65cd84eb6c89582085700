@@ -1,0 +1,81 @@
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_350ae2edc84263::t_bb7d8878c8d4be 18-20
+  s_2208a9d2077709::t_1aaf08793a8302 86-90,95,100,104-149,182,217-220,236,239,291-292,315,328,344,347,374
+QuickShell.Core/Services/LaunchDiagnosticsReport.cs
+  s_350ae2edc84263::t_5060101f4e2d62 3
+  s_350ae2edc84263::t_cfe4766f4e29dd 28
+  s_2208a9d2077709::t_cfe7c5b24aa323 40,54-55,68-81,112-121
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_350ae2edc84263::t_038b1c4c855980 92,180
+  s_350ae2edc84263::t_afde925f252d44 63-66,150
+  s_350ae2edc84263::t_2e440307964d13 67-73,87-91,93-94,152,154,156-160,175,177-179,181,573,575,578,582
+  s_7cacaa318abe5a::t_3582f15767077b 151,153,155,161,176,182,221,225-233,235-236,268-282,342,344,346-347,349,351,354-377,380-397,410-414,567-572,574,576-577,579-581,583-584
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_52647a87314e53::t_5f45485c0c0f9e 67,69,72,107-108,111,191-192,249-250,256-264
+QuickShell.Core/Abstractions/IWorkspaceHealthChecker.cs
+  s_7cacaa318abe5a::t_5adfa9f784c82d 20-21
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_52647a87314e53::t_93eb7b702c4012 173-174,181
+QuickShell/Pages/QuickShellPage.cs
+  s_265ac3fcb9e78a::t_1077c4b16ac29e 373-374,449,574-575,577
+QuickShell/Services/ShortcutContextCommands.cs
+  s_265ac3fcb9e78a::t_99b81d92957948 50-51,60-62,179,188-189
+QuickShell.Core.Tests/WorkspaceHealthCheckTests.cs
+  s_7cacaa318abe5a::t_bb9e74aedad4f2 253-254
+QuickShell.Core.Tests/WorkspaceStatusSnapshotTests.cs
+  s_7cacaa318abe5a::t_5bf92d75fb6c9f 97-98
+QuickShell.Core.Tests/WorktreeBranchTests.cs
+  s_7cacaa318abe5a::t_40cfb06c8f881c 475,525-531
+QuickShell.Core/Services/WorkspaceHealthCheck.cs
+  s_2208a9d2077709::t_d30844944c9b7d 132-133,160
+QuickShell/Services/ShortcutTaskActionListItems.cs
+  s_2208a9d2077709::t_845cde72d93c8b 57,63,84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ee788d2fdee2ffcfb5e65cd84eb6c89582085700",
+  "prompts": {},
+  "sessions": {
+    "s_2208a9d2077709": {
+      "agent_id": {
+        "tool": "devin",
+        "id": "s_2208a9d2077709",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_52647a87314e53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "856a8ee7-c447-46e2-9928-9f9fb7644023",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_7cacaa318abe5a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7767d51-6999-4078-80d3-7741accbd322",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
