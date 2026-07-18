@@ -63,8 +63,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             _services = collection.BuildServiceProvider();
             _lifetime = _services.GetRequiredService<IQuickShellLifetime>();
 
-            var shortcuts = _services.GetRequiredService<IShortcutRepository>();
-
             var host = _services.GetRequiredService<QuickShellHostServices>();
             var createShortcut = new CreateShortcutCommand(ReloadPages, host.Services);
             _commandRouter = _services.GetRequiredService<ICommandRouter>();
@@ -73,7 +71,6 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             SupportDiagnostics.Write(
                 "QuickShellCommandsProvider.cs:ctor",
                 "after composition root",
-                new { shortcutCount = shortcuts.GetShortcuts().Count },
                 hypothesisId: "B");
             // #endregion
             KickoffGitRepoIndexPrewarm();

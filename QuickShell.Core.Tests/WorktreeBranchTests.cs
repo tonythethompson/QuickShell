@@ -472,6 +472,7 @@ public sealed class WorktreeBranchTests : IDisposable
             ["rev-parse", "--show-toplevel"] => Success(repo.TopLevel),
             ["rev-parse", "--abbrev-ref", "HEAD"] => Success(repo.IsDetached ? "HEAD" : repo.CurrentBranch),
             ["status", "--porcelain"] => Success(repo.IsDirty ? " M file.txt" : string.Empty),
+            ["status", "--porcelain=v2", "--branch"] => Success(BuildPorcelainV2(repo)),
             ["for-each-ref", "refs/heads", "--format=%(refname:short)"] => Success(string.Join('\n', repo.LocalBranches)),
             ["switch", var branch] => HandleSwitch(repo, branch),
             _ => new GitCommandResult(1, string.Empty, $"unsupported git args: {string.Join(' ', gitArguments)}", TimedOut: false),
@@ -520,6 +521,13 @@ public sealed class WorktreeBranchTests : IDisposable
     }
 
     private static GitCommandResult Success(string output) => new(0, output, string.Empty, TimedOut: false);
+
+    private static string BuildPorcelainV2(GitRepoState repo)
+    {
+        var head = repo.IsDetached ? "(detached)" : repo.CurrentBranch;
+        var dirty = repo.IsDirty ? "1 M. N... 100644 100644 100644 e69de29 e69de29 file.txt" : string.Empty;
+        return $"# branch.oid 0000000000000000000000000000000000000000{Environment.NewLine}# branch.head {head}{Environment.NewLine}{dirty}";
+    }
 
     private static TerminalShortcut BuildLaunchShortcut(
         string directory,

@@ -54,12 +54,13 @@ internal static class ShortcutTaskActionListItems
         Action onChanged)
     {
         var services = context.Services;
+        var needsRepair = ShortcutHealth.WouldNeedRepair(action.Workspace, requireDirectoryExists: false);
         var items = new List<CommandContextItem>
         {
             new(new OpenTerminalShortcutCommand(action.Workspace, services))
             {
                 Title = Strings.TaskActions_OpenWorkspace,
-                Icon = new IconInfo(ShortcutHealth.GetListGlyph(action.Workspace)),
+                Icon = new IconInfo(ShortcutHealth.GetListGlyph(action.Workspace, needsRepair)),
             },
         };
 
@@ -80,7 +81,7 @@ internal static class ShortcutTaskActionListItems
             });
         }
 
-        items.AddRange(ShortcutContextCommands.Build(context, action.Workspace, onChanged, includeEdit: true));
+        items.AddRange(ShortcutContextCommands.Build(context, action.Workspace, onChanged, includeEdit: true, needsRepair: needsRepair));
 
         return items.ToArray();
     }

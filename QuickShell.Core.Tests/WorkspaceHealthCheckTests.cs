@@ -250,9 +250,8 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         _git = LaunchTestServices.CreateGit(
             runGit: (_, arguments) => arguments switch
             {
-                ["rev-parse", "--is-inside-work-tree"] => GitSuccess("true"),
-                ["rev-parse", "--abbrev-ref", "HEAD"] => GitSuccess("feature/worktree"),
-                ["status", "--porcelain"] => GitSuccess(" M app.cs"),
+                ["status", "--porcelain=v2", "--branch"] => GitSuccess(
+                    $"# branch.oid 0000000000000000000000000000000000000000{Environment.NewLine}# branch.head feature/worktree{Environment.NewLine}1 M. N... 100644 100644 100644 e69de29 e69de29 app.cs"),
                 _ => GitCommandResult.Failed,
             });
         var shortcut = BuildShortcut(_root);

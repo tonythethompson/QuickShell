@@ -60,8 +60,17 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(shortcut);
         var diagnostics = new LaunchDiagnosticsReport(shortcut.Name, DateTimeOffset.UtcNow);
 
-        var health = _healthChecker.Check(shortcut, terminalApplicationId, defaultProfileId);
-        AddHealthDiagnostics(diagnostics, health);
+        WorkspaceHealthResult health;
+        using (StartupPerformanceTrace.Measure("launch health check"))
+        {
+            health = _healthChecker.Check(
+                shortcut,
+                terminalApplicationId,
+                defaultProfileId,
+                includeGit: false);
+            AddHealthDiagnostics(diagnostics, health);
+        }
+
         if (health.HasBlockingErrors)
         {
             return ShortcutLaunchResult.StayOpen(
@@ -75,9 +84,14 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             return ShortcutLaunchResult.StayOpen(directoryError, diagnostics: diagnostics);
         }
 
-        var gitGate = _gitLaunchGate.EvaluateBeforeLaunch(
-            launchDirectory,
-            options.BlockDirtyBranchSwitch);
+        WorkspaceGitLaunchGateResult gitGate;
+        using (StartupPerformanceTrace.Measure("launch git gate"))
+        {
+            gitGate = _gitLaunchGate.EvaluateBeforeLaunch(
+                launchDirectory,
+                options.BlockDirtyBranchSwitch);
+        }
+
         if (!gitGate.CanProceed)
         {
             diagnostics.AddError(
@@ -100,9 +114,6 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
 
         var companionAttempted = options.IncludeCompanionApp
             && _companionAppLauncher.ShouldLaunchOnWorkspaceOpen(shortcut);
-        string? companionError = null;
-        var companionSucceeded = !companionAttempted
-            || _companionAppLauncher.TryLaunch(shortcut, onDemand: false, out companionError);
 
         if (enabledLaunches.Count == 1)
         {
@@ -113,8 +124,6 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
                 defaultProfileId,
                 options,
                 companionAttempted,
-                companionSucceeded,
-                companionError,
                 health.WarningFindings,
                 diagnostics);
         }
@@ -126,8 +135,6 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             defaultProfileId,
             options,
             companionAttempted,
-            companionSucceeded,
-            companionError,
             health.WarningFindings,
             diagnostics);
     }
@@ -140,8 +147,18 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         ShortcutLaunchOptions options = default)
     {
         var diagnostics = new LaunchDiagnosticsReport($"{shortcut.Name} - {launch.Label}", DateTimeOffset.UtcNow);
-        var health = _healthChecker.CheckEntry(shortcut, launch, terminalApplicationId, defaultProfileId);
-        AddHealthDiagnostics(diagnostics, health);
+        WorkspaceHealthResult health;
+        using (StartupPerformanceTrace.Measure("launch entry health check"))
+        {
+            health = _healthChecker.CheckEntry(
+                shortcut,
+                launch,
+                terminalApplicationId,
+                defaultProfileId,
+                includeGit: false);
+            AddHealthDiagnostics(diagnostics, health);
+        }
+
         if (health.HasBlockingErrors)
         {
             return ShortcutLaunchResult.StayOpen(
@@ -155,9 +172,14 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             return ShortcutLaunchResult.StayOpen(directoryError, diagnostics: diagnostics);
         }
 
-        var gitGate = _gitLaunchGate.EvaluateBeforeLaunch(
-            launchDirectory,
-            options.BlockDirtyBranchSwitch);
+        WorkspaceGitLaunchGateResult gitGate;
+        using (StartupPerformanceTrace.Measure("launch entry git gate"))
+        {
+            gitGate = _gitLaunchGate.EvaluateBeforeLaunch(
+                launchDirectory,
+                options.BlockDirtyBranchSwitch);
+        }
+
         if (!gitGate.CanProceed)
         {
             diagnostics.AddError(
@@ -182,8 +204,6 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             defaultProfileId,
             entryOptions,
             companionAttempted: false,
-            companionSucceeded: true,
-            companionError: null,
             health.WarningFindings,
             diagnostics);
     }
@@ -195,31 +215,25 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         string defaultProfileId,
         ShortcutLaunchOptions options,
         bool companionAttempted,
-        bool companionSucceeded,
-        string? companionError,
         IReadOnlyList<WorkspaceHealthFinding> preflightWarnings,
         LaunchDiagnosticsReport diagnostics)
     {
+        TerminalLaunchAttempt attempt;
         try
         {
             var launchShortcut = ShortcutLaunchNormalization.ToLaunchShortcut(launch, shortcut);
-            var attempt = _terminalLauncher.Open(
-                launchShortcut,
-                terminalApplicationId,
-                defaultProfileId,
-                options.RunAsAdmin,
-                options.RunAsStandard);
-            AddTerminalSuccessDiagnostics(diagnostics, launch, launchShortcut, attempt);
+            using (StartupPerformanceTrace.Measure("launch terminal open"))
+            {
+                attempt = _terminalLauncher.Open(
+                    launchShortcut,
+                    terminalApplicationId,
+                    defaultProfileId,
+                    options.RunAsAdmin,
+                    options.RunAsStandard);
+            }
 
-            return BuildPostLaunchResult(
-                shortcut,
-                options,
-                companionAttempted,
-                companionSucceeded,
-                companionError,
-                "Workspace opened",
-                preflightWarnings,
-                diagnostics);
+            AddTerminalSuccessDiagnostics(diagnostics, launch, launchShortcut, attempt);
+            diagnostics.RecordProcessStart(attempt.HostExecutable);
         }
         catch (DirectoryNotFoundException ex)
         {
@@ -251,6 +265,21 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
                 "Failed to open terminal: launch was canceled or blocked by the system.",
                 diagnostics: diagnostics);
         }
+
+        var (companionSucceeded, companionError) = TryLaunchCompanion(
+            shortcut,
+            companionAttempted,
+            diagnostics);
+
+        return BuildPostLaunchResult(
+            shortcut,
+            options,
+            companionAttempted,
+            companionSucceeded,
+            companionError,
+            "Workspace opened",
+            preflightWarnings,
+            diagnostics);
     }
 
     private readonly record struct EntryPlan(
@@ -272,8 +301,6 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         string defaultProfileId,
         ShortcutLaunchOptions options,
         bool companionAttempted,
-        bool companionSucceeded,
-        string? companionError,
         IReadOnlyList<WorkspaceHealthFinding> preflightWarnings,
         LaunchDiagnosticsReport diagnostics)
     {
@@ -312,53 +339,62 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             : GroupPlans(plans, terminalApplicationId);
         var openedCommands = 0;
 
-        foreach (var group in groups)
+        using (StartupPerformanceTrace.Measure("launch terminal open"))
         {
-            var entries = group.Entries;
-            try
+            foreach (var group in groups)
             {
-                if (entries.Count == 1)
+                var entries = group.Entries;
+                try
                 {
-                    var attempt = _terminalLauncher.OpenResolved(entries[0].Resolved, entries[0].EffectiveElevation);
-                    AddTerminalSuccessDiagnostics(
-                        diagnostics,
-                        entries[0].Entry,
-                        entries[0].Resolved.Shortcut,
-                        attempt);
-                }
-                else
-                {
-                    var attempts = _terminalLauncher.OpenGroup(
-                        entries.Select(p => p.Resolved).ToList(),
-                        entries[0].EffectiveElevation,
-                        group.TabHostExecutable);
-                    for (var i = 0; i < entries.Count; i++)
+                    if (entries.Count == 1)
                     {
+                        var attempt = _terminalLauncher.OpenResolved(entries[0].Resolved, entries[0].EffectiveElevation);
                         AddTerminalSuccessDiagnostics(
                             diagnostics,
-                            entries[i].Entry,
-                            entries[i].Resolved.Shortcut,
-                            attempts[i]);
+                            entries[0].Entry,
+                            entries[0].Resolved.Shortcut,
+                            attempt);
+                        diagnostics.RecordProcessStart(attempt.HostExecutable);
                     }
-                }
+                    else
+                    {
+                        var attempts = _terminalLauncher.OpenGroup(
+                            entries.Select(p => p.Resolved).ToList(),
+                            entries[0].EffectiveElevation,
+                            group.TabHostExecutable);
+                        for (var i = 0; i < entries.Count; i++)
+                        {
+                            AddTerminalSuccessDiagnostics(
+                                diagnostics,
+                                entries[i].Entry,
+                                entries[i].Resolved.Shortcut,
+                                attempts[i]);
+                        }
 
-                openedCommands += entries.Count;
-            }
-            catch (Win32Exception ex)
-            {
-                lastFailureLabel = entries[^1].Entry.Label;
-                diagnostics.AddError(
-                    LaunchDiagnosticKind.TerminalLaunchFailed,
-                    $"{lastFailureLabel} terminal was canceled or blocked.",
-                    ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                lastFailureLabel = entries[^1].Entry.Label;
-                diagnostics.AddError(
-                    LaunchDiagnosticKind.TerminalLaunchFailed,
-                    $"{lastFailureLabel} terminal could not be launched.",
-                    ex.Message);
+                        if (attempts.Count > 0)
+                        {
+                            diagnostics.RecordProcessStart(attempts[0].HostExecutable);
+                        }
+                    }
+
+                    openedCommands += entries.Count;
+                }
+                catch (Win32Exception ex)
+                {
+                    lastFailureLabel = entries[^1].Entry.Label;
+                    diagnostics.AddError(
+                        LaunchDiagnosticKind.TerminalLaunchFailed,
+                        $"{lastFailureLabel} terminal was canceled or blocked.",
+                        ex.Message);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    lastFailureLabel = entries[^1].Entry.Label;
+                    diagnostics.AddError(
+                        LaunchDiagnosticKind.TerminalLaunchFailed,
+                        $"{lastFailureLabel} terminal could not be launched.",
+                        ex.Message);
+                }
             }
         }
 
@@ -370,6 +406,11 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
                     : $"{lastFailureLabel} could not be launched.",
                 diagnostics: diagnostics);
         }
+
+        var (companionSucceeded, companionError) = TryLaunchCompanion(
+            shortcut,
+            companionAttempted,
+            diagnostics);
 
         var successPrefix = openedCommands == enabledLaunches.Count
             ? "Workspace launched"
@@ -521,6 +562,24 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             $"{successPrefix}, but {string.Join(" ", warnings)}",
             markUsed: true,
             diagnostics: diagnostics);
+    }
+
+    private (bool Succeeded, string? Error) TryLaunchCompanion(
+        TerminalShortcut shortcut,
+        bool companionAttempted,
+        LaunchDiagnosticsReport diagnostics)
+    {
+        if (!companionAttempted)
+        {
+            return (true, null);
+        }
+
+        using (StartupPerformanceTrace.Measure("launch companion app"))
+        {
+            var companionSucceeded = _companionAppLauncher.TryLaunch(shortcut, onDemand: false, out var companionError);
+            diagnostics.RecordProcessStart("companion");
+            return (companionSucceeded, companionError);
+        }
     }
 
     private static void AddHealthDiagnostics(LaunchDiagnosticsReport diagnostics, WorkspaceHealthResult health)

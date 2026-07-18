@@ -170,13 +170,15 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
 
     private ListItem BuildShortcutItem(TerminalShortcut shortcut)
     {
+        const bool requireDirectoryExists = false;
+        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         var item = ShortcutListItems.CreateOpen(
             _context,
             shortcut,
             _onReload,
             moveVisibility: default,
             includeEdit: false);
-        if (ShortcutHealth.WouldNeedRepair(shortcut))
+        if (needsRepair)
         {
             return item;
         }

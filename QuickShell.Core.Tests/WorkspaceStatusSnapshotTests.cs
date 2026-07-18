@@ -94,8 +94,8 @@ public sealed class WorkspaceStatusSnapshotTests
                 {
                     ["rev-parse", "--is-inside-work-tree"] => GitSuccess("true"),
                     ["rev-parse", "--show-toplevel"] => GitSuccess(root),
-                    ["rev-parse", "--abbrev-ref", "HEAD"] => GitSuccess("main"),
-                    ["status", "--porcelain"] => GitSuccess(string.Empty),
+                    ["status", "--porcelain=v2", "--branch"] => GitSuccess(
+                        $"# branch.oid 0000000000000000000000000000000000000000{Environment.NewLine}# branch.head main"),
                     _ => GitFailure(),
                 });
             var probe = LaunchTestServices.CreateHealthyProbe();

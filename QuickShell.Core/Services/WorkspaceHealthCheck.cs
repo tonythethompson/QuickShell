@@ -129,7 +129,8 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         WorkspaceEntry launch,
         string terminalApplicationId,
         string defaultProfileId,
-        bool includeVolatile = true)
+        bool includeVolatile = true,
+        bool includeGit = true)
     {
         var enabled = ShortcutLaunchNormalization.GetEnabledLaunches(shortcut);
         var index = 0;
@@ -156,7 +157,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             Launches = [resolved],
         };
 
-        return Check(scoped, terminalApplicationId, defaultProfileId, includeVolatile);
+        return Check(scoped, terminalApplicationId, defaultProfileId, includeVolatile, includeGit);
     }
 
     public static string FormatBlockingSummary(WorkspaceHealthResult result) =>
