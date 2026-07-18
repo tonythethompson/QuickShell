@@ -1,0 +1,27 @@
+QuickShell.Raycast/src/lib/import-export.ts
+  s_5774d25f17d246::t_4902095c621326 16-17
+QuickShell.Raycast/src/lib/security.ts
+  s_5774d25f17d246::t_6313cded394eea 68-80,88-97,125-134,137-141,147-151,170-173,178-182,189-193,198-202,204-208,213-231,239-243,305-309,331
+QuickShell.Raycast/src/lib/storage.ts
+  s_5774d25f17d246::t_fd0d9bfad5c1c4 92-93,105-112,185-188,445
+QuickShell.Raycast/src/lib/validation.ts
+  s_5774d25f17d246::t_98314be036ae43 218
+QuickShell.Raycast/src/open-workspace.tsx
+  s_5774d25f17d246::t_b5c627e83ab5ac 197,305-309,324-328,342-346,352-353,361-365,370-374,380-384,497-502
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "5d5b46f0b68e2588ea7f9c2614847ccae08ff68e",
+  "prompts": {},
+  "sessions": {
+    "s_5774d25f17d246": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a66ed27b-176d-4f60-b88b-7e7f83429f48",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
