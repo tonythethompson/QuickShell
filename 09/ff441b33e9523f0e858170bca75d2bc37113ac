@@ -1,0 +1,72 @@
+QuickShell.Core.Tests/WorkspaceGitOperationsTests.cs
+  s_963cdf5261beb4::t_fdaa1dbf421b61 1-93
+QuickShell.Core.Tests/ShortcutLaunchExecutorTests.cs
+  s_963cdf5261beb4::t_2b301b4d308f51 18
+  s_963cdf5261beb4::t_9e1518238e8fa8 13,125-140,143-144,146,150-154,156-157,159-160,163,171,173-176,178-179,181-182,185,197,199-209,211,215,218,221,223,228,232,243,247,258,272
+  s_963cdf5261beb4::t_5a3455926f5eb5 141-142
+  s_963cdf5261beb4::t_8c63443688dea1 145
+  s_963cdf5261beb4::t_22fc660d5c5c9e 147-149
+  s_963cdf5261beb4::t_76eaae35157f7e 155
+  s_963cdf5261beb4::t_a856320f93a505 158
+  s_963cdf5261beb4::t_4522d60871a6da 161-162
+  s_963cdf5261beb4::t_f5cd4a42c0b27a 164-166,168-170
+  s_963cdf5261beb4::t_553016141fb847 172
+  s_963cdf5261beb4::t_a1ba10d0cdef54 177
+  s_963cdf5261beb4::t_3b09861a7c03ba 180
+  s_963cdf5261beb4::t_458f00445529f3 183-184
+  s_963cdf5261beb4::t_16b1aa461d359b 186-188,194-196
+  s_963cdf5261beb4::t_3bbafd8a3560c1 198
+  s_963cdf5261beb4::t_bfc70b0a30ecca 210
+  s_963cdf5261beb4::t_41db2bdecacdfc 212-214
+  s_963cdf5261beb4::t_e57e55d15d3f52 216-217
+  s_963cdf5261beb4::t_75ee7059f373c6 219-220
+  s_963cdf5261beb4::t_7096f1ee07c2b4 222
+  s_963cdf5261beb4::t_034f21bba5f167 224-227
+  s_963cdf5261beb4::t_28b9387ebe06b3 229-231
+  s_963cdf5261beb4::t_aa6d9d5b07d4a6 233-235,240-242
+  s_963cdf5261beb4::t_80b11463cf5ee5 244-246
+  s_963cdf5261beb4::t_d647edf733f592 248-250,255-257
+  s_963cdf5261beb4::t_3eff30173a6903 259-261,269-271
+  s_963cdf5261beb4::t_5f81e4b953fce8 273-274
+  s_1469586a92bcee::t_bb3b55dd516d42 167,189-193,236-239,251-254,262-268
+QuickShell.Core/Services/CompanionLaunchResult.cs
+  s_963cdf5261beb4::t_fc2fdcf5083739 1-6
+QuickShell.Core/Abstractions/IWorkspaceGitOperations.cs
+  s_1469586a92bcee::t_95eb11872cefdc 11-12
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_963cdf5261beb4::t_437e28c08f71a3 256,265
+QuickShell.Core/Abstractions/ICompanionAppLauncher.cs
+  s_963cdf5261beb4::t_eec4e4fe20cd7e 5-6,13-14
+QuickShell.Core/Services/CompanionAppLauncher.cs
+  s_963cdf5261beb4::t_95b3465e44721d 30-36,50,55-58,63-66,71,74,81,87,90,95,98-102,104,141
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_963cdf5261beb4::t_d663fa6685b87e 579-585
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_963cdf5261beb4::t_62239f4c1a09cb 61
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_963cdf5261beb4::t_0268eeccbe40e9 20,66-72,96,111,122-124,126,131,144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "09ff441b33e9523f0e858170bca75d2bc37113ac",
+  "prompts": {},
+  "sessions": {
+    "s_1469586a92bcee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "799ef689-a261-411c-8293-4094caa988b0",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_963cdf5261beb4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "877b38a0-7085-47fa-a8b4-4d95c1e5f65b",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
