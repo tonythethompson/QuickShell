@@ -43,8 +43,13 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public IReadOnlyList<ShortcutLayoutEntry> GetLayout() => [];
 
-    public WorkspaceRepositorySnapshot GetSnapshot() =>
-        new(Version, GetShortcuts(), GetLayout(), StructuralVersion: StructuralVersion);
+    public int GetSnapshotCallCount { get; private set; }
+
+    public WorkspaceRepositorySnapshot GetSnapshot()
+    {
+        GetSnapshotCallCount++;
+        return new(Version, GetShortcuts(), GetLayout(), StructuralVersion: StructuralVersion);
+    }
 
     public void BumpVersion()
     {

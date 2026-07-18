@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using QuickShell.Abstractions.Classification;
 
 namespace QuickShell.Services;
 
@@ -10,8 +11,12 @@ namespace QuickShell.Services;
 /// </summary>
 internal static class ShortcutFormCatalogPrewarm
 {
-    public static void Warm(string? terminalApplicationId)
+    public static void Warm(
+        string? terminalApplicationId,
+        IProjectAnalysisService projectAnalysis)
     {
+        ArgumentNullException.ThrowIfNull(projectAnalysis);
+
         var appId = string.IsNullOrWhiteSpace(terminalApplicationId)
             ? TerminalHostIds.WindowsTerminal
             : terminalApplicationId;
@@ -26,13 +31,16 @@ internal static class ShortcutFormCatalogPrewarm
             includeDefaultChoice: true,
             appId);
 
-        // Match ShortcutForm.RebuildTemplate schema key for the default 1x1 form.
-        const string schemaKey = "commands-admin-companions-v10-name-kw-widths-c1-cmd1";
+        // Match ShortcutForm.RebuildFromState for the default create state, whose directory
+        // is empty until the user chooses one.
+        var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(
+            projectAnalysis,
+            string.Empty);
         ShortcutFormTemplateCache.GetOrBuild(
             commandCount: 1,
             appId,
             companionChoicesJson,
-            schemaKey,
+            taskTypeChoicesJson,
             () => ShortcutFormTemplateJson.BuildTemplate(
                 terminalChoicesJson,
                 companionChoicesJson,

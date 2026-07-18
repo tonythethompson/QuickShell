@@ -214,6 +214,39 @@ public class StartupWarmupCoordinatorTests
     }
 
     [Fact]
+    public void ShortcutFormCatalogPrewarm_UsesDefaultFormTaskTypeCacheKey()
+    {
+        var analysis = new FakeProjectAnalysisService();
+        ShortcutFormTemplateCache.Invalidate();
+
+        try
+        {
+            ShortcutFormCatalogPrewarm.Warm(TerminalHostIds.WindowsTerminal, analysis);
+
+            var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
+            var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(analysis, string.Empty);
+            var rebuilt = false;
+
+            _ = ShortcutFormTemplateCache.GetOrBuild(
+                commandCount: 1,
+                TerminalHostIds.WindowsTerminal,
+                companionChoicesJson,
+                taskTypeChoicesJson,
+                () =>
+                {
+                    rebuilt = true;
+                    return "unexpected rebuild";
+                });
+
+            Assert.False(rebuilt);
+        }
+        finally
+        {
+            ShortcutFormTemplateCache.Invalidate();
+        }
+    }
+
+    [Fact]
     public void GitIndexWarmup_PassesSavedWorkspaceRootsOnly()
     {
         var root = CreateGitRepoRoot();
