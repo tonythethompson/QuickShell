@@ -458,7 +458,7 @@ public sealed class RootPaletteSearchTests : IDisposable
 
     private string MakeDirectory(string name)
     {
-        var path = Path.Combine(_configDirectory, name);
+        var path = Path.Join(_configDirectory, name);
         Directory.CreateDirectory(path);
         _directories.Add(path);
         return path;
