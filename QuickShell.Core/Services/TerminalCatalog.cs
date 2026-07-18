@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using QuickShell.Models;
 
@@ -48,6 +50,7 @@ internal static class TerminalCatalog
     private static string? _cachedFormChoicesJson;
     private static bool _cachedFormChoicesIncludeDefault;
     private static string? _cachedFormApplicationId;
+    private static string? _cachedFingerprint;
 
     public const string SameAsPreviousLaunchTargetId = "same-as-previous";
 
@@ -80,9 +83,48 @@ internal static class TerminalCatalog
         {
             _snapshot = null;
             _cachedFormChoicesJson = null;
+            _cachedFingerprint = null;
         }
 
         WtProfilesService.InvalidateCache();
+    }
+
+    /// <summary>
+    /// Returns a stable fingerprint of the current terminal catalog snapshot.
+    /// The value changes when installed terminals, Windows Terminal profiles, or WSL distros change.
+    /// </summary>
+    public static string GetFingerprint()
+    {
+        lock (Sync)
+        {
+            if (_cachedFingerprint is not null)
+            {
+                return _cachedFingerprint;
+            }
+
+            var snapshot = EnsureCached();
+            _cachedFingerprint = ComputeFingerprint(snapshot);
+            return _cachedFingerprint;
+        }
+    }
+
+    private static string ComputeFingerprint(CatalogSnapshot snapshot)
+    {
+        var builder = new StringBuilder();
+        foreach (var target in snapshot.Targets.OrderBy(static t => t.Id, StringComparer.OrdinalIgnoreCase))
+        {
+            builder.Append(target.Id).Append('\n');
+            builder.Append((int)target.Kind).Append('\n');
+            builder.Append(target.DisplayName).Append('\n');
+            builder.Append(target.ProfileOrDistro).Append('\n');
+            builder.Append(target.WtCommandLine).Append('\n');
+            builder.Append(target.HostExecutable).Append('\n');
+            builder.Append(target.FallbackReason).Append('\n');
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(builder.ToString());
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash);
     }
 
     public static IReadOnlyList<string> GetDefaultProfileIds(string terminalApplicationId)

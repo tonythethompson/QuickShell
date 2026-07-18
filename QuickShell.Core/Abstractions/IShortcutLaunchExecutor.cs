@@ -9,12 +9,12 @@ internal interface IShortcutLaunchExecutor
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId,
-        ShortcutLaunchOptions options = default);
+        ShortcutLaunchOptions? options = null);
 
     ShortcutLaunchResult LaunchEntry(
         TerminalShortcut shortcut,
         WorkspaceEntry launch,
         string terminalApplicationId,
         string defaultProfileId,
-        ShortcutLaunchOptions options = default);
+        ShortcutLaunchOptions? options = null);
 }

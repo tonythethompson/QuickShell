@@ -29,6 +29,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public string ConfigPath => string.Empty;
 
+    public long Version { get; set; }
+
     public Task PreloadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public IReadOnlyList<TerminalShortcut> GetShortcuts() => _byId.Values.ToList();
@@ -36,13 +38,21 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     public IReadOnlyList<ShortcutLayoutEntry> GetLayout() => [];
 
     public WorkspaceRepositorySnapshot GetSnapshot() =>
-        new(0, GetShortcuts(), GetLayout());
+        new(Version, GetShortcuts(), GetLayout());
+
+    public void BumpVersion() => Version++;
+
+    public void Clear()
+    {
+        _byId.Clear();
+        _byName.Clear();
+    }
 
     public TerminalShortcut? GetByName(string name) =>
         _byName.TryGetValue(name, out var shortcut) ? shortcut : null;
 
     public TerminalShortcut? GetById(string id) =>
-        _byId.TryGetValue(id, out var shortcut) ? shortcut : null;
+        _byId.TryGetValue(id, out var shortcut) ? ShortcutRepository.Clone(shortcut) : null;
 
     public TerminalShortcut? GetByNameReadOnly(string name) => GetByName(name);
 
