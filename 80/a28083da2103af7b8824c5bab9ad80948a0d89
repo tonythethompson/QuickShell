@@ -1,0 +1,72 @@
+docs/architecture/deep-link-schema.md
+  s_350ae2edc84263::t_d8d754ff83831a 3,5,7-11,13-15,17,19,21,23-44,48,52-57
+  s_e625adc30da38e::t_95af03606703ac 59,61-68,75,79,83-86
+QuickShell.Core/Services/CommandDescriptor.cs
+  s_350ae2edc84263::t_aaa5f8739d9e09 24-29,36,45,49-56,122-130,179-259,263,266-267,270-272,276-278,282,285-286,289-291,296-298,304-306,310,313-314,317-319,323-325,329,332-333,336-338,342-344,348,351-352,355-357,361-363,367,370-371,374-376,381-383,389-391,395,399,401,403,406,408
+  s_350ae2edc84263::t_cac621e20488d6 260-262,264-265,268-269,273-275,279-281,283-284,287-288,292-295,299-303,307-309,311-312,315-316,320-322,326-328,330-331,334-335,339-341,345-347,349-350,353-354,358-360,364-366,368-369,372-373,377-380,384-388,392-394,396-398,400,402,404-405,407,409-412
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_350ae2edc84263::t_d84bbb143a7839 71,73-75,89-94
+  s_350ae2edc84263::t_79eee7f6a559e1 72
+  s_350ae2edc84263::t_4fedc9f16903cc 1-13,15-70,76-88,95-254
+  s_350ae2edc84263::t_b7c150ddf56d3e 14
+QuickShell/Pages/ShortcutFormPage.cs
+  s_265ac3fcb9e78a::t_c7ec12ede3b0b9 37-38
+QuickShell/QuickShellCommandsProvider.cs
+  s_1469586a92bcee::t_5f435f0237103e 82,254-255
+QuickShell.Core.Tests/CommandDescriptorTests.cs
+  s_e625adc30da38e::t_75cf3727477ca2 69
+QuickShell.Core.Tests/CommandIdParserTests.cs
+  s_e625adc30da38e::t_4acfa1046287bc 162-200
+QuickShell.Core.Tests/SupportDiagnosticsTests.cs
+  s_e625adc30da38e::t_553513c66b0418 31,36
+QuickShell.Core/Services/CommandIdParser.cs
+  s_e625adc30da38e::t_e9f09328255fb9 5-6,10-11
+QuickShell/Commands/DuplicateShortcutCommand.cs
+  s_e625adc30da38e::t_641c7240b2470c 17
+QuickShell/Pages/ShortcutDetailsFormPage.cs
+  s_e625adc30da38e::t_acb55027e75a1c 18
+QuickShell/QuickShellFallback.cs
+  s_e625adc30da38e::t_17093178b6a892 13
+QuickShell/QuickShellNavigation.cs
+  s_e625adc30da38e::t_9870e98a3dbbac 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "80a28083da2103af7b8824c5bab9ad80948a0d89",
+  "prompts": {},
+  "sessions": {
+    "s_1469586a92bcee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "799ef689-a261-411c-8293-4094caa988b0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_265ac3fcb9e78a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "821825d7-a7c1-4fde-b6ea-4679da465a2f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_e625adc30da38e": {
+      "agent_id": {
+        "tool": "devin",
+        "id": "s_e625adc30da38e",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
