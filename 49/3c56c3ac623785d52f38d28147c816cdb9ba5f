@@ -1,0 +1,63 @@
+QuickShell.Core.Tests/ShortcutRepositoryPerformanceShapeTests.cs
+  s_d711731c0f8875::t_89f5325263db31 4
+  s_1469586a92bcee::t_059713725aa30e 88-158,433,457
+QuickShell.Core/Services/CompanionAppLauncher.cs
+  s_d711731c0f8875::t_8560167f1fe3f1 10
+  s_1469586a92bcee::t_74c3b9019f4ec3 23-24,38,67,74,93-102,139-144
+QuickShell.Core.Tests/ShortcutLaunchExecutorTests.cs
+  s_963cdf5261beb4::t_c8240d0c380789 230-287
+QuickShell.Core/Abstractions/ICompanionAppLauncher.cs
+  s_963cdf5261beb4::t_21fb64d5e3efd2 11-12
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_963cdf5261beb4::t_99d18f343d4265 580-584
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_350ae2edc84263::t_861340c16d1c50 93-100
+QuickShell.Core.Tests/CompanionAppLauncherTests.cs
+  s_1469586a92bcee::t_a17343a4308fa9 192
+QuickShell.Raycast/package.json
+  s_1469586a92bcee::t_d494aa052971d0 10
+QuickShell/Pages/QuickShellPage.cs
+  s_1469586a92bcee::t_231b682f8bac04 386,462,503
+QuickShell.Core/Services/WorkspaceRepositorySnapshot.cs
+  s_963cdf5261beb4::t_2b13e141156425 13-15,109-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "493c56c3ac623785d52f38d28147c816cdb9ba5f",
+  "prompts": {},
+  "sessions": {
+    "s_1469586a92bcee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "799ef689-a261-411c-8293-4094caa988b0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_350ae2edc84263": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_963cdf5261beb4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "877b38a0-7085-47fa-a8b4-4d95c1e5f65b",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_d711731c0f8875": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "018e7e29-8252-461f-aeb1-c0d609aa7989",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
