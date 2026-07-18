@@ -15,10 +15,11 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
     private readonly IProjectAnalysisService _projectAnalysis;
     private readonly IQuickShellLifetime _lifetime;
     private readonly IExtensionThreadScheduler _threadScheduler;
-    private readonly Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? _discoverOverride;
+    private readonly Func<IReadOnlyList<string>, bool, IReadOnlyList<GitRepoCandidate>>? _discoverOverride;
 
     private IReadOnlyList<GitRepoCandidate> _cache = [];
     private string _cacheRootKey = string.Empty;
+    private bool _cacheIncludesDefaultSearchRoots;
     private DateTime _refreshedUtc = DateTime.MinValue;
     private bool _hasCompletedRefreshForRoot;
     private RefreshInFlight? _refreshInFlight;
@@ -28,7 +29,11 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         IProjectAnalysisService projectAnalysis,
         IQuickShellLifetime lifetime,
         IExtensionThreadScheduler threadScheduler)
-        : this(projectAnalysis, lifetime, threadScheduler, discoverOverride: null)
+        : this(
+            projectAnalysis,
+            lifetime,
+            threadScheduler,
+            (Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>?)null)
     {
     }
 
@@ -38,6 +43,31 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         IQuickShellLifetime lifetime,
         IExtensionThreadScheduler threadScheduler,
         Func<IReadOnlyList<string>, IReadOnlyList<GitRepoCandidate>>? discoverOverride)
+        : this(
+            projectAnalysis,
+            lifetime,
+            threadScheduler,
+            discoverOverride is null ? null : (roots, _) => discoverOverride(roots),
+            scopedDiscoverOverride: true)
+    {
+    }
+
+    /// <summary>Test constructor that observes discovery scope without static seams.</summary>
+    internal GitRepoIndex(
+        IProjectAnalysisService projectAnalysis,
+        IQuickShellLifetime lifetime,
+        IExtensionThreadScheduler threadScheduler,
+        Func<IReadOnlyList<string>, bool, IReadOnlyList<GitRepoCandidate>> discoverOverride)
+        : this(projectAnalysis, lifetime, threadScheduler, discoverOverride, scopedDiscoverOverride: true)
+    {
+    }
+
+    private GitRepoIndex(
+        IProjectAnalysisService projectAnalysis,
+        IQuickShellLifetime lifetime,
+        IExtensionThreadScheduler threadScheduler,
+        Func<IReadOnlyList<string>, bool, IReadOnlyList<GitRepoCandidate>>? discoverOverride,
+        bool scopedDiscoverOverride)
     {
         _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
         _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
@@ -169,6 +199,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             _cache = [];
             _refreshedUtc = DateTime.MinValue;
             _cacheRootKey = string.Empty;
+            _cacheIncludesDefaultSearchRoots = false;
             _hasCompletedRefreshForRoot = false;
             _refreshInFlight = null;
         });
@@ -244,12 +275,14 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
     internal void SeedCacheForTests(
         IReadOnlyList<GitRepoCandidate> cache,
         string rootKey,
-        DateTime refreshedUtc)
+        DateTime refreshedUtc,
+        bool includeDefaultSearchRoots = true)
     {
         lock (_sync)
         {
             _cache = cache;
             _cacheRootKey = rootKey;
+            _cacheIncludesDefaultSearchRoots = includeDefaultSearchRoots;
             _refreshedUtc = refreshedUtc;
             _hasCompletedRefreshForRoot = true;
             _refreshInFlight = null;
@@ -272,6 +305,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             _refreshInFlight = null;
             _cache = [];
             _cacheRootKey = string.Empty;
+            _cacheIncludesDefaultSearchRoots = false;
             _refreshedUtc = DateTime.MinValue;
             _hasCompletedRefreshForRoot = false;
         }
@@ -308,11 +342,13 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         }
     }
 
-    private IReadOnlyList<GitRepoCandidate> GetCacheForRootKey(string rootKey)
+    private IReadOnlyList<GitRepoCandidate> GetCacheForRootKey(
+        string rootKey,
+        bool includeDefaultSearchRoots = true)
     {
         lock (_sync)
         {
-            return string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal) ? _cache : [];
+            return IsCacheScopeCompatibleLocked(rootKey, includeDefaultSearchRoots) ? _cache : [];
         }
     }
 
@@ -332,7 +368,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 
         lock (_sync)
         {
-            if (IsCacheFreshLocked(rootKey))
+            if (IsCacheFreshLocked(rootKey, includeDefaultSearchRoots))
             {
                 return;
             }
@@ -341,10 +377,14 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         }
     }
 
-    private bool IsCacheFreshLocked(string rootKey) =>
+    private bool IsCacheFreshLocked(string rootKey, bool includeDefaultSearchRoots) =>
         _hasCompletedRefreshForRoot
-        && string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
+        && IsCacheScopeCompatibleLocked(rootKey, includeDefaultSearchRoots)
         && DateTime.UtcNow - _refreshedUtc < CacheLifetime;
+
+    private bool IsCacheScopeCompatibleLocked(string rootKey, bool includeDefaultSearchRoots) =>
+        string.Equals(_cacheRootKey, rootKey, StringComparison.Ordinal)
+        && (_cacheIncludesDefaultSearchRoots || !includeDefaultSearchRoots);
 
     private void StartRefreshLocked(
         string rootKey,
@@ -353,7 +393,8 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         CancellationToken cancellationToken)
     {
         if (_refreshInFlight is not null
-            && string.Equals(_refreshInFlight.RootKey, rootKey, StringComparison.Ordinal))
+            && string.Equals(_refreshInFlight.RootKey, rootKey, StringComparison.Ordinal)
+            && (_refreshInFlight.IncludesDefaultSearchRoots || !includeDefaultSearchRoots))
         {
             return;
         }
@@ -374,6 +415,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         var tokenForTask = linkedCts.Token;
         var inFlight = new RefreshInFlight(
             rootKey,
+            includeDefaultSearchRoots,
             Task.Run(() => DiscoverForRefresh(rootSnapshot, includeDefaultSearchRoots, tokenForTask), tokenForTask),
             linkedCts);
 
@@ -390,7 +432,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
         IReadOnlyList<string> rootSnapshot,
         bool includeDefaultSearchRoots,
         CancellationToken cancellationToken) =>
-        _discoverOverride?.Invoke(rootSnapshot)
+        _discoverOverride?.Invoke(rootSnapshot, includeDefaultSearchRoots)
         ?? GitRepoDiscovery.Discover(_projectAnalysis, rootSnapshot, includeDefaultSearchRoots: includeDefaultSearchRoots, cancellationToken: cancellationToken);
 
     private void CompleteRefresh(
@@ -413,6 +455,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
             {
                 _cache = task.Result;
                 _cacheRootKey = inFlight.RootKey;
+                _cacheIncludesDefaultSearchRoots = inFlight.IncludesDefaultSearchRoots;
                 _refreshedUtc = DateTime.UtcNow;
                 _hasCompletedRefreshForRoot = true;
             }
@@ -512,6 +555,7 @@ internal sealed class GitRepoIndex : IGitRepoIndex, IDisposable
 
     private sealed record RefreshInFlight(
         string RootKey,
+        bool IncludesDefaultSearchRoots,
         Task<IReadOnlyList<GitRepoCandidate>> Task,
         CancellationTokenSource LinkedCts);
 }

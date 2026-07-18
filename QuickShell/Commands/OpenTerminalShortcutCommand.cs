@@ -52,10 +52,11 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
         }
 
         var settings = _services.Settings;
+        var launchDefaults = settings.GetValidatedLaunchDefaults();
         var result = _services.LaunchExecutor.Launch(
             shortcut,
-            settings.TerminalApplicationId,
-            settings.DefaultProfileId,
+            launchDefaults.TerminalApplicationId,
+            launchDefaults.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,

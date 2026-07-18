@@ -21,6 +21,7 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _recentWorkspaceCountSetting;
     private readonly TextSetting _blockDirtyBranchSwitchSetting;
     private readonly TextSetting _multiLaunchPresentationSetting;
+    private readonly object _terminalDefaultsSync = new();
     private Pages.QuickShellExtensionSettingsPage? _settingsPage;
     private readonly Action? _onReload;
     private IQuickShellServices _quickShellServices = null!;
@@ -188,14 +189,33 @@ internal sealed class QuickShellSettingsManager
     public bool SeparateWindowsForMultiLaunch =>
         QuickShellMultiLaunchSettings.IsSeparateWindows(ReadMultiLaunchPresentation());
 
+    /// <summary>
+    /// Validates terminal defaults at the point they are consumed for a launch.
+    /// Returns a (terminal application, default profile) pair with stale values
+    /// (e.g. a removed terminal host) substituted for safe fallbacks. Reads under
+    /// a lock so concurrent settings writes cannot interleave between the two reads.
+    /// </summary>
+    internal (string TerminalApplicationId, string DefaultProfileId) GetValidatedLaunchDefaults()
+    {
+        lock (_terminalDefaultsSync)
+        {
+            var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+            var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
+            return (app, profile);
+        }
+    }
+
     internal void UpdateTerminalDefaults(string app, string profile)
     {
-        app = EnsureValidTerminalApplication(app);
-        profile = EnsureValidDefaultProfile(app, profile);
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        SyncDefaultProfileChoices();
-        PersistSettings();
+        lock (_terminalDefaultsSync)
+        {
+            app = EnsureValidTerminalApplication(app);
+            profile = EnsureValidDefaultProfile(app, profile);
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
+            _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
+            SyncDefaultProfileChoices();
+            PersistSettings();
+        }
     }
 
     internal void UpdateRecentWorkspaceCount(int count)
