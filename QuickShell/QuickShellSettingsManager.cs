@@ -267,17 +267,37 @@ internal sealed class QuickShellSettingsManager
 
     private static string NormalizeTerminalApplication(string? value)
     {
-        var normalized = string.IsNullOrWhiteSpace(value)
-            ? TerminalHostIds.LetWindowsChoose
-            : value.Trim().ToLowerInvariant();
-
-        if (normalized.Equals(TerminalHostIds.LetWindowsChoose, StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals(TerminalHostIds.WindowsConsoleHost, StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals(TerminalHostIds.WindowsTerminal, StringComparison.OrdinalIgnoreCase))
+        // Treat null/whitespace as "let Windows choose"
+        if (string.IsNullOrWhiteSpace(value))
         {
-            return normalized;
+            return TerminalHostIds.LetWindowsChoose;
         }
+
+        var trimmed = value.Trim();
+
+        // Return canonical constants for known IDs
+        if (trimmed.Equals(TerminalHostIds.LetWindowsChoose, StringComparison.OrdinalIgnoreCase))
+        {
+            return TerminalHostIds.LetWindowsChoose;
+        }
+
+        if (trimmed.Equals(TerminalHostIds.WindowsConsoleHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return TerminalHostIds.WindowsConsoleHost;
+        }
+
+        if (trimmed.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase))
+        {
+            return TerminalHostIds.IntelligentTerminal;
+        }
+
+        if (trimmed.Equals(TerminalHostIds.WindowsTerminal, StringComparison.OrdinalIgnoreCase))
+        {
+            return TerminalHostIds.WindowsTerminal;
+        }
+
+        // For unknown IDs, return the trimmed original unchanged
+        return trimmed;
 
         return normalized;
     }
