@@ -65,8 +65,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             if (shortcuts.Length > 0)
             {
                 var listPage = _listPage.Value;
-                listPage.SetWorkspaceResults(_lastQuery, shortcuts);
-                ApplyWorkspaceResult(shortcuts);
+                listPage.SetWorkspaceResults(_lastQuery, shortcuts, snapshot.Version);
+                ApplyWorkspaceResult(shortcuts, snapshot.Version);
                 return;
             }
 
@@ -103,12 +103,18 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         ClearResult();
     }
 
-    private void ApplyWorkspaceResult(TerminalShortcut[] shortcuts)
+    private void ApplyWorkspaceResult(TerminalShortcut[] shortcuts, long repositoryVersion)
     {
         if (shortcuts.Length == 1)
         {
-            Title = shortcuts[0].Name;
-            Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcuts[0]);
+            // Reuse the shared row presentation so root-palette and list-page rows agree.
+            var presentation = _context.Services.RowPresentation.GetOrBuild(
+                shortcuts[0],
+                repositoryVersion,
+                _context.Settings.RowPresentationFingerprint,
+                WorkspaceRowPresentationMode.SearchResult);
+            Title = presentation.Title;
+            Subtitle = presentation.Subtitle;
         }
         else
         {

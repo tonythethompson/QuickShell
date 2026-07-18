@@ -15,6 +15,29 @@ internal static class ShortcutListItems
         PinnedMoveVisibility moveVisibility = default,
         bool includeEdit = true,
         Action? onFavoritesReordered = null,
+        bool useHomePinContextMenu = false) =>
+        CreateOpen(
+            context,
+            shortcut,
+            presentation: null,
+            onChanged,
+            moveVisibility,
+            includeEdit,
+            onFavoritesReordered,
+            useHomePinContextMenu);
+
+    /// <summary>
+    /// Builds a row from cached immutable presentation data when available. Commands and
+    /// tags are always built fresh for the calling page — only display strings are reused.
+    /// </summary>
+    public static ListItem CreateOpen(
+        QuickShellPageContext context,
+        TerminalShortcut shortcut,
+        WorkspaceRowPresentation? presentation,
+        Action? onChanged = null,
+        PinnedMoveVisibility moveVisibility = default,
+        bool includeEdit = true,
+        Action? onFavoritesReordered = null,
         bool useHomePinContextMenu = false)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -22,16 +45,19 @@ internal static class ShortcutListItems
         var services = context.Services;
         var settings = context.Settings;
         const bool requireDirectoryExists = false;
-        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
+        var needsRepair = presentation is not null
+            ? presentation.State == WorkspaceRowState.NeedsRepair
+            : ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
         ICommand primaryCommand = needsRepair
             ? new ShortcutFormPage(services, shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, services);
 
         var item = new ListItem(primaryCommand)
         {
-            Title = shortcut.Name,
-            Subtitle = ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists),
-            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+            Title = presentation?.Title ?? shortcut.Name,
+            Subtitle = presentation?.Subtitle
+                ?? ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists),
+            Icon = new IconInfo(presentation?.Glyph ?? ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
         };
 
         var tags = ShortcutDisplayTags.BuildTags(

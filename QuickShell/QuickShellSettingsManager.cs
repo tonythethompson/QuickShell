@@ -168,6 +168,13 @@ internal sealed class QuickShellSettingsManager
 
     public int RecentWorkspaceCount => ReadRecentWorkspaceCount();
 
+    /// <summary>
+    /// Fingerprint of the settings that influence row presentation. Part of the
+    /// presentation cache key so a defaults change invalidates cached rows without
+    /// needing a repository version bump. Compute once per refresh, not per row.
+    /// </summary>
+    public string RowPresentationFingerprint => $"{TerminalApplicationId}|{DefaultProfileId}";
+
     public bool BlockDirtyBranchSwitch => ReadBlockDirtyBranchSwitch();
 
     public bool SeparateWindowsForMultiLaunch =>

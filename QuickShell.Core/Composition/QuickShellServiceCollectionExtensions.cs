@@ -57,6 +57,7 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
         services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
         services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
+        services.AddSingleton<IWorkspaceRowPresentationCache, WorkspaceRowPresentationCache>();
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();
