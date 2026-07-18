@@ -1,5 +1,6 @@
 using System.Text;
 using QuickShell.Abstractions;
+using QuickShell.Models;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -129,7 +130,9 @@ internal static class LaunchTestServices
     public static LaunchTestBundle CreateBundle(
         FakeProcessStarter? processStarter = null,
         IWorkspaceEnvironmentProbe? probe = null,
-        WorkspaceGitOperations? git = null)
+        WorkspaceGitOperations? git = null,
+        TerminalShortcut? shortcut = null,
+        IShortcutRepository? repository = null)
     {
         var starter = processStarter ?? CreateProcessStarter();
         var gitOps = git ?? CreateGit();
@@ -138,8 +141,9 @@ internal static class LaunchTestServices
         var terminal = new TerminalLauncher(starter);
         var companion = new CompanionAppLauncher(starter);
         var gate = new WorkspaceGitLaunchGate(gitOps);
-        var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate);
-        return new LaunchTestBundle(starter, healthProbe, gitOps, health, terminal, companion, gate, executor);
+        var repo = repository ?? (shortcut is null ? null : new FakeShortcutRepository([shortcut]));
+        var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate, repo);
+        return new LaunchTestBundle(starter, healthProbe, gitOps, health, terminal, companion, gate, executor, repo);
     }
 }
 
@@ -151,4 +155,5 @@ internal sealed record LaunchTestBundle(
     TerminalLauncher Terminal,
     CompanionAppLauncher Companion,
     WorkspaceGitLaunchGate GitGate,
-    ShortcutLaunchExecutor Executor);
+    ShortcutLaunchExecutor Executor,
+    IShortcutRepository? Repository);
