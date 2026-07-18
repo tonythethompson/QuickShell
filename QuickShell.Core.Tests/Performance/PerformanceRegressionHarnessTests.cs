@@ -42,10 +42,10 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
     public PerformanceRegressionHarnessTests(ITestOutputHelper output)
     {
         _output = output;
-        _tempRoot = Path.Combine(Path.GetTempPath(), "qs-perf-harness-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(Path.GetTempPath(), "qs-perf-harness-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
 
-        _localAppData = Path.Combine(_tempRoot, "localappdata");
+        _localAppData = Path.Join(_tempRoot, "localappdata");
         Directory.CreateDirectory(_localAppData);
         _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
         Environment.SetEnvironmentVariable("LOCALAPPDATA", _localAppData);
@@ -67,7 +67,11 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
                 Directory.Delete(_tempRoot, recursive: true);
             }
         }
-        catch
+        catch (IOException)
+        {
+            // Best effort.
+        }
+        catch (UnauthorizedAccessException)
         {
             // Best effort.
         }
@@ -92,11 +96,11 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
 
         var directory = report.WriteArtifacts();
         _output.WriteLine($"Wrote {report.Results.Count} benchmark results to {directory}");
-        _output.WriteLine(File.ReadAllText(Path.Combine(directory, "quickshell-perf-results.md")));
+        _output.WriteLine(File.ReadAllText(Path.Join(directory, "quickshell-perf-results.md")));
 
         Assert.True(report.Results.Count > 0);
-        Assert.True(File.Exists(Path.Combine(directory, "quickshell-perf-results.json")));
-        Assert.True(File.Exists(Path.Combine(directory, "quickshell-perf-results.md")));
+        Assert.True(File.Exists(Path.Join(directory, "quickshell-perf-results.json")));
+        Assert.True(File.Exists(Path.Join(directory, "quickshell-perf-results.md")));
     }
 
     // --- Provider / startup ------------------------------------------------------------
@@ -273,7 +277,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
 
         foreach (var repoCount in new[] { 10, 100 })
         {
-            var scanRoot = Path.Combine(_tempRoot, "git-scan-" + repoCount);
+            var scanRoot = Path.Join(_tempRoot, "git-scan-" + repoCount);
             BuildGitRepoTree(scanRoot, repoCount);
 
             report.Add(BenchmarkRunner.MeasureOnce(
@@ -287,14 +291,14 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
                 () => _ = GitRepoDiscovery.Discover(projectAnalysis, [scanRoot])));
         }
 
-        var maxRoot = Path.Combine(_tempRoot, "git-scan-max");
+        var maxRoot = Path.Join(_tempRoot, "git-scan-max");
         BuildGitRepoTree(maxRoot, 50); // GitRepoDiscovery.MaxRepos caps results at 50 regardless of tree size
         report.Add(BenchmarkRunner.MeasureOnce(
             "cold discover (maximum supported entries)",
             category,
             () => _ = GitRepoDiscovery.Discover(projectAnalysis, [maxRoot])));
 
-        var failedRoot = Path.Combine(_tempRoot, "git-scan-missing");
+        var failedRoot = Path.Join(_tempRoot, "git-scan-missing");
         report.Add(BenchmarkRunner.MeasureOnce(
             "failed refresh (nonexistent root)",
             category,
@@ -310,7 +314,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         try
         {
             var bundle = LaunchTestServices.CreateBundle();
-            var directory = Path.Combine(_tempRoot, "launch-target");
+            var directory = Path.Join(_tempRoot, "launch-target");
             Directory.CreateDirectory(directory);
 
             var single = new TerminalShortcut
@@ -387,7 +391,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         int workspaceCount,
         bool includeMixedShapes = false)
     {
-        var configDir = Path.Combine(_tempRoot, "cfg-" + Guid.NewGuid().ToString("N"));
+        var configDir = Path.Join(_tempRoot, "cfg-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(configDir);
 
         // FakeShortcutRepository (not the on-disk repository) so mixed-shape rows — WSL, UNC,
@@ -476,9 +480,9 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         Directory.CreateDirectory(root);
         for (var i = 0; i < repoCount; i++)
         {
-            var dir = Path.Combine(root, "group-" + (i % 5), "project-" + i);
+            var dir = Path.Join(root, "group-" + (i % 5), "project-" + i);
             Directory.CreateDirectory(dir);
-            Directory.CreateDirectory(Path.Combine(dir, ".git"));
+            Directory.CreateDirectory(Path.Join(dir, ".git"));
         }
     }
 
