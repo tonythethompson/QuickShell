@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Models;
+using System.Linq;
 
 namespace QuickShell.Services;
 
@@ -118,17 +119,11 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
 
     private void PruneOlderVersionsLocked(long newestVersion)
     {
-        List<WorkspaceRowPresentationKey>? stale = null;
-        foreach (var key in _entries.Keys)
-        {
-            if (key.RepositoryVersion < newestVersion)
-            {
-                stale ??= [];
-                stale.Add(key);
-            }
-        }
+        var stale = _entries.Keys
+            .Where(key => key.RepositoryVersion < newestVersion)
+            .ToList();
 
-        if (stale is null)
+        if (stale.Count == 0)
         {
             return;
         }
