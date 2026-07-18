@@ -17,7 +17,7 @@ internal static class ShortcutTaskActionListItems
         {
             Title = BuildTitle(action),
             Subtitle = BuildSubtitle(action),
-            Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(action.Launch)),
+            Icon = new IconInfo(TerminalLaunchGlyphs.GetForList(action.Launch)),
             MoreCommands = BuildMoreCommands(context, action, onChanged),
         };
 
@@ -69,7 +69,7 @@ internal static class ShortcutTaskActionListItems
             items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, services, runAsStandard: true))
             {
                 Title = Strings.TaskActions_RunTaskNormally,
-                Icon = new IconInfo(TerminalLaunchGlyphs.GetForLaunch(action.Launch)),
+                Icon = new IconInfo(TerminalLaunchGlyphs.GetForList(action.Launch)),
             });
         }
         else

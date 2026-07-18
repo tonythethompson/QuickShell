@@ -1,12 +1,16 @@
+using System;
+using System.Linq;
+
 namespace QuickShell.Services;
 
 /// <summary>
-/// Warms workspace-form catalogs (companion dropdown, terminal profiles, default template)
-/// so the first Create/Edit open does not pay cold discovery (vswhere, WT settings, etc.).
+/// Warms the workspace create/edit form catalogs: companion app discovery and the
+/// default 1x1 shortcut form template. Separated from terminal warming so the
+/// expensive companion probes (vswhere, JetBrains Toolbox, PATH) can run later.
 /// </summary>
-internal static class FormCatalogPrewarm
+internal static class ShortcutFormCatalogPrewarm
 {
-    public static void Warm(string? terminalApplicationId = null)
+    public static void Warm(string? terminalApplicationId)
     {
         var appId = string.IsNullOrWhiteSpace(terminalApplicationId)
             ? TerminalHostIds.WindowsTerminal
@@ -16,21 +20,13 @@ internal static class FormCatalogPrewarm
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
 
         // Terminal launch targets for create/edit form (active app + WT profiles).
-        foreach (var id in new[]
-                 {
-                     appId,
-                     TerminalHostIds.WindowsTerminal,
-                     TerminalHostIds.IntelligentTerminal,
-                 }.Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            _ = TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, id);
-        }
+        TerminalCatalogPrewarm.Warm(appId);
 
         var terminalChoicesJson = TerminalCatalog.BuildFormChoicesJson(
             includeDefaultChoice: true,
             appId);
 
-        // Match ShortcutForm.RebuildTemplate schema key for the default 1×1 form.
+        // Match ShortcutForm.RebuildTemplate schema key for the default 1x1 form.
         const string schemaKey = "commands-admin-companions-v10-name-kw-widths-c1-cmd1";
         ShortcutFormTemplateCache.GetOrBuild(
             commandCount: 1,
@@ -45,4 +41,3 @@ internal static class FormCatalogPrewarm
                 companionCount: 1));
     }
 }
-

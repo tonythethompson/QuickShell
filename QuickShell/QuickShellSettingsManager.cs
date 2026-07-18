@@ -21,6 +21,11 @@ internal sealed class QuickShellSettingsManager
     private readonly TextSetting _recentWorkspaceCountSetting;
     private readonly TextSetting _blockDirtyBranchSwitchSetting;
     private readonly TextSetting _multiLaunchPresentationSetting;
+    private readonly object _terminalDefaultsSync = new();
+    private readonly Func<string, bool> _hasTerminalApplication;
+    private readonly Func<List<ChoiceSetSetting.Choice>> _getTerminalApplicationChoices;
+    private readonly Func<string, List<ChoiceSetSetting.Choice>> _getDefaultProfileChoices;
+    private int _terminalDefaultsRevision;
     private Pages.QuickShellExtensionSettingsPage? _settingsPage;
     private readonly Action? _onReload;
     private IQuickShellServices _quickShellServices = null!;
@@ -48,18 +53,42 @@ internal sealed class QuickShellSettingsManager
     }
 
     public QuickShellSettingsManager(Action? onReload = null)
+        : this(
+            new QuickShellJsonSettingsStore(),
+            onReload,
+            TerminalCatalog.HasTerminalApplication,
+            TerminalCatalogChoices.GetTerminalApplicationChoices,
+            TerminalCatalogChoices.GetDefaultProfileChoices)
+    {
+    }
+
+    internal QuickShellSettingsManager(
+        QuickShellJsonSettingsStore settingsStore,
+        Action? onReload = null,
+        Func<string, bool>? hasTerminalApplication = null,
+        Func<List<ChoiceSetSetting.Choice>>? getTerminalApplicationChoices = null,
+        Func<string, List<ChoiceSetSetting.Choice>>? getDefaultProfileChoices = null)
     {
         _onReload = onReload;
+        _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
+        _hasTerminalApplication = hasTerminalApplication ?? TerminalCatalog.HasTerminalApplication;
+        _getTerminalApplicationChoices = getTerminalApplicationChoices ?? TerminalCatalogChoices.GetTerminalApplicationChoices;
+        _getDefaultProfileChoices = getDefaultProfileChoices ?? TerminalCatalogChoices.GetDefaultProfileChoices;
         // #region agent log
         SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start", hypothesisId: "A");
         // #endregion
 
-        _settingsStore = new QuickShellJsonSettingsStore();
         _settings = _settingsStore.Settings;
 
+        // Choices are populated by PrewarmTerminalCatalog after the first workspace list
+        // is published so terminal discovery (WT settings, vswhere, PATH) does not run
+        // during provider construction.
         _terminalApplicationSetting = new ChoiceSetSetting(
             TerminalApplicationSettingId,
-            TerminalCatalogChoices.GetTerminalApplicationChoices())
+            new List<ChoiceSetSetting.Choice>
+            {
+                new("Let Windows choose", TerminalHostIds.LetWindowsChoose),
+            })
         {
             Label = "Terminal application",
             Description = "The terminal host used for Default workspaces and profile launches. Matches Windows Terminal's \"Default terminal application\" setting.",
@@ -67,7 +96,10 @@ internal sealed class QuickShellSettingsManager
 
         _defaultProfileSetting = new ChoiceSetSetting(
             DefaultProfileSettingId,
-            TerminalCatalogChoices.GetMinimalDefaultProfileChoices())
+            new List<ChoiceSetSetting.Choice>
+            {
+                new("Default profile for this app", TerminalHostIds.DefaultProfile),
+            })
         {
             Label = "Default profile",
             Description = "Profile used when a workspace is set to Default. Per-workspace profile choices stay on each workspace.",
@@ -116,7 +148,7 @@ internal sealed class QuickShellSettingsManager
             usedLegacyDefaults = true;
         }
 
-        initialApp = EnsureValidTerminalApplication(initialApp);
+        initialApp = NormalizeTerminalApplication(initialApp);
         initialProfile = NormalizeStoredDefaultProfile(initialProfile);
         var initialRecentCount = ReadRecentWorkspaceCount();
         var initialBlockDirtyBranchSwitch = ReadBlockDirtyBranchSwitch();
@@ -124,16 +156,14 @@ internal sealed class QuickShellSettingsManager
 
         _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{initialApp}}","{{DefaultProfileSettingId}}":"{{initialProfile}}","{{RecentWorkspaceCountSettingId}}":"{{QuickShellRecentSettings.FormatCount(initialRecentCount)}}","{{BlockDirtyBranchSwitchSettingId}}":"{{FormatBool(initialBlockDirtyBranchSwitch)}}","{{MultiLaunchPresentationSettingId}}":"{{initialMultiLaunchPresentation}}"}""");
 
+        // Terminal/profile catalog choices and final validation are deferred to the
+        // staged startup coordinator so provider construction stays off the hot path.
         // #region agent log
         SupportDiagnostics.Write(
             "QuickShellSettingsManager.cs:ctor",
-            "before SyncDefaultProfileChoices",
+            "terminal defaults deferred",
             new { initialApp, initialProfile },
             hypothesisId: "C");
-        // #endregion
-        SyncDefaultProfileChoices();
-        // #region agent log
-        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "after SyncDefaultProfileChoices", hypothesisId: "C");
         // #endregion
 
         if (usedLegacyDefaults || !File.Exists(_settingsStore.FilePath))
@@ -160,11 +190,19 @@ internal sealed class QuickShellSettingsManager
 
     internal void PrewarmSettingsContent() => TypedSettingsPage.PrewarmContent();
 
+    /// <summary>
+    /// Returns the configured terminal application without forcing a catalog scan.
+    /// Validation and choice population are performed by <see cref="PrewarmTerminalCatalog"/>.
+    /// </summary>
     public string TerminalApplicationId =>
-        EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+        NormalizeTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
 
+    /// <summary>
+    /// Returns the configured default profile without forcing a catalog scan.
+    /// Validation and choice population are performed by <see cref="PrewarmTerminalCatalog"/>.
+    /// </summary>
     public string DefaultProfileId =>
-        EnsureValidDefaultProfile(TerminalApplicationId, _settings.GetSetting<string>(DefaultProfileSettingId));
+        NormalizeStoredDefaultProfile(_settings.GetSetting<string>(DefaultProfileSettingId));
 
     public int RecentWorkspaceCount => ReadRecentWorkspaceCount();
 
@@ -173,14 +211,32 @@ internal sealed class QuickShellSettingsManager
     public bool SeparateWindowsForMultiLaunch =>
         QuickShellMultiLaunchSettings.IsSeparateWindows(ReadMultiLaunchPresentation());
 
+    /// <summary>
+    /// Validates terminal defaults when a launch consumes them without adding catalog work
+    /// to ordinary settings property getters.
+    /// </summary>
+    internal (string TerminalApplicationId, string DefaultProfileId) GetValidatedLaunchDefaults()
+    {
+        lock (_terminalDefaultsSync)
+        {
+            var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+            var profile = EnsureValidDefaultProfile(app, _settings.GetSetting<string>(DefaultProfileSettingId));
+            return (app, profile);
+        }
+    }
+
     internal void UpdateTerminalDefaults(string app, string profile)
     {
-        app = EnsureValidTerminalApplication(app);
-        profile = EnsureValidDefaultProfile(app, profile);
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        SyncDefaultProfileChoices();
-        PersistSettings();
+        lock (_terminalDefaultsSync)
+        {
+            app = EnsureValidTerminalApplication(app);
+            profile = EnsureValidDefaultProfile(app, profile);
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
+            _terminalDefaultsRevision++;
+            _terminalApplicationSetting.Choices = _getTerminalApplicationChoices();
+            SyncDefaultProfileChoices();
+            PersistSettings();
+        }
     }
 
     internal void UpdateRecentWorkspaceCount(int count)
@@ -213,18 +269,53 @@ internal sealed class QuickShellSettingsManager
 
     public void RefreshTerminalChoices()
     {
-        var app = TerminalApplicationId;
-        _terminalApplicationSetting.Choices = TerminalCatalogChoices.GetTerminalApplicationChoices();
-        app = EnsureValidTerminalApplication(app);
-        SyncDefaultProfileChoices();
-        _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{app}}","{{DefaultProfileSettingId}}":"{{DefaultProfileId}}"}""");
-        PersistSettings();
+        lock (_terminalDefaultsSync)
+        {
+            var app = TerminalApplicationId;
+            _terminalApplicationSetting.Choices = _getTerminalApplicationChoices();
+            app = EnsureValidTerminalApplication(app);
+            SyncDefaultProfileChoices();
+            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{app}}","{{DefaultProfileSettingId}}":"{{DefaultProfileId}}"}""");
+            _terminalDefaultsRevision++;
+            PersistSettings();
+        }
+    }
+
+    /// <summary>
+    /// Warms the terminal/profile catalogs without changing the user's saved defaults.
+    /// Called by the staged startup coordinator after the first workspace list is published
+    /// so provider construction does not pay the discovery cost.
+    /// </summary>
+    internal void PrewarmTerminalCatalog()
+    {
+        string? rawApp;
+        int observedRevision;
+        lock (_terminalDefaultsSync)
+        {
+            rawApp = _settings.GetSetting<string>(TerminalApplicationSettingId);
+            observedRevision = _terminalDefaultsRevision;
+        }
+
+        var appChoices = _getTerminalApplicationChoices();
+        var app = EnsureValidTerminalApplication(rawApp);
+        var profileChoices = _getDefaultProfileChoices(app);
+
+        lock (_terminalDefaultsSync)
+        {
+            if (_terminalDefaultsRevision != observedRevision)
+            {
+                return;
+            }
+
+            _terminalApplicationSetting.Choices = appChoices;
+            _defaultProfileSetting.Choices = profileChoices;
+        }
     }
 
     private void SyncDefaultProfileChoices()
     {
         var app = EnsureValidTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
-        _defaultProfileSetting.Choices = TerminalCatalogChoices.GetDefaultProfileChoices(app);
+        _defaultProfileSetting.Choices = _getDefaultProfileChoices(app);
 
         var current = _settings.GetSetting<string>(DefaultProfileSettingId);
         if (!_defaultProfileSetting.Choices.Any(c => c.Value.Equals(current, StringComparison.OrdinalIgnoreCase)))
@@ -233,7 +324,12 @@ internal sealed class QuickShellSettingsManager
         }
     }
 
-    private static string EnsureValidTerminalApplication(string? value)
+    internal static string NormalizeTerminalApplication(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? TerminalHostIds.LetWindowsChoose
+            : value.Trim().ToLowerInvariant();
+
+    private string EnsureValidTerminalApplication(string? value)
     {
         var normalized = string.IsNullOrWhiteSpace(value)
             ? TerminalHostIds.LetWindowsChoose
@@ -250,7 +346,7 @@ internal sealed class QuickShellSettingsManager
         }
 
         if (normalized.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
-            && TerminalCatalog.HasTerminalApplication(TerminalHostIds.IntelligentTerminal))
+            && _hasTerminalApplication(TerminalHostIds.IntelligentTerminal))
         {
             return TerminalHostIds.IntelligentTerminal;
         }
@@ -258,7 +354,7 @@ internal sealed class QuickShellSettingsManager
         return TerminalHostIds.WindowsTerminal;
     }
 
-    private static string EnsureValidDefaultProfile(string terminalApplicationId, string? value)
+    private string EnsureValidDefaultProfile(string terminalApplicationId, string? value)
     {
         var normalized = string.IsNullOrWhiteSpace(value)
             ? TerminalHostIds.DefaultProfile
@@ -275,13 +371,13 @@ internal sealed class QuickShellSettingsManager
         }
 
         if (TryExtractProfileName(normalized, out var profileName)
-            && TerminalCatalogChoices.GetDefaultProfileChoices(terminalApplicationId)
+            && _getDefaultProfileChoices(terminalApplicationId)
                 .Any(c => c.Value.Equals(profileName, StringComparison.OrdinalIgnoreCase)))
         {
             return profileName;
         }
 
-        if (TerminalCatalogChoices.GetDefaultProfileChoices(terminalApplicationId)
+        if (_getDefaultProfileChoices(terminalApplicationId)
                 .Any(c => c.Value.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
         {
             return normalized;

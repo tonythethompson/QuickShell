@@ -19,9 +19,10 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
     private readonly OpenDiscoverGitReposCommand _discoverGitReposCommand;
     private readonly object _searchIndexSync = new();
     private string _lastQuery = string.Empty;
+    private bool _awaitingGitRefresh;
+    private bool _disposed;
     private long _queryGeneration;
     private RootPaletteSearchIndex? _cachedSearchIndex;
-    private long _cachedSearchRevision = -1;
 
     public QuickShellFallback(
         QuickShellPageContext context,
@@ -59,7 +60,6 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
                 if (_cachedSearchIndex is null || _cachedSearchIndex.Revision != snapshot.Version)
                 {
                     _cachedSearchIndex = new RootPaletteSearchIndex(snapshot);
-                    _cachedSearchRevision = snapshot.Version;
                 }
 
                 searchIndex = _cachedSearchIndex;
@@ -72,6 +72,10 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             }
 
             ApplyResult(result, querySnapshot);
+            if (result.Kind == RootPaletteResultKind.None)
+            {
+                RegisterForGitRefresh();
+            }
         }
         catch (TimeoutException)
         {
@@ -163,6 +167,31 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         UpdateQuery(query);
     }
 
+    private void RegisterForGitRefresh()
+    {
+        if (_awaitingGitRefresh)
+        {
+            return;
+        }
+
+        _awaitingGitRefresh = true;
+        if (!_context.Services.GitRepos.TryRunAfterNextRefreshIfInFlight(OnGitRefreshCompleted))
+        {
+            _awaitingGitRefresh = false;
+        }
+    }
+
+    private void OnGitRefreshCompleted()
+    {
+        _awaitingGitRefresh = false;
+        if (_disposed)
+        {
+            return;
+        }
+
+        ReloadCurrentQuery();
+    }
+
     private void ApplyTaskResults(IReadOnlyList<WorkspaceTaskAction> taskActions, string query)
     {
         Title = $"{taskActions.Count} task actions";
@@ -201,6 +230,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
 
     public void Dispose()
     {
+        _disposed = true;
         _discoverGitReposCommand.Dispose();
     }
 

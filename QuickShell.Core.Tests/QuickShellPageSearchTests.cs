@@ -167,6 +167,44 @@ public sealed class QuickShellPageSearchTests : IDisposable
         Assert.DoesNotContain("Alpha", titles);
     }
 
+    [Fact]
+    public void FallbackSearch_RefreshesAfterGitDiscoveryCompletes()
+    {
+        var gitRepos = new RefreshingGitRepoIndex();
+        var settings = new QuickShellSettingsManager();
+        var services = TestQuickShellServicesFactory.CreateFromProvider(
+            _serviceProvider,
+            _repository,
+            _serviceProvider.GetRequiredService<IDraftStore>(),
+            settings,
+            _serviceProvider.GetRequiredService<IProjectAnalysisService>(),
+            _serviceProvider.GetRequiredService<IQuickShellLifetime>(),
+            gitRepos);
+        var context = new QuickShellPageContext(
+            new QuickShellHostServices(services),
+            new CreateShortcutCommand(() => { }, services),
+            () => { });
+        using var fallback = new QuickShellFallback(
+            context,
+            new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(context)));
+
+        fallback.UpdateQuery("outside");
+
+        Assert.Equal(string.Empty, fallback.Title);
+        Assert.True(gitRepos.HasRefreshCallback);
+
+        gitRepos.CompleteRefresh(
+        [
+            new GitRepoCandidate
+            {
+                Name = "Outside",
+                Directory = @"D:\outside",
+            },
+        ]);
+
+        Assert.Equal("Add Outside", fallback.Title);
+    }
+
     public void Dispose()
     {
         _serviceProvider.Dispose();
@@ -202,4 +240,64 @@ public sealed class QuickShellPageSearchTests : IDisposable
 
     private static T GetPrivateField<T>(TerminalDefaultsSettingsForm form, string name) =>
         (T)typeof(TerminalDefaultsSettingsForm).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
+
+    private sealed class RefreshingGitRepoIndex : IGitRepoIndex
+    {
+        private Action? _refreshCallback;
+        private IReadOnlyList<GitRepoCandidate> _results = [];
+
+        public bool IsRefreshInFlight { get; private set; } = true;
+
+        public bool HasRefreshCallback => _refreshCallback is not null;
+
+        public IReadOnlyList<GitRepoCandidate> GetAll(
+            IReadOnlyList<string>? extraRoots = null,
+            CancellationToken cancellationToken = default) =>
+            _results;
+
+        public void Invalidate()
+        {
+            _results = [];
+            IsRefreshInFlight = true;
+        }
+
+        public void Prewarm(
+            IReadOnlyList<string> searchRoots,
+            CancellationToken cancellationToken = default)
+        {
+        }
+
+        public void RunAfterNextRefresh(Action callback)
+        {
+            _refreshCallback = callback;
+        }
+
+        public IReadOnlyList<GitRepoCandidate> Search(
+            string query,
+            IReadOnlyList<string> searchRoots,
+            IReadOnlySet<string>? savedDirectories = null,
+            int maxResults = 8,
+            CancellationToken cancellationToken = default) =>
+            _results;
+
+        public bool TryRunAfterNextRefreshIfInFlight(Action callback)
+        {
+            if (!IsRefreshInFlight)
+            {
+                return false;
+            }
+
+            _refreshCallback = callback;
+            return true;
+        }
+
+        public void CompleteRefresh(IReadOnlyList<GitRepoCandidate> results)
+        {
+            _results = results;
+            IsRefreshInFlight = false;
+            var callback = _refreshCallback;
+            _refreshCallback = null;
+            callback?.Invoke();
+        }
+    }
 }

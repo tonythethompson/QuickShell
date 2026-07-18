@@ -32,6 +32,13 @@ internal static class TestQuickShellServicesFactory
         return new QuickShellServices(repository, new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion), drafts, settings, analysis, commandSuggestions, bundle.Executor, bundle.Git, bundle.Companion, bundle.Health, bundle.GitGate, lifetime, gitRepos, classificationCache, new ExtensionCallbackQueue());
     }
 
-    public static QuickShellServices CreateFromProvider(IServiceProvider provider, IShortcutRepository repository, IDraftStore drafts, QuickShellSettingsManager settings, IProjectAnalysisService analysis, IQuickShellLifetime lifetime) =>
-        new(repository, new WorkspaceLaunchService(repository, provider.GetRequiredService<IShortcutLaunchExecutor>(), provider.GetRequiredService<ICompanionAppLauncher>()), drafts, settings, analysis, provider.GetRequiredService<ICommandSuggestionService>(), provider.GetRequiredService<IShortcutLaunchExecutor>(), provider.GetRequiredService<IWorkspaceGitOperations>(), provider.GetRequiredService<ICompanionAppLauncher>(), provider.GetRequiredService<IWorkspaceHealthChecker>(), provider.GetRequiredService<WorkspaceGitLaunchGate>(), lifetime, provider.GetRequiredService<IGitRepoIndex>(), provider.GetRequiredService<IProjectClassificationCache>(), new ExtensionCallbackQueue());
+    public static QuickShellServices CreateFromProvider(
+        IServiceProvider provider,
+        IShortcutRepository repository,
+        IDraftStore drafts,
+        QuickShellSettingsManager settings,
+        IProjectAnalysisService analysis,
+        IQuickShellLifetime lifetime,
+        IGitRepoIndex? gitRepos = null) =>
+        new(repository, new WorkspaceLaunchService(repository, provider.GetRequiredService<IShortcutLaunchExecutor>(), provider.GetRequiredService<ICompanionAppLauncher>()), drafts, settings, analysis, provider.GetRequiredService<ICommandSuggestionService>(), provider.GetRequiredService<IShortcutLaunchExecutor>(), provider.GetRequiredService<IWorkspaceGitOperations>(), provider.GetRequiredService<ICompanionAppLauncher>(), provider.GetRequiredService<IWorkspaceHealthChecker>(), provider.GetRequiredService<WorkspaceGitLaunchGate>(), lifetime, gitRepos ?? provider.GetRequiredService<IGitRepoIndex>(), provider.GetRequiredService<IProjectClassificationCache>(), new ExtensionCallbackQueue());
 }

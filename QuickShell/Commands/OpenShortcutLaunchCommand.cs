@@ -30,17 +30,18 @@ internal sealed partial class OpenShortcutLaunchCommand : InvokableCommand
         Icon = new IconInfo(
             runAsAdmin || (launch.RunAsAdmin && !runAsStandard)
                 ? ShortcutGlyphs.AdminLaunch
-                : TerminalLaunchGlyphs.GetForLaunch(launch));
+                : TerminalLaunchGlyphs.GetForList(launch));
     }
 
     public override CommandResult Invoke()
     {
         var settings = _services.Settings;
+        var launchDefaults = settings.GetValidatedLaunchDefaults();
         var result = _services.WorkspaceLaunch.LaunchEntry(
             _shortcutId,
             _launchId,
-            settings.TerminalApplicationId,
-            settings.DefaultProfileId,
+            launchDefaults.TerminalApplicationId,
+            launchDefaults.DefaultProfileId,
             new ShortcutLaunchOptions(
                 _runAsAdmin,
                 _runAsStandard,
