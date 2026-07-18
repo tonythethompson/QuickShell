@@ -374,10 +374,10 @@ public sealed class WorkspaceSecurityPolicyTests
             TerminalShortcut shortcut,
             string terminalApplicationId,
             string defaultProfileId,
-            ShortcutLaunchOptions options = default)
+            ShortcutLaunchOptions? options = null)
         {
             LaunchedShortcut = shortcut;
-            Options = options;
+            Options = options ?? default;
             return ShortcutLaunchResult.Dismissed();
         }
 
@@ -386,11 +386,11 @@ public sealed class WorkspaceSecurityPolicyTests
             WorkspaceEntry launch,
             string terminalApplicationId,
             string defaultProfileId,
-            ShortcutLaunchOptions options = default)
+            ShortcutLaunchOptions? options = null)
         {
             LaunchedShortcut = shortcut;
             LaunchedEntry = launch;
-            Options = options;
+            Options = options ?? default;
             return ShortcutLaunchResult.Dismissed();
         }
     }
