@@ -726,7 +726,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
             if (stateChanged)
             {
-                Reload();
+                // Use the private overload: it does not clear
+                // _directoryRepairStates/_directoryRepairChecks, which would
+                // erase the state just written above before the next paint
+                // reads it and cause the probe to re-run indefinitely.
+                Reload(preserveUnpinnedItemCache: true);
             }
         });
     }
