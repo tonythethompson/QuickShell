@@ -1,0 +1,41 @@
+QuickShell.Core.Tests/LaunchTestServices.cs
+  s_952c40e81e3519::t_c0225a8260c5c5 61,70
+QuickShell.Core/Services/ShortcutValidation.cs
+  s_952c40e81e3519::t_e3cacba808a92c 17-18,182-186
+QuickShell.Core/Services/WorktreeBranchTargetStore.cs
+  s_952c40e81e3519::t_b2810bc6189b6d 13-14,46-50
+QuickShell.Core.Tests/Performance/BenchmarkReport.cs
+  s_14c3fc64e2a8a6::t_53bf42fad76056 55,60,71,77,85-88,96,103-104,114-118,132,134-135
+QuickShell.Core.Tests/Performance/BenchmarkRunner.cs
+  s_14c3fc64e2a8a6::t_942d2f8bf220c9 37
+QuickShell.Core.Tests/Performance/CriticalPathContractTests.cs
+  s_14c3fc64e2a8a6::t_c715472141dfcb 32,45-49,60,132,134-142,144-149,151-161,212-214,217-218,220,226-227,236,315,328,340
+QuickShell.Core.Tests/Performance/PerformanceRegressionHarnessTests.cs
+  s_14c3fc64e2a8a6::t_0fae20c2bb94ea 59,116-122,124,128,130-133,135-138,153-155,174,179,185,195-196,215,220,225,230,235,240,254,269-272,386,402-404,412,437-438,484-516
+QuickShell/Pages/QuickShellPage.cs
+  s_14c3fc64e2a8a6::t_8ce6db34d8537b 45-46,738-746
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "499eb2ae8c9ff12d76bb2b1e4f65bf59f488241f",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_952c40e81e3519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7331ad8-6b10-4aa9-b924-7494aac13226",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
