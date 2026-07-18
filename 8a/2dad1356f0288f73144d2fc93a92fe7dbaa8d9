@@ -1,0 +1,21 @@
+QuickShell.Core.Tests/AssemblyInfo.cs
+  s_14c3fc64e2a8a6::t_d4e823144a11c4 1-12
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_14c3fc64e2a8a6::t_b6b06701599e73 237-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "8a2dad1356f0288f73144d2fc93a92fe7dbaa8d9",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
