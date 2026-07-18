@@ -12,6 +12,9 @@ public class Program
     [MTAThread]
     public static void Main(string[] args)
     {
+        RepositoryDiagnostics.Sink = (location, eventName, elapsedMs) =>
+            SupportDiagnostics.Write(location, eventName, elapsedMs is null ? null : new { elapsedMs });
+
         // #region agent log
         AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
         {

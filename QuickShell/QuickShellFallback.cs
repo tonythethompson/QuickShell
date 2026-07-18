@@ -43,52 +43,60 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             return;
         }
 
-        var taskActions = _context.Services.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
-        if (taskActions.Length > 0)
+        try
         {
-            if (taskActions.Length == 1)
+            var taskActions = _context.Services.Shortcuts.SearchTaskActions(_lastQuery).ToArray();
+            if (taskActions.Length > 0)
             {
-                ApplyTaskResult(taskActions[0]);
+                if (taskActions.Length == 1)
+                {
+                    ApplyTaskResult(taskActions[0]);
+                    return;
+                }
+
+                var listPage = _listPage.Value;
+                listPage.SetTaskResults(_lastQuery, taskActions);
+                ApplyTaskResults(taskActions);
                 return;
             }
 
-            var listPage = _listPage.Value;
-            listPage.SetTaskResults(_lastQuery, taskActions);
-            ApplyTaskResults(taskActions);
-            return;
+            var shortcuts = _context.Services.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
+            if (shortcuts.Length > 0)
+            {
+                var listPage = _listPage.Value;
+                listPage.SetWorkspaceResults(_lastQuery, shortcuts);
+                ApplyWorkspaceResult(shortcuts);
+                return;
+            }
+
+            if (GitRepoIndex.IsDiscoverQuery(_lastQuery))
+            {
+                _listPage.Value.SetDiscoverEntry(_lastQuery);
+                ApplyDiscoverResult();
+                return;
+            }
+
+            var allShortcuts = _context.Services.Shortcuts.GetShortcuts();
+            var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts).ToList();
+            var savedDirectories = allShortcuts
+                .Select(shortcut => shortcut.Directory)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var gitRepos = _context.Services.GitRepos
+                .Search(_lastQuery, extraRoots, savedDirectories)
+                .ToArray();
+            if (gitRepos.Length > 0)
+            {
+                var listPage = _listPage.Value;
+                listPage.SetGitRepoResults(_lastQuery, gitRepos);
+                ApplyGitRepoResult(gitRepos);
+                return;
+            }
         }
-
-        var shortcuts = _context.Services.Shortcuts.SearchForRootPalette(_lastQuery).ToArray();
-        if (shortcuts.Length > 0)
+        catch (TimeoutException)
         {
-            var listPage = _listPage.Value;
-            listPage.SetWorkspaceResults(_lastQuery, shortcuts);
-            ApplyWorkspaceResult(shortcuts);
-            return;
-        }
-
-        if (GitRepoIndex.IsDiscoverQuery(_lastQuery))
-        {
-            _listPage.Value.SetDiscoverEntry(_lastQuery);
-            ApplyDiscoverResult();
-            return;
-        }
-
-        var allShortcuts = _context.Services.Shortcuts.GetShortcuts();
-        var extraRoots = GitRepoSearchRoots.FromShortcuts(allShortcuts).ToList();
-        var savedDirectories = allShortcuts
-            .Select(shortcut => shortcut.Directory)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var gitRepos = _context.Services.GitRepos
-            .Search(_lastQuery, extraRoots, savedDirectories)
-            .ToArray();
-        if (gitRepos.Length > 0)
-        {
-            var listPage = _listPage.Value;
-            listPage.SetGitRepoResults(_lastQuery, gitRepos);
-            ApplyGitRepoResult(gitRepos);
-            return;
+            // The shortcut store lock was stuck; fall through to no-result rather than
+            // surfacing a host error on a fallback keystroke.
         }
 
         ClearResult();

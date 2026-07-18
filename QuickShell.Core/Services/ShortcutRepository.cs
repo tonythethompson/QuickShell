@@ -1,4 +1,5 @@
 using QuickShell.Models;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     private readonly string? _configDirectoryOverride;
     private readonly IAtomicFileWriter _fileWriter;
+
+    private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan SlowOperationThreshold = TimeSpan.FromSeconds(2);
+    private const int FileMutexTimeoutSeconds = 3;
 
     private readonly SemaphoreSlim _sync = new(1, 1);
     private readonly Mutex _fileMutex = new(false, @"Global\QuickShell_shortcuts_json");
@@ -919,7 +924,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public IEnumerable<TerminalShortcut> Search(string query)
     {
-        _sync.Wait();
+        // Inlined rather than routed through WithLock<T> (a Func<T> closing over query/queryStart/
+        // queryLength would allocate a display class on every keystroke) — Search_NoMatch_
+        // StaysUnderAllocationBudget in ShortcutRepositoryPerformanceShapeTests enforces this.
+        AcquireLockOrThrow(nameof(Search));
+        var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             EnsureLoaded();
@@ -946,7 +955,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
         finally
         {
-            _sync.Release();
+            ReleaseLockAndReportSlow(nameof(Search), startTimestamp);
         }
     }
 
@@ -957,7 +966,10 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             return [];
         }
 
-        _sync.Wait();
+        // Inlined rather than routed through WithLock<T> for the same allocation reason as
+        // Search — see the comment there.
+        AcquireLockOrThrow(nameof(SearchForRootPalette));
+        var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             EnsureLoaded();
@@ -994,7 +1006,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         }
         finally
         {
-            _sync.Release();
+            ReleaseLockAndReportSlow(nameof(SearchForRootPalette), startTimestamp);
         }
     }
 
@@ -1006,7 +1018,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             return [];
         }
 
-        _sync.Wait();
+        AcquireLockOrThrow(nameof(SearchTaskActions));
+        var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             EnsureLoaded();
@@ -1046,7 +1059,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
             if (matches is null)
             {
-                return [];
+                return Array.Empty<WorkspaceTaskAction>();
             }
 
             matches.Sort(static (left, right) =>
@@ -1063,11 +1076,11 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                     StringComparison.OrdinalIgnoreCase);
                 return byName != 0 ? byName : left.Launch.Order.CompareTo(right.Launch.Order);
             });
-            return matches;
+            return matches.ToArray();
         }
         finally
         {
-            _sync.Release();
+            ReleaseLockAndReportSlow(nameof(SearchTaskActions), startTimestamp);
         }
     }
 
@@ -1423,8 +1436,30 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private void SchedulePersistLocked()
     {
         _persistPending = true;
-        _persistTimer ??= new System.Threading.Timer(_ => WithLock(FlushPendingPersistLocked), null, Timeout.Infinite, Timeout.Infinite);
+        _persistTimer ??= new System.Threading.Timer(_ => RunScheduledPersist(), null, Timeout.Infinite, Timeout.Infinite);
         _persistTimer.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+    }
+
+    private void RunScheduledPersist()
+    {
+        try
+        {
+            WithLock(FlushPendingPersistLocked);
+        }
+        catch (TimeoutException)
+        {
+            // The lock was held by someone else when this fired; _persistPending is still
+            // true (FlushPendingPersistLocked never ran), so reschedule instead of silently
+            // dropping the deferred write.
+            try
+            {
+                _persistTimer?.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposed between the throw and here; Dispose()'s own flush covers this.
+            }
+        }
     }
 
     private void CancelPendingPersist()
@@ -1459,8 +1494,22 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             throw new InvalidOperationException("Shortcut data is too large to save.");
         }
 
-        if (!_fileMutex.WaitOne(TimeSpan.FromSeconds(5)))
+        bool acquired;
+        try
         {
+            acquired = _fileMutex.WaitOne(TimeSpan.FromSeconds(FileMutexTimeoutSeconds));
+        }
+        catch (AbandonedMutexException)
+        {
+            // A prior QuickShell process (this one or QuickShell.Run) crashed while holding
+            // the mutex. .NET still grants ownership to this waiter; our write is temp-file +
+            // rename, so whatever is on disk right now is a consistent prior state either way.
+            acquired = true;
+        }
+
+        if (!acquired)
+        {
+            RepositoryDiagnostics.Report("ShortcutRepository.WriteLayoutAtomic", "mutex-timeout");
             throw new IOException("Could not acquire the shortcut store lock.");
         }
 
@@ -2089,42 +2138,72 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     private void RaiseWorkspacesChanged() => WorkspacesChanged?.Invoke(this, EventArgs.Empty);
 
-    private void WithLock(Action action)
+    /// <summary>
+    /// Bounds a wait on <see cref="_sync"/> instead of blocking forever, and reports slow
+    /// holds so a stuck lock surfaces as a diagnosable event rather than a felt host freeze.
+    /// Takes a plain method name (not a lambda) so hot paths like <see cref="Search"/> can call
+    /// it without allocating a closure.
+    /// </summary>
+    private void AcquireLockOrThrow(string caller)
     {
-        _sync.Wait();
-        try
+        if (_sync.Wait(LockTimeout))
         {
-            action();
+            return;
         }
-        finally
+
+        RepositoryDiagnostics.Report($"ShortcutRepository.{caller}", "lock-timeout", (long)LockTimeout.TotalMilliseconds);
+        throw new TimeoutException("Timed out waiting for the shortcut store lock.");
+    }
+
+    private void ReleaseLockAndReportSlow(string caller, long startTimestamp)
+    {
+        _sync.Release();
+        var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+        if (elapsed > SlowOperationThreshold)
         {
-            _sync.Release();
+            RepositoryDiagnostics.Report($"ShortcutRepository.{caller}", "slow-operation", (long)elapsed.TotalMilliseconds);
         }
     }
 
+    private void WithLock(Action action) =>
+        WithLock(() =>
+        {
+            action();
+            return true;
+        });
+
     private T WithLock<T>(Func<T> action)
     {
-        _sync.Wait();
+        AcquireLockOrThrow(nameof(WithLock));
+        var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             return action();
         }
         finally
         {
-            _sync.Release();
+            ReleaseLockAndReportSlow(nameof(WithLock), startTimestamp);
         }
     }
 
     private async Task WithLockAsync(Func<Task> action, CancellationToken cancellationToken)
     {
-        await _sync.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Bound independently of the caller's token: a CancellationToken.None (or long-lived
+        // lifetime token) would otherwise still wait forever if a holder never releases.
+        if (!await _sync.WaitAsync(LockTimeout, cancellationToken).ConfigureAwait(false))
+        {
+            RepositoryDiagnostics.Report($"ShortcutRepository.{nameof(WithLockAsync)}", "lock-timeout", (long)LockTimeout.TotalMilliseconds);
+            throw new TimeoutException("Timed out waiting for the shortcut store lock.");
+        }
+
+        var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             await action().ConfigureAwait(false);
         }
         finally
         {
-            _sync.Release();
+            ReleaseLockAndReportSlow(nameof(WithLockAsync), startTimestamp);
         }
     }
 
