@@ -30,7 +30,7 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
     {
         RowPresentationDiagnostics.ResetForTests();
 
-        _configDirectory = Path.Combine(Path.GetTempPath(), "qs-row-pres-" + Guid.NewGuid().ToString("N"));
+        _configDirectory = Path.Join(Path.GetTempPath(), "qs-row-pres-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_configDirectory);
 
         var services = new ServiceCollection();
