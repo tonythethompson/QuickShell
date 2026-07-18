@@ -425,7 +425,7 @@ This adds `ddeploy`, `dcmd`, `drun`, and `dray` workspaces that run the scripts 
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache 2.0. See [LICENSE](LICENSE).
 
 ## Website
 
