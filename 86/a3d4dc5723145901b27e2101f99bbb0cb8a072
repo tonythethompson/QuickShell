@@ -1,0 +1,76 @@
+QuickShell.Core.Tests/WorkspaceRowPresentationCacheTests.cs
+  s_14c3fc64e2a8a6::t_96470683564229 7-17,19,200
+  s_14c3fc64e2a8a6::t_6fe07001ace221 4-6
+  s_14c3fc64e2a8a6::t_961098f92f52bd 18
+  s_14c3fc64e2a8a6::t_77da38f1ad0199 20-22,197-199
+  s_14c3fc64e2a8a6::t_6b41440bf8bc45 1-3,23-196
+QuickShell.Core.Tests/RowPresentationMeasurementTests.cs
+  s_14c3fc64e2a8a6::t_244697b18dc2c2 1-141
+QuickShell.Core.Tests/WorkspaceRowPresentationPageTests.cs
+  s_14c3fc64e2a8a6::t_531091dd7f3fa8 1-189
+QuickShell.Core.Tests/WorkspaceRowEnrichmentCoordinatorTests.cs
+  s_14c3fc64e2a8a6::t_b100224dcd3490 7
+  s_d711731c0f8875::t_fa8453aafd9f97 1-6,8-191
+QuickShell/QuickShellFallback.cs
+  s_952c40e81e3519::t_ddc0f7a245b1a8 68-69,106,110-117
+QuickShell/Services/WorkspaceRowEnrichmentCoordinator.cs
+  s_952c40e81e3519::t_1bcaf5cdad88ac 1-213
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_14c3fc64e2a8a6::t_0cb0ce7041bb9d 21
+QuickShell.Core/Abstractions/IWorkspaceRowPresentationCache.cs
+  s_14c3fc64e2a8a6::t_1e3d037e495662 1-30
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_14c3fc64e2a8a6::t_a371d87cc8c1cf 60
+QuickShell.Core/Services/RowPresentationDiagnostics.cs
+  s_14c3fc64e2a8a6::t_ff0e7dcc6e5fbd 1-35
+QuickShell.Core/Services/WorkspaceRowPresentation.cs
+  s_14c3fc64e2a8a6::t_96c55a8cf65e5e 1-56
+QuickShell.Core/Services/WorkspaceRowPresentationCache.cs
+  s_14c3fc64e2a8a6::t_3fa07bb7ebec3f 1-158
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_14c3fc64e2a8a6::t_818a32ef9d9bc4 23,49,56,176-184,187
+QuickShell/Pages/QuickShellPage.cs
+  s_14c3fc64e2a8a6::t_630717a2cacac3 25-27,50,264,386-388,447-449,542-547,551,557
+QuickShell/QuickShellSettingsManager.cs
+  s_14c3fc64e2a8a6::t_09b12585bcd834 171-177
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_14c3fc64e2a8a6::t_3ed53a652c1190 38-39
+QuickShell/Services/IQuickShellServices.cs
+  s_14c3fc64e2a8a6::t_56932280b71175 38-39
+QuickShell/Services/QuickShellServices.cs
+  s_14c3fc64e2a8a6::t_a8afb785b754ee 24,41-42,58
+QuickShell/Services/ShortcutListItems.cs
+  s_14c3fc64e2a8a6::t_0558578146aafa 18-40,48-50,57-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "86a3d4dc5723145901b27e2101f99bbb0cb8a072",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-fable-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_952c40e81e3519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7331ad8-6b10-4aa9-b924-7494aac13226",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_d711731c0f8875": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "018e7e29-8252-461f-aeb1-c0d609aa7989",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
