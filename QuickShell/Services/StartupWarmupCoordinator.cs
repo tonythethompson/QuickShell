@@ -159,7 +159,15 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
         {
             _runTask?.Wait(TimeSpan.FromSeconds(2));
         }
-        catch
+        catch (OperationCanceledException)
+        {
+            // Best effort: the process is shutting down.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Best effort: the process is shutting down.
+        }
+        catch (AggregateException)
         {
             // Best effort: the process is shutting down.
         }
