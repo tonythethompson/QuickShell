@@ -65,7 +65,19 @@ export function authorize(
   urlOverride?: string | null,
 ): WorkspaceAuthorizationResult {
   if (!workspace) {
-    return result(false, "WorkspaceNotFound", [{ code: "WorkspaceNotFound", message: "Workspace was not found.", blocking: true }], [], null, null, null, null, null, null, 0);
+    return result(
+      false,
+      "WorkspaceNotFound",
+      [{ code: "WorkspaceNotFound", message: "Workspace was not found.", blocking: true }],
+      [],
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      0,
+    );
   }
 
   const content = workspace.content;
@@ -73,10 +85,16 @@ export function authorize(
   const risks: WorkspaceRisk[] = [];
   const directory = canonicalDirectory(content.directory);
   if (!directory) {
-    issues.push({ code: "InvalidDirectory", message: "Workspace directory is not a valid absolute path.", blocking: true });
-  } else if ((action === "LaunchTerminal" || action === "LaunchEntry" || action === "GrantTrust")
-    && isLocalDirectory(directory)
-    && !existsSync(directory)) {
+    issues.push({
+      code: "InvalidDirectory",
+      message: "Workspace directory is not a valid absolute path.",
+      blocking: true,
+    });
+  } else if (
+    (action === "LaunchTerminal" || action === "LaunchEntry" || action === "GrantTrust") &&
+    isLocalDirectory(directory) &&
+    !existsSync(directory)
+  ) {
     issues.push({ code: "DirectoryMissing", message: "Workspace directory does not exist.", blocking: true });
   }
 
@@ -104,17 +122,33 @@ export function authorize(
   }
 
   for (const configuredCompanion of content.companionApps ?? []) {
-    if (!configuredCompanion.path || configuredCompanion.path.length > 1024 || /[\r\n\0]/.test(configuredCompanion.path)) {
-      issues.push({ code: "InvalidCompanion", message: "Companion executable configuration is invalid.", blocking: true });
+    if (
+      !configuredCompanion.path ||
+      configuredCompanion.path.length > 1024 ||
+      /[\r\n\0]/.test(configuredCompanion.path)
+    ) {
+      issues.push({
+        code: "InvalidCompanion",
+        message: "Companion executable configuration is invalid.",
+        blocking: true,
+      });
     }
     if (configuredCompanion.arguments && /[\r\n\0]/.test(configuredCompanion.arguments)) {
-      issues.push({ code: "InvalidCompanion", message: "Companion arguments contain control characters.", blocking: true });
+      issues.push({
+        code: "InvalidCompanion",
+        message: "Companion arguments contain control characters.",
+        blocking: true,
+      });
     }
   }
 
   const structural = validateWorkspace(content);
   if (!structural.ok && action !== "CopyPath") {
-    issues.push({ code: structural.message.includes("command") ? "InvalidCommand" : "InvalidLaunch", message: structural.message, blocking: true });
+    issues.push({
+      code: structural.message.includes("command") ? "InvalidCommand" : "InvalidLaunch",
+      message: structural.message,
+      blocking: true,
+    });
   }
 
   const effectiveUrl = urlOverride ?? (action === "OpenDevServer" ? content.devServerUrl : content.repoUrl);
@@ -133,38 +167,68 @@ export function authorize(
   }
 
   let executablePath: string | null = null;
-  const companion = (action === "StartCompanion"
-    ? content.companionApps?.[0]
-    : content.companionApps?.find((entry) => entry.openOnLaunch)) ??
+  const companion =
+    (action === "StartCompanion"
+      ? content.companionApps?.[0]
+      : content.companionApps?.find((entry) => entry.openOnLaunch)) ??
     (content.companionAppPath ? { path: content.companionAppPath, arguments: content.companionAppArguments } : null);
   if (companion?.path) {
     executablePath = resolveExecutablePath(companion.path);
     if (action === "StartCompanion" && !executablePath) {
-      issues.push({ code: "CompanionExecutableUnavailable", message: "The companion executable could not be resolved.", blocking: true });
+      issues.push({
+        code: "CompanionExecutableUnavailable",
+        message: "The companion executable could not be resolved.",
+        blocking: true,
+      });
     }
   } else if (action === "StartCompanion") {
     issues.push({ code: "InvalidCompanion", message: "No companion executable is configured.", blocking: true });
   }
 
   if (!workspace.security.isTrusted && EXTERNAL_ACTIONS.includes(action)) {
-    issues.push({ code: "WorkspaceUntrusted", message: "Trust this workspace before starting external processes or opening it.", blocking: true });
+    issues.push({
+      code: "WorkspaceUntrusted",
+      message: "Trust this workspace before starting external processes or opening it.",
+      blocking: true,
+    });
   }
 
   if (action === "OpenDirectory") {
     if (!workspace.security.isTrusted) {
-      issues.push({ code: "DirectoryOpenNotAllowed", message: "Untrusted workspaces cannot open directories.", blocking: true });
+      issues.push({
+        code: "DirectoryOpenNotAllowed",
+        message: "Untrusted workspaces cannot open directories.",
+        blocking: true,
+      });
     } else if (!directory || !isLocalDirectory(directory) || !existsSync(directory)) {
-      issues.push({ code: "DirectoryOpenNotAllowed", message: "Only existing rooted local drive directories can be opened.", blocking: true });
+      issues.push({
+        code: "DirectoryOpenNotAllowed",
+        message: "Only existing rooted local drive directories can be opened.",
+        blocking: true,
+      });
     }
   }
 
   const primary = primaryIssue(issues);
-  const allowed = action === "CopyPath"
-    ? !issues.some((issue) => issue.code === "InvalidDirectory")
-    : action === "RevokeTrust"
-      ? true
-      : issues.length === 0;
-  return result(allowed, primary, issues, risks, directory, url, executablePath, directory, companion?.arguments ?? null, content.command ?? null, workspace.revision);
+  const allowed =
+    action === "CopyPath"
+      ? !issues.some((issue) => issue.code === "InvalidDirectory")
+      : action === "RevokeTrust"
+        ? true
+        : issues.length === 0;
+  return result(
+    allowed,
+    primary,
+    issues,
+    risks,
+    directory,
+    url,
+    executablePath,
+    directory,
+    companion?.arguments ?? null,
+    content.command ?? null,
+    workspace.revision,
+  );
 }
 
 export function createReviewToken(workspace: StoredWorkspace): WorkspaceReviewToken {
@@ -172,9 +236,11 @@ export function createReviewToken(workspace: StoredWorkspace): WorkspaceReviewTo
 }
 
 export function matchesReviewToken(workspace: StoredWorkspace, token: WorkspaceReviewToken): boolean {
-  return workspace.content.id.toLowerCase() === token.workspaceId.toLowerCase()
-    && workspace.revision === token.revision
-    && digest(workspace.content) === token.digest;
+  return (
+    workspace.content.id.toLowerCase() === token.workspaceId.toLowerCase() &&
+    workspace.revision === token.revision &&
+    digest(workspace.content) === token.digest
+  );
 }
 
 export function digest(workspace: Workspace): string {
@@ -236,11 +302,11 @@ function canonicalDirectory(value: string): string | null {
     return null;
   }
   if (
-    trimmed.startsWith("\\\\")
-    || trimmed.startsWith("\\\\.\\")
-    || trimmed.startsWith("\\\\?\\")
-    || trimmed.includes("%")
-    || trimmed.toLowerCase().startsWith("shell:")
+    trimmed.startsWith("\\\\") ||
+    trimmed.startsWith("\\\\.\\") ||
+    trimmed.startsWith("\\\\?\\") ||
+    trimmed.includes("%") ||
+    trimmed.toLowerCase().startsWith("shell:")
   ) {
     return null;
   }
@@ -262,6 +328,5 @@ function resolveExecutablePath(path: string): string | null {
 
 function isHttpUrl(value: string): boolean {
   const candidate = value.trim();
-  return /^https?:\/\/[^/\s]+(?:\/[^\s]*)?$/i.test(candidate)
-    && !/\s|%(?![0-9a-f]{2})/i.test(candidate);
+  return /^https?:\/\/[^/\s]+(?:\/[^\s]*)?$/i.test(candidate) && !/\s|%(?![0-9a-f]{2})/i.test(candidate);
 }

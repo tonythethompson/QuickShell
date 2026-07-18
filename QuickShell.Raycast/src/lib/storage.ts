@@ -89,7 +89,8 @@ export class QuickShellStorage {
   async exportJson(): Promise<string> {
     const data = await this.load();
     const settings = await this.getSettings();
-    const { workspaceSecurity: _workspaceSecurity, ...portable } = data;
+    const portable = { ...data };
+    delete portable.workspaceSecurity;
     return JSON.stringify({ ...portable, settings }, null, 2);
   }
 
@@ -101,11 +102,14 @@ export class QuickShellStorage {
     return result;
   }
 
-  async save(data: StoredData, options?: {
-    recordHistory?: boolean;
-    preserveSecurity?: boolean;
-    allowSubmittedSecurity?: boolean;
-  }): Promise<void> {
+  async save(
+    data: StoredData,
+    options?: {
+      recordHistory?: boolean;
+      preserveSecurity?: boolean;
+      allowSubmittedSecurity?: boolean;
+    },
+  ): Promise<void> {
     const recordHistory = options?.recordHistory ?? true;
     const preserveSecurity = options?.preserveSecurity ?? true;
     const allowSubmittedSecurity = options?.allowSubmittedSecurity ?? false;
@@ -178,7 +182,10 @@ export class QuickShellStorage {
     return stored ? { ...stored.security } : null;
   }
 
-  async grantTrust(workspaceId: string, reviewToken: WorkspaceReviewToken): Promise<"granted" | "already" | "changed" | "invalid" | "missing"> {
+  async grantTrust(
+    workspaceId: string,
+    reviewToken: WorkspaceReviewToken,
+  ): Promise<"granted" | "already" | "changed" | "invalid" | "missing"> {
     await this.flushRecentWrites();
     const data = await this.load();
     const workspace = data.workspaces.find((candidate) => candidate.id === workspaceId);
@@ -435,9 +442,7 @@ export class QuickShellStorage {
     next.workspaceSecurity = Object.fromEntries(
       next.workspaces.map((workspace) => [
         workspace.id,
-        currentSecurity[workspace.id]
-          ? { ...currentSecurity[workspace.id] }
-          : { isTrusted: false, revision: 1 },
+        currentSecurity[workspace.id] ? { ...currentSecurity[workspace.id] } : { isTrusted: false, revision: 1 },
       ]),
     );
     return next;

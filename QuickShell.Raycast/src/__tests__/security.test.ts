@@ -52,4 +52,3 @@ describe("workspace security policy", () => {
     expect(result.primaryIssueCode).toBe("InvalidUrl");
   });
 });
-

@@ -13,7 +13,8 @@ export type ImportResult = {
 };
 
 export function exportStoredData(data: StoredData): string {
-  const { workspaceSecurity: _workspaceSecurity, ...portable } = data;
+  const portable = { ...data };
+  delete portable.workspaceSecurity;
   return JSON.stringify(portable, null, 2);
 }
 

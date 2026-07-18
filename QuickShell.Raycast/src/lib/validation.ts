@@ -215,7 +215,7 @@ export function normalizeCompanionApps(workspace: Workspace): CompanionAppEntry[
     {
       id: createStableId(),
       path,
-    arguments: workspace.companionAppArguments || null,
+      arguments: workspace.companionAppArguments || null,
       openOnLaunch: Boolean(workspace.openCompanionAppOnLaunch),
       order: 0,
     },

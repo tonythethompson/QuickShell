@@ -194,10 +194,7 @@ export default function OpenWorkspaceCommand({
         }
       : stored.content;
 
-    const authorization = authorize(
-      { ...stored, content: launchWorkspace },
-      launch ? "LaunchEntry" : "LaunchTerminal",
-    );
+    const authorization = authorize({ ...stored, content: launchWorkspace }, launch ? "LaunchEntry" : "LaunchTerminal");
     if (!authorization.isAllowed) {
       await showToast({
         style: Toast.Style.Failure,
@@ -305,7 +302,11 @@ export default function OpenWorkspaceCommand({
     const stored = await storage.getStoredWorkspace(workspace.id);
     const authorization = authorize(stored, "OpenDirectory");
     if (!authorization.isAllowed || !authorization.effectiveValues.directory) {
-      await showToast({ style: Toast.Style.Failure, title: "Folder opening blocked", message: "Trust this workspace and use a valid local folder." });
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Folder opening blocked",
+        message: "Trust this workspace and use a valid local folder.",
+      });
       return;
     }
     try {
@@ -320,7 +321,11 @@ export default function OpenWorkspaceCommand({
     const url = kind === "repo" ? stored?.content.repoUrl : stored?.content.devServerUrl;
     const authorization = authorize(stored, "OpenUrl", url);
     if (!authorization.isAllowed || !authorization.effectiveValues.url) {
-      await showToast({ style: Toast.Style.Failure, title: "Link opening blocked", message: "Trust this workspace and use a valid HTTP(S) URL." });
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Link opening blocked",
+        message: "Trust this workspace and use a valid HTTP(S) URL.",
+      });
       return;
     }
     try {
@@ -334,13 +339,18 @@ export default function OpenWorkspaceCommand({
     const stored = await storage.getStoredWorkspace(workspace.id);
     const assessment = authorize(stored, "GrantTrust");
     if (!stored || !assessment.isAllowed) {
-      await showToast({ style: Toast.Style.Failure, title: "Workspace needs repair", message: assessment.issues.map((issue) => issue.message).join(" ") });
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Workspace needs repair",
+        message: assessment.issues.map((issue) => issue.message).join(" "),
+      });
       return;
     }
     const token = createReviewToken(stored);
     const confirmed = await confirmAlert({
       title: "Trust workspace?",
-      message: "Trust applies to this editable local workspace. It can execute arbitrary code, and later command or launch-setting edits remain trusted until you revoke trust.",
+      message:
+        "Trust applies to this editable local workspace. It can execute arbitrary code, and later command or launch-setting edits remain trusted until you revoke trust.",
       primaryAction: { title: "Trust Workspace" },
     });
     if (!confirmed) {
@@ -348,18 +358,30 @@ export default function OpenWorkspaceCommand({
     }
     const current = await storage.getStoredWorkspace(workspace.id);
     if (!current || !matchesReviewToken(current, token)) {
-      await showToast({ style: Toast.Style.Failure, title: "Workspace changed", message: "Review the updated workspace and confirm again." });
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Workspace changed",
+        message: "Review the updated workspace and confirm again.",
+      });
       return;
     }
     const result = await storage.grantTrust(workspace.id, token);
     await revalidate();
-    await showToast({ style: result === "granted" ? Toast.Style.Success : Toast.Style.Failure, title: result === "granted" ? "Workspace trusted" : "Trust not granted", message: result });
+    await showToast({
+      style: result === "granted" ? Toast.Style.Success : Toast.Style.Failure,
+      title: result === "granted" ? "Workspace trusted" : "Trust not granted",
+      message: result,
+    });
   }
 
   async function handleRevoke(workspace: Workspace) {
     const result = await storage.revokeTrust(workspace.id);
     await revalidate();
-    await showToast({ style: result === "revoked" ? Toast.Style.Success : Toast.Style.Failure, title: result === "revoked" ? "Trust revoked" : "Trust not changed", message: result });
+    await showToast({
+      style: result === "revoked" ? Toast.Style.Success : Toast.Style.Failure,
+      title: result === "revoked" ? "Trust revoked" : "Trust not changed",
+      message: result,
+    });
   }
 
   async function handleExport() {
@@ -472,7 +494,12 @@ export default function OpenWorkspaceCommand({
                   onAction={() => handleOpen(workspace, launch, { runAsAdmin: true })}
                 />
               )}
-              <Action title="Open Folder" icon={Icon.Folder} shortcut={Keyboard.Shortcut.Common.OpenWith} onAction={() => handleOpenFolder(workspace)} />
+              <Action
+                title="Open Folder"
+                icon={Icon.Folder}
+                shortcut={Keyboard.Shortcut.Common.OpenWith}
+                onAction={() => handleOpenFolder(workspace)}
+              />
               {workspace.repoUrl ? (
                 <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}
