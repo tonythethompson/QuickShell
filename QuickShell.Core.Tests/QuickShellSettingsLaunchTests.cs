@@ -81,6 +81,43 @@ public sealed class QuickShellSettingsLaunchTests
         }
     }
 
+    [Fact]
+    public void PrewarmTerminalCatalog_DoesNotPersistFallbackDefaults()
+    {
+        var configDirectory = CreateConfigDirectory();
+        try
+        {
+            var store = new QuickShellJsonSettingsStore(configDirectory);
+            var settings = new QuickShellSettingsManager(
+                store,
+                hasTerminalApplication: _ => false,
+                getTerminalApplicationChoices: MinimalApplicationChoices,
+                getDefaultProfileChoices: _ =>
+                [
+                    new ChoiceSetSetting.Choice(
+                        "Default profile for this app",
+                        TerminalHostIds.DefaultProfile),
+                ]);
+            settings.SettingsModel.Update("""{"terminalApplication":"it","defaultProfile":"Missing"}""");
+            store.SaveSettings();
+            var settingsPath = Path.Join(configDirectory, "settings.json");
+            var persistedBeforeWarmup = File.ReadAllText(settingsPath);
+
+            settings.PrewarmTerminalCatalog();
+
+            Assert.Equal(persistedBeforeWarmup, File.ReadAllText(settingsPath));
+            Assert.Equal(TerminalHostIds.IntelligentTerminal, settings.TerminalApplicationId);
+            Assert.Equal("Missing", settings.DefaultProfileId);
+            Assert.Equal(
+                (TerminalHostIds.WindowsTerminal, TerminalHostIds.DefaultProfile),
+                settings.GetValidatedLaunchDefaults());
+        }
+        finally
+        {
+            Directory.Delete(configDirectory, recursive: true);
+        }
+    }
+
     private static void RunLaunchValidationTest(
         Func<TerminalShortcut, QuickShellServices, object> invoke)
     {

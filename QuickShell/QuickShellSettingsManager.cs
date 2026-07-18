@@ -282,26 +282,23 @@ internal sealed class QuickShellSettingsManager
     }
 
     /// <summary>
-    /// Warms the terminal/profile catalogs and finalizes the default terminal settings.
+    /// Warms the terminal/profile catalogs without changing the user's saved defaults.
     /// Called by the staged startup coordinator after the first workspace list is published
     /// so provider construction does not pay the discovery cost.
     /// </summary>
     internal void PrewarmTerminalCatalog()
     {
         string? rawApp;
-        string? rawProfile;
         int observedRevision;
         lock (_terminalDefaultsSync)
         {
             rawApp = _settings.GetSetting<string>(TerminalApplicationSettingId);
-            rawProfile = _settings.GetSetting<string>(DefaultProfileSettingId);
             observedRevision = _terminalDefaultsRevision;
         }
 
         var appChoices = _getTerminalApplicationChoices();
         var app = EnsureValidTerminalApplication(rawApp);
         var profileChoices = _getDefaultProfileChoices(app);
-        var profile = EnsureValidDefaultProfile(app, rawProfile);
 
         lock (_terminalDefaultsSync)
         {
@@ -312,8 +309,6 @@ internal sealed class QuickShellSettingsManager
 
             _terminalApplicationSetting.Choices = appChoices;
             _defaultProfileSetting.Choices = profileChoices;
-            _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
-            _settingsStore.SaveSettings();
         }
     }
 
