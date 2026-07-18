@@ -15,7 +15,10 @@ internal sealed record WorkspaceGitStatus(string Branch, bool IsDirty, bool IsDe
 
 internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
 {
-    private const int GitTimeoutMs = 3000;
+    private const int GitProbeTimeoutMs = 1000;
+    private const int GitEvaluationTimeoutMs = 2000;
+    private const int GitLaunchStatusTimeoutMs = 3000;
+    private const int GitSwitchTimeoutMs = 3000;
 
     private readonly Func<string, IReadOnlyList<string>, GitCommandResult>? _runGit;
     private readonly Func<string, WorkspaceGitStatus?>? _getStatus;
@@ -60,7 +63,13 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         return TryNormalizeWorktreeKey(topLevel.StandardOutput.Trim(), out worktreeKey);
     }
 
-    public bool TryGetStatus(string directory, out WorkspaceGitStatus status)
+    public bool TryGetStatus(string directory, out WorkspaceGitStatus status) =>
+        TryGetStatus(directory, GitProbeTimeoutMs, out status);
+
+    public bool TryGetStatusForLaunch(string directory, out WorkspaceGitStatus status) =>
+        TryGetStatus(directory, GitLaunchStatusTimeoutMs, out status);
+
+    private bool TryGetStatus(string directory, int timeoutMs, out WorkspaceGitStatus status)
     {
         status = null!;
 
@@ -81,27 +90,69 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             return false;
         }
 
-        var insideWorkTree = RunGit(directory, ["rev-parse", "--is-inside-work-tree"]);
-        if (!insideWorkTree.Succeeded
-            || !string.Equals(insideWorkTree.StandardOutput.Trim(), "true", StringComparison.OrdinalIgnoreCase))
+        var result = RunGit(
+            directory,
+            ["status", "--porcelain=v2", "--branch"],
+            timeoutMs);
+        if (!result.Succeeded)
         {
             return false;
         }
 
-        var branchResult = RunGit(directory, ["rev-parse", "--abbrev-ref", "HEAD"]);
-        if (!branchResult.Succeeded || string.IsNullOrWhiteSpace(branchResult.StandardOutput))
+        if (ParsePorcelainV2Status(result.StandardOutput) is not { } parsed)
         {
             return false;
         }
 
-        var branchName = branchResult.StandardOutput.Trim();
-        var isDetached = branchName.Equals("HEAD", StringComparison.Ordinal);
-        var porcelain = RunGit(directory, ["status", "--porcelain"]);
-        status = new WorkspaceGitStatus(
-            isDetached ? "(detached)" : branchName,
-            !string.IsNullOrWhiteSpace(porcelain.StandardOutput),
-            isDetached);
+        status = parsed;
         return true;
+    }
+
+    internal static WorkspaceGitStatus? ParsePorcelainV2Status(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return null;
+        }
+
+        string? branchName = null;
+        var isDetached = false;
+        var isDirty = false;
+
+        foreach (var trimmed in output
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim()))
+        {
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            if (trimmed.StartsWith("# branch.head ", StringComparison.Ordinal))
+            {
+                var head = trimmed["# branch.head ".Length..].Trim().ToString();
+                if (string.Equals(head, "(detached)", StringComparison.Ordinal))
+                {
+                    isDetached = true;
+                    branchName = "(detached)";
+                }
+                else
+                {
+                    branchName = head;
+                }
+            }
+            else if (!trimmed.StartsWith('#'))
+            {
+                isDirty = true;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(branchName))
+        {
+            return null;
+        }
+
+        return new WorkspaceGitStatus(branchName, isDirty, isDetached);
     }
 
     public IReadOnlyList<string> ListLocalBranches(string directory)
@@ -136,7 +187,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             return false;
         }
 
-        var result = RunGit(directory, ["switch", branch]);
+        var result = RunGit(directory, ["switch", branch], GitSwitchTimeoutMs);
         if (result.Succeeded)
         {
             return true;
@@ -171,7 +222,10 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         return $"Branch: {current} → {targetBranch}{dirtySuffix}";
     }
 
-    public GitCommandResult RunGit(string directory, IReadOnlyList<string> gitArguments)
+    public GitCommandResult RunGit(
+        string directory,
+        IReadOnlyList<string> gitArguments,
+        int timeoutMs = GitEvaluationTimeoutMs)
     {
         if (_runGit is { } gitRunOverride)
         {
@@ -187,10 +241,10 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         {
             if (WslPathResolver.TryParse(directory, out var wslLocation))
             {
-                return RunGitViaWsl(wslLocation, gitArguments);
+                return RunGitViaWsl(wslLocation, gitArguments, timeoutMs);
             }
 
-            return RunGitProcess("git.exe", BuildNativeGitArguments(directory, gitArguments));
+            return RunGitProcess("git.exe", BuildNativeGitArguments(directory, gitArguments), timeoutMs);
         }
         catch
         {
@@ -242,7 +296,8 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
 
     private static GitCommandResult RunGitViaWsl(
         WslPathResolver.WslLocation wslLocation,
-        IReadOnlyList<string> gitArguments)
+        IReadOnlyList<string> gitArguments,
+        int timeoutMs)
     {
         var distro = wslLocation.Distro ?? "Ubuntu";
         var startInfo = new ProcessStartInfo
@@ -265,7 +320,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             startInfo.ArgumentList.Add(argument);
         }
 
-        return RunGitProcess(startInfo);
+        return RunGitProcess(startInfo, timeoutMs);
     }
 
     private static IEnumerable<string> BuildNativeGitArguments(string directory, IReadOnlyList<string> gitArguments)
@@ -278,7 +333,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         }
     }
 
-    private static GitCommandResult RunGitProcess(string fileName, IEnumerable<string> arguments)
+    private static GitCommandResult RunGitProcess(string fileName, IEnumerable<string> arguments, int timeoutMs)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -294,10 +349,10 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             startInfo.ArgumentList.Add(argument);
         }
 
-        return RunGitProcess(startInfo);
+        return RunGitProcess(startInfo, timeoutMs);
     }
 
-    private static GitCommandResult RunGitProcess(ProcessStartInfo startInfo)
+    private static GitCommandResult RunGitProcess(ProcessStartInfo startInfo, int timeoutMs)
     {
         using var process = Process.Start(startInfo);
         if (process is null)
@@ -324,7 +379,7 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        if (!process.WaitForExit(GitTimeoutMs))
+        if (!process.WaitForExit(timeoutMs))
         {
             TryKill(process);
             return new GitCommandResult(-1, outputBuilder.ToString(), errorBuilder.ToString(), TimedOut: true);

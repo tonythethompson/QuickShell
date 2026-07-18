@@ -64,12 +64,12 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         GitRepoDiscovery.IncludeDefaultSearchRoots = false;
         GitRepoDiscovery.DefaultRootCandidatesOverride = () => [scanRoot];
 
-        var discoverCold = Time(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
+        var discoverCold = TimeCold(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
         // Warm discover: reuses prior results within the same process walk.
-        var discoverWarm = Time(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
+        var discoverWarm = TimeWarm(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
 
         // --- Provider constructor --------------------------------------------
-        var ctorMs = Time(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
+        var ctorMs = TimeCold(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
         var ctorTrace = _trace.Builder.ToString();
 
         // --- Home list reload (cold build + warm read) ------------------------
@@ -104,11 +104,11 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         GitRepoDiscovery.DefaultRootCandidatesOverride = null;
 
-        var discoverCold = Time(() => GitRepoDiscovery.Discover(_projectAnalysis));
-        var discoverWarm = Time(() => GitRepoDiscovery.Discover(_projectAnalysis));
+        var discoverCold = TimeCold(() => GitRepoDiscovery.Discover(_projectAnalysis));
+        var discoverWarm = TimeWarm(() => GitRepoDiscovery.Discover(_projectAnalysis));
 
         // Provider ctor against an isolated settings store (real git roots still prewarm).
-        var ctorMs = Time(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
+        var ctorMs = TimeCold(() => _ = new QuickShellCommandsProvider()).TotalMilliseconds;
         var ctorTrace = _trace.Builder.ToString();
 
         // List reload against a read-only copy of the real shortcuts.json.
@@ -188,8 +188,8 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         using var page = new QuickShellPage(pageContext);
         try
         {
-            var reload = Time(() => page.Reload());
-            getItemsMs = Time(() => page.GetItems());
+            var reload = TimeCold(() => page.Reload());
+            getItemsMs = TimeWarm(() => page.GetItems());
             return reload;
         }
         finally
@@ -246,14 +246,24 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var hostServices = new QuickShellHostServices(qsServices);
         var pageContext = new QuickShellPageContext(hostServices, new CreateShortcutCommand(() => { }, qsServices), () => { });
         using var page = new QuickShellPage(pageContext);
-        var reload = Time(() => page.Reload());
-        getItemsMs = Time(() => page.GetItems());
+        var reload = TimeCold(() => page.Reload());
+        getItemsMs = TimeWarm(() => page.GetItems());
         // static locator removed; pages receive services via constructor
 
         return reload;
     }
 
-    private static TimeSpan Time(Action action)
+    // Measures the first execution, including cache population and first-call costs.
+    private static TimeSpan TimeCold(Action action)
+    {
+        var sw = Stopwatch.StartNew();
+        action();
+        sw.Stop();
+        return sw.Elapsed;
+    }
+
+    // Performs one warm-up invocation, then measures the following execution.
+    private static TimeSpan TimeWarm(Action action)
     {
         // Warm up once so JIT / first-call costs don't dominate the reported number.
         action();

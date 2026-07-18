@@ -27,7 +27,13 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
 
     public bool TryLaunch(TerminalShortcut shortcut, bool onDemand, out string? error)
     {
-        error = null;
+        var result = Launch(shortcut, onDemand);
+        error = result.Error;
+        return result.Success;
+    }
+
+    public CompanionLaunchResult Launch(TerminalShortcut shortcut, bool onDemand)
+    {
         // Always clear first so callers can observe "was this TryLaunch invoked?"
         // even when a prior call left LastLaunchAttempted true.
         LastLaunchAttempted = false;
@@ -41,50 +47,61 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
 
         if (!onDemand && targets.Count == 0)
         {
-            return true;
+            return new CompanionLaunchResult(true, [], Error: null);
         }
 
         if (targets.Count == 0)
         {
-            error = "No companion app is configured for this workspace.";
-            return false;
+            return new CompanionLaunchResult(
+                false,
+                [],
+                "No companion app is configured for this workspace.");
         }
 
         if (!Directory.Exists(shortcut.Directory))
         {
-            error = $"Workspace folder not found: {shortcut.Directory}";
-            return false;
+            return new CompanionLaunchResult(
+                false,
+                [],
+                $"Workspace folder not found: {shortcut.Directory}");
         }
 
         LastLaunchAttempted = true;
         var failures = new List<string>();
+        var startedExecutables = new List<string>();
         foreach (var entry in targets)
         {
-            if (!TryLaunchEntry(entry, shortcut.Directory, out var entryError))
+            if (!TryLaunchEntry(entry, shortcut.Directory, out var startedExecutable, out var entryError))
             {
                 failures.Add(entryError ?? "Companion app could not be launched.");
                 continue;
             }
 
             LastLaunchCount++;
+            startedExecutables.Add(startedExecutable!);
             RememberPresetFromPath(entry.Path);
         }
 
         if (failures.Count == 0)
         {
-            return true;
+            return new CompanionLaunchResult(true, startedExecutables, Error: null);
         }
 
-        error = failures.Count == 1
+        var error = failures.Count == 1
             ? failures[0]
             : string.Join(" ", failures);
         // Auto path: soft fail if any failed (even if some succeeded).
         // On-demand: fail if any failed so the user sees the error.
-        return false;
+        return new CompanionLaunchResult(false, startedExecutables, error);
     }
 
-    internal bool TryLaunchEntry(CompanionAppEntry entry, string workspaceDirectory, out string? error)
+    internal bool TryLaunchEntry(
+        CompanionAppEntry entry,
+        string workspaceDirectory,
+        out string? startedExecutable,
+        out string? error)
     {
+        startedExecutable = null;
         error = null;
         if (string.IsNullOrWhiteSpace(entry.Path))
         {
@@ -121,6 +138,7 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
                 return false;
             }
 
+            startedExecutable = Path.GetFileName(executablePath);
             return true;
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)

@@ -370,6 +370,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         try
         {
+            using (StartupPerformanceTrace.Measure("CmdPal home list refresh"))
+            {
             // One repository snapshot for the whole refresh — helpers must not re-query.
             var allShortcuts = _services.Shortcuts.GetShortcuts();
             PruneUnpinnedItemCache(allShortcuts);
@@ -444,6 +446,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 runId: "post-form",
                 hypothesisId: "D");
             // #endregion
+            }
         }
         catch (Exception ex)
         {
@@ -568,11 +571,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         // of which section a shortcut ends up rendered in.
         var pinnedList = pinnedInOrder.ToList();
 
-        // WouldNeedRepair already runs once per row for the context-menu build (see
-        // ShortcutContextCommands.Build), so reusing it here for sorting adds no new per-row
-        // cost class -- unlike WorkspaceStatusPage's git-status lookups, this is a local check.
+        // Use requireDirectoryExists=false so first paint does not block on WSL/network
+        // directory probes. Missing-folder detection is deferred to the launch health check.
         var needsAttention = allShortcuts
-            .Where(shortcut => ShortcutHealth.WouldNeedRepair(shortcut))
+            .Where(shortcut => ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
             .OrderBy(shortcut => shortcut.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var needsAttentionIds = needsAttention.Count == 0
