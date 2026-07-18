@@ -1,0 +1,33 @@
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_4435bbf1ef89bd::t_ca1464d51c4ca9 256,265
+QuickShell.Core/Abstractions/ICompanionAppLauncher.cs
+  s_4435bbf1ef89bd::t_233da38c4daff7 5-6,13-14
+QuickShell.Core/Services/WorkspaceGitOperations.cs
+  s_4435bbf1ef89bd::t_125c721d91ad3a 20,66-72,96,111
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_2d8115e2f146d0::t_32c8ad715c3f27 579-585
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "09041b7dbbeffc3237da84a84b43c450de7f5748",
+  "prompts": {},
+  "sessions": {
+    "s_2d8115e2f146d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f73e3-bac8-7e53-8679-4ad1d848879c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_4435bbf1ef89bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e59eeaad-3624-4f52-8fcf-d1310c48026f",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
