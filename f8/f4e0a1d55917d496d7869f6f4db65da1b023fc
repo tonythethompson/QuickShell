@@ -1,0 +1,75 @@
+QuickShell/QuickShellSettingsManager.cs
+  s_8bc16d4b4562ae::t_f607569147c036 25-28,56-70,73-77,134,159,166,205-206,225-226,265,269,275,281-282,285-301,308,317-318,322,339,347,364,370
+QuickShell/QuickShellFallback.cs
+  s_8bc16d4b4562ae::t_f2509f95f33609 13,22-23
+  s_8bc16d4b4562ae::t_93673299e306ec 75-78,170-194,233
+QuickShell.Core/Services/CommandDescriptor.cs
+  s_8bc16d4b4562ae::t_f2509f95f33609 24-29,36,45,49-56,122-130,179-259,263,266-267,270-272,276-278,282,285-286,289-291,296-298,304-306,310,313-314,317-319,323-325,329,332-333,336-338,342-344,348,351-352,355-357,361-363,367,370-371,374-376,381-383,389-391,395,399,401,403,406,408
+  s_8bc16d4b4562ae::t_8691def126610f 260-262,264-265,268-269,273-275,279-281,283-284,287-288,292-295,299-303,307-309,311-312,315-316,320-322,326-328,330-331,334-335,339-341,345-347,349-350,353-354,358-360,364-366,368-369,372-373,377-380,384-388,392-394,396-398,400,402,404-405,407,409-412
+QuickShell/Services/QuickShellJsonSettingsStore.cs
+  s_8bc16d4b4562ae::t_f2509f95f33609 8,10
+  s_8bc16d4b4562ae::t_48b27a06b3f3dd 11-17,19
+docs/architecture/deep-link-schema.md
+  s_8bc16d4b4562ae::t_f2509f95f33609 3,5,7-11,13-15,17,19,21,23-44,48,52-57
+  s_8bc16d4b4562ae::t_40b312ff2e4fae 59,61-68,75,79,83-86
+QuickShell/Services/StartupWarmupCoordinator.cs
+  s_8bc16d4b4562ae::t_c58a1428b13641 25,43,47,49,51-54,56,58-60,62-65,67-72,74-82,111,120,126,130,148-159,162-164,166-174,179,183,187-191,194-198
+QuickShell.Core.Tests/QuickShellSettingsLaunchTests.cs
+  s_8bc16d4b4562ae::t_f2509f95f33609 1-195
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_8bc16d4b4562ae::t_f2509f95f33609 1-254
+QuickShell.Core.Tests/CommandDescriptorTests.cs
+  s_8bc16d4b4562ae::t_f2780666084f8d 69
+QuickShell.Core.Tests/CommandIdParserTests.cs
+  s_8bc16d4b4562ae::t_9706009cdfe0e4 162-200
+QuickShell.Core.Tests/GitRepoIndexCacheTests.cs
+  s_8bc16d4b4562ae::t_37449de387e9b6 226-348
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_8bc16d4b4562ae::t_52f8dc99eef3c4 170-207,243-302
+QuickShell.Core.Tests/SupportDiagnosticsTests.cs
+  s_8bc16d4b4562ae::t_9c006d657bf592 31,36
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_8bc16d4b4562ae::t_e07c9ece14cd23 35-43
+QuickShell.Core/Services/CommandIdParser.cs
+  s_8bc16d4b4562ae::t_365dc29da3db75 5-6,10-11
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_14c3fc64e2a8a6::t_06f9c212e9f9d8 147,180,347,422
+QuickShell/Commands/DuplicateShortcutCommand.cs
+  s_8bc16d4b4562ae::t_a70831e63f9529 17
+QuickShell/Pages/QuickShellPage.cs
+  s_8bc16d4b4562ae::t_8493d6cf18bb32 39,141-154,483-487,551-568
+QuickShell/Pages/ShortcutDetailsFormPage.cs
+  s_8bc16d4b4562ae::t_36f8c87cd3934b 18
+QuickShell/Pages/ShortcutFormPage.cs
+  s_8bc16d4b4562ae::t_fb567a5bcb2388 37-38
+QuickShell/QuickShellCommandsProvider.cs
+  s_8bc16d4b4562ae::t_75bbf2c61c1711 86,188-189
+QuickShell/QuickShellNavigation.cs
+  s_8bc16d4b4562ae::t_16127e0465c5cc 9
+QuickShell.Core.Tests/StartupWarmupCoordinatorTests.cs
+  s_8bc16d4b4562ae::t_f0a443dbf6196f 249-310
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f8f4e0a1d55917d496d7869f6f4db65da1b023fc",
+  "prompts": {},
+  "sessions": {
+    "s_14c3fc64e2a8a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35476ceb-ba20-47fc-aea5-163ddae7f96b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_8bc16d4b4562ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "91c23d30-96d5-4c33-9491-ac7d6500153a",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
