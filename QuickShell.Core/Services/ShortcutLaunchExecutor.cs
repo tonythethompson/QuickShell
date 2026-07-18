@@ -577,7 +577,11 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         using (StartupPerformanceTrace.Measure("launch companion app"))
         {
             var companionSucceeded = _companionAppLauncher.TryLaunch(shortcut, onDemand: false, out var companionError);
-            diagnostics.RecordProcessStart("companion");
+            foreach (var executableName in _companionAppLauncher.LastStartedExecutables)
+            {
+                diagnostics.RecordProcessStart(executableName);
+            }
+
             return (companionSucceeded, companionError);
         }
     }

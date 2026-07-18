@@ -227,6 +227,64 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
             result.Diagnostics.ToClipboardText(),
             StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Launch_RecordsOnlySuccessfullyStartedCompanionExecutables()
+    {
+        var shortcut = new TerminalShortcut
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = "Companion diagnostics",
+            Directory = Environment.CurrentDirectory,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Label = "Main",
+                    Terminal = "default",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+            CompanionApps =
+            [
+                new CompanionAppEntry
+                {
+                    Id = "explorer",
+                    Path = "explorer.exe",
+                    OpenOnLaunch = true,
+                    Order = 0,
+                },
+                new CompanionAppEntry
+                {
+                    Id = "notepad",
+                    Path = "notepad.exe",
+                    OpenOnLaunch = true,
+                    Order = 1,
+                },
+            ],
+        };
+        var processStarter = new FakeProcessStarter
+        {
+            ShouldSucceed = startInfo =>
+                !startInfo.FileName.Contains("notepad", StringComparison.OrdinalIgnoreCase),
+        };
+        var bundle = LaunchTestServices.CreateBundle(processStarter);
+
+        var result = bundle.Executor.Launch(
+            shortcut,
+            TerminalHostIds.WindowsConsoleHost,
+            "cmd",
+            new ShortcutLaunchOptions(
+                IncludeCompanionApp: true,
+                IncludeDevServerLink: false));
+
+        Assert.NotNull(result.Diagnostics);
+        Assert.Equal(1, result.Diagnostics.ProcessStartCounts["explorer.exe"]);
+        Assert.False(result.Diagnostics.ProcessStartCounts.ContainsKey("notepad.exe"));
+        Assert.False(result.Diagnostics.ProcessStartCounts.ContainsKey("companion"));
+    }
 }
 
 [Collection(TerminalLauncherOverrideIsolation.Name)]

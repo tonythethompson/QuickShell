@@ -8,6 +8,8 @@ internal interface ICompanionAppLauncher
 
     bool ShouldLaunchOnWorkspaceOpen(TerminalShortcut shortcut);
 
+    IReadOnlyList<string> LastStartedExecutables { get; }
+
     bool TryLaunch(TerminalShortcut shortcut, bool onDemand, out string? error);
 
     string BuildDisplaySummary(TerminalShortcut shortcut);

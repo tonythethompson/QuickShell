@@ -90,7 +90,14 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
             EnsureLoaded();
             if (_cachedSnapshot.Version != _snapshotVersion)
             {
-                _cachedSnapshot = new WorkspaceRepositorySnapshot(_snapshotVersion, _shortcuts, _layout);
+                var snapshotShortcuts = CloneAll(_shortcuts);
+                var snapshotLayout = CloneLayout(_layout);
+                _cachedSnapshot = new WorkspaceRepositorySnapshot(
+                    _snapshotVersion,
+                    Array.AsReadOnly(snapshotShortcuts),
+                    snapshotLayout.AsReadOnly(),
+                    _undoHistory.Count > 0,
+                    _redoHistory.Count > 0);
             }
 
             return _cachedSnapshot;

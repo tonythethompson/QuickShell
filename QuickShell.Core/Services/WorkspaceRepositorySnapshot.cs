@@ -10,7 +10,9 @@ namespace QuickShell.Services;
 internal readonly record struct WorkspaceRepositorySnapshot(
     long Version,
     IReadOnlyList<TerminalShortcut> Shortcuts,
-    IReadOnlyList<ShortcutLayoutEntry> Layout)
+    IReadOnlyList<ShortcutLayoutEntry> Layout,
+    bool CanUndo = false,
+    bool CanRedo = false)
 {
     public IEnumerable<TerminalShortcut> Search(string query)
     {
@@ -104,7 +106,9 @@ internal readonly record struct WorkspaceRepositorySnapshot(
                     continue;
                 }
 
-                requiresRepair ??= ShortcutHealth.WouldNeedRepair(shortcut);
+                requiresRepair ??= ShortcutHealth.WouldNeedRepair(
+                    shortcut,
+                    requireDirectoryExists: false);
                 if (requiresRepair.Value)
                 {
                     break;

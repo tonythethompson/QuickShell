@@ -189,6 +189,7 @@ public sealed class CompanionAppLauncherTests : IDisposable
         Assert.True(success);
         Assert.Null(error);
         Assert.Equal(2, launcher.LastLaunchCount);
+        Assert.Equal(["explorer.exe", "cmd.exe"], launcher.LastStartedExecutables);
         Assert.Equal(2, starter.Started.Count);
         Assert.Contains(starter.Started, item => item.FileName.Contains("explorer", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(starter.Started, item => item.FileName.Contains("cmd", StringComparison.OrdinalIgnoreCase));

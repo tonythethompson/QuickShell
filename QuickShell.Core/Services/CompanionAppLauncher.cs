@@ -7,6 +7,7 @@ namespace QuickShell.Services;
 internal sealed class CompanionAppLauncher : ICompanionAppLauncher
 {
     private readonly IProcessStarter _processStarter;
+    private readonly List<string> _lastStartedExecutables = [];
 
     public CompanionAppLauncher(IProcessStarter processStarter)
     {
@@ -18,6 +19,8 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
 
     /// <summary>Number of companion processes started by the last <see cref="TryLaunch"/> call.</summary>
     internal int LastLaunchCount { get; private set; }
+
+    public IReadOnlyList<string> LastStartedExecutables => _lastStartedExecutables;
 
     public bool IsConfigured(TerminalShortcut shortcut) =>
         CompanionAppNormalization.GetConfigured(shortcut).Count > 0;
@@ -32,6 +35,7 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
         // even when a prior call left LastLaunchAttempted true.
         LastLaunchAttempted = false;
         LastLaunchCount = 0;
+        _lastStartedExecutables.Clear();
 
         CompanionAppNormalization.EnsureCompanionsFromLegacy(shortcut);
 
@@ -60,13 +64,14 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
         var failures = new List<string>();
         foreach (var entry in targets)
         {
-            if (!TryLaunchEntry(entry, shortcut.Directory, out var entryError))
+            if (!TryLaunchEntryCore(entry, shortcut.Directory, out var startedExecutable, out var entryError))
             {
                 failures.Add(entryError ?? "Companion app could not be launched.");
                 continue;
             }
 
             LastLaunchCount++;
+            _lastStartedExecutables.Add(startedExecutable!);
             RememberPresetFromPath(entry.Path);
         }
 
@@ -85,6 +90,16 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
 
     internal bool TryLaunchEntry(CompanionAppEntry entry, string workspaceDirectory, out string? error)
     {
+        return TryLaunchEntryCore(entry, workspaceDirectory, out _, out error);
+    }
+
+    private bool TryLaunchEntryCore(
+        CompanionAppEntry entry,
+        string workspaceDirectory,
+        out string? startedExecutable,
+        out string? error)
+    {
+        startedExecutable = null;
         error = null;
         if (string.IsNullOrWhiteSpace(entry.Path))
         {
@@ -119,6 +134,12 @@ internal sealed class CompanionAppLauncher : ICompanionAppLauncher
             {
                 error = "Companion app could not be launched.";
                 return false;
+            }
+
+            startedExecutable = Path.GetFileName(executablePath);
+            if (string.IsNullOrWhiteSpace(startedExecutable))
+            {
+                startedExecutable = executablePath;
             }
 
             return true;

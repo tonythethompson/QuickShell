@@ -1,6 +1,7 @@
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Globalization;
+using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
@@ -82,6 +83,77 @@ public sealed class ShortcutRepositoryPerformanceShapeTests
         Assert.True(
             allocated <= 2048,
             $"Expected read-only shortcut/layout access to avoid deep clones (<= 2048 bytes), allocated {allocated} bytes.");
+    }
+
+    [Fact]
+    public void GetSnapshot_RemainsPointInTime_AfterMarkUsedAndUpsert()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(CreateShortcut("Alpha", workspaceDirectory));
+
+        var snapshot = repository.GetSnapshot();
+        var originalShortcuts = JsonSerializer.Serialize(snapshot.Shortcuts);
+        var originalLayout = JsonSerializer.Serialize(snapshot.Layout);
+        var shortcutId = snapshot.Shortcuts.Single().Id;
+
+        repository.MarkUsed(shortcutId);
+
+        Assert.Equal(originalShortcuts, JsonSerializer.Serialize(snapshot.Shortcuts));
+        Assert.Equal(originalLayout, JsonSerializer.Serialize(snapshot.Layout));
+
+        repository.Upsert(new TerminalShortcut
+        {
+            Id = shortcutId,
+            Name = "Alpha updated",
+            Abbreviation = "updated",
+            Directory = workspaceDirectory,
+            Command = "dotnet run",
+            Terminal = "pwsh",
+            WtProfile = "PowerShell",
+            RunAsAdmin = true,
+            IsPinned = true,
+            PinOrder = 1,
+            LastUsedUtc = DateTime.UtcNow,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = "updated-launch",
+                    Label = "Updated",
+                    Command = "dotnet watch",
+                    Terminal = "pwsh",
+                    IsEnabled = true,
+                    Order = 0,
+                },
+            ],
+        }, originalName: "Alpha");
+
+        Assert.Equal(originalShortcuts, JsonSerializer.Serialize(snapshot.Shortcuts));
+        Assert.Equal(originalLayout, JsonSerializer.Serialize(snapshot.Layout));
+    }
+
+    [Fact]
+    public void GetSnapshot_CapturesUndoRedoStateWithRepositoryVersion()
+    {
+        using var directory = new TempDataDirectory();
+        using var repository = new ShortcutRepository(directory.Path);
+        var workspaceDirectory = Path.Combine(directory.Path, "Alpha");
+        Directory.CreateDirectory(workspaceDirectory);
+        repository.Upsert(CreateShortcut("Alpha", workspaceDirectory));
+
+        var beforeUndo = repository.GetSnapshot();
+
+        Assert.True(beforeUndo.CanUndo);
+        Assert.False(beforeUndo.CanRedo);
+        Assert.True(repository.Undo());
+
+        var afterUndo = repository.GetSnapshot();
+        Assert.False(afterUndo.CanUndo);
+        Assert.True(afterUndo.CanRedo);
+        Assert.NotEqual(beforeUndo.Version, afterUndo.Version);
     }
 
     [Fact]
@@ -362,7 +434,7 @@ public sealed class ShortcutRepositoryPerformanceShapeTests
     }
 
     [Fact]
-    public void SearchTaskActions_ExcludesMissingWorkspaceFolders()
+    public void SearchTaskActions_IncludesStructurallyValidMissingWorkspaceFolders()
     {
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
@@ -386,7 +458,7 @@ public sealed class ShortcutRepositoryPerformanceShapeTests
         });
         Directory.Delete(missingDirectory);
 
-        Assert.Empty(repository.SearchTaskActions("tests"));
+        Assert.Single(repository.SearchTaskActions("tests"));
     }
 
     [Fact]
