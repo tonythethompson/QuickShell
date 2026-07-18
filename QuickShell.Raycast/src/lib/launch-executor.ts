@@ -1,6 +1,7 @@
 import type { QuickShellSettings } from "./schema";
 import { groupLaunchEntries } from "./launch-grouping";
-import { runPostLaunchActions } from "./post-launch-actions";
+import { runPostLaunchActions, type OpenUrlFn } from "./post-launch-actions";
+import type { AuthorizedPostLaunchEffectsPlan } from "./security";
 import {
   buildLaunchArguments,
   buildGroupedWindowsTerminalArguments,
@@ -14,12 +15,17 @@ export type ExecFn = (command: string, args: string[]) => Promise<void>;
 
 export type LaunchExecutionResult =
   { ok: true; summary: string; postLaunchWarnings?: string[] } | { ok: false; message: string; cause?: unknown };
+export type LaunchExecutionOptions = LaunchOptions & {
+  authorizedEffects?: AuthorizedPostLaunchEffectsPlan;
+  authorizationWarnings?: string[];
+  openUrl?: OpenUrlFn;
+};
 
 export async function executeWorkspaceLaunch(
   plan: LaunchPlan,
   settings: QuickShellSettings,
   execFn: ExecFn,
-  options?: LaunchOptions & { includeCompanion?: boolean; includeDevServer?: boolean },
+  options?: LaunchExecutionOptions,
 ): Promise<LaunchExecutionResult> {
   if (plan.errors.length > 0) {
     return { ok: false, message: plan.errors.join(" ") };
@@ -41,11 +47,11 @@ export async function executeWorkspaceLaunch(
       await executeGroup(group.tabHostExecutable, group.runAsAdmin, group.entries, execFn);
     }
 
-    const workspace = plan.entries[0].workspace;
-    const postLaunch = await runPostLaunchActions(workspace, {
-      includeCompanion: options?.includeCompanion ?? true,
-      includeDevServer: options?.includeDevServer ?? true,
-    });
+    const postLaunch = await runPostLaunchActions(
+      options?.authorizedEffects ?? { companions: [], devServerUrl: null },
+      { openUrl: options?.openUrl },
+    );
+    const postLaunchWarnings = [...(options?.authorizationWarnings ?? []), ...postLaunch.warnings];
 
     return {
       ok: true,
@@ -53,7 +59,7 @@ export async function executeWorkspaceLaunch(
         plan.entries.length === 1
           ? `${plan.entries[0].target.displayName} → ${plan.entries[0].directory}`
           : `${plan.entries.length} launches started`,
-      postLaunchWarnings: postLaunch.warnings.length > 0 ? postLaunch.warnings : undefined,
+      postLaunchWarnings: postLaunchWarnings.length > 0 ? postLaunchWarnings : undefined,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Launch failed.";

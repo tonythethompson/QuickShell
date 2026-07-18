@@ -55,14 +55,38 @@ internal sealed class WorkspaceLaunchService : IWorkspaceLaunchService
         {
             content.Directory = authorization.EffectiveValues.Directory!;
         }
-        ApplyEffectiveCompanionPath(content, authorization);
-
         var effectiveOptions = options;
-        if (effectiveOptions.IncludeCompanionApp
-            && _companionLauncher.ShouldLaunchOnWorkspaceOpen(content)
-            && !WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.StartCompanion).IsAllowed)
+        if (effectiveOptions.IncludeCompanionApp)
         {
-            effectiveOptions = effectiveOptions with { IncludeCompanionApp = false };
+            var authorizedCompanions = new List<CompanionAppEntry>();
+            var openOnLaunchCompanions = _companionLauncher.ShouldLaunchOnWorkspaceOpen(content)
+                ? CompanionAppNormalization.GetOpenOnLaunch(content)
+                : [];
+            foreach (var companion in openOnLaunchCompanions)
+            {
+                var companionAuthorization = WorkspaceSecurityPolicy.AuthorizeCompanion(
+                    workspace,
+                    companion);
+                if (!companionAuthorization.IsAllowed)
+                {
+                    continue;
+                }
+
+                var effectiveCompanion = BuildEffectiveCompanion(
+                    companion,
+                    companionAuthorization);
+                if (effectiveCompanion is not null)
+                {
+                    authorizedCompanions.Add(effectiveCompanion);
+                }
+            }
+
+            content.CompanionApps = authorizedCompanions;
+            CompanionAppNormalization.MirrorLegacyFieldsFromPrimary(content);
+            if (content.CompanionApps.Count == 0)
+            {
+                effectiveOptions = effectiveOptions with { IncludeCompanionApp = false };
+            }
         }
 
         if (effectiveOptions.IncludeDevServerLink
@@ -110,7 +134,7 @@ internal sealed class WorkspaceLaunchService : IWorkspaceLaunchService
             return ShortcutLaunchResult.StayOpen("That launch entry was not found.");
         }
 
-        var authorization = WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.LaunchEntry);
+        var authorization = WorkspaceSecurityPolicy.AuthorizeLaunchEntry(workspace, launch);
         if (!authorization.IsAllowed)
         {
             return Denied(authorization);
@@ -148,23 +172,18 @@ internal sealed class WorkspaceLaunchService : IWorkspaceLaunchService
         return ShortcutLaunchResult.StayOpen(message);
     }
 
-    private static void ApplyEffectiveCompanionPath(
-        TerminalShortcut content,
+    private static CompanionAppEntry? BuildEffectiveCompanion(
+        CompanionAppEntry source,
         WorkspaceAuthorizationResult authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization.EffectiveValues.ExecutablePath))
         {
-            return;
+            return null;
         }
 
-        var configured = CompanionAppNormalization.GetConfigured(content);
-        if (configured.Count == 0)
-        {
-            return;
-        }
-
-        configured[0].Path = authorization.EffectiveValues.ExecutablePath!;
-        configured[0].Arguments = authorization.EffectiveValues.Arguments;
-        CompanionAppNormalization.MirrorLegacyFieldsFromPrimary(content);
+        var companion = CompanionAppNormalization.CloneEntry(source);
+        companion.Path = authorization.EffectiveValues.ExecutablePath!;
+        companion.Arguments = authorization.EffectiveValues.Arguments;
+        return companion;
     }
 }

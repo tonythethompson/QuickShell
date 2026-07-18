@@ -49,7 +49,7 @@ const workspace: Workspace = {
 };
 
 describe("launch-executor", () => {
-  it("skips post-launch actions when companion and dev server are disabled", async () => {
+  it("passes only the authorized effects plan to post-launch execution", async () => {
     runPostLaunchActionsMock.mockClear();
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "win32" });
@@ -64,17 +64,24 @@ describe("launch-executor", () => {
     };
     const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
     const plan = buildWorkspaceLaunchPlan(workspaceWithHooks, settings);
+    const authorizedEffects = {
+      companions: [
+        {
+          companionId: "authorized",
+          executablePath: process.execPath,
+          arguments: null,
+          workingDirectory: workspaceWithHooks.directory,
+        },
+      ],
+      devServerUrl: "http://localhost:5173",
+    };
     const result = await executeWorkspaceLaunch(plan, settings, execFn, {
-      includeCompanion: false,
-      includeDevServer: false,
+      authorizedEffects,
     });
 
     Object.defineProperty(process, "platform", { value: originalPlatform });
     expect(result.ok).toBe(true);
-    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(
-      workspaceWithHooks,
-      expect.objectContaining({ includeCompanion: false, includeDevServer: false }),
-    );
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, { openUrl: undefined });
   });
 
   it("refuses launch on non-windows platforms", async () => {

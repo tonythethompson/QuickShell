@@ -1,7 +1,5 @@
 import { spawn } from "node:child_process";
-import type { CompanionAppEntry, Workspace } from "./schema";
-import { getOpenOnLaunchCompanions } from "./validation";
-import { escapeWindowsArgument } from "./windows-launch";
+import type { AuthorizedCompanionEffect, AuthorizedPostLaunchEffectsPlan } from "./security";
 
 export type PostLaunchResult = {
   companionOpened: boolean;
@@ -10,38 +8,40 @@ export type PostLaunchResult = {
 };
 
 export type OpenUrlFn = (url: string) => Promise<void>;
+export type LaunchCompanionFn = (effect: AuthorizedCompanionEffect) => Promise<void>;
 
 const defaultOpenUrl: OpenUrlFn = async (url) => {
-  await spawnDetached(process.platform === "win32" ? "cmd.exe" : "open", buildOpenUrlArgs(url));
+  const invocation = buildOpenUrlInvocation(url);
+  await spawnDetached(invocation.executable, invocation.args);
 };
 
+export function buildOpenUrlInvocation(url: string): { executable: string; args: string[] } {
+  return { executable: "explorer.exe", args: [url] };
+}
+
 export async function runPostLaunchActions(
-  workspace: Workspace,
-  options?: { includeCompanion?: boolean; includeDevServer?: boolean; openUrl?: OpenUrlFn },
+  plan: AuthorizedPostLaunchEffectsPlan,
+  options?: { openUrl?: OpenUrlFn; launchCompanion?: LaunchCompanionFn },
 ): Promise<PostLaunchResult> {
-  const includeCompanion = options?.includeCompanion ?? true;
-  const includeDevServer = options?.includeDevServer ?? true;
   const openUrl = options?.openUrl ?? defaultOpenUrl;
+  const launchCompanion = options?.launchCompanion ?? launchCompanionEffect;
   const warnings: string[] = [];
   let companionOpened = false;
   let devServerOpened = false;
 
-  if (includeCompanion) {
-    const companions = getOpenOnLaunchCompanions(workspace);
-    for (const companion of companions) {
-      try {
-        await launchCompanionEntry(companion, workspace.directory);
-        companionOpened = true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Companion app launch failed.";
-        warnings.push(message);
-      }
+  for (const companion of plan.companions) {
+    try {
+      await launchCompanion(companion);
+      companionOpened = true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Companion app launch failed.";
+      warnings.push(message);
     }
   }
 
-  if (includeDevServer && workspace.openDevServerOnLaunch && workspace.devServerUrl) {
+  if (plan.devServerUrl) {
     try {
-      await openUrl(workspace.devServerUrl);
+      await openUrl(plan.devServerUrl);
       devServerOpened = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Dev server link failed.";
@@ -52,14 +52,9 @@ export async function runPostLaunchActions(
   return { companionOpened, devServerOpened, warnings };
 }
 
-async function launchCompanionEntry(entry: CompanionAppEntry, directory: string): Promise<void> {
-  const executable = entry.path;
-  if (!executable) {
-    throw new Error("Companion app path is empty.");
-  }
-
-  const args = buildCompanionArguments(entry.arguments, directory);
-  await spawnDetached(executable, args);
+async function launchCompanionEffect(effect: AuthorizedCompanionEffect): Promise<void> {
+  const args = buildCompanionArguments(effect.arguments, effect.workingDirectory);
+  await spawnDetached(effect.executablePath, args);
 }
 
 export function buildCompanionArguments(rawArguments: string | null | undefined, directory: string): string[] {
@@ -108,13 +103,6 @@ function tokenizeCompanionArguments(raw: string): string[] {
   }
 
   return tokens;
-}
-
-function buildOpenUrlArgs(url: string): string[] {
-  if (process.platform === "win32") {
-    return ["/c", "start", "", escapeWindowsArgument(url)];
-  }
-  return [url];
 }
 
 function spawnDetached(executable: string, args: string[]): Promise<void> {

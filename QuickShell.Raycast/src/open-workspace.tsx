@@ -34,8 +34,8 @@ import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from "./lib/launch-context";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
-import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
-import { authorize, createReviewToken, matchesReviewToken } from "./lib/security";
+import { buildSelectedLaunchWorkspace, buildWorkspaceLaunchPlan } from "./lib/windows-launch";
+import { authorize, authorizePostLaunchEffects, createReviewToken, matchesReviewToken } from "./lib/security";
 
 type LoadedData = {
   workspaces: Workspace[];
@@ -185,16 +185,10 @@ export default function OpenWorkspaceCommand({
       return;
     }
 
-    const launchWorkspace = launch
-      ? {
-          ...stored.content,
-          launches: stored.content.launches.map((entry) =>
-            entry.id === launch.id ? { ...entry, isEnabled: true } : { ...entry, isEnabled: false },
-          ),
-        }
-      : stored.content;
-
-    const authorization = authorize({ ...stored, content: launchWorkspace }, launch ? "LaunchEntry" : "LaunchTerminal");
+    const authorization = authorize(
+      stored,
+      launch ? { kind: "launchEntry", launchId: launch.id } : { kind: "terminal" },
+    );
     if (!authorization.isAllowed) {
       await showToast({
         style: Toast.Style.Failure,
@@ -203,28 +197,16 @@ export default function OpenWorkspaceCommand({
       });
       return;
     }
+    const launchWorkspace = launch
+      ? buildSelectedLaunchWorkspace(stored.content, launch.id, data.settings)
+      : { ...stored.content, launches: stored.content.launches.map((entry) => ({ ...entry })) };
+    if (!launchWorkspace) {
+      await showToast({ style: Toast.Style.Failure, title: "Selected launch not found" });
+      return;
+    }
     if (authorization.effectiveValues.directory) {
       launchWorkspace.directory = authorization.effectiveValues.directory;
     }
-    if (authorization.effectiveValues.url) {
-      launchWorkspace.devServerUrl = authorization.effectiveValues.url;
-    }
-    if (authorization.effectiveValues.executablePath && launchWorkspace.companionApps?.[0]) {
-      launchWorkspace.companionApps = launchWorkspace.companionApps.map((entry, index) =>
-        index === 0
-          ? {
-              ...entry,
-              path: authorization.effectiveValues.executablePath!,
-              arguments: authorization.effectiveValues.arguments,
-            }
-          : entry,
-      );
-    }
-    if (authorization.effectiveValues.executablePath) {
-      launchWorkspace.companionAppPath = authorization.effectiveValues.executablePath;
-      launchWorkspace.companionAppArguments = authorization.effectiveValues.arguments;
-    }
-
     const health = assessWorkspaceHealthForLaunch(launchWorkspace, data.settings);
     if (!health.ok) {
       await showHealthFailure(health.issues);
@@ -235,9 +217,14 @@ export default function OpenWorkspaceCommand({
       runAsAdmin: options?.runAsAdmin,
       runAsStandard: options?.runAsStandard,
     });
-    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec, {
+    const authorizedEffects = authorizePostLaunchEffects(stored, {
       includeCompanion: !launch,
       includeDevServer: !launch,
+    });
+    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec, {
+      authorizedEffects: authorizedEffects.plan,
+      authorizationWarnings: authorizedEffects.warnings,
+      openUrl: open,
     });
     if (!result.ok) {
       await showLaunchFailure(result);
@@ -300,7 +287,7 @@ export default function OpenWorkspaceCommand({
 
   async function handleOpenFolder(workspace: Workspace) {
     const stored = await storage.getStoredWorkspace(workspace.id);
-    const authorization = authorize(stored, "OpenDirectory");
+    const authorization = authorize(stored, { kind: "directory" });
     if (!authorization.isAllowed || !authorization.effectiveValues.directory) {
       await showToast({
         style: Toast.Style.Failure,
@@ -319,7 +306,7 @@ export default function OpenWorkspaceCommand({
   async function handleOpenUrl(workspace: Workspace, kind: "repo" | "dev") {
     const stored = await storage.getStoredWorkspace(workspace.id);
     const url = kind === "repo" ? stored?.content.repoUrl : stored?.content.devServerUrl;
-    const authorization = authorize(stored, "OpenUrl", url);
+    const authorization = authorize(stored, { kind: "url", url });
     if (!authorization.isAllowed || !authorization.effectiveValues.url) {
       await showToast({
         style: Toast.Style.Failure,
@@ -337,7 +324,7 @@ export default function OpenWorkspaceCommand({
 
   async function handleTrust(workspace: Workspace) {
     const stored = await storage.getStoredWorkspace(workspace.id);
-    const assessment = authorize(stored, "GrantTrust");
+    const assessment = authorize(stored, { kind: "grantTrust" });
     if (!stored || !assessment.isAllowed) {
       await showToast({
         style: Toast.Style.Failure,

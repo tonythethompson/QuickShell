@@ -11,7 +11,7 @@ import { createStableId, ensureStableId } from "./ids";
 import { importParsedPayload, type ImportResult } from "./import-export";
 import { migrateStoredData } from "./migration";
 import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
-import { matchesReviewToken, type WorkspaceReviewToken } from "./security";
+import { digest, matchesReviewToken, type WorkspaceReviewToken } from "./security";
 
 export type StorageAdapter = {
   getItem: (key: string) => Promise<string | undefined>;
@@ -98,7 +98,7 @@ export class QuickShellStorage {
     await this.flushRecentWrites();
     const existing = mode === "merge" ? await this.load() : createEmptyStoredData();
     const result = importParsedPayload(JSON.parse(raw) as unknown, existing);
-    await this.save(result.data);
+    await this.save(result.data, { preserveSecurity: false, allowSubmittedSecurity: true });
     return result;
     await this.save(result.data, {
       preserveSecurity: false,
@@ -303,18 +303,11 @@ export class QuickShellStorage {
     });
 
     const sourceSecurity = data.workspaceSecurity?.[workspaceId] ?? { isTrusted: true, revision: 1 };
-    const result = await this.upsertWorkspace(duplicate);
-    if (!sourceSecurity.isTrusted) {
-      const updated = await this.load();
-      updated.workspaceSecurity = { ...(updated.workspaceSecurity ?? {}) };
-      updated.workspaceSecurity[result.id] = { ...sourceSecurity };
-      await this.save(updated, { preserveSecurity: false });
-      updated.workspaceSecurity[result.id] = { isTrusted: false, revision: 1 };
-      await this.save(updated, {
-        preserveSecurity: false,
-        allowSubmittedSecurity: true,
-        recordHistory: false,
-      });
+    data.workspaces.push(duplicate);
+    data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
+    data.workspaceSecurity[duplicate.id] = { isTrusted: sourceSecurity.isTrusted, revision: 1 };
+    await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+    return duplicate;
   }
 
   async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
@@ -447,10 +440,22 @@ export class QuickShellStorage {
   private preserveCurrentTrust(next: StoredData, current: StoredData | null): StoredData {
     const currentSecurity = current?.workspaceSecurity ?? {};
     next.workspaceSecurity = Object.fromEntries(
-      next.workspaces.map((workspace) => [
-        workspace.id,
-        currentSecurity[workspace.id] ? { ...currentSecurity[workspace.id] } : { isTrusted: false, revision: 1 },
-      ]),
+      next.workspaces.map((workspace) => {
+        const security = currentSecurity[workspace.id];
+        if (!security) {
+          return [workspace.id, { isTrusted: false, revision: 1 }];
+        }
+
+        const currentWorkspace = current?.workspaces.find((candidate) => candidate.id === workspace.id);
+        const contentChanged = currentWorkspace ? digest(currentWorkspace) !== digest(workspace) : true;
+        return [
+          workspace.id,
+          {
+            ...security,
+            revision: contentChanged ? security.revision + 1 : security.revision,
+          },
+        ];
+      }),
     );
     return next;
   }

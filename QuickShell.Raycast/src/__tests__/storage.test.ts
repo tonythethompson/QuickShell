@@ -2,6 +2,37 @@ import { describe, expect, it } from "vitest";
 import { QuickShellStorage, createMemoryStorageAdapter } from "../lib/storage";
 import { createStableId } from "../lib/ids";
 import { normalizeWorkspace } from "../lib/validation";
+import { createEmptyStoredData } from "../lib/schema";
+import { createReviewToken, matchesReviewToken } from "../lib/security";
+
+function createWorkspace(id: string, name: string) {
+  return normalizeWorkspace({
+    id,
+    name,
+    abbreviation: null,
+    directory: `C:\\Projects\\${name}`,
+    isPinned: false,
+    pinOrder: null,
+    lastUsedUtc: null,
+    terminal: "default",
+    wtProfile: null,
+    command: null,
+    runAsAdmin: false,
+    launches: [
+      {
+        id: createStableId(),
+        label: "Launch",
+        terminal: "default",
+        wtProfile: null,
+        command: null,
+        runAsAdmin: false,
+        isEnabled: true,
+        order: 0,
+        taskType: "none",
+      },
+    ],
+  });
+}
 
 describe("storage", () => {
   it("persists and reloads workspaces", async () => {
@@ -208,5 +239,76 @@ describe("storage", () => {
     await storage.undo();
     expect(await storage.getWorkspaces()).toHaveLength(1);
     expect((await storage.getWorkspaces())[0].name).toBe("Before");
+  });
+
+  it("persists imported replace security authoritatively on an ID collision", async () => {
+    const id = createStableId();
+    const initial = createEmptyStoredData();
+    initial.workspaces = [createWorkspace(id, "Trusted")];
+    initial.workspaceSecurity = { [id]: { isTrusted: true, revision: 7 } };
+    const storage = new QuickShellStorage(createMemoryStorageAdapter(initial));
+    await storage.load();
+
+    await storage.importJson(
+      JSON.stringify({
+        version: 1,
+        workspaces: [{ ...createWorkspace(id, "Imported"), directory: "C:\\Projects\\Imported" }],
+        settings: initial.settings,
+      }),
+      "replace",
+    );
+
+    expect(await storage.getWorkspaceSecurity(id)).toEqual({ isTrusted: false, revision: 1 });
+  });
+
+  it("duplicates an untrusted workspace atomically and preserves unrelated trust", async () => {
+    const sourceId = createStableId();
+    const unrelatedId = createStableId();
+    const initial = createEmptyStoredData();
+    initial.workspaces = [createWorkspace(sourceId, "Source"), createWorkspace(unrelatedId, "Unrelated")];
+    initial.workspaceSecurity = {
+      [sourceId]: { isTrusted: false, revision: 9 },
+      [unrelatedId]: { isTrusted: true, revision: 4 },
+    };
+    const storage = new QuickShellStorage(createMemoryStorageAdapter(initial));
+    await storage.load();
+
+    const duplicate = await storage.duplicateWorkspace(sourceId);
+
+    expect(await storage.getWorkspaceSecurity(duplicate.id)).toEqual({ isTrusted: false, revision: 1 });
+    expect(await storage.getWorkspaceSecurity(unrelatedId)).toEqual({ isTrusted: true, revision: 4 });
+    expect(await storage.undo()).toBe(true);
+    expect(await storage.getWorkspaces()).toHaveLength(2);
+    expect(await storage.undo()).toBe(false);
+  });
+
+  it("increments trust revision when undo restores different execution content", async () => {
+    const id = createStableId();
+    const initial = createEmptyStoredData();
+    initial.workspaces = [
+      {
+        ...createWorkspace(id, "History"),
+        devServerUrl: "https://localhost:5173",
+        openDevServerOnLaunch: false,
+      },
+    ];
+    initial.workspaceSecurity = { [id]: { isTrusted: true, revision: 3 } };
+    const storage = new QuickShellStorage(createMemoryStorageAdapter(initial));
+    await storage.load();
+
+    const before = await storage.getStoredWorkspace(id);
+    await storage.upsertWorkspace({
+      ...before!.content,
+      openDevServerOnLaunch: true,
+    });
+    const reviewed = (await storage.getStoredWorkspace(id))!;
+    const token = createReviewToken(reviewed);
+
+    await storage.undo();
+    const restored = (await storage.getStoredWorkspace(id))!;
+
+    expect(restored.revision).toBe(reviewed.revision + 1);
+    expect(restored.security.isTrusted).toBe(true);
+    expect(matchesReviewToken(restored, token)).toBe(false);
   });
 });

@@ -96,7 +96,32 @@ internal static class WorkspaceSecurityPolicy
 
     public static WorkspaceAuthorizationResult Authorize(
         StoredWorkspace workspace,
-        WorkspaceAction action)
+        WorkspaceAction action) =>
+        AuthorizeCore(workspace, action, null);
+
+    public static WorkspaceAuthorizationResult AuthorizeLaunchEntry(
+        StoredWorkspace workspace,
+        WorkspaceEntry launch) =>
+        AuthorizeCore(workspace, WorkspaceAction.LaunchEntry, launch);
+
+    public static WorkspaceAuthorizationResult AuthorizeCompanion(
+        StoredWorkspace workspace,
+        CompanionAppEntry companion)
+    {
+        var content = WorkspaceClone.Clone(workspace.Content);
+        content.CompanionApps = [CompanionAppNormalization.CloneEntry(companion)];
+        content.CompanionAppPath = null;
+        content.CompanionAppArguments = null;
+        content.OpenCompanionAppOnLaunch = false;
+        return Authorize(
+            workspace with { Content = content },
+            WorkspaceAction.StartCompanion);
+    }
+
+    private static WorkspaceAuthorizationResult AuthorizeCore(
+        StoredWorkspace workspace,
+        WorkspaceAction action,
+        WorkspaceEntry? selectedLaunch)
     {
         var content = workspace.Content;
         var issues = new List<WorkspaceIssue>();
@@ -107,16 +132,13 @@ internal static class WorkspaceSecurityPolicy
         string? arguments = null;
         var rawDirectory = content.Directory ?? string.Empty;
 
-        if (rawDirectory.Length > ShortcutValidation.MaxDirectoryLength
-            || rawDirectory.IndexOfAny(['\r', '\n', '\0']) >= 0
-            || !ShortcutValidation.TryNormalizeDirectory(rawDirectory, out normalizedDirectory, out _))
+        if (RequiresDirectory(action))
         {
-            issues.Add(new(WorkspaceIssueCode.InvalidDirectory, "Workspace directory is not a valid rooted path."));
-        }
-        else if ((action is WorkspaceAction.LaunchTerminal or WorkspaceAction.LaunchEntry or WorkspaceAction.GrantTrust) &&
-                 !ShortcutValidation.DirectoryExists(normalizedDirectory))
-        {
-            issues.Add(new(WorkspaceIssueCode.DirectoryMissing, "Workspace directory does not exist."));
+            ValidateDirectory(
+                rawDirectory,
+                action is WorkspaceAction.LaunchTerminal or WorkspaceAction.LaunchEntry or WorkspaceAction.GrantTrust,
+                issues,
+                out normalizedDirectory);
         }
 
         if (!string.IsNullOrEmpty(content.Command))
@@ -124,22 +146,117 @@ internal static class WorkspaceSecurityPolicy
             risks.Add(new("command", "This workspace contains a command that can execute arbitrary code."));
         }
 
-        if (action != WorkspaceAction.CopyPath)
+        if (content.RunAsAdmin || (content.Launches ?? []).Any(launch => launch.RunAsAdmin))
         {
-            if (string.IsNullOrWhiteSpace(content.Name) || content.Name.Length > ShortcutValidation.MaxNameLength)
-            {
-                issues.Add(new(WorkspaceIssueCode.InvalidLaunch, "Workspace name is missing or exceeds the limit."));
-            }
+            risks.Add(new("elevation", "This workspace can request an elevated process and UAC."));
+        }
 
-            if (!ShortcutLaunchNormalization.TryValidateLaunches(content, out var launchesError))
+        switch (action)
+        {
+            case WorkspaceAction.LaunchTerminal:
+                ValidateWorkspaceLaunch(content, issues);
+                break;
+            case WorkspaceAction.LaunchEntry:
+                ValidateSelectedLaunch(selectedLaunch, issues);
+                break;
+            case WorkspaceAction.StartCompanion:
+                ValidateCompanions(content, normalizedDirectory, issues, risks, out executablePath, out arguments);
+                break;
+            case WorkspaceAction.OpenUrl:
+            case WorkspaceAction.OpenDevServer:
+                ValidateUrl(content.DevServerUrl, true, "No valid HTTP(S) URL is configured.", issues, out normalizedUrl);
+                break;
+            case WorkspaceAction.GrantTrust:
+                ValidateWorkspaceLaunch(content, issues);
+                ValidateUrl(content.DevServerUrl, false, "Dev-server URL must be an absolute HTTP(S) URL.", issues, out normalizedUrl);
+                ValidateUrl(content.RepoUrl, false, "Repository URL must be an absolute HTTP(S) URL.", issues, out _);
+                ValidateCompanions(content, normalizedDirectory, issues, risks, out executablePath, out arguments);
+                break;
+        }
+
+        var configuredCompanionCount = CompanionAppNormalization.GetConfigured(content).Count;
+        if (configuredCompanionCount > 0 && action is not WorkspaceAction.StartCompanion and not WorkspaceAction.GrantTrust)
+        {
+            risks.Add(new("companions", $"This workspace can start {configuredCompanionCount} companion process(es)."));
+        }
+
+        if (content.OpenDevServerOnLaunch && !string.IsNullOrWhiteSpace(content.DevServerUrl))
+        {
+            risks.Add(new("dev-server", "This workspace opens a configured URL after launch."));
+        }
+
+        if (!workspace.Security.IsTrusted && RequiresTrust(action))
+        {
+            issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
+        }
+
+        if (action == WorkspaceAction.OpenDirectory)
+        {
+            if (!workspace.Security.IsTrusted)
             {
-                issues.Add(new(WorkspaceIssueCode.InvalidLaunch, launchesError));
+                issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Untrusted workspaces cannot open directories."));
+            }
+            else if (!IsLocalDirectoryPath(normalizedDirectory))
+            {
+                issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Only existing rooted local drive directories can be opened in Explorer."));
             }
         }
 
-        if (content.RunAsAdmin || content.Launches.Any(launch => launch.RunAsAdmin))
+        var primary = GetPrimaryIssue(issues, action);
+        var allowed = action switch
         {
-            risks.Add(new("elevation", "This workspace can request an elevated process and UAC."));
+            WorkspaceAction.CopyPath => !issues.Any(issue => issue.Code == WorkspaceIssueCode.InvalidDirectory),
+            WorkspaceAction.RevokeTrust => true,
+            WorkspaceAction.GrantTrust => issues.Count == 0,
+            _ => issues.Count == 0,
+        };
+        return BuildResult(allowed, primary, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
+    }
+
+    private static bool RequiresDirectory(WorkspaceAction action) =>
+        action is WorkspaceAction.LaunchTerminal
+            or WorkspaceAction.LaunchEntry
+            or WorkspaceAction.StartCompanion
+            or WorkspaceAction.OpenDirectory
+            or WorkspaceAction.CopyPath
+            or WorkspaceAction.GrantTrust;
+
+    private static bool RequiresTrust(WorkspaceAction action) =>
+        action is WorkspaceAction.LaunchTerminal
+            or WorkspaceAction.LaunchEntry
+            or WorkspaceAction.StartCompanion
+            or WorkspaceAction.OpenUrl
+            or WorkspaceAction.OpenDevServer
+            or WorkspaceAction.OpenDirectory;
+
+    private static void ValidateDirectory(
+        string rawDirectory,
+        bool requireExisting,
+        List<WorkspaceIssue> issues,
+        out string? normalizedDirectory)
+    {
+        normalizedDirectory = null;
+        if (rawDirectory.Length > ShortcutValidation.MaxDirectoryLength
+            || rawDirectory.IndexOfAny(['\r', '\n', '\0']) >= 0
+            || !ShortcutValidation.TryNormalizeDirectory(rawDirectory, out normalizedDirectory, out _))
+        {
+            issues.Add(new(WorkspaceIssueCode.InvalidDirectory, "Workspace directory is not a valid rooted path."));
+            return;
+        }
+
+        if (requireExisting && !ShortcutValidation.DirectoryExists(normalizedDirectory))
+        {
+            issues.Add(new(WorkspaceIssueCode.DirectoryMissing, "Workspace directory does not exist."));
+        }
+    }
+
+    private static void ValidateWorkspaceLaunch(
+        TerminalShortcut content,
+        List<WorkspaceIssue> issues)
+    {
+        if (string.IsNullOrWhiteSpace(content.Name) || content.Name.Length > ShortcutValidation.MaxNameLength)
+        {
+            issues.Add(new(WorkspaceIssueCode.InvalidLaunch, "Workspace name is missing or exceeds the limit."));
         }
 
         if (!ShortcutValidation.TryValidateCommand(content.Command, out _))
@@ -147,23 +264,55 @@ internal static class WorkspaceSecurityPolicy
             issues.Add(new(WorkspaceIssueCode.InvalidCommand, "Workspace command contains invalid control characters or exceeds the limit."));
         }
 
-        foreach (var launch in (content.Launches ?? []).Where(launch =>
-                     !ShortcutValidation.TryValidateCommand(launch.Command, out _)
-                     || !ShortcutValidation.TryValidateWtProfile(launch.WtProfile, out _)))
+        if (!ShortcutLaunchNormalization.TryValidateLaunches(content, out var launchesError))
         {
-            issues.Add(new(WorkspaceIssueCode.InvalidLaunch, $"Launch '{launch.Label}' contains invalid command or profile data."));
+            issues.Add(new(WorkspaceIssueCode.InvalidLaunch, launchesError));
+        }
+    }
+
+    private static void ValidateSelectedLaunch(
+        WorkspaceEntry? launch,
+        List<WorkspaceIssue> issues)
+    {
+        if (launch is null || !launch.IsEnabled)
+        {
+            issues.Add(new(WorkspaceIssueCode.InvalidLaunch, "The selected launch entry is unavailable."));
+            return;
         }
 
-        if (!ShortcutValidation.TryValidateOptionalLinkUrl(content.DevServerUrl, out _, out normalizedUrl))
+        if (string.IsNullOrWhiteSpace(launch.Label)
+            || launch.Label.Length > ShortcutLaunchNormalization.MaxLabelLength
+            || !ShortcutValidation.TryValidateCommand(launch.Command, out _)
+            || !ShortcutValidation.TryValidateWtProfile(launch.WtProfile, out _))
         {
-            issues.Add(new(WorkspaceIssueCode.InvalidUrl, "Dev-server URL must be an absolute HTTP(S) URL."));
+            issues.Add(new(WorkspaceIssueCode.InvalidLaunch, $"Launch '{launch.Label}' contains invalid label, command, or profile data."));
         }
+    }
 
-        if (!ShortcutValidation.TryValidateOptionalLinkUrl(content.RepoUrl, out _, out _))
+    private static void ValidateUrl(
+        string? url,
+        bool required,
+        string message,
+        List<WorkspaceIssue> issues,
+        out string? normalizedUrl)
+    {
+        if (!ShortcutValidation.TryValidateOptionalLinkUrl(url, out _, out normalizedUrl)
+            || (required && normalizedUrl is null))
         {
-            issues.Add(new(WorkspaceIssueCode.InvalidUrl, "Repository URL must be an absolute HTTP(S) URL."));
+            issues.Add(new(WorkspaceIssueCode.InvalidUrl, message));
         }
+    }
 
+    private static void ValidateCompanions(
+        TerminalShortcut content,
+        string? normalizedDirectory,
+        List<WorkspaceIssue> issues,
+        List<WorkspaceRisk> risks,
+        out string? executablePath,
+        out string? arguments)
+    {
+        executablePath = null;
+        arguments = null;
         var configuredCompanions = CompanionAppNormalization.GetConfigured(content);
         if (configuredCompanions.Count > 0)
         {
@@ -178,11 +327,12 @@ internal static class WorkspaceSecurityPolicy
                 continue;
             }
 
+            var invalidArguments = !string.IsNullOrEmpty(companion.Arguments)
+                && (companion.Arguments.Length > ShortcutValidation.MaxCompanionAppArgumentsLength
+                    || companion.Arguments.IndexOfAny(['\r', '\n', '\0']) >= 0);
             if (companion.Path.Length > ShortcutValidation.MaxCompanionAppPathLength
                 || companion.Path.IndexOfAny(['\r', '\n', '\0']) >= 0
-                || (!string.IsNullOrEmpty(companion.Arguments)
-                    && (companion.Arguments.Length > ShortcutValidation.MaxCompanionAppArgumentsLength
-                        || companion.Arguments.IndexOfAny(['\r', '\n', '\0']) >= 0)))
+                || invalidArguments)
             {
                 issues.Add(new(WorkspaceIssueCode.InvalidCompanion, "Companion executable or arguments contain invalid characters or exceed the limit."));
                 continue;
@@ -191,63 +341,19 @@ internal static class WorkspaceSecurityPolicy
             if (!CompanionAppCatalog.TryResolveExecutablePath(companion.Path, out var resolved))
             {
                 issues.Add(new(WorkspaceIssueCode.CompanionExecutableUnavailable, $"Companion executable was not found: {companion.Path}"));
+                continue;
             }
-            else if (executablePath is null)
+
+            if (executablePath is not null)
             {
-                executablePath = resolved;
-                arguments = CompanionAppLauncher.ExpandArguments(
-                    companion.Arguments,
-                    normalizedDirectory ?? string.Empty);
+                continue;
             }
-        }
 
-        if (content.OpenDevServerOnLaunch && !string.IsNullOrWhiteSpace(content.DevServerUrl))
-        {
-            risks.Add(new("dev-server", "This workspace opens a configured URL after launch."));
+            executablePath = resolved;
+            arguments = CompanionAppLauncher.ExpandArguments(
+                companion.Arguments,
+                normalizedDirectory ?? string.Empty);
         }
-
-        if (!workspace.Security.IsTrusted
-            && (action is WorkspaceAction.LaunchTerminal
-                or WorkspaceAction.LaunchEntry
-                or WorkspaceAction.StartCompanion
-                or WorkspaceAction.OpenUrl
-                or WorkspaceAction.OpenDevServer
-                or WorkspaceAction.OpenDirectory))
-        {
-            issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
-        }
-
-        if (action == WorkspaceAction.OpenDirectory)
-        {
-            if (workspace.Security.IsTrusted && !IsLocalDirectoryPath(normalizedDirectory))
-            {
-                issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Only existing rooted local drive directories can be opened in Explorer."));
-            }
-            else if (!workspace.Security.IsTrusted)
-            {
-                issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Untrusted workspaces cannot open directories."));
-            }
-        }
-
-        if (action is WorkspaceAction.OpenUrl or WorkspaceAction.OpenDevServer && normalizedUrl is null)
-        {
-            issues.Add(new(WorkspaceIssueCode.InvalidUrl, "No valid HTTP(S) URL is configured."));
-        }
-
-        if (action == WorkspaceAction.GrantTrust && workspace.Security.IsTrusted)
-        {
-            return BuildResult(true, null, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
-        }
-
-        var primary = GetPrimaryIssue(issues, action);
-        var allowed = action switch
-        {
-            WorkspaceAction.CopyPath => !issues.Any(issue => issue.Code == WorkspaceIssueCode.InvalidDirectory),
-            WorkspaceAction.RevokeTrust => true,
-            WorkspaceAction.GrantTrust => issues.Count == 0,
-            _ => issues.Count == 0,
-        };
-        return BuildResult(allowed, primary, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
     }
 
     public static WorkspaceAuthorizationResult AuthorizeUrl(
@@ -289,7 +395,8 @@ internal static class WorkspaceSecurityPolicy
                 WorkspaceIssueCode.ActionNotAllowed,
             };
 
-        return precedence.FirstOrDefault(code => issues.Any(issue => issue.Code == code));
+        var issueCodes = issues.Select(issue => issue.Code).ToHashSet();
+        return precedence.FirstOrDefault(issueCodes.Contains);
     }
 
     public static WorkspaceReviewToken CreateReviewToken(StoredWorkspace workspace) =>
