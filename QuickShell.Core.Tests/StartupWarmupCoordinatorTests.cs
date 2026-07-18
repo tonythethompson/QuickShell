@@ -214,6 +214,55 @@ public class StartupWarmupCoordinatorTests
     }
 
     [Fact]
+    public void FirstListSignal_RacingDispose_DoesNotThrow()
+    {
+        var settings = new QuickShellSettingsManager();
+        var services = TestQuickShellServicesFactory.Create(
+            new FakeShortcutRepository(NoShortcuts),
+            new ShortcutDraftStore(new FakeShortcutRepository(NoShortcuts)),
+            settings,
+            new FakeProjectAnalysisService(),
+            new QuickShellLifetime());
+        var context = new StartupWarmupContext(services, settings, services.Lifetime);
+        var stages = new List<IStartupWarmupStage>
+        {
+            new LambdaStage("race", _ => { }),
+        };
+        var exceptions = new System.Collections.Concurrent.ConcurrentQueue<Exception>();
+
+        for (var iteration = 0; iteration < 50; iteration++)
+        {
+            var coordinator = new StartupWarmupCoordinator(services.Lifetime, context, stages);
+            Parallel.Invoke(
+                () =>
+                {
+                    try
+                    {
+                        coordinator.SignalFirstListPublished();
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Enqueue(ex);
+                    }
+                },
+                () =>
+                {
+                    try
+                    {
+                        coordinator.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Enqueue(ex);
+                    }
+                });
+            coordinator.Dispose();
+        }
+
+        Assert.Empty(exceptions);
+    }
+
+    [Fact]
     public void GitIndexWarmup_PassesSavedWorkspaceRootsOnly()
     {
         var root = CreateGitRepoRoot();

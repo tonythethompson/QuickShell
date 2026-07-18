@@ -40,7 +40,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
 
     public IReadOnlyList<IStartupWarmupStage> Stages => _stages;
 
-    public bool IsStarted => _started == 1;
+    public bool IsStarted => Volatile.Read(ref _started) == 1;
 
     public bool IsCompleted => Volatile.Read(ref _completed);
 
@@ -65,6 +65,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
             }
 
             _started = 1;
+
             if (snapshot is not null)
             {
                 _context.Snapshot = snapshot;
@@ -170,8 +171,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
             _disposed = true;
             _cts.Cancel();
             runTask = _runTask;
-            queueWaitSpan = _queueWaitSpan;
-            _queueWaitSpan = null;
+            queueWaitSpan = Interlocked.Exchange(ref _queueWaitSpan, null);
         }
 
         try

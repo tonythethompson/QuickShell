@@ -224,6 +224,81 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     }
 
     [Fact]
+    public void GetAll_AfterCompletedRestrictedPrewarm_StartsFullDiscovery()
+    {
+        var scopes = new List<bool>();
+        using var index = new GitRepoIndex(
+            _projectAnalysis,
+            _lifetime,
+            _scheduler,
+            (_, includeDefaultSearchRoots) =>
+            {
+                lock (scopes)
+                {
+                    scopes.Add(includeDefaultSearchRoots);
+                }
+
+                return includeDefaultSearchRoots
+                    ?
+                    [
+                        new GitRepoCandidate { Name = "Saved", Directory = @"C:\saved" },
+                        new GitRepoCandidate { Name = "Default", Directory = @"D:\default" },
+                    ]
+                    :
+                    [
+                        new GitRepoCandidate { Name = "Saved", Directory = @"C:\saved" },
+                    ];
+            });
+
+        index.Prewarm([@"C:\saved"]);
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+
+        Assert.Empty(index.GetAll([@"C:\saved"]));
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(2, index.GetAll([@"C:\saved"]).Count);
+        Assert.Equal([false, true], scopes);
+    }
+
+    [Fact]
+    public void GetAll_DuringRestrictedPrewarm_StartsIndependentFullDiscovery()
+    {
+        using var restrictedStarted = new ManualResetEventSlim(false);
+        using var releaseRestricted = new ManualResetEventSlim(false);
+        using var fullStarted = new ManualResetEventSlim(false);
+        using var index = new GitRepoIndex(
+            _projectAnalysis,
+            _lifetime,
+            _scheduler,
+            (_, includeDefaultSearchRoots) =>
+            {
+                if (!includeDefaultSearchRoots)
+                {
+                    restrictedStarted.Set();
+                    releaseRestricted.Wait(TimeSpan.FromSeconds(5));
+                    return [new GitRepoCandidate { Name = "Saved", Directory = @"C:\saved" }];
+                }
+
+                fullStarted.Set();
+                return
+                [
+                    new GitRepoCandidate { Name = "Saved", Directory = @"C:\saved" },
+                    new GitRepoCandidate { Name = "Default", Directory = @"D:\default" },
+                ];
+            });
+
+        index.Prewarm([@"C:\saved"]);
+        Assert.True(restrictedStarted.Wait(TimeSpan.FromSeconds(5)));
+
+        Assert.Empty(index.GetAll([@"C:\saved"]));
+        Assert.True(fullStarted.Wait(TimeSpan.FromSeconds(5)));
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+        releaseRestricted.Set();
+
+        Assert.Equal(2, index.GetAll([@"C:\saved"]).Count);
+    }
+
+    [Fact]
     public void TwoServiceProviders_DoNotShareCacheState()
     {
         using var providerA = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
