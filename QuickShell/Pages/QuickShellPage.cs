@@ -31,6 +31,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _refreshQueued;
     private bool _forceQueryRefresh;
     private bool _disposed;
+    private WorkspaceRepositorySnapshot? _warmupSnapshotPendingPublication;
 
     private IListItem[]? _cachedPageActions;
     private bool _cachedPageActionsCanUndo;
@@ -132,7 +133,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
         }
 
-        return _items;
+        var items = _items;
+        WorkspaceRepositorySnapshot? warmupSnapshot;
+        lock (_refreshSync)
+        {
+            warmupSnapshot = _warmupSnapshotPendingPublication;
+            _warmupSnapshotPendingPublication = null;
+        }
+
+        if (warmupSnapshot is not null)
+        {
+            ScheduleWarmupAfterGetItemsReturns(warmupSnapshot.Value);
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -449,15 +463,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _hasLoadedWorkspaces = true;
             _workspacesStale = false;
 
-            // Optional warmups start only after the first real list is published.
-            using (StartupPerformanceTrace.Measure("CmdPal home list: signal warmup"))
-            {
-                _context.WarmupCoordinator?.SignalFirstListPublished(snapshot);
-            }
-
             if (notifyHost)
             {
                 RaiseItemsChanged();
+                SignalWarmup(snapshot);
+            }
+            else
+            {
+                _warmupSnapshotPendingPublication = snapshot;
             }
 
             // #region agent log
@@ -521,6 +534,24 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             {
                 RefreshItems(queuedQuery, notifyHost: true);
             }
+        }
+    }
+
+    private void ScheduleWarmupAfterGetItemsReturns(WorkspaceRepositorySnapshot snapshot)
+    {
+        var cancellationToken = _services.Lifetime.CancellationToken;
+        _ = Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken).ContinueWith(
+            _ => SignalWarmup(snapshot),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion,
+            TaskScheduler.Default);
+    }
+
+    private void SignalWarmup(WorkspaceRepositorySnapshot snapshot)
+    {
+        using (StartupPerformanceTrace.Measure("CmdPal home list: signal warmup"))
+        {
+            _context.WarmupCoordinator?.SignalFirstListPublished(snapshot);
         }
     }
 

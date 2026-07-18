@@ -299,6 +299,41 @@ public sealed class GitRepoIndexCacheTests : IDisposable
     }
 
     [Fact]
+    public void Prewarm_DuringFullDiscovery_DoesNotSupersedeFullRefresh()
+    {
+        using var fullStarted = new ManualResetEventSlim(false);
+        using var releaseFull = new ManualResetEventSlim(false);
+        var discoveryCount = 0;
+        using var index = new GitRepoIndex(
+            _projectAnalysis,
+            _lifetime,
+            _scheduler,
+            (_, includeDefaultSearchRoots) =>
+            {
+                Interlocked.Increment(ref discoveryCount);
+                Assert.True(includeDefaultSearchRoots);
+                fullStarted.Set();
+                releaseFull.Wait(TimeSpan.FromSeconds(5));
+                return
+                [
+                    new GitRepoCandidate { Name = "Saved", Directory = @"C:\saved" },
+                    new GitRepoCandidate { Name = "Default", Directory = @"D:\default" },
+                ];
+            });
+
+        Assert.Empty(index.GetAll([@"C:\saved"]));
+        Assert.True(fullStarted.Wait(TimeSpan.FromSeconds(5)));
+
+        index.Prewarm([@"C:\saved"]);
+        Assert.Equal(1, Volatile.Read(ref discoveryCount));
+        releaseFull.Set();
+        index.WaitForRefreshForTests(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(2, index.GetAll([@"C:\saved"]).Count);
+        Assert.Equal(1, Volatile.Read(ref discoveryCount));
+    }
+
+    [Fact]
     public void TwoServiceProviders_DoNotShareCacheState()
     {
         using var providerA = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();

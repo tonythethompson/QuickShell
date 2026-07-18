@@ -144,6 +144,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var commandItem = commands[0];
         var page = (QuickShellPage)commandItem.Command;
         var getItemsMs = TimeCold(() => page.GetItems()).TotalMilliseconds;
+        var traceWhenGetItemsReturned = _trace.Builder.ToString();
 
         // Wait for the staged coordinator to finish.
         var coordinatorField = typeof(QuickShellCommandsProvider).GetField(
@@ -165,6 +166,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         _output.WriteLine(traceAfterWarmup.TrimEnd());
 
         Assert.DoesNotContain("Warmup stage", traceBeforeFirstList);
+        Assert.DoesNotContain("Warmup stage", traceWhenGetItemsReturned);
         Assert.Contains("Warmup stage", traceAfterWarmup);
     }
 
