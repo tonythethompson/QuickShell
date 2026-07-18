@@ -269,7 +269,7 @@ public sealed class RootPaletteSearchTests : IDisposable
     [Fact]
     public void Index_RebuildsAfterRepositoryRevisionChange()
     {
-        var temp = Path.Combine(_configDirectory, Guid.NewGuid().ToString("N"));
+        var temp = Path.Join(_configDirectory, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temp);
         var repository = new ShortcutRepository(temp);
         var directory = Path.Combine(temp, "alpha");
