@@ -370,4 +370,50 @@ public sealed class GitRepoIndexCacheTests : IDisposable
         Assert.Empty(indexB.GetAll([]));
         Assert.NotSame(indexA, indexB);
     }
+
+    [Fact]
+    public void Prewarm_ScopedCache_DoesNotSatisfy_OnDemand_IncludeDefaultSearchRoots_Request()
+    {
+        // A Prewarm that scanned only saved workspace roots must not satisfy a later
+        // Search/GetAll request that needs the broader default-drive scan, otherwise
+        // repos outside the saved roots would disappear from Discover until the cache
+        // expires or is invalidated.
+        using var index = CreateIndex();
+
+        index.SeedCacheForTests(
+            [
+                new GitRepoCandidate
+                {
+                    Name = "SavedOnly",
+                    Directory = @"C:\saved-only",
+                },
+            ],
+            rootKey: string.Empty,
+            refreshedUtc: DateTime.UtcNow,
+            includeDefaultSearchRoots: false);
+
+        Assert.Empty(index.GetAll([]));
+        Assert.Empty(index.Search("anything", []));
+    }
+
+    [Fact]
+    public void FullDiscoveryCache_Satisfies_Narrower_And_Equal_Scoped_Requests()
+    {
+        using var index = CreateIndex();
+
+        index.SeedCacheForTests(
+            [
+                new GitRepoCandidate
+                {
+                    Name = "Discovered",
+                    Directory = @"C:\discovered",
+                },
+            ],
+            rootKey: string.Empty,
+            refreshedUtc: DateTime.UtcNow,
+            includeDefaultSearchRoots: true);
+
+        Assert.Single(index.GetAll([]));
+        Assert.Single(index.Search("disc", []));
+    }
 }
