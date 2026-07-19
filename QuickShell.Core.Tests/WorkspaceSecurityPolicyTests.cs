@@ -35,7 +35,7 @@ public sealed class WorkspaceSecurityPolicyTests
             new CompanionAppEntry
             {
                 Id = "companion-1",
-                Path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.exe"),
+                Path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.exe"),
                 OpenOnLaunch = true,
             },
         ];
