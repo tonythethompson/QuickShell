@@ -177,7 +177,7 @@ public sealed class WorkspaceSecurityPolicyTests
     public void Launch_service_does_not_retain_denied_companion_with_duplicate_id()
     {
         var duplicateId = "duplicate-companion";
-        var missingPath = Path.Combine(
+        var missingPath = Path.Join(
             Path.GetTempPath(),
             Guid.NewGuid().ToString("N"),
             "missing.exe");
