@@ -135,7 +135,7 @@ public sealed class WorkspaceSecurityPolicyTests
             new CompanionAppEntry
             {
                 Id = "invalid-companion",
-                Path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.exe"),
+                Path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.exe"),
                 OpenOnLaunch = true,
                 Order = 0,
             },
