@@ -1,3 +1,4 @@
+using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
@@ -5,6 +6,7 @@ using QuickShell.Classification;
 using QuickShell.Commands;
 using QuickShell.Composition;
 using QuickShell.Models;
+using QuickShell.Pages;
 using QuickShell.Services;
 using QuickShell.Services.CommandRouting;
 using System.Threading;
@@ -47,7 +49,7 @@ public sealed class CommandRouterTests : IDisposable
     }
 
     [Fact]
-    public void TryHandle_resolves_all_deep_link_command_kinds()
+    public void TryHandle_resolves_each_routable_deep_link_command_kind_to_expected_item_type()
     {
         var workspaceDir = Path.Join(_configDirectory, "workspace");
         Directory.CreateDirectory(workspaceDir);
@@ -78,29 +80,83 @@ public sealed class CommandRouterTests : IDisposable
         var context = new QuickShellPageContext(host, createShortcut, () => { });
         var router = _provider.GetRequiredService<ICommandRouter>();
 
-        var commandIds = new[]
-        {
-            CommandDescriptor.Settings().Id,
-            CommandDescriptor.ImportConflict().Id,
-            CommandDescriptor.PendingShortcutEdit().Id,
-            CommandDescriptor.CreateWorkspace().Id,
-            CommandDescriptor.DiscoverGitRepos().Id,
-            CommandDescriptor.DiscoverCreate(workspaceDir).Id,
-            CommandDescriptor.OpenWorkspace(assignedWorkspaceId).Id,
-            CommandDescriptor.OpenLaunch(assignedWorkspaceId, assignedLaunchId).Id,
-            CommandDescriptor.WorkspaceStatus(assignedWorkspaceId).Id,
-            CommandDescriptor.WorktreeBranchPicker(assignedWorkspaceId).Id,
-            CommandDescriptor.WorktreeBranchSelect(assignedWorkspaceId, "feature/x").Id,
-            CommandDescriptor.WorktreeBranchClear(assignedWorkspaceId).Id,
-        };
+        AssertCommandItemRoutedTo<QuickShellExtensionSettingsPage>(
+            router, context, CommandDescriptor.Settings().Id);
+        AssertCommandItemRoutedTo<ImportConflictPage>(
+            router, context, CommandDescriptor.ImportConflict().Id);
+        AssertCommandItemRoutedTo<PendingShortcutEditPage>(
+            router, context, CommandDescriptor.PendingShortcutEdit().Id);
+        AssertCommandItemRoutedTo<CreateShortcutCommand>(
+            router, context, CommandDescriptor.CreateWorkspace().Id);
+        AssertCommandItemRoutedTo<OpenDiscoverGitReposCommand>(
+            router, context, CommandDescriptor.DiscoverGitRepos().Id);
+        AssertCommandItemRoutedTo<CreateShortcutCommand>(
+            router, context, CommandDescriptor.DiscoverCreate(workspaceDir).Id);
 
-        foreach (var commandId in commandIds)
-        {
-            Assert.True(
-                router.TryHandle(commandId, context, out var item),
-                $"Router should handle {commandId}");
-            Assert.NotNull(item);
-        }
+        AssertListItemRoutedTo<OpenTerminalShortcutCommand>(
+            router, context, CommandDescriptor.OpenWorkspace(assignedWorkspaceId).Id);
+        AssertListItemRoutedTo<OpenShortcutLaunchCommand>(
+            router, context, CommandDescriptor.OpenLaunch(assignedWorkspaceId, assignedLaunchId).Id);
+        AssertCommandItemRoutedTo<WorkspaceStatusPage>(
+            router, context, CommandDescriptor.WorkspaceStatus(assignedWorkspaceId).Id);
+        AssertCommandItemRoutedTo<WorktreeBranchPickerPage>(
+            router, context, CommandDescriptor.WorktreeBranchPicker(assignedWorkspaceId).Id);
+        AssertCommandItemRoutedTo<SelectWorktreeBranchCommand>(
+            router, context, CommandDescriptor.WorktreeBranchSelect(assignedWorkspaceId, "feature/x").Id);
+        AssertCommandItemRoutedTo<UseCurrentWorktreeBranchCommand>(
+            router, context, CommandDescriptor.WorktreeBranchClear(assignedWorkspaceId).Id);
+    }
+
+    [Fact]
+    public void TryHandle_returns_false_for_in_page_favorite_command_kinds()
+    {
+        var host = _provider.GetRequiredService<QuickShellHostServices>();
+        var createShortcut = new CreateShortcutCommand(() => { }, _provider.GetRequiredService<IQuickShellServices>());
+        var context = new QuickShellPageContext(host, createShortcut, () => { });
+        var router = _provider.GetRequiredService<ICommandRouter>();
+
+        var favoriteToggleId = CommandDescriptor.FavoriteToggle("my-workspace").Id;
+        var favoriteMoveId = CommandDescriptor.FavoriteMove(
+            "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+            "Up").Id;
+
+        Assert.False(
+            router.TryHandle(favoriteToggleId, context, out var toggleItem),
+            "FavoriteToggle is an in-page ID and should not be routed as an external deep link.");
+        Assert.Null(toggleItem);
+
+        Assert.False(
+            router.TryHandle(favoriteMoveId, context, out var moveItem),
+            "FavoriteMove is an in-page ID and should not be routed as an external deep link.");
+        Assert.Null(moveItem);
+    }
+
+    private static void AssertCommandItemRoutedTo<TCommand>(
+        ICommandRouter router,
+        QuickShellPageContext context,
+        string commandId)
+        where TCommand : class
+    {
+        Assert.True(
+            router.TryHandle(commandId, context, out var item),
+            $"Router should handle {commandId}");
+        Assert.NotNull(item);
+        var commandItem = Assert.IsType<CommandItem>(item);
+        Assert.IsType<TCommand>(commandItem.Command);
+    }
+
+    private static void AssertListItemRoutedTo<TCommand>(
+        ICommandRouter router,
+        QuickShellPageContext context,
+        string commandId)
+        where TCommand : class
+    {
+        Assert.True(
+            router.TryHandle(commandId, context, out var item),
+            $"Router should handle {commandId}");
+        Assert.NotNull(item);
+        var listItem = Assert.IsType<ListItem>(item);
+        Assert.IsType<TCommand>(listItem.Command);
     }
 
     public void Dispose()

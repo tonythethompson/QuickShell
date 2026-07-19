@@ -43,9 +43,7 @@ Empty state → create command + settings.
 
 ## Deep links / command routing
 
-Stable IDs in `QuickShellDeepLinkIds` + builders in `ShortcutCommandIds`.
-
-Parse → `CommandIdParser` → `CommandDescriptor` + `CommandKind`.
+The deep-link contract is owned by `CommandDescriptor` (`QuickShell.Core/Services/CommandDescriptor.cs`). It defines all stable IDs, prefixes, suffixes, encoding helpers, and the nested parser. `CommandIdParser` is a thin adapter that delegates to `CommandDescriptor.Parser`. See the frozen contract in [deep-link-schema.md](./deep-link-schema.md).
 
 Kinds (see `CommandKind.cs`):
 
@@ -56,20 +54,11 @@ Kinds (see `CommandKind.cs`):
 | DiscoverGitRepos | Discover page |
 | WorkspaceStatus / WorktreeBranch* | Status + branch UI |
 | OpenSettings / ImportConflict / PendingShortcutEdit | Settings flows |
+| FavoriteToggle / FavoriteMove | In-page context-menu IDs only |
 
 `CommandRouter` maps kind → `ICommandItemHandler` (DI-registered handlers in `Services/CommandRouting/`).
 
 Proposal **0003** is largely about hardening this path; router + descriptors already exist.
-
-### ID prefixes (examples)
-
-```
-com.quickshell.shortcut.open.{id}
-com.quickshell.shortcut.open.{id}.launch.{launchId}
-com.quickshell.workspace-status.{id}
-com.quickshell.discover-git-repos
-com.quickshell.settings
-```
 
 ## Fallback (root palette search)
 
@@ -96,7 +85,7 @@ Reload extension invalidates git index and clears fallback cache.
 |------|--------|
 | Provider | `QuickShellCommandsProvider.cs`, `QuickShell.cs` |
 | Home | `Pages/QuickShellPage.cs`, `Services/ShortcutListItems.cs`, `SectionListItems.cs` |
-| Routing | `CommandRouter.cs`, `CommandIdParser.cs`, `CommandKind.cs`, `CommandRouting/*` |
+| Routing | `CommandRouter.cs`, `CommandIdParser.cs`, `CommandKind.cs`, `CommandDescriptor.cs`, `CommandRouting/*` |
 | Fallback | `QuickShellFallback.cs`, `Pages/QuickShellFallbackPage.cs` |
 | Context | `ShortcutContextCommands.cs` |
 | Status | `Pages/WorkspaceStatusPage.cs` |
