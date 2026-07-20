@@ -30,14 +30,14 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
     private readonly ITestOutputHelper _output;
     private readonly string _tempRoot;
     private readonly string _localAppData;
-    private readonly string? _originalLocalAppData;
 
     // Every IGitRepoIndex created by CreatePageHarness. GitRepoIndex.Search/GetAll/Prewarm
     // start an async refresh Task.Run and return without waiting for it, so a scenario can
-    // finish while that background call is still executing under the shared static
-    // GitRepoDiscovery override. Draining these before Dispose() resets that override keeps
-    // a stray in-flight call from corrupting the next test's own override/counter.
+    // finish while that background call is still executing. Draining these before Dispose()
+    // avoids a stray in-flight scan touching _tempRoot after Directory.Delete runs.
     private readonly List<IGitRepoIndex> _createdGitIndices = [];
+    private readonly GitRepoDiscovery.TestScope _gitScope;
+    private readonly AppDataRoot.TestScope _appDataScope;
 
     public PerformanceRegressionHarnessTests(ITestOutputHelper output)
     {
@@ -47,19 +47,16 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
 
         _localAppData = Path.Join(_tempRoot, "localappdata");
         Directory.CreateDirectory(_localAppData);
-        _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", _localAppData);
+        _appDataScope = new AppDataRoot.TestScope(_localAppData);
 
-        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
+        _gitScope = new GitRepoDiscovery.TestScope(includeDefaultSearchRoots: false, defaultRootCandidates: []);
     }
 
     public void Dispose()
     {
         DrainAllGitActivity();
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", _originalLocalAppData);
-        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
+        _appDataScope.Dispose();
+        _gitScope.Dispose();
         try
         {
             if (Directory.Exists(_tempRoot))
@@ -211,7 +208,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         var abbreviationHit = abbreviated.Abbreviation;
         var nameHit = snapshot.Shortcuts[0].Name;
 
-        var index = new RootPaletteSearchIndex(snapshot);
+        var index = new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService()));
 
         report.Add(BenchmarkRunner.Measure(
             "abbreviation hit",
@@ -246,7 +243,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         var indexBuildCold = BenchmarkRunner.MeasureOnce(
             "cold query index build (200 workspaces)",
             category,
-            () => _ = new RootPaletteSearchIndex(snapshot));
+            () => _ = new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService())));
         report.Add(indexBuildCold);
 
         report.Add(BenchmarkRunner.Measure(
@@ -254,7 +251,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
             category,
             () =>
             {
-                var reused = index.Revision == snapshot.Version ? index : new RootPaletteSearchIndex(snapshot);
+                var reused = index.Revision == snapshot.Version ? index : new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService()));
                 _ = reused.Search(nameHit, harness.Services.GitRepos);
             }));
 
@@ -262,7 +259,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
         report.Add(BenchmarkRunner.MeasureOnce(
             "repository-version invalidation (index rebuild after version bump)",
             category,
-            () => _ = new RootPaletteSearchIndex(bumped)));
+            () => _ = new RootPaletteSearchIndex(bumped, new TerminalCatalog(new WtProfilesService()))));
     }
 
     // --- Git discovery ---------------------------------------------------------------

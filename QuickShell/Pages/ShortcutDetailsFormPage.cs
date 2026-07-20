@@ -13,7 +13,8 @@ internal sealed partial class ShortcutDetailsFormPage : ContentPage
     public ShortcutDetailsFormPage(
         TerminalShortcut shortcut,
         Action<TerminalShortcut> onChanged,
-        IWorkspaceGitOperations gitOperations)
+        IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore)
     {
         Id = CommandDescriptor.ShortcutDetailsPageId();
         Icon = new IconInfo("\uE70F");
@@ -22,14 +23,16 @@ internal sealed partial class ShortcutDetailsFormPage : ContentPage
         _shortcut = shortcut;
         _onChanged = onChanged;
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
+        _targetStore = targetStore ?? throw new ArgumentNullException(nameof(targetStore));
     }
 
     private readonly TerminalShortcut _shortcut;
     private readonly Action<TerminalShortcut> _onChanged;
     private readonly IWorkspaceGitOperations _gitOperations;
+    private readonly IWorktreeBranchTargetStore _targetStore;
 
     public override IContent[] GetContent() =>
-        [_form ??= new ShortcutDetailsForm(_shortcut, _onChanged, _gitOperations, () => _form = null)];
+        [_form ??= new ShortcutDetailsForm(_shortcut, _onChanged, _gitOperations, _targetStore, () => _form = null)];
 
     private ShortcutDetailsForm? _form;
 }
@@ -39,6 +42,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
     private readonly TerminalShortcut _shortcut;
     private readonly Action<TerminalShortcut> _onChanged;
     private readonly IWorkspaceGitOperations _gitOperations;
+    private readonly IWorktreeBranchTargetStore _targetStore;
     private readonly Action? _releaseForm;
     private FormDraft _draft = new();
 
@@ -46,11 +50,13 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         TerminalShortcut shortcut,
         Action<TerminalShortcut> onChanged,
         IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
         Action? releaseForm = null)
     {
         _shortcut = shortcut;
         _onChanged = onChanged;
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
+        _targetStore = targetStore ?? throw new ArgumentNullException(nameof(targetStore));
         _releaseForm = releaseForm;
         TemplateJson = BuildTemplateJson();
         ApplyDraft();
@@ -164,7 +170,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         _shortcut.Abbreviation = string.IsNullOrWhiteSpace(_draft.Abbreviation) ? null : _draft.Abbreviation.Trim();
         _shortcut.Directory = normalized;
 
-        if (!WorktreeBranchTargetStore.TrySetTargetForDirectory(
+        if (!_targetStore.TrySetTargetForDirectory(
                 normalized,
                 string.IsNullOrWhiteSpace(_draft.TargetBranch) ? null : _draft.TargetBranch.Trim(),
                 _gitOperations,
@@ -206,7 +212,7 @@ internal sealed partial class ShortcutDetailsForm : FormContent
         _draft.Name = _shortcut.Name;
         _draft.Abbreviation = _shortcut.Abbreviation ?? string.Empty;
         _draft.Directory = _shortcut.Directory;
-        _draft.TargetBranch = WorktreeBranchTargetStore.GetTargetForDirectory(_shortcut.Directory, _gitOperations) ?? string.Empty;
+        _draft.TargetBranch = _targetStore.GetTargetForDirectory(_shortcut.Directory, _gitOperations) ?? string.Empty;
         PublishDraftJson();
     }
 

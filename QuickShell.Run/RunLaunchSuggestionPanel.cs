@@ -241,7 +241,7 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
 
                 cancellation.Dispose();
             }
-        });
+        }, token);
     }
 
     public void Dispose()

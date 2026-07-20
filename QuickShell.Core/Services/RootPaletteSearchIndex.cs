@@ -31,8 +31,9 @@ internal sealed class RootPaletteSearchIndex
     private readonly IReadOnlySet<string> _savedDirectories;
     private readonly IReadOnlyList<string> _gitSearchRoots;
 
-    public RootPaletteSearchIndex(WorkspaceRepositorySnapshot snapshot)
+    public RootPaletteSearchIndex(WorkspaceRepositorySnapshot snapshot, ITerminalCatalog catalog)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
         Revision = snapshot.Version;
 
         var shortcuts = snapshot.Shortcuts;
@@ -55,7 +56,7 @@ internal sealed class RootPaletteSearchIndex
             }
 
             rootViews.Add(new WorkspaceRootView(shortcut));
-            taskViews.Add(new WorkspaceTaskView(shortcut));
+            taskViews.Add(new WorkspaceTaskView(shortcut, catalog));
         }
 
         _rootViews = rootViews;
@@ -385,7 +386,7 @@ internal sealed class RootPaletteSearchIndex
 
     private sealed class WorkspaceTaskView
     {
-        public WorkspaceTaskView(TerminalShortcut shortcut)
+        public WorkspaceTaskView(TerminalShortcut shortcut, ITerminalCatalog catalog)
         {
             Shortcut = shortcut;
             AbbreviationTrimmed = shortcut.Abbreviation?.Trim();
@@ -396,7 +397,7 @@ internal sealed class RootPaletteSearchIndex
             var launchViews = new List<LaunchTaskView>(launches.Count);
             foreach (var launch in launches)
             {
-                launchViews.Add(new LaunchTaskView(launch));
+                launchViews.Add(new LaunchTaskView(launch, catalog));
             }
 
             Launches = launchViews;
@@ -415,7 +416,7 @@ internal sealed class RootPaletteSearchIndex
 
     private sealed class LaunchTaskView
     {
-        public LaunchTaskView(WorkspaceEntry launch)
+        public LaunchTaskView(WorkspaceEntry launch, ITerminalCatalog catalog)
         {
             Launch = launch;
             LabelTrimmed = launch.Label?.Trim();
@@ -424,7 +425,7 @@ internal sealed class RootPaletteSearchIndex
             IsEnabled = launch.IsEnabled;
             Order = launch.Order;
 
-            var profileLabel = TerminalCatalog.GetProfileLabel(new TerminalShortcut
+            var profileLabel = catalog.GetProfileLabel(new TerminalShortcut
             {
                 Terminal = launch.Terminal,
                 WtProfile = launch.WtProfile,

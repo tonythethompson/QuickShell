@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -27,9 +28,11 @@ internal sealed class WtProfileInfo
     public required string SourceLabel { get; init; }
 }
 
-internal static class WtProfilesService
+internal sealed class WtProfilesService : IWtProfilesService
 {
-    private static readonly object Sync = new();
+    private readonly object _sync = new();
+    private readonly IReadOnlyList<TerminalSettingsLocation>? _fixedLocations;
+    private readonly Action? _onParse;
 
     /// <summary>
     /// When the profile list is warm, skip re-statting every settings path on every call.
@@ -37,61 +40,53 @@ internal static class WtProfilesService
     /// </summary>
     private const int RefreshCheckMinIntervalMs = 2000;
 
-    private static WtProfileInfo[] _cached = [];
-    private static readonly Dictionary<string, DateTime> _writeTimes = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, WtProfileInfo[]> _profilesBySettingsPath = new(StringComparer.OrdinalIgnoreCase);
-    private static TerminalSettingsLocation[] _locations = [];
-    private static long _lastRefreshCheckTickMs;
+    private WtProfileInfo[] _cached = [];
+    private readonly Dictionary<string, DateTime> _writeTimes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, WtProfileInfo[]> _profilesBySettingsPath = new(StringComparer.OrdinalIgnoreCase);
+    private TerminalSettingsLocation[] _locations = [];
+    private long _lastRefreshCheckTickMs;
+    private int _parseCount;
 
-    internal static TerminalSettingsLocation[]? TestLocationsOverride { get; set; }
-
-    internal static int TestParseCount { get; private set; }
-
-    internal static Action? TestOnParseForTests { get; set; }
-
-    public static void InvalidateCache()
+    public WtProfilesService(
+        IReadOnlyList<TerminalSettingsLocation>? locations = null,
+        Action? onParse = null)
     {
-        lock (Sync)
+        _fixedLocations = locations;
+        _onParse = onParse;
+    }
+
+    /// <summary>Number of settings files parsed since construction (tests).</summary>
+    internal int ParseCount
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _parseCount;
+            }
+        }
+    }
+
+    public void InvalidateCache()
+    {
+        lock (_sync)
         {
             _cached = [];
             _writeTimes.Clear();
             _profilesBySettingsPath.Clear();
             _locations = [];
             _lastRefreshCheckTickMs = 0;
-            TestLocationsOverride = null;
-            TestOnParseForTests = null;
-            TestParseCount = 0;
+            _parseCount = 0;
         }
 
         WindowsTerminalInstallDiscovery.InvalidateCache();
     }
 
-    internal sealed class TestScope : IDisposable
+    private TerminalSettingsLocation[] GetLocations()
     {
-        public TestScope(TerminalSettingsLocation[] locations, Action? onParse = null)
+        if (_fixedLocations is { Count: > 0 })
         {
-            lock (Sync)
-            {
-                TestLocationsOverride = locations;
-                TestOnParseForTests = onParse;
-            }
-        }
-
-        public void Dispose()
-        {
-            lock (Sync)
-            {
-                TestLocationsOverride = null;
-                TestOnParseForTests = null;
-            }
-        }
-    }
-
-    private static TerminalSettingsLocation[] GetLocations()
-    {
-        if (TestLocationsOverride is { Length: > 0 } overrideLocations)
-        {
-            return overrideLocations;
+            return [.. _fixedLocations];
         }
 
         if (_locations.Length == 0)
@@ -102,19 +97,19 @@ internal static class WtProfilesService
         return _locations;
     }
 
-    public static IReadOnlyList<WtProfileInfo> GetProfiles()
+    public IReadOnlyList<WtProfileInfo> GetProfiles()
     {
-        lock (Sync)
+        lock (_sync)
         {
             RefreshCacheIfNeeded();
             return _cached;
         }
     }
 
-    public static IReadOnlyList<string> GetProfileNames() =>
+    public IReadOnlyList<string> GetProfileNames() =>
         GetProfiles().Select(p => p.Name).ToArray();
 
-    public static WtProfileInfo? FindProfileForLaunch(string? terminal, string? profileName)
+    public WtProfileInfo? FindProfileForLaunch(string? terminal, string? profileName)
     {
         if (string.IsNullOrWhiteSpace(profileName))
         {
@@ -133,7 +128,7 @@ internal static class WtProfilesService
             && profile.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static WtProfileInfo? FindProfileByNameAcrossHosts(string profileName)
+    public WtProfileInfo? FindProfileByNameAcrossHosts(string profileName)
     {
         if (string.IsNullOrWhiteSpace(profileName))
         {
@@ -145,7 +140,7 @@ internal static class WtProfilesService
             profile.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static WtProfileInfo? FindDefaultProfile(string hostTerminal)
+    public WtProfileInfo? FindDefaultProfile(string hostTerminal)
     {
         var prefixes = GetIdPrefixesForTerminal(hostTerminal);
         if (prefixes.Length == 0)
@@ -158,7 +153,7 @@ internal static class WtProfilesService
             && profile.IsDefault);
     }
 
-    public static WtProfileInfo? FindProfileForStandaloneShell(string shellId)
+    public WtProfileInfo? FindProfileForStandaloneShell(string shellId)
     {
         var normalized = (shellId ?? string.Empty).Trim().ToLowerInvariant() switch
         {
@@ -169,7 +164,7 @@ internal static class WtProfilesService
         return GetProfiles().FirstOrDefault(profile => MatchesStandaloneShell(profile, normalized));
     }
 
-    public static IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId)
+    public IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId)
     {
         if (terminalApplicationId.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase))
         {
@@ -183,16 +178,16 @@ internal static class WtProfilesService
             .ToArray();
     }
 
-    private static void RefreshCacheIfNeeded()
+    private void RefreshCacheIfNeeded()
     {
         var forceRefresh = _cached.Length == 0 && _writeTimes.Count == 0 && _profilesBySettingsPath.Count == 0;
         var nowTick = Environment.TickCount64;
 
-        // Warm cache + production (not test scope): reuse last merge without re-statting
+        // Warm cache + non-fixed locations: reuse last merge without re-statting
         // every known settings.json on each terminal-target resolution.
         if (!forceRefresh
             && _cached.Length > 0
-            && TestLocationsOverride is null
+            && _fixedLocations is null
             && nowTick - _lastRefreshCheckTickMs < RefreshCheckMinIntervalMs)
         {
             return;
@@ -247,23 +242,23 @@ internal static class WtProfilesService
         RebuildMergedCache();
     }
 
-    private static WtProfileInfo[] ReadProfilesForLocation(TerminalSettingsLocation location)
+    private WtProfileInfo[] ReadProfilesForLocation(TerminalSettingsLocation location)
     {
-        TestParseCount++;
-        if (IsActiveTestSettingsPath(location.SettingsPath))
+        _parseCount++;
+        if (IsActiveFixedSettingsPath(location.SettingsPath))
         {
-            TestOnParseForTests?.Invoke();
+            _onParse?.Invoke();
         }
 
         return TryReadProfiles(location).ToArray();
     }
 
-    private static bool IsActiveTestSettingsPath(string settingsPath) =>
-        TestLocationsOverride is { Length: > 0 } locations
+    private bool IsActiveFixedSettingsPath(string settingsPath) =>
+        _fixedLocations is { Count: > 0 } locations
         && locations.Any(entry =>
             string.Equals(entry.SettingsPath, settingsPath, StringComparison.OrdinalIgnoreCase));
 
-    private static void RebuildMergedCache()
+    private void RebuildMergedCache()
     {
         var merged = _profilesBySettingsPath.Values.SelectMany(profiles => profiles).ToList();
         _cached = merged

@@ -45,6 +45,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
     private readonly ICompanionAppLauncher _companionAppLauncher;
     private readonly WorkspaceGitLaunchGate _gitLaunchGate;
     private readonly IShortcutRepository? _repository;
+    private readonly ITerminalCatalog _catalog;
     private readonly WorkspaceLaunchPlanCache _planCache = new();
 
     public ShortcutLaunchExecutor(
@@ -52,13 +53,15 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         IWorkspaceHealthChecker healthChecker,
         ICompanionAppLauncher companionAppLauncher,
         WorkspaceGitLaunchGate gitLaunchGate,
-        IShortcutRepository? repository = null)
+        IShortcutRepository? repository = null,
+        ITerminalCatalog? catalog = null)
     {
         _terminalLauncher = terminalLauncher ?? throw new ArgumentNullException(nameof(terminalLauncher));
         _healthChecker = healthChecker ?? throw new ArgumentNullException(nameof(healthChecker));
         _companionAppLauncher = companionAppLauncher ?? throw new ArgumentNullException(nameof(companionAppLauncher));
         _gitLaunchGate = gitLaunchGate ?? throw new ArgumentNullException(nameof(gitLaunchGate));
         _repository = repository;
+        _catalog = catalog ?? new TerminalCatalog(new WtProfilesService());
     }
 
     public ShortcutLaunchResult Launch(
@@ -262,7 +265,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         return ShortcutLaunchResult.StayOpen("Workspace not found.", diagnostics: diagnostics);
     }
 
-    private static LaunchPlanCacheKey BuildCacheKey(
+    private LaunchPlanCacheKey BuildCacheKey(
         TerminalShortcut shortcut,
         long repositoryVersion,
         string effectiveTerminalApplicationId,
@@ -271,7 +274,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         ShortcutLaunchOptions options)
     {
         var settingsFingerprint = BuildSettingsFingerprint(effectiveTerminalApplicationId, defaultProfileId, options);
-        var terminalFingerprint = TerminalCatalog.GetFingerprint();
+        var terminalFingerprint = _catalog.GetFingerprint();
         return new LaunchPlanCacheKey(
             shortcut.Id,
             repositoryVersion,
@@ -290,7 +293,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         return $"workspace={key.WorkspaceId}, version={key.RepositoryVersion}, launch={(key.LaunchEntryId ?? "(all)")}, runAsAdmin={key.RunAsAdmin}, runAsStandard={key.RunAsStandard}, settings={key.SettingsFingerprint}, catalog={key.TerminalCatalogFingerprint}";
     }
 
-    private static ResolvedWorkspaceLaunchPlan BuildPlan(
+    private ResolvedWorkspaceLaunchPlan BuildPlan(
         TerminalShortcut shortcut,
         long repositoryVersion,
         string effectiveTerminalApplicationId,
@@ -324,7 +327,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             }
 
             launchShortcut.Directory = normalizedDirectory;
-            var target = TerminalCatalog.ResolveForShortcut(launchShortcut, effectiveTerminalApplicationId, defaultProfileId);
+            var target = _catalog.ResolveForShortcut(launchShortcut, effectiveTerminalApplicationId, defaultProfileId);
             var resolved = new ResolvedLaunch(launchShortcut, target);
             var effectiveElevation = !options.RunAsStandard && (options.RunAsAdmin || launch.RunAsAdmin);
             planEntries.Add(new ResolvedLaunchPlanEntry(launch, resolved, effectiveElevation, launch.Order));

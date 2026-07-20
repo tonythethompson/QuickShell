@@ -151,7 +151,7 @@ internal abstract partial class DiscoverGitReposPage : DynamicListPage, IDisposa
             _refreshScheduled = true;
         }
 
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_services.CallbackQueue, () =>
+        _services.RefreshScheduler.SchedulePostNavigationRefresh(() =>
         {
             lock (_refreshSync)
             {

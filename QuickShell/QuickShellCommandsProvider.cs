@@ -35,21 +35,21 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
     public QuickShellCommandsProvider()
     {
-        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "start");
+        SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "start");
 
         using var startupTrace = StartupPerformanceTrace.Measure("CmdPal provider constructor");
 
         using (StartupPerformanceTrace.Measure("CmdPal settings manager"))
         {
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager");
+            SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "before settings manager");
             // Settings + create/edit forms leave via SubmitForm — invalidate only (no list rebuild).
             _settingsManager = new QuickShellSettingsManager(InvalidatePagesAfterNavigation);
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager");
+            SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "after settings manager");
         }
 
         using (StartupPerformanceTrace.Measure("CmdPal composition root"))
         {
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before composition root");
+            SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "before composition root");
             var collection = new ServiceCollection();
             var lifetime = new QuickShellLifetime();
             collection.AddQuickShellHost(_settingsManager, lifetime: lifetime);
@@ -65,7 +65,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
             _warmupCoordinator = new StartupWarmupCoordinator(_lifetime, warmupContext, warmupStages);
 
             _context = new QuickShellPageContext(host, createShortcut, ReloadPages, _warmupCoordinator);
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after composition root");
+            SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "after composition root");
         }
 
         DisplayName = QuickShellBrand.DisplayName;
@@ -75,11 +75,11 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
 
         using (StartupPerformanceTrace.Measure("CmdPal page setup"))
         {
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "before page setup");
+            SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "before page setup");
             _page = new QuickShellPage(_context);
             _settingsChangedHandler = (_, _) => _page.Reload();
             _settingsManager.SettingsChanged += _settingsChangedHandler;
-            SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "after page setup");
+            SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "after page setup");
         }
 
         var settingsPage = _settingsManager.SettingsPage;
@@ -132,7 +132,7 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         _fallbackPage = new Lazy<QuickShellFallbackPage>(() => new QuickShellFallbackPage(_context));
         _fallbacks = [new QuickShellFallback(_context, _fallbackPage)];
 
-        SupportDiagnostics.Write("QuickShellCommandsProvider.cs:ctor", "complete");
+        SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "complete");
     }
 
     public override ICommandItem[] TopLevelCommands() => _commands;

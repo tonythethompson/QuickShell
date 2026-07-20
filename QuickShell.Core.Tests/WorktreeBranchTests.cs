@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Text.Json;
@@ -5,14 +6,14 @@ using QuickShell;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorktreeBranchTests : IDisposable
 {
     private readonly string _root;
     private readonly Dictionary<string, string> _branchTargets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, GitRepoState> _repos = new(StringComparer.OrdinalIgnoreCase);
     private readonly WorkspaceGitOperations _git;
-    private readonly WorkspaceGitLaunchGate _gate;
+    private FakeWorktreeBranchTargetStore _targetStore = null!;
+    private WorkspaceGitLaunchGate _gate = null!;
     private int _switchCalls;
 
     public WorktreeBranchTests()
@@ -21,8 +22,6 @@ public sealed class WorktreeBranchTests : IDisposable
         Directory.CreateDirectory(_root);
 
         _git = new WorkspaceGitOperations(RunGit, getStatus: null);
-        _gate = new WorkspaceGitLaunchGate(_git);
-
         LaunchExecutorTestEnvironment.Apply();
         ResetSeams();
     }
@@ -42,7 +41,7 @@ public sealed class WorktreeBranchTests : IDisposable
     }
 
     private LaunchTestBundle CreateLaunchBundle() =>
-        LaunchTestServices.CreateBundle(git: _git);
+        LaunchTestServices.CreateBundle(git: _git, targetStore: _targetStore);
 
     [Fact]
     public void ResolveWorktreeKey_RootAndNestedDirectory_ShareSameKey()
@@ -71,11 +70,11 @@ public sealed class WorktreeBranchTests : IDisposable
         Assert.True(_git.TryResolveWorktreeKey(featureWorktree, out var featureKey));
         Assert.NotEqual(mainKey, featureKey, StringComparer.OrdinalIgnoreCase);
 
-        _branchTargets[mainKey] = "main";
-        _branchTargets[featureKey] = "feature/x";
+        _targetStore.SetTarget(mainKey, "main");
+        _targetStore.SetTarget(featureKey, "feature/x");
 
-        Assert.Equal("main", WorktreeBranchTargetStore.GetTarget(mainKey));
-        Assert.Equal("feature/x", WorktreeBranchTargetStore.GetTarget(featureKey));
+        Assert.Equal("main", _targetStore.GetTarget(mainKey));
+        Assert.Equal("feature/x", _targetStore.GetTarget(featureKey));
     }
 
     [Fact]
@@ -86,19 +85,16 @@ public sealed class WorktreeBranchTests : IDisposable
         ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
         Assert.True(_git.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
 
-        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
-        WorktreeBranchTargetStore.GetTargetOverride = null;
-        WorktreeBranchTargetStore.SetTargetOverride = null;
-        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
-        WorktreeBranchTargetStore.ResetForTests();
+        var appRoot = Path.Join(_root, "appdata");
+        Directory.CreateDirectory(Path.Join(appRoot, "QuickShell"));
+        var targetsPath = Path.Join(appRoot, "QuickShell", "worktree-branch-targets.json");
+        var store = new WorktreeBranchTargetStore(new AppDataPaths(appRoot), new AtomicFileWriter());
 
-        WorktreeBranchTargetStore.SetTarget(worktreeKey, "feature/persisted");
+        store.SetTarget(worktreeKey, "feature/persisted");
         Assert.True(File.Exists(targetsPath));
 
-        WorktreeBranchTargetStore.ResetForTests();
-        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
-
-        Assert.Equal("feature/persisted", WorktreeBranchTargetStore.GetTarget(worktreeKey));
+        var reloaded = new WorktreeBranchTargetStore(new AppDataPaths(appRoot), new AtomicFileWriter());
+        Assert.Equal("feature/persisted", reloaded.GetTarget(worktreeKey));
     }
 
     [Fact]
@@ -109,7 +105,9 @@ public sealed class WorktreeBranchTests : IDisposable
         ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
         Assert.True(_git.TryResolveWorktreeKey(repoRoot, out var worktreeKey));
 
-        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
+        var appRoot = Path.Join(_root, "appdata-legacy");
+        Directory.CreateDirectory(Path.Join(appRoot, "QuickShell"));
+        var targetsPath = Path.Join(appRoot, "QuickShell", "worktree-branch-targets.json");
         var json = JsonSerializer.Serialize(
             new WorktreeBranchTargetsDocument
             {
@@ -123,12 +121,8 @@ public sealed class WorktreeBranchTests : IDisposable
             targetsPath,
             json.Replace("\"Targets\"", "\"targets\"", StringComparison.Ordinal));
 
-        WorktreeBranchTargetStore.GetTargetOverride = null;
-        WorktreeBranchTargetStore.SetTargetOverride = null;
-        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
-        WorktreeBranchTargetStore.ResetForTests();
-
-        Assert.Equal("feature/legacy", WorktreeBranchTargetStore.GetTarget(worktreeKey));
+        var store = new WorktreeBranchTargetStore(new AppDataPaths(appRoot), new AtomicFileWriter());
+        Assert.Equal("feature/legacy", store.GetTarget(worktreeKey));
     }
 
     [Fact]
@@ -138,15 +132,13 @@ public sealed class WorktreeBranchTests : IDisposable
         Directory.CreateDirectory(repoRoot);
         ConfigureRepo(repoRoot, currentBranch: "main", topLevel: repoRoot);
 
-        var targetsPath = Path.Join(_root, "worktree-branch-targets.json");
+        var appRoot = Path.Join(_root, "appdata-bad");
+        Directory.CreateDirectory(Path.Join(appRoot, "QuickShell"));
+        var targetsPath = Path.Join(appRoot, "QuickShell", "worktree-branch-targets.json");
         File.WriteAllText(targetsPath, "not-json");
 
-        WorktreeBranchTargetStore.GetTargetOverride = null;
-        WorktreeBranchTargetStore.SetTargetOverride = null;
-        WorktreeBranchTargetStore.FilePathOverride = targetsPath;
-        WorktreeBranchTargetStore.ResetForTests();
-
-        Assert.Null(WorktreeBranchTargetStore.GetTargetForDirectory(repoRoot, _git));
+        var store = new WorktreeBranchTargetStore(new AppDataPaths(appRoot), new AtomicFileWriter());
+        Assert.Null(store.GetTargetForDirectory(repoRoot, _git));
     }
 
     [Fact]
@@ -304,6 +296,7 @@ public sealed class WorktreeBranchTests : IDisposable
         var path = Path.Combine(_root, "broken");
         Directory.CreateDirectory(path);
         Assert.True(WorkspaceGitOperations.TryNormalizeWorktreeKey(path, out var key));
+        _targetStore.SetTarget(key, "main");
         _branchTargets[key] = "main";
 
         // Override RunGit for this path: resolve worktree key succeeds, status fails.
@@ -315,7 +308,7 @@ public sealed class WorktreeBranchTests : IDisposable
                 _ => new GitCommandResult(128, string.Empty, "fatal: not a git repository", TimedOut: false),
             },
             getStatus: null);
-        var bundle = LaunchTestServices.CreateBundle(git: git);
+        var bundle = LaunchTestServices.CreateBundle(git: git, targetStore: _targetStore);
 
         var shortcut = BuildLaunchShortcut(path);
         var result = bundle.Executor.Launch(
@@ -400,7 +393,7 @@ public sealed class WorktreeBranchTests : IDisposable
         Assert.False(result.CanProceed);
         Assert.Contains("Target set to feature/foo", result.StayOpenMessage, StringComparison.Ordinal);
         Assert.Contains("uncommitted changes", result.StayOpenMessage, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("feature/foo", WorktreeBranchTargetStore.GetTargetForDirectory(repoRoot, _git));
+        Assert.Equal("feature/foo", _targetStore.GetTargetForDirectory(repoRoot, _git));
         Assert.Equal("main", GetRepo(repoRoot).CurrentBranch);
         Assert.Equal(0, _switchCalls);
     }
@@ -415,7 +408,7 @@ public sealed class WorktreeBranchTests : IDisposable
 
         _gate.ClearTargetBranch(repoRoot);
 
-        Assert.Null(WorktreeBranchTargetStore.GetTargetForDirectory(repoRoot, _git));
+        Assert.Null(_targetStore.GetTargetForDirectory(repoRoot, _git));
         Assert.Equal("main", GetRepo(repoRoot).CurrentBranch);
     }
 
@@ -436,24 +429,11 @@ public sealed class WorktreeBranchTests : IDisposable
 
     private void ResetSeams()
     {
-        WorktreeBranchTargetStore.ResetForTests();
-        WorktreeBranchTargetStore.FilePathOverride = null;
-        WorktreeBranchTargetStore.GetTargetOverride = key =>
-            _branchTargets.TryGetValue(key, out var branch) ? branch : null;
-        WorktreeBranchTargetStore.SetTargetOverride = (key, branch) =>
-        {
-            if (string.IsNullOrWhiteSpace(branch))
-            {
-                _branchTargets.Remove(key);
-            }
-            else
-            {
-                _branchTargets[key] = branch;
-            }
-        };
+        _branchTargets.Clear();
+        _targetStore = new FakeWorktreeBranchTargetStore();
+        _gate = new WorkspaceGitLaunchGate(_git, _targetStore);
         _switchCalls = 0;
         _repos.Clear();
-        _branchTargets.Clear();
         WorkspaceDevServerActions.TryOpenOverride = null;
     }
 
@@ -541,6 +521,7 @@ public sealed class WorktreeBranchTests : IDisposable
     {
         Assert.True(_git.TryResolveWorktreeKey(directory, out var key));
         _branchTargets[key] = branch;
+        _targetStore.SetTarget(key, branch);
     }
 
     private static GitCommandResult Success(string output) => new(0, output, string.Empty, TimedOut: false);

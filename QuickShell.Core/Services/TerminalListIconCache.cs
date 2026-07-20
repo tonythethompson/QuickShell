@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Security.Cryptography;
 using System.Text;
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -12,7 +13,7 @@ namespace QuickShell.Services;
 /// Resolves and caches list-sized terminal profile icons. CmdPal's IconInfo has no size API;
 /// shrinking source PNGs (e.g. PowerShell) before handing them to the host keeps them sharper.
 /// </summary>
-internal static class TerminalListIconCache
+internal sealed class TerminalListIconCache : ITerminalListIconCache
 {
     /// <summary>Target edge length for home-list bitmap icons (host still scales; this reduces blur).</summary>
     public const int ListIconPixels = 24;
@@ -28,10 +29,23 @@ internal static class TerminalListIconCache
     /// </summary>
     private const int SkipResizeThreshold = ListIconPixels * 2;
 
-    private static readonly ConcurrentDictionary<string, string> Cache = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly object DiskSync = new();
+    private readonly ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _diskSync = new();
+    private readonly IWtProfilesService _profiles;
+    private readonly ITerminalLaunchGlyphs _glyphs;
+    private readonly IAppDataPaths _appDataPaths;
 
-    public static string? TryResolveUpgradedListIcon(TerminalShortcut shortcut)
+    public TerminalListIconCache(
+        IWtProfilesService profiles,
+        ITerminalLaunchGlyphs glyphs,
+        IAppDataPaths appDataPaths)
+    {
+        _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
+        _glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
+        _appDataPaths = appDataPaths ?? throw new ArgumentNullException(nameof(appDataPaths));
+    }
+
+    public string? TryResolveUpgradedListIcon(TerminalShortcut shortcut)
     {
         if (shortcut.RunAsAdmin)
         {
@@ -43,7 +57,7 @@ internal static class TerminalListIconCache
             return null;
         }
 
-        var resolved = TerminalLaunchGlyphs.GetForShortcut(shortcut);
+        var resolved = _glyphs.GetForShortcut(shortcut);
         if (string.IsNullOrWhiteSpace(resolved))
         {
             return null;
@@ -52,7 +66,7 @@ internal static class TerminalListIconCache
         return PrepareForList(resolved);
     }
 
-    public static string PrepareForList(string icon)
+    public string PrepareForList(string icon)
     {
         var trimmed = icon.Trim();
         if (TerminalProfileIconResolver.IsCmdPalGlyphIcon(trimmed)
@@ -80,7 +94,7 @@ internal static class TerminalListIconCache
         {
             var version = $"{File.GetLastWriteTimeUtc(trimmed).Ticks}:{new FileInfo(trimmed).Length}";
             var cacheKey = $"{trimmed}|{version}";
-            return Cache.GetOrAdd(cacheKey, _ => CreateOrGetResizedPath(trimmed, ListIconPixels));
+            return _cache.GetOrAdd(cacheKey, _ => CreateOrGetResizedPath(trimmed, ListIconPixels));
         }
         catch
         {
@@ -88,11 +102,11 @@ internal static class TerminalListIconCache
         }
     }
 
-    public static void PrewarmProfiles()
+    public void PrewarmProfiles()
     {
         try
         {
-            _ = WtProfilesService.GetProfiles();
+            _ = _profiles.GetProfiles();
         }
         catch
         {
@@ -100,19 +114,14 @@ internal static class TerminalListIconCache
         }
     }
 
-    internal static void ResetForTests() => Cache.Clear();
-
-    private static string CreateOrGetResizedPath(string sourcePath, int pixels)
+    private string CreateOrGetResizedPath(string sourcePath, int pixels)
     {
-        var cacheDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuickShell",
-            "icon-cache");
+        var cacheDir = Path.Combine(_appDataPaths.Root, "QuickShell", "icon-cache");
 
         var key = HashKey(sourcePath) + $"_{pixels}.png";
         var destPath = Path.Combine(cacheDir, key);
 
-        lock (DiskSync)
+        lock (_diskSync)
         {
             if (File.Exists(destPath))
             {

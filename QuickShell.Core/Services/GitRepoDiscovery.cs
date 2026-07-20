@@ -56,19 +56,49 @@ internal static partial class GitRepoDiscovery
         "Documents",
     ];
 
-    internal static Func<IEnumerable<string>>? DefaultRootCandidatesOverride { get; set; }
+    private static readonly AsyncLocal<Scope?> CurrentScope = new();
 
-    internal static bool IncludeDefaultSearchRoots { get; set; } = true;
+    private sealed record Scope(bool IncludeDefaultSearchRoots, IReadOnlyList<string>? DefaultRootCandidates);
+
+    /// <summary>
+    /// Test-only scoped override for the default (no-explicit-root) search behavior. Unlike a
+    /// shared mutable static, <see cref="AsyncLocal{T}"/> flows only through the execution
+    /// context that set it (including its own child <c>Task.Run</c> calls), so it never leaks
+    /// into unrelated concurrently-running tests. Needed because the CmdPal host entry point
+    /// (<c>QuickShellCommandsProvider</c>'s public parameterless constructor) has no seam for
+    /// injecting a discover scope, yet its background git prewarm must not scan the real
+    /// machine during tests.
+    /// </summary>
+    internal sealed class TestScope : IDisposable
+    {
+        private readonly Scope? _previous;
+
+        public TestScope(bool includeDefaultSearchRoots, IReadOnlyList<string>? defaultRootCandidates)
+        {
+            _previous = CurrentScope.Value;
+            CurrentScope.Value = new Scope(includeDefaultSearchRoots, defaultRootCandidates);
+        }
+
+        public void Dispose() => CurrentScope.Value = _previous;
+    }
 
     public static IReadOnlyList<GitRepoCandidate> Discover(
         IProjectAnalysisService projectAnalysis,
         IEnumerable<string>? extraRoots = null,
         int maxDegreeOfParallelism = DefaultMaxDegreeOfParallelism,
         bool includeDefaultSearchRoots = true,
+        IReadOnlyList<string>? defaultRootCandidates = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(projectAnalysis);
-        var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots);
+        var scope = CurrentScope.Value;
+        if (scope is not null)
+        {
+            includeDefaultSearchRoots = scope.IncludeDefaultSearchRoots;
+            defaultRootCandidates = scope.DefaultRootCandidates;
+        }
+
+        var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots, defaultRootCandidates);
         if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
         {
             return [];
@@ -236,7 +266,10 @@ internal static partial class GitRepoDiscovery
         }
     }
 
-    private static List<string> BuildSearchRoots(IEnumerable<string>? extraRoots, bool includeDefaultSearchRoots)
+    private static List<string> BuildSearchRoots(
+        IEnumerable<string>? extraRoots,
+        bool includeDefaultSearchRoots,
+        IReadOnlyList<string>? defaultRootCandidates)
     {
         var roots = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -265,8 +298,7 @@ internal static partial class GitRepoDiscovery
             }
         }
 
-        var includeDefaults = includeDefaultSearchRoots && IncludeDefaultSearchRoots;
-        if (includeDefaults && !string.IsNullOrWhiteSpace(userProfile))
+        if (includeDefaultSearchRoots && !string.IsNullOrWhiteSpace(userProfile))
         {
             foreach (var child in CommonRootFolderNames)
             {
@@ -274,9 +306,9 @@ internal static partial class GitRepoDiscovery
             }
         }
 
-        if (includeDefaults || DefaultRootCandidatesOverride is not null)
+        if (includeDefaultSearchRoots || defaultRootCandidates is not null)
         {
-            foreach (var candidate in GetDefaultRootCandidates())
+            foreach (var candidate in GetDefaultRootCandidates(defaultRootCandidates))
             {
                 AddRoot(candidate);
             }
@@ -285,11 +317,11 @@ internal static partial class GitRepoDiscovery
         return roots;
     }
 
-    private static IEnumerable<string> GetDefaultRootCandidates()
+    private static IEnumerable<string> GetDefaultRootCandidates(IReadOnlyList<string>? defaultRootCandidates)
     {
-        if (DefaultRootCandidatesOverride is { } overrideCandidates)
+        if (defaultRootCandidates is not null)
         {
-            return overrideCandidates();
+            return defaultRootCandidates;
         }
 
         var candidates = new List<string>();

@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Text;
@@ -9,11 +10,10 @@ public sealed class TerminalProfileIntegrationTests
     [Fact]
     public void GetForLaunch_ReturnsGlyphForExplicitTerminalKind()
     {
-        WtProfilesService.InvalidateCache();
-        WindowsTerminalInstallDiscovery.InvalidateCache();
+                WindowsTerminalInstallDiscovery.InvalidateCache();
 
         var launch = new WorkspaceEntry { Terminal = "pwsh", IsEnabled = true };
-        var icon = TerminalLaunchGlyphs.GetForLaunch(launch);
+        var icon = new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch);
 
         Assert.False(string.IsNullOrWhiteSpace(icon));
     }

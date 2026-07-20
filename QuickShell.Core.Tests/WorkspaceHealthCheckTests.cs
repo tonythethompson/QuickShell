@@ -1,10 +1,10 @@
+using QuickShell.Abstractions;
 using QuickShell;
 using QuickShell.Models;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorkspaceHealthCheckTests : IDisposable
 {
     private readonly string _root;
@@ -19,7 +19,11 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
             !executable.Equals("missing-tool", StringComparison.OrdinalIgnoreCase);
     }
 
-    private WorkspaceHealthCheck CreateHealth() => new(_probe, _git);
+    private WorkspaceHealthCheck CreateHealth()
+    {
+        var profiles = new WtProfilesService();
+        return new(_probe, _git, new TerminalCatalog(profiles), profiles);
+    }
 
     [Fact]
     public void Check_MissingFolderIsBlocking()
@@ -311,14 +315,14 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         var shortcut = BuildShortcut(_root, "npm run dev");
         shortcut.DevServerUrl = "http://localhost:5173";
         shortcut.OpenDevServerOnLaunch = true;
-        var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
+        var subtitle = ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService()));
         var health = CreateHealth();
-        WorkspaceStatusService.CaptureForList(
-            shortcut,
+        WorkspaceStatusService.CaptureForList(shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd",
             health,
-            _git);
+            _git,
+            new NullWorktreeBranchTargetStore());
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
@@ -331,7 +335,7 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         var warningTag = Assert.Single(tags, tag => tag.ToolTip == "Workspace health warning");
         Assert.True(warningTag.Foreground.HasValue);
         Assert.Contains(tags, tag => tag.ToolTip == "Workspace appears to be running");
-        Assert.Equal(subtitle, ShortcutHealth.BuildListSubtitle(shortcut));
+        Assert.Equal(subtitle, ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService())));
     }
 
     [Fact]
@@ -344,12 +348,12 @@ public sealed class WorkspaceHealthCheckTests : IDisposable
         shortcut.RunAsAdmin = true;
         shortcut.IsPinned = true;
         var health = CreateHealth();
-        WorkspaceStatusService.CaptureForList(
-            shortcut,
+        WorkspaceStatusService.CaptureForList(shortcut,
             TerminalHostIds.WindowsConsoleHost,
             "cmd",
             health,
-            _git);
+            _git,
+            new NullWorktreeBranchTargetStore());
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,

@@ -1,17 +1,18 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
 
-internal static class TerminalLaunchGlyphs
+internal sealed class TerminalLaunchGlyphs : ITerminalLaunchGlyphs
 {
-    /// <summary>
-    /// Glyph path uses a process-local profile resolver (settings file reader only).
-    /// Launch/health services use the DI-registered terminal profile resolver.
-    /// </summary>
-    private static readonly TerminalProfileResolver GlyphProfileResolver =
-        new(new QuickShellSettingsReader());
+    private readonly ITerminalProfileResolver _profileResolver;
 
-    public static string GetForShortcut(TerminalShortcut shortcut)
+    public TerminalLaunchGlyphs(ITerminalProfileResolver profileResolver)
+    {
+        _profileResolver = profileResolver ?? throw new ArgumentNullException(nameof(profileResolver));
+    }
+
+    public string GetForShortcut(TerminalShortcut shortcut)
     {
         var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         return launches.Count == 0 ? ShortcutGlyphs.NewWindow : GetForLaunch(launches[0]);
@@ -21,7 +22,7 @@ internal static class TerminalLaunchGlyphs
     /// List/menu icon without resolving Windows Terminal profile icons on disk.
     /// Profile icon probing is too slow for first paint of large workspace lists.
     /// </summary>
-    public static string GetForList(TerminalShortcut shortcut)
+    public string GetForList(TerminalShortcut shortcut)
     {
         var launches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         if (launches.Count == 0)
@@ -32,7 +33,7 @@ internal static class TerminalLaunchGlyphs
         return GetForList(launches[0]);
     }
 
-    public static string GetForList(WorkspaceEntry launch)
+    public string GetForList(WorkspaceEntry launch)
     {
         var taskGlyph = TaskTypeCatalog.GetGlyph(launch.TaskType);
         if (taskGlyph is not null)
@@ -43,9 +44,9 @@ internal static class TerminalLaunchGlyphs
         return GetFallbackGlyph(launch, profile: null);
     }
 
-    public static string GetForLaunch(WorkspaceEntry launch)
+    public string GetForLaunch(WorkspaceEntry launch)
     {
-        var profile = GlyphProfileResolver.ResolveForLaunch(launch);
+        var profile = _profileResolver.ResolveForLaunch(launch);
 
         if (profile is not null && IsWslProfile(profile))
         {

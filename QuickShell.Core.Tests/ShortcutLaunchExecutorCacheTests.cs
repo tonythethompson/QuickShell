@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.Collections.Concurrent;
@@ -6,7 +7,6 @@ using System.Diagnostics;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
 {
     public ShortcutLaunchExecutorCacheTests()
@@ -24,14 +24,16 @@ public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
         long version = 1,
         FakeProcessStarter? processStarter = null,
         FakeWorkspaceEnvironmentProbe? probe = null,
-        WorkspaceGitOperations? git = null)
+        WorkspaceGitOperations? git = null,
+        IWorktreeBranchTargetStore? targetStore = null)
     {
         var repo = new FakeShortcutRepository([shortcut]) { Version = version };
         var bundle = LaunchTestServices.CreateBundle(
             processStarter: processStarter,
             probe: probe,
             git: git,
-            repository: repo);
+            repository: repo,
+            targetStore: targetStore);
         return (bundle.Executor, repo, bundle.ProcessStarter);
     }
 
@@ -303,8 +305,6 @@ public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
     public void GitState_NotCached()
     {
         var shortcut = CreateShortcut();
-        WorktreeBranchTargetStore.GetTargetOverride = _ => "main";
-
         var gitStatus = new ConcurrentDictionary<string, WorkspaceGitStatus>();
         gitStatus[shortcut.Directory] = new WorkspaceGitStatus("develop", true, false);
         var git = LaunchTestServices.CreateGit(
@@ -315,7 +315,10 @@ public sealed class ShortcutLaunchExecutorCacheTests : IDisposable
                 _ => GitCommandResult.Failed,
             },
             getStatus: dir => gitStatus.TryGetValue(dir, out var status) ? status : null);
-        var (executor, _, starter) = CreateExecutor(shortcut, git: git);
+        var (executor, _, starter) = CreateExecutor(
+            shortcut,
+            git: git,
+            targetStore: new FakeWorktreeBranchTargetStore(_ => "main"));
 
         var first = executor.Launch(shortcut, "wt", TerminalHostIds.DefaultProfile);
 

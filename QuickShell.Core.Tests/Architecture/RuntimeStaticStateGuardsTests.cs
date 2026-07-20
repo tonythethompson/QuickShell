@@ -39,6 +39,20 @@ public sealed class RuntimeStaticStateGuardsTests
         "static class ExtensionCallbackQueue",
         "static Action<Action>? ExtensionThreadPoster",
         "static SynchronizationContext? ExtensionSynchronizationContext",
+        "RowPresentationDiagnostics.ResetForTests",
+        "SupportDiagnostics.ResetForTests",
+        "SupportDiagnostics.LogDirectoryOverride",
+        "SupportDiagnostics.MaximumLogFileBytesOverride",
+        "static class RowPresentationDiagnostics",
+        "static class SupportDiagnostics",
+        "GitRepoDiscovery.IncludeDefaultSearchRoots",
+        "GitRepoDiscovery.DefaultRootCandidatesOverride",
+        "TestLocationsOverride",
+        "WtProfilesService.TestScope",
+        "TerminalListIconCache.ResetForTests",
+        "WorktreeBranchTargetStore.GetTargetOverride",
+        "WorktreeBranchTargetStore.GetTargetForDirectoryOverride",
+        "WorktreeBranchTargetStore.ResetForTests",
     ];
 
     // Heuristic: constructor parameters typed as IServiceProvider in host/core service code.

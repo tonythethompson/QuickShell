@@ -4,31 +4,16 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-/// <summary>
-/// Row presentation tests share process-wide instrumentation counters
-/// (<see cref="RowPresentationDiagnostics"/>), so they must not run in parallel.
-/// </summary>
-[CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class RowPresentationIsolation
-{
-    public const string Name = "RowPresentation";
-}
-
-[Collection(RowPresentationIsolation.Name)]
-public sealed class WorkspaceRowPresentationCacheTests : IDisposable
+public sealed class WorkspaceRowPresentationCacheTests
 {
     private const string Fingerprint = "wt|wt-default";
 
-    private readonly WorkspaceRowPresentationCache _cache = new();
+    private readonly RowPresentationDiagnostics _diagnostics = new();
+    private readonly WorkspaceRowPresentationCache _cache;
 
     public WorkspaceRowPresentationCacheTests()
     {
-        RowPresentationDiagnostics.ResetForTests();
-    }
-
-    public void Dispose()
-    {
-        RowPresentationDiagnostics.ResetForTests();
+        _cache = new WorkspaceRowPresentationCache(_diagnostics);
     }
 
     private static TerminalShortcut CreateShortcut(
@@ -52,8 +37,8 @@ public sealed class WorkspaceRowPresentationCacheTests : IDisposable
         var second = _cache.GetOrBuild(shortcut, 1, Fingerprint, WorkspaceRowPresentationMode.Home);
 
         Assert.Same(first, second);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.CacheHit));
     }
 
     [Fact]
@@ -114,7 +99,7 @@ public sealed class WorkspaceRowPresentationCacheTests : IDisposable
         var after = _cache.GetOrBuild(shortcut, 1, "wt|profile-b", WorkspaceRowPresentationMode.Home);
 
         Assert.NotSame(before, after);
-        Assert.Equal(2, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
+        Assert.Equal(2, _diagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
     }
 
     [Theory]

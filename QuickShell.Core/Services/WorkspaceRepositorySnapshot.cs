@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Linq;
 
@@ -88,8 +89,10 @@ internal readonly record struct WorkspaceRepositorySnapshot(
         return matches is null ? [] : ShortcutRepository.CloneAll(matches);
     }
 
-    public IEnumerable<WorkspaceTaskAction> SearchTaskActions(string query)
+    public IEnumerable<WorkspaceTaskAction> SearchTaskActions(string query, ITerminalCatalog catalog)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
+
         var tokens = GetTaskSearchTokens(query);
         if (tokens.Length == 0)
         {
@@ -112,7 +115,7 @@ internal readonly record struct WorkspaceRepositorySnapshot(
                     continue;
                 }
 
-                var score = ComputeTaskActionScore(shortcut, launch, tokens);
+                var score = ComputeTaskActionScore(shortcut, launch, tokens, catalog);
                 if (score <= 0)
                 {
                     continue;
@@ -214,7 +217,11 @@ internal readonly record struct WorkspaceRepositorySnapshot(
         };
     }
 
-    private static int ComputeTaskActionScore(TerminalShortcut shortcut, WorkspaceEntry launch, IReadOnlyList<string> tokens)
+    private static int ComputeTaskActionScore(
+        TerminalShortcut shortcut,
+        WorkspaceEntry launch,
+        IReadOnlyList<string> tokens,
+        ITerminalCatalog catalog)
     {
         var score = 0;
         var matchedLaunchSpecificField = false;
@@ -226,7 +233,7 @@ internal readonly record struct WorkspaceRepositorySnapshot(
                 ScoreToken(shortcut.Name, token, exact: 700, prefix: 450, contains: 160) +
                 ScoreToken(shortcut.Directory, token, exact: 100, prefix: 80, contains: 40);
 
-            var profileLabel = TerminalCatalog.GetProfileLabel(new TerminalShortcut
+            var profileLabel = catalog.GetProfileLabel(new TerminalShortcut
             {
                 Terminal = launch.Terminal,
                 WtProfile = launch.WtProfile,
@@ -237,6 +244,7 @@ internal readonly record struct WorkspaceRepositorySnapshot(
                 ScoreToken(launch.Command, token, exact: 850, prefix: 600, contains: 260) +
                 ScoreToken(profileLabel, token, exact: 250, prefix: 175, contains: 90) +
                 ScoreToken(launch.WtProfile, token, exact: 220, prefix: 160, contains: 80);
+
 
             if (workspaceScore + launchScore == 0)
             {

@@ -4,26 +4,21 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(RowPresentationIsolation.Name)]
-public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
+public sealed class WorkspaceRowEnrichmentCoordinatorTests
 {
     private readonly ExtensionCallbackQueue _queue = new();
+    private readonly RowPresentationDiagnostics _diagnostics = new();
     private readonly List<string> _resolvedIds = [];
-
-    public WorkspaceRowEnrichmentCoordinatorTests()
-    {
-        RowPresentationDiagnostics.ResetForTests();
-    }
-
-    public void Dispose()
-    {
-        RowPresentationDiagnostics.ResetForTests();
-    }
 
     private WorkspaceRowEnrichmentCoordinator CreateCoordinator(
         Func<TerminalShortcut, string?>? resolveIcon = null) =>
         new(
             _queue,
+            new TerminalListIconCache(
+                new WtProfilesService([]),
+                new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))),
+                new AppDataPaths()),
+            _diagnostics,
             resolveIcon ?? (shortcut =>
             {
                 _resolvedIds.Add(shortcut.Id);
@@ -73,8 +68,8 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
             Assert.NotSame(initialIcons[i], items[i].Icon);
         }
 
-        Assert.Equal(3, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+        Assert.Equal(3, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
     }
 
     [Fact]
@@ -96,7 +91,7 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         Assert.Single(_resolvedIds);
         Assert.NotSame(firstIcon, first.Icon);
         Assert.NotSame(secondIcon, second.Icon);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
     }
 
     [Fact]
@@ -135,8 +130,8 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         _queue.Drain();
 
         Assert.Same(staleIcon, staleItem.Icon);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
-        Assert.Equal(0, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
+        Assert.Equal(0, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
     }
 
     [Fact]
@@ -151,7 +146,7 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         _queue.Drain();
 
         Assert.Empty(_resolvedIds);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentCancelled));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentCancelled));
     }
 
     [Fact]
@@ -174,7 +169,7 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         Assert.Same(staleIcon, staleItem.Icon);
         Assert.NotSame(currentIcon, currentItem.Icon);
         Assert.Equal(2, _resolvedIds.Count);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
     }
 
     [Fact]
@@ -222,8 +217,8 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         _queue.Drain();
 
         Assert.Same(flushedIcon, flushedItem.Icon);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentCancelled));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentDiscardedStale));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentCancelled));
     }
 
     [Fact]
@@ -245,7 +240,7 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         _queue.Drain();
 
         Assert.NotSame(goodIcon, good.Icon);
-        Assert.Equal(1, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+        Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
     }
 
     [Fact]
@@ -264,6 +259,6 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests : IDisposable
         coordinator.Flush();
 
         Assert.Empty(_resolvedIds);
-        Assert.Equal(0, RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
+        Assert.Equal(0, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
     }
 }

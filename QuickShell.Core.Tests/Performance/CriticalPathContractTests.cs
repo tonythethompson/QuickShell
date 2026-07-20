@@ -59,31 +59,19 @@ public sealed class CriticalPathContractTests : IDisposable
     {
         var localAppData = Path.Join(_tempRoot, "localappdata");
         Directory.CreateDirectory(localAppData);
-        var originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", localAppData);
+        using var appDataScope = new AppDataRoot.TestScope(localAppData);
 
-        try
-        {
-            using var provider = new QuickShellCommandsProvider();
+        using var provider = new QuickShellCommandsProvider();
 
-            // Reach the provider's own git index instead of the process-wide
-            // GitRepoDiscovery override: that override is shared static state, and this
-            // process runs other test classes that legitimately drive real background
-            // discovery through it, which would make a counter-based assertion flaky.
-            // Construction itself must not have started a refresh — the staged warmup
-            // coordinator schedules discovery for later, after the first real workspace
-            // list is published (see StartupWarmupStages.GitIndexWarmup).
-            var contextField = typeof(QuickShellCommandsProvider).GetField(
-                "_context", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.NotNull(contextField);
-            var context = (QuickShellPageContext)contextField.GetValue(provider)!;
+        // Construction itself must not have started a refresh — the staged warmup
+        // coordinator schedules discovery for later, after the first real workspace
+        // list is published (see StartupWarmupStages.GitIndexWarmup).
+        var contextField = typeof(QuickShellCommandsProvider).GetField(
+            "_context", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(contextField);
+        var context = (QuickShellPageContext)contextField.GetValue(provider)!;
 
-            Assert.False(context.Services.GitRepos.IsRefreshInFlight);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("LOCALAPPDATA", originalLocalAppData);
-        }
+        Assert.False(context.Services.GitRepos.IsRefreshInFlight);
     }
 
     // --- First list construction ---------------------------------------------------------
@@ -176,7 +164,7 @@ public sealed class CriticalPathContractTests : IDisposable
             Directory = _tempRoot,
         };
         var snapshot = new WorkspaceRepositorySnapshot(1, [shortcut], []);
-        var index = new RootPaletteSearchIndex(snapshot);
+        var index = new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService()));
         var gitIndex = new CountingGitRepoIndex();
 
         var result = index.Search("z", gitIndex);
@@ -191,7 +179,7 @@ public sealed class CriticalPathContractTests : IDisposable
         var shortcut = BuildShortcut("ws-1", _tempRoot);
         shortcut.Name = "UniqueLocalWorkspaceName";
         var snapshot = new WorkspaceRepositorySnapshot(1, [shortcut], []);
-        var index = new RootPaletteSearchIndex(snapshot);
+        var index = new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService()));
         var gitIndex = new CountingGitRepoIndex();
 
         var result = index.Search("UniqueLocalWorkspaceName", gitIndex);
@@ -218,13 +206,13 @@ public sealed class CriticalPathContractTests : IDisposable
                 return new WorkspaceGitStatus("main", IsDirty: false, IsDetached: false);
             });
             var health = new CountingHealthChecker(() => Interlocked.Increment(ref healthCalls));
-            var terminal = new TerminalLauncher(LaunchTestServices.CreateProcessStarter());
+            var catalog = new TerminalCatalog(new WtProfilesService());
+            var terminal = new TerminalLauncher(LaunchTestServices.CreateProcessStarter(), catalog);
             var companion = new CompanionAppLauncher(LaunchTestServices.CreateProcessStarter());
-            var gate = new WorkspaceGitLaunchGate(gitOps);
-            var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate);
+            var gate = new WorkspaceGitLaunchGate(gitOps, new FakeWorktreeBranchTargetStore(_ => "main"));
+            var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate, catalog: catalog);
 
             var shortcut = BuildShortcut("ws-launch", launchDirectory);
-            WorktreeBranchTargetStore.GetTargetForDirectoryOverride = (_, _) => "main";
 
             _ = executor.Launch(shortcut, "wt", "wt-default");
             _ = executor.Launch(shortcut, "wt", "wt-default");

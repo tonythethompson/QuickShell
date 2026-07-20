@@ -13,11 +13,12 @@ internal static class ShortcutTaskActionListItems
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var item = new ListItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, context.Services))
+        var services = context.Services;
+        var item = new ListItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, services))
         {
             Title = BuildTitle(action),
-            Subtitle = BuildSubtitle(action),
-            Icon = new IconInfo(TerminalLaunchGlyphs.GetForList(action.Launch)),
+            Subtitle = BuildSubtitle(action, services),
+            Icon = new IconInfo(services.TerminalLaunchGlyphs.GetForList(action.Launch)),
             MoreCommands = BuildMoreCommands(context, action, onChanged),
         };
 
@@ -32,11 +33,11 @@ internal static class ShortcutTaskActionListItems
         return $"{action.Workspace.Name} - {taskTitle}";
     }
 
-    private static string BuildSubtitle(WorkspaceTaskAction action)
+    private static string BuildSubtitle(WorkspaceTaskAction action, IQuickShellServices services)
     {
         var parts = new List<string>
         {
-            ShortcutDisplay.BuildLaunchEntrySubtitle(action.Launch),
+            ShortcutDisplay.BuildLaunchEntrySubtitle(action.Launch, services.TerminalCatalog),
             ShortcutDisplay.ShortenPathForDisplay(action.Workspace.Directory),
         };
 
@@ -60,7 +61,7 @@ internal static class ShortcutTaskActionListItems
             new(new OpenTerminalShortcutCommand(action.Workspace, services))
             {
                 Title = Strings.TaskActions_OpenWorkspace,
-                Icon = new IconInfo(ShortcutHealth.GetListGlyph(action.Workspace, needsRepair)),
+                Icon = new IconInfo(ShortcutHealth.GetListGlyph(action.Workspace, services.TerminalLaunchGlyphs, needsRepair)),
             },
         };
 
@@ -69,7 +70,7 @@ internal static class ShortcutTaskActionListItems
             items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(action.Workspace, action.Launch, services, runAsStandard: true))
             {
                 Title = Strings.TaskActions_RunTaskNormally,
-                Icon = new IconInfo(TerminalLaunchGlyphs.GetForList(action.Launch)),
+                Icon = new IconInfo(services.TerminalLaunchGlyphs.GetForList(action.Launch)),
             });
         }
         else

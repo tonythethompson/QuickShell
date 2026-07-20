@@ -15,6 +15,8 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
     private readonly IProjectAnalysisService _projectAnalysis;
     private readonly ICommandSuggestionService _commandSuggestions;
     private readonly IWorkspaceGitOperations _gitOperations;
+    private readonly IWorktreeBranchTargetStore _targetStore;
+    private readonly ITerminalCatalog _catalog;
 
     public QuickShellRunSettingsPanel(
         QuickShellSettingsReader settings,
@@ -22,6 +24,8 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
+        ITerminalCatalog catalog,
         Action<string, string> onDefaultsSaved)
     {
         _ = onDefaultsSaved;
@@ -30,6 +34,8 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         _projectAnalysis = projectAnalysis;
         _commandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
+        _targetStore = targetStore ?? throw new ArgumentNullException(nameof(targetStore));
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
         var root = new StackPanel { Margin = new Thickness(0, 12, 0, 8) };
 
@@ -64,7 +70,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
             MinHeight = 36,
             FontWeight = FontWeights.SemiBold,
         };
-        openSettings.Click += (_, _) => QuickShellRunSettingsDialog.Show(_settings, _shortcuts, _projectAnalysis);
+        openSettings.Click += (_, _) => QuickShellRunSettingsDialog.Show(_settings, _shortcuts, _projectAnalysis, _catalog);
         cardBody.Children.Add(openSettings);
         card.Child = cardBody;
         root.Children.Add(card);
@@ -77,7 +83,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         });
         root.Children.Add(CreateButton(
             "Create shortcut",
-            () => ShortcutEditor.TryShowDialog(null, _shortcuts, _projectAnalysis, _commandSuggestions, _gitOperations, out _)));
+            () => ShortcutEditor.TryShowDialog(null, _shortcuts, _projectAnalysis, _commandSuggestions, _gitOperations, _targetStore, _catalog, out _)));
 
         Content = root;
     }

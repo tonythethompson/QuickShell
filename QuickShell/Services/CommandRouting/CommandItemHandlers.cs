@@ -176,7 +176,7 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
         if (context.Services.GitOperations.TryGetStatus(shortcut.Directory, out var gitStatus))
         {
             status = gitStatus;
-            target = WorktreeBranchTargetStore.GetTargetForDirectory(
+            target = context.Services.TargetStore.GetTargetForDirectory(
                 shortcut.Directory,
                 context.Services.GitOperations);
         }

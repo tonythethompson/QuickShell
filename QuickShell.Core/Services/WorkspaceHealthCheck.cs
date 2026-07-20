@@ -84,13 +84,19 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
 
     private readonly IWorkspaceEnvironmentProbe _environmentProbe;
     private readonly IWorkspaceGitOperations _gitOperations;
+    private readonly ITerminalCatalog _catalog;
+    private readonly IWtProfilesService _profiles;
 
     public WorkspaceHealthCheck(
         IWorkspaceEnvironmentProbe environmentProbe,
-        IWorkspaceGitOperations gitOperations)
+        IWorkspaceGitOperations gitOperations,
+        ITerminalCatalog catalog,
+        IWtProfilesService profiles)
     {
         _environmentProbe = environmentProbe ?? throw new ArgumentNullException(nameof(environmentProbe));
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     }
 
     /// <summary>
@@ -143,7 +149,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             }
         }
 
-        var resolved = TerminalCatalog.ResolveLaunchEntry(launch, enabled, index);
+        var resolved = _catalog.ResolveLaunchEntry(launch, enabled, index);
         var scoped = new TerminalShortcut
         {
             Id = shortcut.Id,
@@ -232,7 +238,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         for (var index = 0; index < enabledLaunches.Count; index++)
         {
             var launch = enabledLaunches[index];
-            var resolved = TerminalCatalog.ResolveLaunchEntry(launch, enabledLaunches, index);
+            var resolved = _catalog.ResolveLaunchEntry(launch, enabledLaunches, index);
             CheckLaunchTarget(resolved, terminalApplicationId, defaultProfileId, findings);
             CheckCommandExecutable(resolved, findings);
         }
@@ -255,7 +261,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
 
         if (terminal is "wt" or "it")
         {
-            if (!TerminalCatalog.HasTerminalApplication(terminal))
+            if (!_catalog.HasTerminalApplication(terminal))
             {
                 findings.Add(new WorkspaceHealthFinding(
                     WorkspaceHealthSeverity.Error,
@@ -263,7 +269,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
                     $"{TerminalHostIds.SourceLabel(terminal)} was not found."));
             }
 
-            if (!string.IsNullOrWhiteSpace(profile) && WtProfilesService.FindProfileForLaunch(terminal, profile) is null)
+            if (!string.IsNullOrWhiteSpace(profile) && _profiles.FindProfileForLaunch(terminal, profile) is null)
             {
                 findings.Add(new WorkspaceHealthFinding(
                     WorkspaceHealthSeverity.Error,
@@ -308,7 +314,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
         string defaultProfileId,
         List<WorkspaceHealthFinding> findings)
     {
-        if (!TerminalCatalog.HasTerminalApplication(terminalApplicationId))
+        if (!_catalog.HasTerminalApplication(terminalApplicationId))
         {
             findings.Add(new WorkspaceHealthFinding(
                 WorkspaceHealthSeverity.Error,
@@ -317,9 +323,9 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             return;
         }
 
-        if (TerminalCatalog.IsStandaloneShellLaunchTarget(defaultProfileId))
+        if (_catalog.IsStandaloneShellLaunchTarget(defaultProfileId))
         {
-            var normalizedDefault = TerminalCatalog.NormalizeLaunchTargetId(defaultProfileId);
+            var normalizedDefault = _catalog.NormalizeLaunchTargetId(defaultProfileId);
             var defaultLaunch = normalizedDefault.StartsWith("wsl:", StringComparison.OrdinalIgnoreCase)
                 ? new WorkspaceEntry
                 {
@@ -349,7 +355,7 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             return;
         }
 
-        if (!WtProfilesService.GetProfilesForApplication(terminalApplicationId)
+        if (!_profiles.GetProfilesForApplication(terminalApplicationId)
                 .Any(profile => profile.Name.Equals(defaultProfileId, StringComparison.OrdinalIgnoreCase)))
         {
             findings.Add(new WorkspaceHealthFinding(

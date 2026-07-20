@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -5,6 +6,8 @@ namespace QuickShell.Core.Tests;
 
 public sealed class ShortcutDisplayTests
 {
+    private readonly ITerminalCatalog _catalog = new TerminalCatalog(new WtProfilesService());
+
     [Fact]
     public void GetLaunchContextMenuTitle_UsesCommandText()
     {
@@ -121,7 +124,7 @@ public sealed class ShortcutDisplayTests
             Launches = [new WorkspaceEntry { Label = "Main", IsEnabled = true }],
         };
 
-        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut, _catalog);
         Assert.DoesNotContain("Discord", subtitle, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Main", subtitle, StringComparison.Ordinal);
     }
@@ -146,7 +149,7 @@ public sealed class ShortcutDisplayTests
             ],
         };
 
-        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut, _catalog);
 
         Assert.Contains("Nushell", subtitle, StringComparison.Ordinal);
         Assert.DoesNotContain("Intelligent Terminal", subtitle, StringComparison.Ordinal);
@@ -171,7 +174,7 @@ public sealed class ShortcutDisplayTests
             ],
         };
 
-        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut, _catalog);
 
         Assert.Contains("PowerShell 7", subtitle, StringComparison.Ordinal);
     }
@@ -205,7 +208,7 @@ public sealed class ShortcutDisplayTests
             ],
         };
 
-        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut);
+        var subtitle = ShortcutDisplay.BuildSubtitle(shortcut, _catalog);
 
         Assert.Contains("2 launches", subtitle, StringComparison.Ordinal);
         Assert.DoesNotContain("npm run dev", subtitle, StringComparison.Ordinal);

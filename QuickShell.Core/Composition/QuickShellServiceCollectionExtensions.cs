@@ -26,17 +26,37 @@ internal static class QuickShellServiceCollectionExtensions
     /// <param name="lifetime">
     /// Optional shared process lifetime. When null, a default <see cref="QuickShellLifetime"/> is registered.
     /// </param>
+    /// <param name="appDataRoot">
+    /// Optional override for the app-data root services resolve via <see cref="IAppDataPaths"/>.
+    /// When null, uses the real <c>%LOCALAPPDATA%</c> (tests inject a temp root instead of
+    /// mutating the process-wide environment variable).
+    /// </param>
     public static IServiceCollection AddQuickShellCore(
         this IServiceCollection services,
         string? configDirectory = null,
-        IQuickShellLifetime? lifetime = null)
+        IQuickShellLifetime? lifetime = null,
+        string? appDataRoot = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IQuickShellLifetime>(_ => lifetime ?? new QuickShellLifetime());
         services.AddSingleton<IAtomicFileWriter>(_ => new AtomicFileWriter());
+        services.AddSingleton<IAppDataPaths>(_ => new AppDataPaths(appDataRoot));
+        services.AddSingleton<IWtProfilesService>(_ => new WtProfilesService());
+        services.AddSingleton<ITerminalCatalog>(sp =>
+            new TerminalCatalog(sp.GetRequiredService<IWtProfilesService>()));
+        services.AddSingleton<TerminalCatalogPrewarm>(sp =>
+            new TerminalCatalogPrewarm(sp.GetRequiredService<ITerminalCatalog>()));
         services.AddSingleton<IShortcutRepository>(sp =>
-            new ShortcutRepository(configDirectory, sp.GetRequiredService<IAtomicFileWriter>()));
+            new ShortcutRepository(
+                configDirectory,
+                sp.GetRequiredService<IAtomicFileWriter>(),
+                sp.GetRequiredService<IAppDataPaths>(),
+                sp.GetRequiredService<ITerminalCatalog>()));
+        services.AddSingleton<IWorktreeBranchTargetStore>(sp =>
+            new WorktreeBranchTargetStore(
+                sp.GetRequiredService<IAppDataPaths>(),
+                sp.GetRequiredService<IAtomicFileWriter>()));
         services.AddSingleton<IWorkspaceLaunchService>(sp =>
             new WorkspaceLaunchService(
                 sp.GetRequiredService<IShortcutRepository>(),
@@ -49,20 +69,54 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<ICommandIdParser>(_ => new CommandIdParser());
 
         services.AddSingleton<IProcessStarter, ProcessStarter>();
-        services.AddSingleton<QuickShellSettingsReader>(_ => new QuickShellSettingsReader());
-        services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolver>();
-        services.AddSingleton<ITerminalLauncher, TerminalLauncher>();
+        services.AddSingleton<QuickShellSettingsReader>(sp =>
+            new QuickShellSettingsReader(
+                sp.GetRequiredService<IAppDataPaths>(),
+                sp.GetRequiredService<ITerminalCatalog>()));
+        services.AddSingleton<ITerminalProfileResolver>(sp =>
+            new TerminalProfileResolver(
+                sp.GetRequiredService<QuickShellSettingsReader>(),
+                sp.GetRequiredService<IWtProfilesService>(),
+                sp.GetRequiredService<ITerminalCatalog>()));
+        services.AddSingleton<ITerminalLaunchGlyphs>(sp =>
+            new TerminalLaunchGlyphs(sp.GetRequiredService<ITerminalProfileResolver>()));
+        services.AddSingleton<ITerminalListIconCache>(sp =>
+            new TerminalListIconCache(
+                sp.GetRequiredService<IWtProfilesService>(),
+                sp.GetRequiredService<ITerminalLaunchGlyphs>(),
+                sp.GetRequiredService<IAppDataPaths>()));
+        services.AddSingleton<ITerminalLauncher>(sp =>
+            new TerminalLauncher(
+                sp.GetRequiredService<IProcessStarter>(),
+                sp.GetRequiredService<ITerminalCatalog>()));
         services.AddSingleton<IWorkspaceEnvironmentProbe, WorkspaceEnvironmentProbe>();
         services.AddSingleton<IWorkspaceGitOperations, WorkspaceGitOperations>();
-        services.AddSingleton<IWorkspaceHealthChecker, WorkspaceHealthCheck>();
+        services.AddSingleton<IWorkspaceHealthChecker>(sp =>
+            new WorkspaceHealthCheck(
+                sp.GetRequiredService<IWorkspaceEnvironmentProbe>(),
+                sp.GetRequiredService<IWorkspaceGitOperations>(),
+                sp.GetRequiredService<ITerminalCatalog>(),
+                sp.GetRequiredService<IWtProfilesService>()));
         services.AddSingleton<WorkspaceGitLaunchGate>();
         services.AddSingleton<ICompanionAppLauncher, CompanionAppLauncher>();
-        services.AddSingleton<IShortcutLaunchExecutor, ShortcutLaunchExecutor>();
+        services.AddSingleton<IShortcutLaunchExecutor>(sp =>
+            new ShortcutLaunchExecutor(
+                sp.GetRequiredService<ITerminalLauncher>(),
+                sp.GetRequiredService<IWorkspaceHealthChecker>(),
+                sp.GetRequiredService<ICompanionAppLauncher>(),
+                sp.GetRequiredService<WorkspaceGitLaunchGate>(),
+                sp.GetRequiredService<IShortcutRepository>(),
+                sp.GetRequiredService<ITerminalCatalog>()));
         services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
         services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
         services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
         services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
-        services.AddSingleton<IWorkspaceRowPresentationCache, WorkspaceRowPresentationCache>();
+        services.AddSingleton<IRowPresentationDiagnostics, RowPresentationDiagnostics>();
+        services.AddSingleton<IWorkspaceRowPresentationCache>(sp =>
+            new WorkspaceRowPresentationCache(
+                sp.GetRequiredService<IRowPresentationDiagnostics>(),
+                sp.GetRequiredService<ITerminalCatalog>(),
+                sp.GetRequiredService<ITerminalLaunchGlyphs>()));
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();

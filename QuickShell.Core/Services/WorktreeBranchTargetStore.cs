@@ -4,49 +4,32 @@ using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
-internal static class WorktreeBranchTargetStore
+internal sealed class WorktreeBranchTargetStore : IWorktreeBranchTargetStore
 {
-    internal static string? FilePathOverride { get; set; }
+    private readonly IAppDataPaths _appDataPaths;
+    private readonly IAtomicFileWriter _fileWriter;
+    private readonly object _sync = new();
+    private readonly Dictionary<string, string> _targets = new(StringComparer.OrdinalIgnoreCase);
+    private bool _loaded;
 
-    internal static Func<string, string?>? GetTargetOverride { get; set; }
-
-    internal static Func<string, IWorkspaceGitOperations, string?>? GetTargetForDirectoryOverride { get; set; }
-
-    internal static Action<string, string?>? SetTargetOverride { get; set; }
-
-    private static readonly object Sync = new();
-
-    private static Dictionary<string, string> Targets { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    private static bool _loaded;
-
-    /// <summary>
-    /// Process-default atomic writer. Tests may replace; production leaves the default instance.
-    /// </summary>
-    internal static IAtomicFileWriter FileWriter { get; set; } = new AtomicFileWriter();
-
-    public static string? GetTarget(string worktreeKey)
+    public WorktreeBranchTargetStore(IAppDataPaths appDataPaths, IAtomicFileWriter fileWriter)
     {
-        if (GetTargetOverride is { } getOverride)
-        {
-            return getOverride(worktreeKey);
-        }
+        _appDataPaths = appDataPaths ?? throw new ArgumentNullException(nameof(appDataPaths));
+        _fileWriter = fileWriter ?? throw new ArgumentNullException(nameof(fileWriter));
+    }
 
+    public string? GetTarget(string worktreeKey)
+    {
         EnsureLoaded();
-        lock (Sync)
+        lock (_sync)
         {
-            return Targets.TryGetValue(worktreeKey, out var target) ? target : null;
+            return _targets.TryGetValue(worktreeKey, out var target) ? target : null;
         }
     }
 
-    public static string? GetTargetForDirectory(string directory, IWorkspaceGitOperations git)
+    public string? GetTargetForDirectory(string directory, IWorkspaceGitOperations git)
     {
         ArgumentNullException.ThrowIfNull(git);
-
-        if (GetTargetForDirectoryOverride is { } getOverride)
-        {
-            return getOverride(directory, git);
-        }
 
         if (!git.TryResolveWorktreeKey(directory, out var worktreeKey))
         {
@@ -56,31 +39,25 @@ internal static class WorktreeBranchTargetStore
         return GetTarget(worktreeKey);
     }
 
-    public static void SetTarget(string worktreeKey, string? branch)
+    public void SetTarget(string worktreeKey, string? branch)
     {
-        if (SetTargetOverride is { } setOverride)
-        {
-            setOverride(worktreeKey, branch);
-            return;
-        }
-
         EnsureLoaded();
-        lock (Sync)
+        lock (_sync)
         {
             if (string.IsNullOrWhiteSpace(branch))
             {
-                Targets.Remove(worktreeKey);
+                _targets.Remove(worktreeKey);
             }
             else
             {
-                Targets[worktreeKey] = branch.Trim();
+                _targets[worktreeKey] = branch.Trim();
             }
 
             SaveLocked();
         }
     }
 
-    public static bool TrySetTargetForDirectory(
+    public bool TrySetTargetForDirectory(
         string directory,
         string? branch,
         IWorkspaceGitOperations git,
@@ -99,7 +76,7 @@ internal static class WorktreeBranchTargetStore
         return true;
     }
 
-    public static void ClearTargetForDirectory(string directory, IWorkspaceGitOperations git)
+    public void ClearTargetForDirectory(string directory, IWorkspaceGitOperations git)
     {
         ArgumentNullException.ThrowIfNull(git);
 
@@ -111,18 +88,9 @@ internal static class WorktreeBranchTargetStore
         SetTarget(worktreeKey, null);
     }
 
-    internal static void ResetForTests()
+    private void EnsureLoaded()
     {
-        lock (Sync)
-        {
-            Targets.Clear();
-            _loaded = false;
-        }
-    }
-
-    private static void EnsureLoaded()
-    {
-        lock (Sync)
+        lock (_sync)
         {
             if (_loaded)
             {
@@ -136,9 +104,9 @@ internal static class WorktreeBranchTargetStore
         }
     }
 
-    private static bool LoadLocked()
+    private bool LoadLocked()
     {
-        Targets.Clear();
+        _targets.Clear();
 
         var path = ResolveFilePath();
         if (!File.Exists(path))
@@ -166,11 +134,11 @@ internal static class WorktreeBranchTargetStore
 
                 if (WorkspaceGitOperations.TryNormalizeWorktreeKey(worktreeKey, out var normalizedKey))
                 {
-                    Targets[normalizedKey] = branch.Trim();
+                    _targets[normalizedKey] = branch.Trim();
                 }
                 else
                 {
-                    Targets[worktreeKey] = branch.Trim();
+                    _targets[worktreeKey] = branch.Trim();
                 }
             }
 
@@ -178,36 +146,32 @@ internal static class WorktreeBranchTargetStore
         }
         catch (IOException)
         {
-            Targets.Clear();
+            _targets.Clear();
             return false;
         }
         catch (Exception ex) when (ex is JsonException or UnauthorizedAccessException)
         {
-            Targets.Clear();
+            _targets.Clear();
             return true;
         }
     }
 
-    private static void SaveLocked()
+    private void SaveLocked()
     {
         var path = ResolveFilePath();
         var payload = new WorktreeBranchTargetsDocument
         {
-            Targets = Targets.ToDictionary(
+            Targets = _targets.ToDictionary(
                 pair => pair.Key,
                 pair => pair.Value,
                 StringComparer.OrdinalIgnoreCase),
         };
 
-        FileWriter.WriteAllTextAtomic(
+        _fileWriter.WriteAllTextAtomic(
             path,
             JsonSerializer.Serialize(payload, QuickShellJsonContext.Default.WorktreeBranchTargetsDocument));
     }
 
-    private static string ResolveFilePath() =>
-        FilePathOverride
-        ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuickShell",
-            "worktree-branch-targets.json");
+    private string ResolveFilePath() =>
+        Path.Combine(_appDataPaths.Root, "QuickShell", "worktree-branch-targets.json");
 }

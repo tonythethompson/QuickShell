@@ -11,10 +11,12 @@ internal static class RunWorkspaceSubtitle
         QuickShellSettingsReader settings,
         IWorkspaceHealthChecker healthChecker,
         IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
+        ITerminalCatalog catalog,
         bool listMode = false)
     {
-        var subtitle = ShortcutHealth.BuildListSubtitle(shortcut);
-        var status = TryBuildStatusSuffix(shortcut, settings, healthChecker, gitOperations, listMode);
+        var subtitle = ShortcutHealth.BuildListSubtitle(shortcut, catalog);
+        var status = TryBuildStatusSuffix(shortcut, settings, healthChecker, gitOperations, targetStore, listMode);
         return string.IsNullOrWhiteSpace(status) ? subtitle : $"{subtitle} · {status}";
     }
 
@@ -23,6 +25,7 @@ internal static class RunWorkspaceSubtitle
         QuickShellSettingsReader settings,
         IWorkspaceHealthChecker healthChecker,
         IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
         bool listMode)
     {
         if (ShortcutHealth.WouldNeedRepair(shortcut))
@@ -53,7 +56,8 @@ internal static class RunWorkspaceSubtitle
                     settings.TerminalApplicationId,
                     settings.DefaultProfileId,
                     healthChecker,
-                    gitOperations);
+                    gitOperations,
+                    targetStore);
             }
 
             if (snapshot.Activity == WorkspaceActivityState.Running)

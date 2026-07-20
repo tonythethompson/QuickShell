@@ -1,12 +1,16 @@
 using System.Collections.Concurrent;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
 /// <summary>
 /// Named counters for row presentation and enrichment instrumentation. Counter-based so
 /// tests can assert cache/enrichment behavior deterministically without log parsing.
+/// Instance-scoped (registered as a DI singleton): production shares one instance for the
+/// process lifetime, while tests construct their own instance per test for isolation
+/// instead of resetting shared static state.
 /// </summary>
-internal static class RowPresentationDiagnostics
+internal sealed class RowPresentationDiagnostics : IRowPresentationDiagnostics
 {
     public const string CacheHit = "row-cache:hit";
     public const string CacheMiss = "row-cache:miss";
@@ -16,20 +20,18 @@ internal static class RowPresentationDiagnostics
     public const string EnrichmentDiscardedStale = "row-enrichment:discarded-stale";
     public const string EnrichmentCancelled = "row-enrichment:cancelled";
 
-    private static readonly ConcurrentDictionary<string, long> Counters = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, long> _counters = new(StringComparer.Ordinal);
 
-    public static void Record(string eventName)
+    public void Record(string eventName)
     {
         if (string.IsNullOrEmpty(eventName))
         {
             return;
         }
 
-        Counters.AddOrUpdate(eventName, 1, static (_, count) => count + 1);
+        _counters.AddOrUpdate(eventName, 1, static (_, count) => count + 1);
     }
 
-    public static long GetCount(string eventName) =>
-        Counters.TryGetValue(eventName, out var count) ? count : 0;
-
-    public static void ResetForTests() => Counters.Clear();
+    public long GetCount(string eventName) =>
+        _counters.TryGetValue(eventName, out var count) ? count : 0;
 }

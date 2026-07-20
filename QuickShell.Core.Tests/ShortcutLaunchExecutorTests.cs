@@ -4,7 +4,6 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class ShortcutLaunchExecutorTests : IDisposable
 {
     public ShortcutLaunchExecutorTests()
@@ -439,7 +438,6 @@ public sealed class ShortcutLaunchExecutorTests : IDisposable
     }
 }
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorkspaceDevServerActionsTests : IDisposable
 {
     public WorkspaceDevServerActionsTests()

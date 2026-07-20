@@ -1,9 +1,9 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class WorkspaceStatusSnapshotTests
 {
     [Fact]
@@ -86,9 +86,7 @@ public sealed class WorkspaceStatusSnapshotTests
         try
         {
             WorkspaceStatusService.ResetCacheForTests();
-            WorktreeBranchTargetStore.ResetForTests();
-            WorktreeBranchTargetStore.GetTargetOverride = _ => "feature/status";
-
+            
             var git = LaunchTestServices.CreateGit(
                 runGit: (_, args) => args switch
                 {
@@ -99,7 +97,7 @@ public sealed class WorkspaceStatusSnapshotTests
                     _ => GitFailure(),
                 });
             var probe = LaunchTestServices.CreateHealthyProbe();
-            var health = new WorkspaceHealthCheck(probe, git);
+            var health = new WorkspaceHealthCheck(probe, git, new TerminalCatalog(new WtProfilesService()), new WtProfilesService());
 
             var shortcut = new TerminalShortcut
             {
@@ -120,12 +118,12 @@ public sealed class WorkspaceStatusSnapshotTests
                 ],
             };
 
-            var snapshot = WorkspaceStatusService.CaptureForList(
-                shortcut,
+            var snapshot = WorkspaceStatusService.CaptureForList(shortcut,
                 TerminalHostIds.WindowsConsoleHost,
                 "cmd",
                 health,
-                git);
+                git,
+                new FakeWorktreeBranchTargetStore(_ => "feature/status"));
 
             Assert.Equal(WorkspaceAttentionState.Branch, snapshot.Attention);
             Assert.Equal("Configured branch differs from HEAD", snapshot.AttentionSummary);
@@ -134,9 +132,7 @@ public sealed class WorkspaceStatusSnapshotTests
         finally
         {
             WorkspaceStatusService.ResetCacheForTests();
-            WorktreeBranchTargetStore.ResetForTests();
-            WorktreeBranchTargetStore.GetTargetOverride = null;
-            try
+                        try
             {
                 Directory.Delete(root, recursive: true);
             }
@@ -159,7 +155,7 @@ public sealed class WorkspaceStatusSnapshotTests
             var probe = LaunchTestServices.CreateHealthyProbe();
             probe.PortInUseHandler = port => port == 5173;
             var git = LaunchTestServices.CreateGit();
-            var health = new WorkspaceHealthCheck(probe, git);
+            var health = new WorkspaceHealthCheck(probe, git, new TerminalCatalog(new WtProfilesService()), new WtProfilesService());
 
             var shortcut = new TerminalShortcut
             {
@@ -182,12 +178,12 @@ public sealed class WorkspaceStatusSnapshotTests
                 ],
             };
 
-            var snapshot = WorkspaceStatusService.CaptureForList(
-                shortcut,
+            var snapshot = WorkspaceStatusService.CaptureForList(shortcut,
                 TerminalHostIds.WindowsConsoleHost,
                 "cmd",
                 health,
-                git);
+                git,
+                new NullWorktreeBranchTargetStore());
 
             Assert.Equal(WorkspaceActivityState.Running, snapshot.Activity);
             Assert.Equal("Workspace appears to be running", WorkspaceStatusLabels.RunningBadgeSummary);
@@ -226,7 +222,7 @@ public sealed class WorkspaceStatusSnapshotTests
             WorkspaceStatusService.ResetCacheForTests();
             var probe = LaunchTestServices.CreateHealthyProbe();
             var git = LaunchTestServices.CreateGit(runGit: (_, _) => GitFailure());
-            var health = new WorkspaceHealthCheck(probe, git);
+            var health = new WorkspaceHealthCheck(probe, git, new TerminalCatalog(new WtProfilesService()), new WtProfilesService());
 
             var extra = 12;
             var total = WorkspaceStatusService.MaxCacheEntries + extra;
@@ -234,12 +230,12 @@ public sealed class WorkspaceStatusSnapshotTests
             {
                 var root = Path.Combine(baseDir, i.ToString("D3", System.Globalization.CultureInfo.InvariantCulture));
                 Directory.CreateDirectory(root);
-                _ = WorkspaceStatusService.CaptureForList(
-                    CreateMinimalShortcut(root),
+                _ = WorkspaceStatusService.CaptureForList(CreateMinimalShortcut(root),
                     TerminalHostIds.WindowsConsoleHost,
                     "cmd",
                     health,
-                    git);
+                    git,
+                    new NullWorktreeBranchTargetStore());
             }
 
             Assert.True(
@@ -272,19 +268,19 @@ public sealed class WorkspaceStatusSnapshotTests
             WorkspaceStatusService.ResetCacheForTests();
             var probe = LaunchTestServices.CreateHealthyProbe();
             var git = LaunchTestServices.CreateGit(runGit: (_, _) => GitFailure());
-            var health = new WorkspaceHealthCheck(probe, git);
+            var health = new WorkspaceHealthCheck(probe, git, new TerminalCatalog(new WtProfilesService()), new WtProfilesService());
             WorkspaceStatusService.UtcNowOverride = () => t0;
 
             for (var i = 0; i < 5; i++)
             {
                 var root = Path.Combine(baseDir, "old-" + i);
                 Directory.CreateDirectory(root);
-                _ = WorkspaceStatusService.CaptureForList(
-                    CreateMinimalShortcut(root),
+                _ = WorkspaceStatusService.CaptureForList(CreateMinimalShortcut(root),
                     TerminalHostIds.WindowsConsoleHost,
                     "cmd",
                     health,
-                    git);
+                    git,
+                    new NullWorktreeBranchTargetStore());
             }
 
             Assert.Equal(5, WorkspaceStatusService.CacheCountForTests);
@@ -292,12 +288,12 @@ public sealed class WorkspaceStatusSnapshotTests
             WorkspaceStatusService.UtcNowOverride = () => t0.AddSeconds(15);
             var freshRoot = Path.Combine(baseDir, "fresh");
             Directory.CreateDirectory(freshRoot);
-            _ = WorkspaceStatusService.CaptureForList(
-                CreateMinimalShortcut(freshRoot),
+            _ = WorkspaceStatusService.CaptureForList(CreateMinimalShortcut(freshRoot),
                 TerminalHostIds.WindowsConsoleHost,
                 "cmd",
                 health,
-                git);
+                git,
+                new NullWorktreeBranchTargetStore());
 
             Assert.Equal(1, WorkspaceStatusService.CacheCountForTests);
             Assert.True(
@@ -335,16 +331,16 @@ public sealed class WorkspaceStatusSnapshotTests
             WorkspaceStatusService.ResetCacheForTests();
             var probe = LaunchTestServices.CreateHealthyProbe();
             var git = LaunchTestServices.CreateGit(runGit: (_, _) => GitFailure());
-            var health = new WorkspaceHealthCheck(probe, git);
+            var health = new WorkspaceHealthCheck(probe, git, new TerminalCatalog(new WtProfilesService()), new WtProfilesService());
             WorkspaceStatusService.UtcNowOverride = () => t0;
 
             var shortcut = CreateMinimalShortcut(root);
-            _ = WorkspaceStatusService.CaptureForList(
-                shortcut,
+            _ = WorkspaceStatusService.CaptureForList(shortcut,
                 TerminalHostIds.WindowsConsoleHost,
                 "cmd",
                 health,
-                git);
+                git,
+                new NullWorktreeBranchTargetStore());
             Assert.Equal(1, WorkspaceStatusService.CacheCountForTests);
 
             WorkspaceStatusService.UtcNowOverride = () => t0.AddSeconds(11);

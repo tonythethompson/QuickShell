@@ -131,8 +131,8 @@ internal sealed partial class BehaviorSettingsForm : FormContent
         }
 
         CommitToggleSettings();
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_services.CallbackQueue, _onReload);
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        _services.RefreshScheduler.SchedulePostNavigationRefresh(_onReload);
+        _services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.GoBack(Strings.Saved_Toast);
     }
 

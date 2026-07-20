@@ -20,8 +20,6 @@ public sealed class GitRepoDiscoveryTests : IDisposable
     {
         _root = Path.Combine(Path.GetTempPath(), "quickshell-git-discovery-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
-        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
     }
@@ -33,7 +31,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(repoPath);
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], includeDefaultSearchRoots: false);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, repoPath, StringComparison.OrdinalIgnoreCase)
@@ -53,7 +51,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
                 url = https://github.com/example/sample.git
             """);
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]).Single();
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], includeDefaultSearchRoots: false).Single();
 
         Assert.Equal("https://github.com/example/sample", discovered.RemoteUrl);
     }
@@ -65,7 +63,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
         Directory.CreateDirectory(Path.Combine(repoPath, "nested", ".git"));
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], includeDefaultSearchRoots: false);
 
         Assert.Single(discovered);
         Assert.Equal("outer", discovered[0].Name);
@@ -79,7 +77,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(frontendRepo, ".git"));
         Directory.CreateDirectory(Path.Combine(backendRepo, ".git"));
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], maxDegreeOfParallelism: 2);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], maxDegreeOfParallelism: 2, includeDefaultSearchRoots: false);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, frontendRepo, StringComparison.OrdinalIgnoreCase)
@@ -95,7 +93,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "zeta", ".git"));
         Directory.CreateDirectory(Path.Combine(_root, "alpha", ".git"));
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], maxDegreeOfParallelism: 4);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], maxDegreeOfParallelism: 4, includeDefaultSearchRoots: false);
 
         Assert.Collection(
             discovered,
@@ -108,9 +106,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
     {
         var repoPath = Path.Combine(_root, "default-root-repo");
         Directory.CreateDirectory(Path.Combine(repoPath, ".git"));
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [_root];
-
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, includeDefaultSearchRoots: false, defaultRootCandidates: [_root]);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, repoPath, StringComparison.OrdinalIgnoreCase));
@@ -123,9 +119,11 @@ public sealed class GitRepoDiscoveryTests : IDisposable
         var defaultRoot = Path.Combine(_root, "defaults");
         Directory.CreateDirectory(Path.Combine(extraRoot, "from-shortcut", ".git"));
         Directory.CreateDirectory(Path.Combine(defaultRoot, "from-default", ".git"));
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [defaultRoot];
-
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [extraRoot]);
+        var discovered = GitRepoDiscovery.Discover(
+            _projectAnalysis,
+            [extraRoot],
+            includeDefaultSearchRoots: false,
+            defaultRootCandidates: [defaultRoot]);
 
         Assert.Contains(discovered, candidate => candidate.Name == "from-shortcut");
         Assert.Contains(discovered, candidate => candidate.Name == "from-default");
@@ -144,7 +142,7 @@ public sealed class GitRepoDiscoveryTests : IDisposable
             Directory.CreateDirectory(Path.Combine(siblingRoot, $"child-{i:D4}"));
         }
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [siblingRoot, workspaceRoot]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [siblingRoot, workspaceRoot], includeDefaultSearchRoots: false);
 
         Assert.Contains(discovered, candidate =>
             string.Equals(candidate.Directory, workspaceRoot, StringComparison.OrdinalIgnoreCase)
@@ -154,8 +152,6 @@ public sealed class GitRepoDiscoveryTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
-        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -558,7 +554,6 @@ public sealed class GitRepoIndexTests : IDisposable
     {
         _index.Dispose();
         _provider.Dispose();
-        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -1346,8 +1341,8 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.True(ShortcutHealth.WouldNeedRepair(shortcut));
-        Assert.Equal(ShortcutGlyphs.IncidentTriangle, ShortcutHealth.GetListGlyph(shortcut));
-        Assert.Contains("Folder not found", ShortcutHealth.BuildListSubtitle(shortcut), StringComparison.Ordinal);
+        Assert.Equal(ShortcutGlyphs.IncidentTriangle, ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService())))));
+        Assert.Contains("Folder not found", ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService())), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1361,7 +1356,7 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
-        var glyph = ShortcutHealth.GetListGlyph(shortcut);
+        var glyph = ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))));
         Assert.False(string.IsNullOrWhiteSpace(glyph));
     }
 
@@ -1377,7 +1372,7 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
-        Assert.Equal(ShortcutGlyphs.AdminLaunch, ShortcutHealth.GetListGlyph(shortcut));
+        Assert.Equal(ShortcutGlyphs.AdminLaunch, ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService())))));
     }
 
     [Fact]
@@ -1393,7 +1388,7 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
-        Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut), StringComparison.Ordinal);
+        Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService())), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1408,8 +1403,8 @@ public sealed class ShortcutHealthTests : IDisposable
             Launches = [],
         };
 
-        _ = ShortcutHealth.GetListGlyph(shortcut);
-        _ = ShortcutHealth.BuildListSubtitle(shortcut);
+        _ = ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))));
+        _ = ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService()));
 
         Assert.Empty(shortcut.Launches);
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
@@ -1432,9 +1427,8 @@ public sealed class TerminalLaunchGlyphsTests
     [Fact]
     public void GetForLaunch_UsesPowerShellProfileIconForPwshWhenAvailable()
     {
-        WtProfilesService.InvalidateCache();
-        var launch = new WorkspaceEntry { Terminal = "pwsh", IsEnabled = true };
-        var icon = TerminalLaunchGlyphs.GetForLaunch(launch);
+                var launch = new WorkspaceEntry { Terminal = "pwsh", IsEnabled = true };
+        var icon = new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch);
 
         Assert.False(string.IsNullOrWhiteSpace(icon));
         Assert.True(
@@ -1449,15 +1443,14 @@ public sealed class TerminalLaunchGlyphsTests
     {
         var launch = new WorkspaceEntry { Terminal = "wt", WtProfile = "Ubuntu", IsEnabled = true };
 
-        Assert.Equal("\U0001F427", TerminalLaunchGlyphs.GetForLaunch(launch));
+        Assert.Equal("\U0001F427", new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch));
     }
 
     [Fact]
     public void GetForLaunch_UsesConfiguredDefaultProfileIcon()
     {
-        WtProfilesService.InvalidateCache();
-        var launch = new WorkspaceEntry { Terminal = "default", IsEnabled = true };
-        var icon = TerminalLaunchGlyphs.GetForLaunch(launch);
+                var launch = new WorkspaceEntry { Terminal = "default", IsEnabled = true };
+        var icon = new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch);
 
         Assert.False(string.IsNullOrWhiteSpace(icon));
         Assert.NotEqual(ShortcutGlyphs.IncidentTriangle, icon);

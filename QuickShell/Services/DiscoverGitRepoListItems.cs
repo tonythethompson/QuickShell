@@ -281,7 +281,7 @@ internal static class DiscoverGitRepoListItems
                 {
                     Title = shortcut.Name,
                     Subtitle = Strings.RepairWorkspace,
-                    Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+                    Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, context.Services.TerminalLaunchGlyphs, needsRepair)),
 #if CMDPAL_HOVER_ACTIONS
                     ShowInHoverActions = true,
                     HoverOrder = hoverOrder++,
@@ -294,7 +294,7 @@ internal static class DiscoverGitRepoListItems
             {
                 Title = shortcut.Name,
                 Subtitle = Strings.OpenWorkspace,
-                Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+                Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, context.Services.TerminalLaunchGlyphs, needsRepair)),
 #if CMDPAL_HOVER_ACTIONS
                 ShowInHoverActions = true,
                 HoverOrder = hoverOrder++,

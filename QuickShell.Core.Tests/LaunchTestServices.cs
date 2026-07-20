@@ -7,26 +7,21 @@ namespace QuickShell.Core.Tests;
 
 /// <summary>
 /// Per-test factories for launch/health/git services. No process-wide mutable service state.
-/// Terminal discovery stubs (WtProfilesService) remain process-scoped and must stay in a
-/// non-parallel collection with other launch tests.
 /// </summary>
 internal static class LaunchTestServices
 {
-    private static string? _settingsDirectory;
-
     /// <summary>
-    /// Stubs Windows Terminal profile discovery so resolve paths do not depend on the host machine.
+    /// Creates a WtProfilesService backed by a temp settings.json with a single Test profile.
+    /// Each call uses an isolated directory so parallel tests cannot delete each other's stubs.
     /// </summary>
-    public static void ApplyTerminalDiscoveryStubs()
+    public static WtProfilesService CreateStubbedProfilesService(Action? onParse = null)
     {
-        ResetTerminalDiscoveryStubs();
-
-        _settingsDirectory = Path.Join(
+        var settingsDirectory = Path.Join(
             Path.GetTempPath(),
             "qs-launch-test-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_settingsDirectory);
+        Directory.CreateDirectory(settingsDirectory);
 
-        var settingsPath = Path.Join(_settingsDirectory, "settings.json");
+        var settingsPath = Path.Join(settingsDirectory, "settings.json");
         File.WriteAllText(
             settingsPath,
             """
@@ -43,69 +38,33 @@ internal static class LaunchTestServices
             """,
             Encoding.UTF8);
 
-        WtProfilesService.InvalidateCache();
-        TerminalCatalog.InvalidateCache();
-        WtProfilesService.TestLocationsOverride =
-        [
-            new TerminalSettingsLocation
-            {
-                SettingsPath = settingsPath,
-                Source = TerminalSettingsSource.WindowsTerminal,
-                HostExecutable = "wt.exe",
-                IdPrefix = "wt",
-                DisplayPrefix = "Windows Terminal",
-            },
-        ];
-
-        // Ignore on-disk branch targets so a dirty worktree + saved target cannot block launches.
-        WorktreeBranchTargetStore.GetTargetOverride = _ => null;
-        WorktreeBranchTargetStore.GetTargetForDirectoryOverride = null;
+        return new WtProfilesService(
+            [
+                new TerminalSettingsLocation
+                {
+                    SettingsPath = settingsPath,
+                    Source = TerminalSettingsSource.WindowsTerminal,
+                    HostExecutable = "wt.exe",
+                    IdPrefix = "wt",
+                    DisplayPrefix = "Windows Terminal",
+                },
+            ],
+            onParse);
     }
 
+    /// <summary>
+    /// Legacy no-op kept for call sites that previously mutated process-wide discovery stubs.
+    /// </summary>
+    public static void ApplyTerminalDiscoveryStubs()
+    {
+        // Discovery is now per-instance via CreateStubbedProfilesService / CreateBundle.
+    }
+
+    /// <summary>
+    /// Legacy no-op: stub settings dirs are per-call and cleaned by the OS temp cleaner.
+    /// </summary>
     public static void ResetTerminalDiscoveryStubs()
     {
-        WtProfilesService.TestLocationsOverride = null;
-        WtProfilesService.InvalidateCache();
-        TerminalCatalog.InvalidateCache();
-        WorktreeBranchTargetStore.GetTargetOverride = null;
-        WorktreeBranchTargetStore.GetTargetForDirectoryOverride = null;
-        CompanionAppPreference.ReadLastUsedOverride = null;
-        CompanionAppPreference.WriteLastUsedOverride = null;
-
-        if (_settingsDirectory is null)
-        {
-            return;
-        }
-
-        try
-        {
-            if (Directory.Exists(_settingsDirectory))
-            {
-                Directory.Delete(_settingsDirectory, recursive: true);
-            }
-        }
-        catch (IOException)
-        {
-            // Best effort.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // Best effort.
-        }
-        catch (ArgumentException)
-        {
-            // Best effort.
-        }
-        catch (NotSupportedException)
-        {
-            // Best effort.
-        }
-        catch (System.Security.SecurityException)
-        {
-            // Best effort.
-        }
-
-        _settingsDirectory = null;
     }
 
     /// <summary>Backward-compatible alias used by existing test fixtures.</summary>
@@ -127,23 +86,129 @@ internal static class LaunchTestServices
             runGit ?? ((_, _) => GitCommandResult.Failed),
             getStatus);
 
+    public static NullWorktreeBranchTargetStore CreateNullTargetStore() => new();
+
     public static LaunchTestBundle CreateBundle(
         FakeProcessStarter? processStarter = null,
         IWorkspaceEnvironmentProbe? probe = null,
         WorkspaceGitOperations? git = null,
         TerminalShortcut? shortcut = null,
-        IShortcutRepository? repository = null)
+        IShortcutRepository? repository = null,
+        IWorktreeBranchTargetStore? targetStore = null)
     {
         var starter = processStarter ?? CreateProcessStarter();
         var gitOps = git ?? CreateGit();
         var healthProbe = probe ?? CreateHealthyProbe();
-        var health = new WorkspaceHealthCheck(healthProbe, gitOps);
-        var terminal = new TerminalLauncher(starter);
+        var profiles = CreateStubbedProfilesService();
+        var catalog = new TerminalCatalog(profiles);
+        var health = new WorkspaceHealthCheck(healthProbe, gitOps, catalog, profiles);
+        var terminal = new TerminalLauncher(starter, catalog);
         var companion = new CompanionAppLauncher(starter);
-        var gate = new WorkspaceGitLaunchGate(gitOps);
+        var targets = targetStore ?? CreateNullTargetStore();
+        var gate = new WorkspaceGitLaunchGate(gitOps, targets);
         var repo = repository ?? (shortcut is null ? null : new FakeShortcutRepository([shortcut]));
-        var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate, repo);
-        return new LaunchTestBundle(starter, healthProbe, gitOps, health, terminal, companion, gate, executor, repo);
+        var executor = new ShortcutLaunchExecutor(terminal, health, companion, gate, repo, catalog);
+        return new LaunchTestBundle(
+            starter,
+            healthProbe,
+            gitOps,
+            health,
+            terminal,
+            companion,
+            gate,
+            executor,
+            repo,
+            catalog,
+            profiles,
+            targets);
+    }
+}
+
+internal sealed class NullWorktreeBranchTargetStore : IWorktreeBranchTargetStore
+{
+    public string? GetTarget(string worktreeKey) => null;
+
+    public string? GetTargetForDirectory(string directory, IWorkspaceGitOperations git) => null;
+
+    public void SetTarget(string worktreeKey, string? branch)
+    {
+    }
+
+    public bool TrySetTargetForDirectory(
+        string directory,
+        string? branch,
+        IWorkspaceGitOperations git,
+        out string? error)
+    {
+        error = null;
+        return true;
+    }
+
+    public void ClearTargetForDirectory(string directory, IWorkspaceGitOperations git)
+    {
+    }
+}
+
+/// <summary>In-memory branch target store for tests that need a configured target.</summary>
+internal sealed class FakeWorktreeBranchTargetStore : IWorktreeBranchTargetStore
+{
+    private readonly Dictionary<string, string> _byKey = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Func<string, string?>? _getTarget;
+
+    public FakeWorktreeBranchTargetStore(Func<string, string?>? getTarget = null)
+    {
+        _getTarget = getTarget;
+    }
+
+    public string? GetTarget(string worktreeKey) =>
+        _getTarget?.Invoke(worktreeKey)
+        ?? (_byKey.TryGetValue(worktreeKey, out var target) ? target : null);
+
+    public string? GetTargetForDirectory(string directory, IWorkspaceGitOperations git)
+    {
+        if (!git.TryResolveWorktreeKey(directory, out var key))
+        {
+            return _getTarget?.Invoke(directory);
+        }
+
+        return GetTarget(key);
+    }
+
+    public void SetTarget(string worktreeKey, string? branch)
+    {
+        if (string.IsNullOrWhiteSpace(branch))
+        {
+            _byKey.Remove(worktreeKey);
+        }
+        else
+        {
+            _byKey[worktreeKey] = branch.Trim();
+        }
+    }
+
+    public bool TrySetTargetForDirectory(
+        string directory,
+        string? branch,
+        IWorkspaceGitOperations git,
+        out string? error)
+    {
+        error = null;
+        if (!git.TryResolveWorktreeKey(directory, out var key))
+        {
+            error = "This folder is not a git repository.";
+            return false;
+        }
+
+        SetTarget(key, branch);
+        return true;
+    }
+
+    public void ClearTargetForDirectory(string directory, IWorkspaceGitOperations git)
+    {
+        if (git.TryResolveWorktreeKey(directory, out var key))
+        {
+            SetTarget(key, null);
+        }
     }
 }
 
@@ -156,4 +221,7 @@ internal sealed record LaunchTestBundle(
     CompanionAppLauncher Companion,
     WorkspaceGitLaunchGate GitGate,
     ShortcutLaunchExecutor Executor,
-    IShortcutRepository? Repository);
+    IShortcutRepository? Repository,
+    ITerminalCatalog Catalog,
+    IWtProfilesService Profiles,
+    IWorktreeBranchTargetStore TargetStore);

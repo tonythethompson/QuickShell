@@ -61,8 +61,8 @@ internal static class ShortcutListItems
         var item = new ListItem(primaryCommand)
         {
             Title = shortcut.Name,
-            Subtitle = trustPrefix + ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists),
-            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+            Subtitle = trustPrefix + ShortcutHealth.BuildListSubtitle(shortcut, services.TerminalCatalog, requireDirectoryExists),
+            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, services.TerminalLaunchGlyphs, needsRepair)),
         };
 
         var tags = ShortcutDisplayTags.BuildTags(

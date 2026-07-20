@@ -19,9 +19,27 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
     /// </summary>
     internal const int MaxEntries = ShortcutValidation.MaxShortcutCount * 3;
 
+    private readonly IRowPresentationDiagnostics _diagnostics;
+    private readonly ITerminalCatalog _catalog;
+    private readonly ITerminalLaunchGlyphs _glyphs;
     private readonly object _sync = new();
     private readonly Dictionary<WorkspaceRowPresentationKey, WorkspaceRowPresentation> _entries = [];
     private long _newestVersion = long.MinValue;
+
+    public WorkspaceRowPresentationCache(
+        IRowPresentationDiagnostics? diagnostics = null,
+        ITerminalCatalog? catalog = null,
+        ITerminalLaunchGlyphs? glyphs = null)
+    {
+        _diagnostics = diagnostics ?? new RowPresentationDiagnostics();
+        var profiles = new WtProfilesService();
+        _catalog = catalog ?? new TerminalCatalog(profiles);
+        _glyphs = glyphs ?? new TerminalLaunchGlyphs(
+            new TerminalProfileResolver(
+                new QuickShellSettingsReader(appDataPaths: null, _catalog),
+                profiles,
+                _catalog));
+    }
 
     public int Count
     {
@@ -45,8 +63,8 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
         if (string.IsNullOrWhiteSpace(shortcut.Id))
         {
             // No stable identity — build without caching.
-            RowPresentationDiagnostics.Record(RowPresentationDiagnostics.CacheMiss);
-            RowPresentationDiagnostics.Record(RowPresentationDiagnostics.CacheBuild);
+            _diagnostics.Record(RowPresentationDiagnostics.CacheMiss);
+            _diagnostics.Record(RowPresentationDiagnostics.CacheBuild);
             return Build(shortcut, repositoryVersion, mode);
         }
 
@@ -66,14 +84,14 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
 
             if (_entries.TryGetValue(key, out var cached))
             {
-                RowPresentationDiagnostics.Record(RowPresentationDiagnostics.CacheHit);
+                _diagnostics.Record(RowPresentationDiagnostics.CacheHit);
                 return cached;
             }
         }
 
-        RowPresentationDiagnostics.Record(RowPresentationDiagnostics.CacheMiss);
+        _diagnostics.Record(RowPresentationDiagnostics.CacheMiss);
         var built = Build(shortcut, repositoryVersion, mode);
-        RowPresentationDiagnostics.Record(RowPresentationDiagnostics.CacheBuild);
+        _diagnostics.Record(RowPresentationDiagnostics.CacheBuild);
 
         lock (_sync)
         {
@@ -134,7 +152,7 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
         }
     }
 
-    private static WorkspaceRowPresentation Build(
+    private WorkspaceRowPresentation Build(
         TerminalShortcut shortcut,
         long repositoryVersion,
         WorkspaceRowPresentationMode mode)
@@ -150,11 +168,11 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
 
         // GetListGlyph resolves from task-type catalog and terminal id strings only;
         // Windows Terminal profile icon probing stays on the deferred enrichment path.
-        var glyph = ShortcutHealth.GetListGlyph(shortcut, needsRepair);
+        var glyph = ShortcutHealth.GetListGlyph(shortcut, _glyphs, needsRepair);
 
         var subtitle = mode == WorkspaceRowPresentationMode.SearchResult && !needsRepair
-            ? ShortcutDisplay.BuildDirectorySubtitle(shortcut)
-            : ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists: false);
+            ? ShortcutDisplay.BuildDirectorySubtitle(shortcut, _catalog)
+            : ShortcutHealth.BuildListSubtitle(shortcut, _catalog, requireDirectoryExists: false);
 
         // Tags derived from volatile status (git attention, running processes) are
         // intentionally NOT cached here — they have no repository revision. Hosts

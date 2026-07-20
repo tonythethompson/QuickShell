@@ -389,29 +389,13 @@ public class StartupWarmupCoordinatorTests
     {
         var analysis = new FakeProjectAnalysisService();
         var drafts = new ShortcutDraftStore(repository);
-        var classificationCache = new ProjectClassificationCache(analysis);
-        var commandSuggestions = new CommandSuggestionService([
-            new WorkspaceSetupTaskSuggestionProvider(),
-            new DockerComposeTaskSuggestionProvider(),
-            new AgentCliSuggestionProvider(),
-        ]);
-        var bundle = LaunchTestServices.CreateBundle();
-        return new QuickShellServices(
+        return TestQuickShellServicesFactory.Create(
             repository,
-            new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
             settings,
             analysis,
-            commandSuggestions,
-            bundle.Executor,
-            bundle.Git,
-            bundle.Companion,
-            bundle.Health,
-            bundle.GitGate,
             lifetime,
-            gitIndex,
-            classificationCache,
-            new ExtensionCallbackQueue());
+            gitIndex);
     }
 
     private static void WaitForCompletion(StartupWarmupCoordinator coordinator, TimeSpan? timeout = null)

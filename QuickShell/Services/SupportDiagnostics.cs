@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -15,25 +16,46 @@ internal enum SupportLogSeverity
     Error,
 }
 
-internal static class SupportDiagnostics
+/// <summary>
+/// Immutable options for a <see cref="SupportDiagnostics"/> instance. Production uses the
+/// defaults (real %LOCALAPPDATA% log directory, default rotation size); tests construct
+/// their own instance with a temp directory instead of mutating shared state.
+/// </summary>
+internal sealed record SupportDiagnosticsOptions(string? LogDirectory = null, int? MaximumLogFileBytes = null);
+
+/// <summary>
+/// Bounded, redacted JSONL support logging plus an aggregate support bundle.
+/// Instance-scoped: production shares one process-wide instance
+/// (<see cref="Default"/>), constructed before the DI container exists (<c>Program.cs</c>,
+/// the earliest <c>QuickShellCommandsProvider</c> ctor lines) and also registered into DI
+/// as <see cref="ISupportDiagnostics"/> so the same instance backs both paths. Tests
+/// construct their own instance with test options instead of resetting shared static state.
+/// </summary>
+internal sealed class SupportDiagnostics : ISupportDiagnostics
 {
     private const int DefaultMaximumLogFileBytes = 512 * 1024;
     private const int MaximumLogFileCount = 3;
     private const string ActiveLogFileName = "support.jsonl";
-    private static readonly object Gate = new();
 
-    internal static string? LogDirectoryOverride { get; set; }
+    /// <summary>Process-wide production instance, usable before the DI container is built.</summary>
+    internal static readonly ISupportDiagnostics Default = new SupportDiagnostics();
 
-    internal static int? MaximumLogFileBytesOverride { get; set; }
+    private readonly object _gate = new();
+    private readonly SupportDiagnosticsOptions _options;
 
-    internal static void WriteInfo(string eventCode) => WriteEvent(SupportLogSeverity.Info, eventCode);
+    public SupportDiagnostics(SupportDiagnosticsOptions? options = null)
+    {
+        _options = options ?? new SupportDiagnosticsOptions();
+    }
 
-    internal static void WriteWarning(string eventCode) => WriteEvent(SupportLogSeverity.Warning, eventCode);
+    public void WriteInfo(string eventCode) => WriteEvent(SupportLogSeverity.Info, eventCode);
 
-    internal static void WriteError(string eventCode, Exception exception) =>
+    public void WriteWarning(string eventCode) => WriteEvent(SupportLogSeverity.Warning, eventCode);
+
+    public void WriteError(string eventCode, Exception exception) =>
         WriteEvent(SupportLogSeverity.Error, eventCode, exception);
 
-    internal static void Write(
+    public void Write(
         string location,
         string message,
         object? data = null) =>
@@ -42,7 +64,7 @@ internal static class SupportDiagnostics
             NormalizeEventCode(location),
             tags: BuildRedactedTags(message, data));
 
-    internal static void WriteException(
+    public void WriteException(
         string location,
         Exception exception) =>
         WriteEvent(
@@ -51,7 +73,7 @@ internal static class SupportDiagnostics
             exception,
             BuildRedactedTags(message: null, data: null));
 
-    internal static void WriteEvent(
+    private void WriteEvent(
         SupportLogSeverity severity,
         string eventCode,
         Exception? exception = null,
@@ -64,7 +86,7 @@ internal static class SupportDiagnostics
 
         try
         {
-            lock (Gate)
+            lock (_gate)
             {
                 var directory = GetLogDirectory();
                 Directory.CreateDirectory(directory);
@@ -98,7 +120,7 @@ internal static class SupportDiagnostics
         }
     }
 
-    internal static string BuildBundle(LaunchDiagnosticsReport? diagnostics)
+    public string BuildBundle(LaunchDiagnosticsReport? diagnostics)
     {
         var aggregate = diagnostics is null
             ? null
@@ -118,7 +140,7 @@ internal static class SupportDiagnostics
         return JsonSerializer.Serialize(bundle, SupportDiagnosticsJsonContext.Default.SupportBundle);
     }
 
-    internal static bool TryCopyBundle(LaunchDiagnosticsReport? diagnostics, out string message)
+    public bool TryCopyBundle(LaunchDiagnosticsReport? diagnostics, out string message)
     {
         if (!StaClipboard.TrySetText(BuildBundle(diagnostics)))
         {
@@ -130,7 +152,7 @@ internal static class SupportDiagnostics
         return true;
     }
 
-    internal static bool TryOpenLogFolder(out string error)
+    public bool TryOpenLogFolder(out string error)
     {
         try
         {
@@ -177,18 +199,12 @@ internal static class SupportDiagnostics
         }
     }
 
-    internal static void ResetForTests()
-    {
-        LogDirectoryOverride = null;
-        MaximumLogFileBytesOverride = null;
-    }
-
-    private static string GetLogDirectory() =>
-        LogDirectoryOverride
+    private string GetLogDirectory() =>
+        _options.LogDirectory
         ?? Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QuickShell", "logs");
 
-    private static int GetMaximumLogFileBytes() =>
-        MaximumLogFileBytesOverride is > 0 ? MaximumLogFileBytesOverride.Value : DefaultMaximumLogFileBytes;
+    private int GetMaximumLogFileBytes() =>
+        _options.MaximumLogFileBytes is > 0 ? _options.MaximumLogFileBytes.Value : DefaultMaximumLogFileBytes;
 
     private static void RotateLogs(string directory, string activePath)
     {

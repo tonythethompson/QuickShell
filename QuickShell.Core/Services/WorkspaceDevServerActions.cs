@@ -4,9 +4,23 @@ namespace QuickShell.Services;
 
 internal static class WorkspaceDevServerActions
 {
-    internal static Func<TerminalShortcut, bool>? TryOpenOverride { get; set; }
+    private static readonly AsyncLocal<Func<TerminalShortcut, bool>?> OverrideLocal = new();
+    private static readonly AsyncLocal<bool> LastOpenAttemptedLocal = new();
 
-    internal static bool LastOpenAttempted { get; private set; }
+    /// <summary>
+    /// Test seam: AsyncLocal so parallel tests do not share override state.
+    /// </summary>
+    internal static Func<TerminalShortcut, bool>? TryOpenOverride
+    {
+        get => OverrideLocal.Value;
+        set => OverrideLocal.Value = value;
+    }
+
+    internal static bool LastOpenAttempted
+    {
+        get => LastOpenAttemptedLocal.Value;
+        private set => LastOpenAttemptedLocal.Value = value;
+    }
 
     public static bool ShouldOpenOnWorkspaceLaunch(TerminalShortcut shortcut) =>
         shortcut.OpenDevServerOnLaunch && !string.IsNullOrWhiteSpace(shortcut.DevServerUrl);

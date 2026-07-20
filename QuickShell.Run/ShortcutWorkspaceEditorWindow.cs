@@ -63,6 +63,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private readonly IWorkspaceGitOperations _gitOperations;
 
+    private readonly IWorktreeBranchTargetStore _targetStore;
+
+    private readonly ITerminalCatalog _catalog;
+
     private int _activeSuggestionGeneration;
 
 
@@ -76,7 +80,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         IShortcutRepository shortcuts,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
-        IWorkspaceGitOperations gitOperations)
+        IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
+        ITerminalCatalog catalog)
 
     {
 
@@ -89,6 +95,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         _commandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
 
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
+
+        _targetStore = targetStore ?? throw new ArgumentNullException(nameof(targetStore));
+
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
         _working = existing is null ? new TerminalShortcut() : CloneShortcut(existing);
 
@@ -176,7 +186,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         general.Children.Add(_targetBranchBox);
 
-        ReloadBranchChoices(_working.Directory, WorktreeBranchTargetStore.GetTargetForDirectory(_working.Directory, _gitOperations));
+        ReloadBranchChoices(_working.Directory, _targetStore.GetTargetForDirectory(_working.Directory, _gitOperations));
 
 
 
@@ -471,7 +481,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-        ReloadBranchChoices(directory, WorktreeBranchTargetStore.GetTargetForDirectory(directory, _gitOperations));
+        ReloadBranchChoices(directory, _targetStore.GetTargetForDirectory(directory, _gitOperations));
 
         RefreshSuggestionPanel();
 
@@ -1007,7 +1017,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-        if (!WorktreeBranchTargetStore.TrySetTargetForDirectory(
+        if (!_targetStore.TrySetTargetForDirectory(
 
                 _working.Directory,
 
@@ -1462,7 +1472,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             };
 
-            foreach (var choice in RunTerminalChoices.GetLaunchTargetChoices())
+            foreach (var choice in RunTerminalChoices.GetLaunchTargetChoices(_owner._catalog))
 
             {
 
@@ -1732,6 +1742,8 @@ internal static class ShortcutEditor
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
+        ITerminalCatalog catalog,
         out string message)
 
     {
@@ -1753,7 +1765,9 @@ internal static class ShortcutEditor
                 shortcuts,
                 projectAnalysis,
                 commandSuggestions,
-                gitOperations);
+                gitOperations,
+                targetStore,
+                catalog);
 
             if (window.ShowDialog() == true)
 

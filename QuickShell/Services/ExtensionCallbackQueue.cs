@@ -33,7 +33,7 @@ internal sealed class ExtensionCallbackQueue : IExtensionCallbackQueue
             {
                 // A queued UI callback failed; keep draining so later callbacks still run
                 // and page rendering isn't abandoned. Matching RunOnExtensionThread's policy.
-                SupportDiagnostics.WriteException("ExtensionCallbackQueue.Drain", ex);
+                SupportDiagnostics.Default.WriteException("ExtensionCallbackQueue.Drain", ex);
             }
         }
     }

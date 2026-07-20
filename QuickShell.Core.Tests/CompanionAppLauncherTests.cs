@@ -7,7 +7,6 @@ namespace QuickShell.Core.Tests;
 /// Covers <see cref="CompanionAppLauncher.ExpandArguments"/> and instance launch paths
 /// via <see cref="FakeProcessStarter"/>.
 /// </summary>
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class CompanionAppLauncherTests : IDisposable
 {
     public CompanionAppLauncherTests()

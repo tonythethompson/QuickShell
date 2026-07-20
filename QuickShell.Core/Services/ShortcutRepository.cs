@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using System.Diagnostics;
 using System.Text.Json;
@@ -30,6 +31,8 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     private readonly string? _configDirectoryOverride;
     private readonly IAtomicFileWriter _fileWriter;
+    private readonly IAppDataPaths _appDataPaths;
+    private readonly ITerminalCatalog _catalog;
 
     private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan SlowOperationThreshold = TimeSpan.FromSeconds(2);
@@ -68,14 +71,30 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     }
 
     internal ShortcutRepository(string? configDirectory, IAtomicFileWriter? writer)
+        : this(configDirectory, writer, appDataPaths: null)
+    {
+    }
+
+    internal ShortcutRepository(string? configDirectory, IAtomicFileWriter? writer, IAppDataPaths? appDataPaths)
+        : this(configDirectory, writer, appDataPaths, catalog: null)
+    {
+    }
+
+    internal ShortcutRepository(
+        string? configDirectory,
+        IAtomicFileWriter? writer,
+        IAppDataPaths? appDataPaths,
+        ITerminalCatalog? catalog)
     {
         _configDirectoryOverride = configDirectory;
         _fileWriter = writer ?? new AtomicFileWriter();
+        _appDataPaths = appDataPaths ?? new AppDataPaths();
+        _catalog = catalog ?? new TerminalCatalog(new WtProfilesService());
     }
 
     public string ConfigDirectory =>
         _configDirectoryOverride
-        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QuickShell");
+        ?? Path.Combine(_appDataPaths.Root, "QuickShell");
 
     public string ConfigPath => Path.Combine(ConfigDirectory, "shortcuts.json");
 
@@ -1116,7 +1135,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         GetSnapshot().SearchForRootPalette(query);
 
     public IEnumerable<WorkspaceTaskAction> SearchTaskActions(string query) =>
-        GetSnapshot().SearchTaskActions(query);
+        GetSnapshot().SearchTaskActions(query, _catalog);
 
     private void EnsureLoaded(bool force = false)
     {
@@ -1347,10 +1366,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     {
         yield return ConfigPath + ".bak";
 
-        yield return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "TerminalShortcutsCmdPal",
-            "shortcuts.json");
+        yield return Path.Combine(_appDataPaths.Root, "TerminalShortcutsCmdPal", "shortcuts.json");
     }
 
     /// <summary>Matches the async loader's retry budget for transient sharing violations.</summary>

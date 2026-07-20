@@ -15,7 +15,6 @@ namespace QuickShell.Core.Tests;
 /// real pages: first paint runs no git process and applies no icon enrichment, repeated
 /// refreshes reuse presentation data, and pages never share command instances.
 /// </summary>
-[Collection(RowPresentationIsolation.Name)]
 public sealed class WorkspaceRowPresentationPageTests : IDisposable
 {
     private readonly string _configDirectory;
@@ -28,8 +27,6 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
 
     public WorkspaceRowPresentationPageTests()
     {
-        RowPresentationDiagnostics.ResetForTests();
-
         _configDirectory = Path.Join(Path.GetTempPath(), "qs-row-pres-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_configDirectory);
 
@@ -71,7 +68,6 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
 
     public void Dispose()
     {
-        RowPresentationDiagnostics.ResetForTests();
         _serviceProvider.Dispose();
         try
         {
@@ -103,10 +99,10 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
         // Icon work was queued for later but nothing has touched the published rows:
         // enrichment applies only when the host drains the callback queue.
         Assert.True(
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued) >= 5);
+            _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued) >= 5);
         Assert.Equal(
             0,
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+            _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
     }
 
     [Fact]
@@ -115,16 +111,16 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
         using var page = new QuickShellPage(_context);
         _ = page.GetItems();
 
-        var buildsAfterFirstPaint = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
-        var hitsAfterFirstPaint = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit);
+        var buildsAfterFirstPaint = _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
+        var hitsAfterFirstPaint = _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit);
 
         page.Reload();
 
         Assert.Equal(
             buildsAfterFirstPaint,
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
+            _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
         Assert.True(
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit) > hitsAfterFirstPaint);
+            _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit) > hitsAfterFirstPaint);
     }
 
     [Fact]
@@ -132,7 +128,7 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
     {
         using var page = new QuickShellPage(_context);
         _ = page.GetItems();
-        var buildsBefore = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
+        var buildsBefore = _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
 
         _repository.Upsert(new TerminalShortcut
         {
@@ -144,7 +140,7 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
         page.Reload();
 
         Assert.True(
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild) > buildsBefore);
+            _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild) > buildsBefore);
     }
 
     [Fact]
@@ -158,15 +154,15 @@ public sealed class WorkspaceRowPresentationPageTests : IDisposable
 
         using var fallback = new QuickShellFallbackPage(_context);
         fallback.SetWorkspaceResults("workspace", shortcuts, snapshot.Version);
-        var buildsAfterFallback = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
+        var buildsAfterFallback = _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
 
         // Second render of the same results reuses every fallback presentation.
         fallback.SetWorkspaceResults("workspace", shortcuts, snapshot.Version);
 
         Assert.Equal(
             buildsAfterFallback,
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
-        Assert.True(RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit) > 0);
+            _quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild));
+        Assert.True(_quickShellServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit) > 0);
     }
 
     [Fact]

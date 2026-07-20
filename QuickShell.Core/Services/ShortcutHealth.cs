@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -29,8 +30,13 @@ internal static class ShortcutHealth
         return !ShortcutLaunchNormalization.TryValidateLaunches(shortcut, out _);
     }
 
-    public static string GetListGlyph(TerminalShortcut shortcut, bool? needsRepair = null)
+    public static string GetListGlyph(
+        TerminalShortcut shortcut,
+        ITerminalLaunchGlyphs glyphs,
+        bool? needsRepair = null)
     {
+        ArgumentNullException.ThrowIfNull(glyphs);
+
         if (needsRepair ?? WouldNeedRepair(shortcut))
         {
             return ShortcutGlyphs.IncidentTriangle;
@@ -41,11 +47,16 @@ internal static class ShortcutHealth
             return ShortcutGlyphs.AdminLaunch;
         }
 
-        return TerminalLaunchGlyphs.GetForList(shortcut);
+        return glyphs.GetForList(shortcut);
     }
 
-    public static string BuildListSubtitle(TerminalShortcut shortcut, bool requireDirectoryExists = true)
+    public static string BuildListSubtitle(
+        TerminalShortcut shortcut,
+        ITerminalCatalog catalog,
+        bool requireDirectoryExists = true)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
+
         if (string.IsNullOrWhiteSpace(shortcut.Directory))
         {
             return "Choose workspace folder · fix in edit";
@@ -76,10 +87,10 @@ internal static class ShortcutHealth
                     && !CompanionAppCatalog.TryResolveExecutablePath(entry.Path, out _));
             if (missingCompanion is not null)
             {
-                return $"Companion app missing · {ShortcutDisplay.BuildSubtitle(shortcut)}";
+                return $"Companion app missing · {ShortcutDisplay.BuildSubtitle(shortcut, catalog)}";
             }
         }
 
-        return ShortcutDisplay.BuildSubtitle(shortcut);
+        return ShortcutDisplay.BuildSubtitle(shortcut, catalog);
     }
 }
