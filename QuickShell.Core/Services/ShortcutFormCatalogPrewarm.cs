@@ -37,6 +37,7 @@ internal static class ShortcutFormCatalogPrewarm
         const string schemaKey = "commands-admin-companions-v10-name-kw-widths-c1-cmd1";
         ShortcutFormTemplateCache.GetOrBuild(
             commandCount: 1,
+            companionCount: 1,
             appId,
             companionChoicesJson,
             schemaKey,

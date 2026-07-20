@@ -37,6 +37,7 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
 
         var templateJson = ShortcutFormTemplateCache.GetOrBuild(
             commandCount,
+            companionCount,
             terminalApplicationId,
             companionChoicesJson,
             taskTypeChoicesJson,

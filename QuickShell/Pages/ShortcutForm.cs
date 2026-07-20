@@ -18,6 +18,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     private bool _showingDiscardPrompt;
     private int _templateCommandCount = -1;
     private int _templateCompanionCount = -1;
+    private string? _templateDirectory;
 
     public ShortcutForm(IWorkspaceEditor editor, IQuickShellServices services, Action? onClosed = null)
     {
@@ -163,6 +164,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
             // Force RebuildFromState to refresh TemplateJson even when row counts are unchanged.
             _templateCommandCount = -1;
             _templateCompanionCount = -1;
+            _templateDirectory = null;
         }
 
         var targets = _services.TerminalCatalog.GetLaunchTargets(includeDefaultChoice: true);
@@ -280,11 +282,13 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
             var card = _viewBuilder.BuildMain(state, _services.Settings.TerminalApplicationId);
 
             if (_templateCommandCount != commandCount
-                || _templateCompanionCount != companionCount)
+                || _templateCompanionCount != companionCount
+                || !string.Equals(_templateDirectory, state.Directory, StringComparison.OrdinalIgnoreCase))
             {
                 TemplateJson = card.TemplateJson;
                 _templateCommandCount = commandCount;
                 _templateCompanionCount = companionCount;
+                _templateDirectory = state.Directory;
             }
 
             DataJson = card.DataJson;

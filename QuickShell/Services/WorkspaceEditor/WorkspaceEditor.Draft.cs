@@ -103,6 +103,7 @@ internal sealed partial class WorkspaceEditor
             Directory = saved.Directory,
             DevServerUrl = saved.DevServerUrl ?? string.Empty,
             RepoUrl = saved.RepoUrl ?? string.Empty,
+            OpenDevServerOnLaunch = saved.OpenDevServerOnLaunch,
             Companions = companions,
             OpenCompanionAppOnLaunch = openCompanion,
             CompanionAppPreset = companionPreset,
@@ -308,6 +309,7 @@ internal sealed partial class WorkspaceEditor
             OpenDevServerOnLaunch = ParseToggleBool(
                 data["OpenDevServerOnLaunch"]?.ToString(),
                 _draft.OpenDevServerOnLaunch),
+            ExpandSuggestionPills = _draft.ExpandSuggestionPills,
             Companions = mergedCompanions,
             OpenCompanionAppOnLaunch = _draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = _draft.CompanionAppPreset,

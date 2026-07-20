@@ -6,12 +6,14 @@ internal static class ShortcutFormTemplateCache
 
     private static string? _templateJson;
     private static int _commandCount = -1;
+    private static int _companionCount = -1;
     private static string? _terminalApplicationId;
     private static string? _companionChoicesJson;
     private static string? _taskTypeChoicesJson;
 
     public static string GetOrBuild(
         int commandCount,
+        int companionCount,
         string terminalApplicationId,
         string companionChoicesJson,
         string taskTypeChoicesJson,
@@ -19,7 +21,7 @@ internal static class ShortcutFormTemplateCache
     {
         lock (Sync)
         {
-            if (Matches(commandCount, terminalApplicationId, companionChoicesJson, taskTypeChoicesJson))
+            if (Matches(commandCount, companionCount, terminalApplicationId, companionChoicesJson, taskTypeChoicesJson))
             {
                 return _templateJson!;
             }
@@ -33,6 +35,7 @@ internal static class ShortcutFormTemplateCache
         lock (Sync)
         {
             _commandCount = commandCount;
+            _companionCount = companionCount;
             _terminalApplicationId = terminalApplicationId;
             _companionChoicesJson = companionChoicesJson;
             _taskTypeChoicesJson = taskTypeChoicesJson;
@@ -43,11 +46,13 @@ internal static class ShortcutFormTemplateCache
 
     private static bool Matches(
         int commandCount,
+        int companionCount,
         string terminalApplicationId,
         string companionChoicesJson,
         string taskTypeChoicesJson) =>
         _templateJson is not null
         && _commandCount == commandCount
+        && _companionCount == companionCount
         && string.Equals(_terminalApplicationId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
         && string.Equals(_companionChoicesJson, companionChoicesJson, StringComparison.Ordinal)
         && string.Equals(_taskTypeChoicesJson, taskTypeChoicesJson, StringComparison.Ordinal);
@@ -58,6 +63,7 @@ internal static class ShortcutFormTemplateCache
         {
             _templateJson = null;
             _commandCount = -1;
+            _companionCount = -1;
             _terminalApplicationId = null;
             _companionChoicesJson = null;
             _taskTypeChoicesJson = null;
