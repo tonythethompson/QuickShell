@@ -116,10 +116,10 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
 
     private string CreateOrGetResizedPath(string sourcePath, int pixels)
     {
-        var cacheDir = Path.Combine(_appDataPaths.Root, "QuickShell", "icon-cache");
+        var cacheDir = Path.Join(_appDataPaths.Root, "QuickShell", "icon-cache");
 
         var key = HashKey(sourcePath) + $"_{pixels}.png";
-        var destPath = Path.Combine(cacheDir, key);
+        var destPath = Path.Join(cacheDir, key);
 
         lock (_diskSync)
         {
