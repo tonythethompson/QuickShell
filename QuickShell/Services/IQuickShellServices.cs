@@ -37,5 +37,7 @@ internal interface IQuickShellServices
 
     IExtensionCallbackQueue CallbackQueue { get; }
 
+    IWorkspaceRowPresentationCache RowPresentation { get; }
+
     IQuickShellLifetime Lifetime { get; }
 }

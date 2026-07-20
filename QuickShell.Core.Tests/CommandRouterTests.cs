@@ -199,6 +199,7 @@ public sealed class CommandRouterTests : IDisposable
         public IGitRepoIndex GitRepos => _provider.GetRequiredService<IGitRepoIndex>();
         public IProjectClassificationCache ClassificationCache => _provider.GetRequiredService<IProjectClassificationCache>();
         public IExtensionCallbackQueue CallbackQueue => _provider.GetRequiredService<IExtensionCallbackQueue>();
+        public IWorkspaceRowPresentationCache RowPresentation => _provider.GetRequiredService<IWorkspaceRowPresentationCache>();
         public IQuickShellLifetime Lifetime => _provider.GetRequiredService<IQuickShellLifetime>();
     }
 

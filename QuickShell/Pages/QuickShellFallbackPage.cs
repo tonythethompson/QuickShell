@@ -20,6 +20,7 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
     private IReadOnlyList<TerminalShortcut> _shortcuts = [];
     private IReadOnlyList<GitRepoCandidate> _gitRepos = [];
     private bool _showDiscoverEntry;
+    private long _repositoryVersion;
 
     public QuickShellFallbackPage(QuickShellPageContext context)
     {
@@ -45,13 +46,17 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         RefreshItems();
     }
 
-    public void SetWorkspaceResults(string query, IReadOnlyList<TerminalShortcut> shortcuts)
+    public void SetWorkspaceResults(
+        string query,
+        IReadOnlyList<TerminalShortcut> shortcuts,
+        long repositoryVersion = 0)
     {
         _query = query ?? string.Empty;
         _taskActions = [];
         _shortcuts = shortcuts;
         _gitRepos = [];
         _showDiscoverEntry = false;
+        _repositoryVersion = repositoryVersion;
         RefreshItems();
     }
 
@@ -132,8 +137,9 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         }
         else
         {
+            var settingsFingerprint = _settings.RowPresentationFingerprint;
             items.AddRange(_taskActions.Select(BuildTaskActionItem));
-            items.AddRange(_shortcuts.Select(BuildShortcutItem));
+            items.AddRange(_shortcuts.Select(shortcut => BuildShortcutItem(shortcut, settingsFingerprint)));
             items.AddRange(BuildGitRepoItems(_gitRepos));
         }
 
@@ -169,23 +175,25 @@ internal sealed partial class QuickShellFallbackPage : DynamicListPage, IDisposa
         _onReload();
     }
 
-    private ListItem BuildShortcutItem(TerminalShortcut shortcut)
+    private ListItem BuildShortcutItem(
+        TerminalShortcut shortcut,
+        string settingsFingerprint)
     {
-        const bool requireDirectoryExists = false;
-        var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists);
-        var item = ShortcutListItems.CreateOpen(
+        // Shared presentation cache: same data as the home page but SearchResult mode,
+        // which uses the directory subtitle for healthy rows. Commands stay page-local.
+        var presentation = _services.RowPresentation.GetOrBuild(
+            shortcut,
+            _repositoryVersion,
+            settingsFingerprint,
+            WorkspaceRowPresentationMode.SearchResult);
+
+        return ShortcutListItems.CreateOpen(
             _context,
             shortcut,
+            presentation,
             _onReload,
             moveVisibility: default,
             includeEdit: false);
-        if (needsRepair)
-        {
-            return item;
-        }
-
-        item.Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcut);
-        return item;
     }
 
     private ListItem BuildTaskActionItem(WorkspaceTaskAction action) =>

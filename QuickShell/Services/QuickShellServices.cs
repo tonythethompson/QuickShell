@@ -24,6 +24,7 @@ internal sealed class QuickShellServices : IQuickShellServices
     public IGitRepoIndex GitRepos { get; }
     public IProjectClassificationCache ClassificationCache { get; }
     public IExtensionCallbackQueue CallbackQueue { get; }
+    public IWorkspaceRowPresentationCache RowPresentation { get; }
     public IQuickShellLifetime Lifetime { get; }
 
     public QuickShellServices(
@@ -41,7 +42,8 @@ internal sealed class QuickShellServices : IQuickShellServices
         IQuickShellLifetime lifetime,
         IGitRepoIndex gitRepos,
         IProjectClassificationCache classificationCache,
-        IExtensionCallbackQueue callbackQueue)
+        IExtensionCallbackQueue callbackQueue,
+        IWorkspaceRowPresentationCache? rowPresentation = null)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
         WorkspaceLaunch = workspaceLaunch ?? throw new ArgumentNullException(nameof(workspaceLaunch));
@@ -58,6 +60,7 @@ internal sealed class QuickShellServices : IQuickShellServices
         GitRepos = gitRepos ?? throw new ArgumentNullException(nameof(gitRepos));
         ClassificationCache = classificationCache ?? throw new ArgumentNullException(nameof(classificationCache));
         CallbackQueue = callbackQueue ?? throw new ArgumentNullException(nameof(callbackQueue));
+        RowPresentation = rowPresentation ?? new WorkspaceRowPresentationCache();
         settings.InitializeServices(this);
         BeginShortcutPreload();
     }

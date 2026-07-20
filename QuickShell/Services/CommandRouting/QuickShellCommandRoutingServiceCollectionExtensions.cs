@@ -36,7 +36,8 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<IQuickShellLifetime>(),
             sp.GetRequiredService<IGitRepoIndex>(),
             sp.GetRequiredService<IProjectClassificationCache>(),
-            sp.GetRequiredService<IExtensionCallbackQueue>()));
+            sp.GetRequiredService<IExtensionCallbackQueue>(),
+            sp.GetRequiredService<IWorkspaceRowPresentationCache>()));
         services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
         services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
 
