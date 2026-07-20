@@ -10,6 +10,10 @@ namespace QuickShell.Services.WorkspaceEditor;
 
 internal sealed partial class WorkspaceEditor
 {
+    /// <summary>
+    /// Applies a selected directory to the draft and populates related workspace details.
+    /// </summary>
+    /// <param name="directory">The directory selected for the workspace.</param>
     private void ApplyDirectorySelection(string directory)
     {
         if (!ShortcutValidation.TryNormalizeDirectory(directory, out var normalized, out _))
@@ -38,6 +42,12 @@ internal sealed partial class WorkspaceEditor
         InvalidateSuggestionScan();
     }
 
+    /// <summary>
+    /// Determines whether the workspace name should be populated from the selected directory.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if the current name is empty or matches the previously autofilled name, <c>false</c> otherwise.
+    /// </returns>
     private bool ShouldAutofillNameFromDirectory()
     {
         if (string.IsNullOrWhiteSpace(_draft.Name))
@@ -62,6 +72,11 @@ internal sealed partial class WorkspaceEditor
             StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Derives a workspace name from the final component of a directory path.
+    /// </summary>
+    /// <param name="directory">The directory path from which to derive the name.</param>
+    /// <returns>The directory's final component, or the trimmed directory path when no final component is available.</returns>
     private static string DeriveNameFromDirectory(string directory)
     {
         var trimmed = directory.Trim().TrimEnd('\\', '/');

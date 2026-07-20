@@ -20,6 +20,13 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     private int _templateCompanionCount = -1;
     private string? _templateDirectory;
 
+    /// <summary>
+    /// Initializes the shortcut form with the workspace editor and UI services.
+    /// </summary>
+    /// <param name="editor">The workspace editor used to manage form state.</param>
+    /// <param name="services">The services used to build and manage the form.</param>
+    /// <param name="onClosed">An optional callback invoked when the form closes.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="editor"/> or <paramref name="services"/> is <see langword="null"/>.</exception>
     public ShortcutForm(IWorkspaceEditor editor, IQuickShellServices services, Action? onClosed = null)
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
@@ -155,6 +162,10 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         return MapResult(_editor.SetCompanionExecutable(index, selected));
     }
 
+    /// <summary>
+    /// Refreshes the available terminal targets and updates the workspace editor.
+    /// </summary>
+    /// <returns>The command result produced by applying the refreshed terminal targets.</returns>
     private CommandResult HandleRefreshTerminals()
     {
         _services.TerminalCatalog.InvalidateCache();
@@ -178,6 +189,11 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         return MapResult(result);
     }
 
+    /// <summary>
+    /// Applies an editor result to the form and determines the next UI command.
+    /// </summary>
+    /// <param name="result">The editor result to process.</param>
+    /// <returns>The command that updates the form or navigates away from it.</returns>
     private CommandResult MapResult(WorkspaceEditResult result)
     {
         var state = _editor.GetState();
@@ -273,6 +289,10 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         }
     }
 
+    /// <summary>
+    /// Rebuilds the form's template and data JSON from the current workspace state.
+    /// </summary>
+    /// <param name="state">The workspace state used to build the form.</param>
     private void RebuildFromState(WorkspaceEditState state)
     {
         lock (_sync)
@@ -295,6 +315,12 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         }
     }
 
+    /// <summary>
+    /// Extracts a field value from a JSON object payload.
+    /// </summary>
+    /// <param name="payload">The JSON payload to inspect.</param>
+    /// <param name="field">The name of the field to retrieve.</param>
+    /// <returns>The field value as a string, or null if the payload is not a JSON object or the field is absent.</returns>
     private static string? GetFieldFromPayload(string payload, string field)
     {
         if (JsonNode.Parse(payload) is not JsonObject obj)

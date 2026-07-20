@@ -13,6 +13,12 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
     private readonly IProjectAnalysisService _projectAnalysis;
     private readonly ICommandSuggestionService _commandSuggestions;
 
+    /// <summary>
+    /// Initializes a builder for shortcut form views.
+    /// </summary>
+    /// <param name="terminalCatalog">The catalog used to provide terminal choices.</param>
+    /// <param name="projectAnalysis">The service used to provide project analysis data.</param>
+    /// <param name="commandSuggestions">The service used to provide command suggestions.</param>
     public ShortcutFormViewBuilder(
         ITerminalCatalog terminalCatalog,
         IProjectAnalysisService projectAnalysis,
@@ -23,6 +29,13 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
         _commandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
     }
 
+    /// <summary>
+    /// Builds the main shortcut form card for the specified workspace state.
+    /// </summary>
+    /// <param name="state">The workspace state used to populate the form.</param>
+    /// <param name="terminalApplicationId">The identifier of the terminal application selected for the form.</param>
+    /// <returns>The Adaptive Card template and data for the main shortcut form.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="state"/> is <see langword="null"/>.</exception>
     public ShortcutFormCard BuildMain(WorkspaceEditState state, string terminalApplicationId)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -75,6 +88,10 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
         return new ShortcutFormCard(templateJson, dataJson);
     }
 
-    public ShortcutFormCard BuildDiscardPrompt() =>
+    /// <summary>
+        /// Builds the discard confirmation prompt card.
+        /// </summary>
+        /// <returns>A shortcut form card containing the discard prompt.</returns>
+        public ShortcutFormCard BuildDiscardPrompt() =>
         new(ShortcutFormTemplateJson.BuildDiscardPromptTemplate(), "{}");
 }

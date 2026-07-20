@@ -48,6 +48,9 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
         return [_form!];
     }
 
+    /// <summary>
+    /// Ensures the shortcut form and its workspace editor are created and configured for the current operation.
+    /// </summary>
     private void EnsureFormBuilt()
     {
         lock (_formSync)

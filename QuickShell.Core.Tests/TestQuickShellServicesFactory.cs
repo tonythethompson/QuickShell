@@ -9,6 +9,11 @@ namespace QuickShell.Core.Tests;
 
 internal static class TestQuickShellServicesFactory
 {
+    /// <summary>
+    /// Creates a fully configured <see cref="QuickShellServices"/> instance for testing.
+    /// </summary>
+    /// <param name="launch">Optional test service bundle to use when configuring the services.</param>
+    /// <returns>The configured QuickShellServices instance.</returns>
     public static QuickShellServices Create(IShortcutRepository repository, IDraftStore drafts, QuickShellSettingsManager settings, IProjectAnalysisService analysis, IQuickShellLifetime lifetime, LaunchTestBundle? launch = null)
     {
         var bundle = launch ?? LaunchTestServices.CreateBundle();
@@ -49,6 +54,12 @@ internal static class TestQuickShellServicesFactory
         return services;
     }
 
+    /// <summary>
+    /// Creates a fully configured QuickShell services instance for tests.
+    /// </summary>
+    /// <param name="gitRepos">The Git repository index to use.</param>
+    /// <param name="launch">Optional test service bundle supplying launch-related dependencies.</param>
+    /// <returns>The configured QuickShell services instance.</returns>
     public static QuickShellServices Create(
         IShortcutRepository repository,
         IDraftStore drafts,
@@ -95,6 +106,12 @@ internal static class TestQuickShellServicesFactory
         return services;
     }
 
+    /// <summary>
+    /// Creates a fully configured <see cref="QuickShellServices"/> instance using dependencies resolved from a service provider.
+    /// </summary>
+    /// <param name="provider">The service provider used to resolve required dependencies.</param>
+    /// <param name="gitRepos">An optional Git repository index; the provider's index is used when omitted.</param>
+    /// <returns>The configured QuickShell services.</returns>
     public static QuickShellServices CreateFromProvider(
         IServiceProvider provider,
         IShortcutRepository repository,
@@ -146,7 +163,13 @@ internal static class TestQuickShellServicesFactory
 
         public required IQuickShellLifetime Lifetime { get; init; }
 
-        public IWorkspaceEditor Create(Action? onSaved = null) =>
+        /// <summary>
+                /// Creates a workspace editor associated with the configured QuickShell services.
+                /// </summary>
+                /// <param name="onSaved">An optional callback invoked when the workspace is saved.</param>
+                /// <returns>A new workspace editor.</returns>
+                /// <exception cref="InvalidOperationException">Thrown when QuickShell services have not been assigned.</exception>
+                public IWorkspaceEditor Create(Action? onSaved = null) =>
             new WorkspaceEditor(
                 Services ?? throw new InvalidOperationException("QuickShellServices was not assigned."),
                 Lifetime,

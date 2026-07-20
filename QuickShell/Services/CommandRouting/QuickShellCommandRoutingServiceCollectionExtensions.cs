@@ -13,6 +13,11 @@ namespace QuickShell.Services.CommandRouting;
 /// </summary>
 internal static class QuickShellCommandRoutingServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers QuickShell command-routing services and handlers in the dependency injection container.
+    /// </summary>
+    /// <param name="settingsManager">The manager used to provide QuickShell settings.</param>
+    /// <returns>The configured service collection.</returns>
     public static IServiceCollection AddQuickShellCommandRouting(
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager)
