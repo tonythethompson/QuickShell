@@ -9,7 +9,6 @@ namespace QuickShell.Core.Tests;
 public sealed class WorktreeBranchTests : IDisposable
 {
     private readonly string _root;
-    private readonly Dictionary<string, string> _branchTargets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, GitRepoState> _repos = new(StringComparer.OrdinalIgnoreCase);
     private readonly WorkspaceGitOperations _git;
     private FakeWorktreeBranchTargetStore _targetStore = null!;
@@ -297,7 +296,6 @@ public sealed class WorktreeBranchTests : IDisposable
         Directory.CreateDirectory(path);
         Assert.True(WorkspaceGitOperations.TryNormalizeWorktreeKey(path, out var key));
         _targetStore.SetTarget(key, "main");
-        _branchTargets[key] = "main";
 
         // Override RunGit for this path: resolve worktree key succeeds, status fails.
         var git = new WorkspaceGitOperations(
@@ -429,7 +427,6 @@ public sealed class WorktreeBranchTests : IDisposable
 
     private void ResetSeams()
     {
-        _branchTargets.Clear();
         _targetStore = new FakeWorktreeBranchTargetStore();
         _gate = new WorkspaceGitLaunchGate(_git, _targetStore);
         _switchCalls = 0;
@@ -520,7 +517,6 @@ public sealed class WorktreeBranchTests : IDisposable
     private void SetTarget(string directory, string branch)
     {
         Assert.True(_git.TryResolveWorktreeKey(directory, out var key));
-        _branchTargets[key] = branch;
         _targetStore.SetTarget(key, branch);
     }
 
