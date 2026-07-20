@@ -146,7 +146,7 @@ internal sealed class QuickShellSettingsManager
 
         if (string.IsNullOrWhiteSpace(initialApp))
         {
-            (initialApp, initialProfile) = LoadLegacyTerminalDefaults();
+            (initialApp, initialProfile) = LoadLegacyTerminalDefaults(_settingsStore.ConfigDirectory);
             usedLegacyDefaults = true;
         }
 
@@ -395,9 +395,9 @@ internal sealed class QuickShellSettingsManager
             ? TerminalHostIds.DefaultProfile
             : value.Trim();
 
-    private static (string App, string Profile) LoadLegacyTerminalDefaults()
+    private static (string App, string Profile) LoadLegacyTerminalDefaults(string configDirectory)
     {
-        var legacyPath = Path.Join(AppDataRoot.Current, "QuickShell", "settings.json");
+        var legacyPath = Path.Join(configDirectory, "settings.json");
 
         var legacyValue = LoadLegacyDefaultTerminal(legacyPath);
         return MigrateLegacyDefaultTerminal(legacyValue);
