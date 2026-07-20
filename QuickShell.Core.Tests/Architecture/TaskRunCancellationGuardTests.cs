@@ -44,12 +44,9 @@ public sealed class TaskRunCancellationGuardTests
                 var text = File.ReadAllText(file);
                 var relative = Path.GetRelativePath(repoRoot, file);
 
-                foreach (var args in EnumerateTaskRunArgumentLists(text))
+                foreach (var args in EnumerateTaskRunArgumentLists(text).Where(args => !ContainsTokenLikeIdentifier(args)))
                 {
-                    if (!ContainsTokenLikeIdentifier(args))
-                    {
-                        violations.Add($"{relative}: Task.Run(...) call has no CancellationToken argument");
-                    }
+                    violations.Add($"{relative}: Task.Run(...) call has no CancellationToken argument");
                 }
             }
         }
