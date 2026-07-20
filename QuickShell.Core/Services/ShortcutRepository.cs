@@ -94,7 +94,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public string ConfigDirectory =>
         _configDirectoryOverride
-        ?? Path.Combine(_appDataPaths.Root, "QuickShell");
+        ?? Path.Join(_appDataPaths.Root, "QuickShell");
 
     public string ConfigPath => Path.Combine(ConfigDirectory, "shortcuts.json");
 
