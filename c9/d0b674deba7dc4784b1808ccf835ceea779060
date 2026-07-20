@@ -1,0 +1,364 @@
+QuickShell.Core/Abstractions/ISettingsFormRefreshScheduler.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-20
+QuickShell.Core/Services/RowPresentationDiagnostics.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 2,9-10
+  s_aecdb4cfe17926::t_182d8f90ca0a50 11,13,23,25,32,35-36
+QuickShell.Core.Tests/WorkspaceStatusSnapshotTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_afb93dcc8a4e0f 89,100,121,125-126,135,158,181,185-186,225,233,237-238,271,278,282-283,291,295-296,334,338,342-343
+QuickShell.Core/Services/WorkspaceRepositorySnapshot.cs
+  s_4cf0edde39c7ec::t_4e01297bd3c653 1
+  s_4cf0edde39c7ec::t_f5416830fff153 92,94-95,118,220-224,236,248
+QuickShell.Core.Tests/WorktreeBranchTests.cs
+  s_4cf0edde39c7ec::t_d773bfdeab8ab2 16
+  s_4cf0edde39c7ec::t_d05ad020fcac77 15
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_6e59988a670839 44,73-74,76-77,88-91,93,96-97,108-110,124-125,135-137,140-141,299,311,396,411,432-434,524
+QuickShell.Core/Services/WtProfilesService.cs
+  s_57df4a19ebdb3b::t_b030f6d68ac377 2,31,33-35,43-48,50-53,60
+  s_57df4a19ebdb3b::t_f76bf9c4c1587e 54-56,58-59,61-68,70,72,79,85,87,89,100,102,109,112,131,143,156,167,181,186,190,245,247-248,250,256-257,261
+QuickShell.Core/Abstractions/ISupportDiagnostics.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-26
+QuickShell.Core.Tests/TerminalCatalogChoicesTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_583b02ba6fda09 28,78
+QuickShell.Run/QuickShellRunSettingsWindow.cs
+  s_4cf0edde39c7ec::t_250ddf931ee1cf 1
+  s_4cf0edde39c7ec::t_ec077cf0ebd200 25-26,49-51,61-62,85,339,349,559-563,571
+QuickShell.Core/Services/WorkspaceDevServerActions.cs
+  s_4cf0edde39c7ec::t_c5f2338e6244ba 7-8,10-16,20
+  s_4cf0edde39c7ec::t_aadef37a7414ab 17-19
+  s_4cf0edde39c7ec::t_1e92fd02bb46b9 21-23
+QuickShell/Services/SettingsFormRefreshScheduler.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-77
+QuickShell.Core.Tests/LaunchTestServices.cs
+  s_4cf0edde39c7ec::t_995b0c1b12450e 14-15,17,19,22,24,41-52,55-58,60-61,63-67,89-90,96-97,102-105,107-108,110-145,148-150,154,159,161,168,175,177-178,187,189-195,203-204,207
+  s_4cf0edde39c7ec::t_45b2b1e20d92a4 146-147
+  s_4cf0edde39c7ec::t_f7cb70422485dd 151-153
+  s_4cf0edde39c7ec::t_d9d0d78903965a 155-158
+  s_4cf0edde39c7ec::t_f1cb5171052d28 160
+  s_4cf0edde39c7ec::t_c55f567d4aa082 162-167
+  s_4cf0edde39c7ec::t_5b012e55fd3587 169-174
+  s_4cf0edde39c7ec::t_f0687e744683d1 176
+  s_4cf0edde39c7ec::t_69c2eae1486829 179-181,184-186
+  s_4cf0edde39c7ec::t_f5e7bc26b65611 188
+  s_4cf0edde39c7ec::t_9d2b27bcbc1273 196-198,200-202
+  s_4cf0edde39c7ec::t_ac45fb1e746976 205-206
+  s_4cf0edde39c7ec::t_07afb6517479f3 208-210
+  s_4cf0edde39c7ec::t_1342e5bc9cc0e5 182-183,199,211,224-227
+QuickShell.Core/Services/TerminalLaunchGlyphs.cs
+  s_64cdc48f994cba::t_f6688ba8a254e7 1,6,8-13
+  s_64cdc48f994cba::t_640189767be970 15,25,36,47,49
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 57-58,74
+  s_4cf0edde39c7ec::t_c6bb7ffd8c48fe 59
+  s_57df4a19ebdb3b::t_8ef369e28064e5 29-33,37-38,44-49,51-56,75,80,91,109
+  s_aecdb4cfe17926::t_578a6e059cc6ca 72-73
+  s_57df4a19ebdb3b::t_98915e45f81a99 76-79
+  s_57df4a19ebdb3b::t_b7c4889f14d86f 81-83,88-90
+  s_57df4a19ebdb3b::t_788b8bf700ff76 106-108
+  s_4cf0edde39c7ec::t_e11c07ebf71d97 84-87,94-99,102-105,114-119
+QuickShell.Core/Services/AppDataPaths.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-15
+QuickShell.Core/Abstractions/IWtProfilesService.cs
+  s_57df4a19ebdb3b::t_aa56b17e390f87 1-22
+QuickShell/Services/QuickShellServices.cs
+  s_4cf0edde39c7ec::t_bd90f935c927c5 21
+  s_aecdb4cfe17926::t_0918213a3d51ab 29
+  s_aecdb4cfe17926::t_6ea3ce91305ced 30
+  s_4cf0edde39c7ec::t_324cce7ea3865b 32-36,47,55-62,72,80-90
+QuickShell.Run/RunTerminalChoices.cs
+  s_4cf0edde39c7ec::t_12caa4d7781503 1,8,10-11,19,31,48
+  s_4cf0edde39c7ec::t_df52bef7bce0bd 28-30
+  s_4cf0edde39c7ec::t_583ac8b1ce50f0 32-33
+  s_4cf0edde39c7ec::t_9844af3ca6b279 46-47
+  s_4cf0edde39c7ec::t_265e5b2d383f46 49-50
+  s_4cf0edde39c7ec::t_ff290696a6d027 27,44,53
+QuickShell.Core/Abstractions/IWorktreeBranchTargetStore.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-14
+QuickShell.Core/Services/TerminalCatalogPrewarm.cs
+  s_57df4a19ebdb3b::t_8cd1b20d3ca194 1-2,7,9,11-13
+  s_57df4a19ebdb3b::t_31b483f74d8de3 14-16
+  s_4cf0edde39c7ec::t_a1bf138de10c87 17-18,31
+QuickShell.Core/Abstractions/ITerminalCatalog.cs
+  s_57df4a19ebdb3b::t_be25253f5a15b4 1-57
+QuickShell.Core/Services/WorktreeBranchTargetStore.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 7,9-13,15,17-19,21-22,24,26,30,45,93
+  s_aecdb4cfe17926::t_2711a06b80d07a 42,49,53,60,79,91,107,109,137,141,149,154,159,164,170,175-176
+QuickShell.Core.Tests/AssemblyInfo.cs
+  s_4cf0edde39c7ec::t_3b88872fb65d7f 3-4
+  s_4cf0edde39c7ec::t_0049ed1ebf4434 5-6
+QuickShell.Core.Tests/TerminalListIconCacheTests.cs
+  s_4cf0edde39c7ec::t_be391dfe32d67a 1
+  s_4cf0edde39c7ec::t_f946c437f3eeee 14-15,18-22,30,40,48,58
+QuickShell.Core/Abstractions/IAppDataPaths.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-11
+QuickShell.Core.Tests/WorkspaceRowEnrichmentCoordinatorTests.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 7,10,17-18
+  s_4cf0edde39c7ec::t_0e7b1f733355a5 19-21,71-72,94,133-134,149,172,220-221,243,262
+QuickShell.Core/Services/AppDataRoot.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-32
+QuickShell.Core.Tests/TerminalProfileIconResolverTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_ca2ceb59dd022d 143
+QuickShell.Core.Tests/WorkspaceRowPresentationCacheTests.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 7
+  s_aecdb4cfe17926::t_71ea58a5813f9f 11-12,16,40-41,102
+QuickShell.Core/Services/WorkspaceRowPresentationCache.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 22-23
+  s_4cf0edde39c7ec::t_3f9932fb3ced82 24
+  s_4cf0edde39c7ec::t_03d9fef3791202 29-43,66-67,87,92,94,155,171,174-175
+QuickShell/Services/WorkspaceRowEnrichmentCoordinator.cs
+  s_4cf0edde39c7ec::t_22f6bc4ab5e9d4 5
+  s_4cf0edde39c7ec::t_2bfbdcae626fbb 21-22,25,61-62,68-69,71,97,163,200,206-208,268,290,295,297-298
+QuickShell.Core/Services/QuickShellSettingsReader.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 13,23-24
+  s_57df4a19ebdb3b::t_9a76c7401ef9f0 2,14
+  s_57df4a19ebdb3b::t_02f073941f7a2b 21
+  s_57df4a19ebdb3b::t_8dfd9636357d4d 16
+  s_57df4a19ebdb3b::t_a64160ae7d1f2b 18
+  s_4cf0edde39c7ec::t_765e4fca49e70b 17,19
+  s_57df4a19ebdb3b::t_baccfd3a66bc3d 20,26
+  s_4cf0edde39c7ec::t_a1aeb375b4c601 25
+  s_57df4a19ebdb3b::t_56d7d510df35a7 27-28
+  s_4cf0edde39c7ec::t_ecc71a47aaa1ce 48,181,198,206,217,223,229,238,240,244,261
+QuickShell.Core.Tests/ShortcutLaunchExecutorCacheTests.cs
+  s_4cf0edde39c7ec::t_d3b593d1280e07 1
+  s_4cf0edde39c7ec::t_99f332fbbf0efa 27-28,35-36,318-321
+QuickShell.Core.Tests/ShortcutDisplayTests.cs
+  s_4cf0edde39c7ec::t_217893329f7d42 1
+  s_4cf0edde39c7ec::t_4b92af2c9ed029 9-10,127,152,177,211
+QuickShell.Core.Tests/FakeProcessStarter.cs
+  s_4cf0edde39c7ec::t_b8bbf0f02f79ad 1
+  s_4cf0edde39c7ec::t_7a915a258eca06 12-14,24
+QuickShell.Core/Services/ShortcutDisplay.cs
+  s_4cf0edde39c7ec::t_e2f01e0cf7c3b0 2
+  s_4cf0edde39c7ec::t_52ab7d53e60be9 40,42-43,46,48,53,68,70,86-90,142,144,153
+QuickShell.Core.Tests/ShortcutRepositoryPerformanceShapeTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+QuickShell.Core/Abstractions/ITerminalListIconCache.cs
+  s_57df4a19ebdb3b::t_8420495006696a 1-12
+QuickShell.Core/Services/ShortcutFormCatalogPrewarm.cs
+  s_4cf0edde39c7ec::t_cb1067797135bf 3
+  s_4cf0edde39c7ec::t_1be915630e9981 14-17,19-21,30,32
+QuickShell.Core.Tests/TerminalLauncherTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_e859d28eed1d02 24,137
+QuickShell.Core/Abstractions/IRowPresentationDiagnostics.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-13
+QuickShell.Core/Services/TerminalCatalog.cs
+  s_57df4a19ebdb3b::t_6aca759a8b3313 5,49-50,52-56,58,60-76
+  s_57df4a19ebdb3b::t_c6a32fc84df849 38
+  s_57df4a19ebdb3b::t_ead11c9da425e2 77-92,113,115,122,129,131,144,163,172,180,203,211,222-223,225,245,405,430,451,458,492,530,547,559,568,570,604,638,647,748,751,753,768,771
+QuickShell.Core/Services/ShortcutHealth.cs
+  s_4cf0edde39c7ec::t_ff788d09492118 1
+  s_4cf0edde39c7ec::t_0d1e645f6cd507 33-36,38-39,50,53-56,58-59,90,94
+QuickShell.Core.Tests/TerminalProfileIntegrationTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_faa56a448645ff 13,16
+QuickShell/Services/SupportDiagnostics.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 8,19-34,40
+  s_aecdb4cfe17926::t_ae57c68fcb8007 41,43-44,46-51,53,55,58,67,76,89,123,143,155,202-203,206-207
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1
+  s_4cf0edde39c7ec::t_c3c090becb7052 34-35,74-87,91-92,97,1138,1369
+QuickShell.Core/Services/TerminalListIconCache.cs
+  s_57df4a19ebdb3b::t_8e9a26f04e2249 7,16
+  s_4cf0edde39c7ec::t_667704212ee281 32-36,38-48,60,69,97,105,109,117,119,124
+QuickShell.Core.Tests/WorkspaceHealthCheckTests.cs
+  s_4cf0edde39c7ec::t_247ecb88090a13 1
+  s_4cf0edde39c7ec::t_17d454096608f3 22-26,318,320,324-325,338,351,355-356
+QuickShell/Services/TerminalCatalogChoices.cs
+  s_4cf0edde39c7ec::t_475ce63f8647c7 2,16,18-19,54
+  s_4cf0edde39c7ec::t_c75c464a9f5541 28,38,40,52,55,66,76,78,88,103-104,106,115,123-124
+QuickShell.Run/RunResultIcons.cs
+  s_4cf0edde39c7ec::t_829e1d933fb2f3 40,53,55,126
+  s_4cf0edde39c7ec::t_eb31846bdc41a9 1
+  s_4cf0edde39c7ec::t_a37c0a59bc3733 2-39,41-52,54,56-125
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_4cf0edde39c7ec::t_4460a0417d9f0b 17-42,57-82,94,99-101,109,112
+  s_4cf0edde39c7ec::t_5a559a27cf7875 93
+  s_4cf0edde39c7ec::t_1aae811043c921 95-98
+  s_4cf0edde39c7ec::t_59645b36101658 102-104,106-108
+  s_4cf0edde39c7ec::t_83ea2e2759e09d 110-111
+  s_4cf0edde39c7ec::t_ea552d6e567d7d 113-115
+  s_4cf0edde39c7ec::t_1d800bc0c47627 105,116-117
+QuickShell.Core/Services/TerminalProfileResolver.cs
+  s_57df4a19ebdb3b::t_d93b4f6dce8012 9-10,12-15,18
+  s_57df4a19ebdb3b::t_ee5ec75f2db289 19
+  s_4cf0edde39c7ec::t_21693f65db0ea5 31,34,44,49,72,75,77-78,81-82
+QuickShell.Core/Abstractions/ITerminalLaunchGlyphs.cs
+  s_57df4a19ebdb3b::t_a1457e61be4daa 1-15
+QuickShell.Core.Tests/Architecture/TaskRunCancellationGuardTests.cs
+  s_aecdb4cfe17926::t_0918213a3d51ab 1-138
+QuickShell.Core.Tests/Architecture/RuntimeStaticStateGuardsTests.cs
+  s_4cf0edde39c7ec::t_20be87470130d8 42-55
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_4cf0edde39c7ec::t_29f86953cee5d1 195,203-204,206-210
+QuickShell.Core.Tests/Performance/CriticalPathContractTests.cs
+  s_4cf0edde39c7ec::t_3193eb86e471b5 62,64-74,167,182,209-210,212-213
+QuickShell.Core.Tests/Performance/PerformanceRegressionHarnessTests.cs
+  s_4cf0edde39c7ec::t_f9306295ed361b 36-37,39-40,50,52,58-59,211,246,254,262
+QuickShell.Core.Tests/ProjectSetupSuggestionTests.cs
+  s_aecdb4cfe17926::t_a164c6eef03d52 27-28,278
+QuickShell.Core.Tests/RootPaletteSearchTests.cs
+  s_4cf0edde39c7ec::t_475fbe67cc17bc 369,377,405,485
+QuickShell.Core.Tests/RowPresentationMeasurementTests.cs
+  s_aecdb4cfe17926::t_197633bb4121b4 92-94,97-98,114-118,128
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_aecdb4cfe17926::t_1475b9aaed6cae 32-33,43,46,64,103,331-332
+QuickShell.Core.Tests/SupportDiagnosticsTests.cs
+  s_aecdb4cfe17926::t_c730d35afbc2be 17-19,24,26,42,44,61,65,83,99,101
+QuickShell.Core.Tests/WorkspaceRowPresentationPageTests.cs
+  s_aecdb4cfe17926::t_2153cf5e11de66 102,105,114-115,121,123,131,143,157,164-165
+QuickShell.Core.Tests/WorkspaceUtilityTests.cs
+  s_4cf0edde39c7ec::t_0cba4e53ad2142 34,54,66,80,96,109,122-126,145,1344-1345,1359,1375,1391,1406-1407,1430-1431,1446,1452-1453
+QuickShell.Core/Services/GitRepoDiscovery.cs
+  s_aecdb4cfe17926::t_ac0a9967890e2e 59-80,82-83,90,94-101,269-272,301,309,311,320,322,324
+QuickShell.Core/Services/TerminalSettingsDiscovery.cs
+  s_aecdb4cfe17926::t_0012397cbba2c1 56,80
+QuickShell.Core/Services/WorkspaceGitLaunchGate.cs
+  s_aecdb4cfe17926::t_ae75ce01dccfe6 16,18,21,30,44,54
+QuickShell.Core/Services/WorkspaceStatusSnapshot.cs
+  s_aecdb4cfe17926::t_62e50f7e874b3a 115-116,123,152,157,183
+QuickShell.Run/Main.cs
+  s_4cf0edde39c7ec::t_b82e2d6f694383 54-56,83-85,153-154,322,405,415-416,462,503,520-524,545-553
+QuickShell.Run/QuickShellRunSettingsPanel.cs
+  s_4cf0edde39c7ec::t_e157a4cbe94763 18-19,27-28,37-38,73,86
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_aecdb4cfe17926::t_0112c06fcec7cb 244
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_4cf0edde39c7ec::t_b430c7b86e00e9 66-69,83-85,99-102,189,484,1020,1475,1745-1746,1768-1770
+QuickShell/Commands/ImportShortcutsCommand.cs
+  s_aecdb4cfe17926::t_20d986f2a74ee1 50,64
+QuickShell/Commands/OpenTerminalShortcutCommand.cs
+  s_4cf0edde39c7ec::t_512cb25297f8fc 33,43
+QuickShell/Commands/ResetTransferCommands.cs
+  s_aecdb4cfe17926::t_cce9f59490496c 35
+QuickShell/Pages/BehaviorSettingsForm.cs
+  s_aecdb4cfe17926::t_902586a9b17082 134-135
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_aecdb4cfe17926::t_88e6d0042cb565 154
+QuickShell/Pages/HomeDisplaySettingsForm.cs
+  s_aecdb4cfe17926::t_fe7c6e48a935da 56-57
+QuickShell/Pages/ImportConflictPage.cs
+  s_aecdb4cfe17926::t_abc5e9bed8a62a 129,158
+QuickShell/Pages/MultiLaunchSettingsForm.cs
+  s_aecdb4cfe17926::t_e998cbee35a203 57-58
+QuickShell/Pages/PendingShortcutEditPage.cs
+  s_aecdb4cfe17926::t_ffccd721242abd 127
+QuickShell/Pages/ShortcutForm.cs
+  s_4cf0edde39c7ec::t_99d86978cd5e30 157,166,325-326
+QuickShell/Pages/ShortcutTransferSettingsForm.cs
+  s_aecdb4cfe17926::t_db9ed51257a0e7 155,162,292,298
+QuickShell/Pages/TerminalDefaultsSettingsForm.cs
+  s_4cf0edde39c7ec::t_f54af325a572e4 100,133-134,144,164-165
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_57df4a19ebdb3b::t_d82b5c46fb208b 78,81,100
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_57df4a19ebdb3b::t_779a0a11d418fd 72
+QuickShell/Program.cs
+  s_aecdb4cfe17926::t_28367f3e9a8864 16,22,26,32,48,56,58,62,69,76,82
+QuickShell/QuickShellCommandsProvider.cs
+  s_aecdb4cfe17926::t_0f4180f3f0a91f 38,44,47,52,68,78,82,135
+QuickShell/QuickShellSettingsManager.cs
+  s_4cf0edde39c7ec::t_3147ebc7342fc8 55-59,64-66,79-84,138,163,173,400
+QuickShell/Services/CommandRouting/CommandItemHandlers.cs
+  s_57df4a19ebdb3b::t_fe1db933a8752b 179
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_bfa19245570cb3::t_a9b6da5519a51a 24-27,37,45-52,83
+QuickShell/Services/ExtensionCallbackQueue.cs
+  s_aecdb4cfe17926::t_b574d2a7b08d27 36
+QuickShell/Services/PackageServicingShutdownWatcher.cs
+  s_aecdb4cfe17926::t_361b501053fdfe 50,78,88,121,129,150,160,201
+QuickShell/Services/QuickShellJsonSettingsStore.cs
+  s_aecdb4cfe17926::t_d8dbd8d95e56dd 15
+QuickShell/Services/ShortcutListItems.cs
+  s_4cf0edde39c7ec::t_808273ff69039e 64-65
+QuickShell/Services/StartupWarmupCoordinator.cs
+  s_aecdb4cfe17926::t_2155df769e9c75 134
+QuickShell/Services/StartupWarmupStages.cs
+  s_4cf0edde39c7ec::t_6f39087de4bc66 83-86
+QuickShell/Services/TerminalDiscovery.cs
+  s_4cf0edde39c7ec::t_778c5c199e13d2 7
+QuickShell.Core.Tests/StartupWarmupCoordinatorTests.cs
+  s_4cf0edde39c7ec::t_d5ba388a10d87a 392,398
+QuickShell.Core.Tests/WtProfilesServiceCacheTests.cs
+  s_4cf0edde39c7ec::t_04d3ab65ce4de3 46,48-50,52-54,56-57,59-64,75,77-78,80-83
+QuickShell.Core/QuickShell.Core.csproj
+  s_4cf0edde39c7ec::t_82ba2e53826a62 10
+QuickShell.Core/Services/RootPaletteSearchIndex.cs
+  s_4cf0edde39c7ec::t_f7e90494d48447 34,36,59,389,400,419,428
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_4cf0edde39c7ec::t_f5917db7d24b3e 48,56-57,64,268,277,296,330
+QuickShell.Core/Services/TerminalLauncher.cs
+  s_4cf0edde39c7ec::t_fc9b10ba59c648 20,22,25,27,64
+QuickShell.Core/Services/WorkspaceHealthCheck.cs
+  s_4cf0edde39c7ec::t_79d258dc2e646c 87-88,92-94,98-99,152,241,264,272,317,326,328,358
+QuickShell.Run/RunWorkspaceSubtitle.cs
+  s_4cf0edde39c7ec::t_f790a2a9b0566f 14-15,18-19,28,59-60
+QuickShell/Commands/OpenShortcutLaunchCommand.cs
+  s_4cf0edde39c7ec::t_abfc4665fca2f1 33
+QuickShell/Pages/QuickShellPage.cs
+  s_4cf0edde39c7ec::t_c3af88bb0eb2dc 59-62,399,456,506,520,756
+QuickShell/Pages/ShortcutDetailsFormPage.cs
+  s_4cf0edde39c7ec::t_d0086f1da9aee0 16-17,26,32,35,45,53,59,173,215
+QuickShell/QuickShellFallback.cs
+  s_4cf0edde39c7ec::t_0d0a6ba6332b70 62
+QuickShell/Services/DiscoverGitRepoListItems.cs
+  s_4cf0edde39c7ec::t_fc7dcd217b6985 284,297
+QuickShell/Services/IQuickShellServices.cs
+  s_4cf0edde39c7ec::t_69a7295eb00eb2 28-29,44-47,49-58
+QuickShell/Services/ShortcutContextCommands.cs
+  s_4cf0edde39c7ec::t_ae214db5ffdbd1 78
+QuickShell/Services/ShortcutTaskActionListItems.cs
+  s_4cf0edde39c7ec::t_5c8900787a22a1 16-17,20-21,36,40,64,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c9d0b674deba7dc4784b1808ccf835ceea779060",
+  "prompts": {},
+  "sessions": {
+    "s_4cf0edde39c7ec": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5c3eb6e8-a113-4663-b18c-871a08fd14ee",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_57df4a19ebdb3b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5076ec99-cbc2-4a10-b88e-8910bde74998",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_64cdc48f994cba": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b943eebc-2155-49d1-9eec-a4098b6e6511",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_aecdb4cfe17926": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e2941b8-e6bb-4487-839c-774807fed75c",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_bfa19245570cb3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c44b59a4-a7e8-4b87-82d6-ffa3476e53a9",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
