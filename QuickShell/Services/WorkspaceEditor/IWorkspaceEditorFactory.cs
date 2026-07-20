@@ -2,5 +2,5 @@ namespace QuickShell.Services.WorkspaceEditor;
 
 internal interface IWorkspaceEditorFactory
 {
-    WorkspaceEditor Create(Action? onSaved = null);
+    IWorkspaceEditor Create(Action? onSaved = null);
 }

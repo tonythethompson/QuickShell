@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Services.WorkspaceEditor;
 
 namespace QuickShell.Services;
 
@@ -34,6 +35,8 @@ internal sealed class QuickShellServices : IQuickShellServices
     public ITerminalListIconCache TerminalListIcons { get; }
     public ITerminalLaunchGlyphs TerminalLaunchGlyphs { get; }
     public TerminalCatalogPrewarm TerminalCatalogPrewarm { get; }
+    public IShortcutFormViewBuilder FormViewBuilder { get; }
+    public IWorkspaceEditorFactory WorkspaceEditors { get; }
 
     public QuickShellServices(
         IShortcutRepository shortcuts,
@@ -57,6 +60,8 @@ internal sealed class QuickShellServices : IQuickShellServices
         ITerminalListIconCache terminalListIcons,
         ITerminalLaunchGlyphs terminalLaunchGlyphs,
         TerminalCatalogPrewarm terminalCatalogPrewarm,
+        IShortcutFormViewBuilder formViewBuilder,
+        IWorkspaceEditorFactory workspaceEditors,
         IWorkspaceRowPresentationCache? rowPresentation = null,
         IRowPresentationDiagnostics? rowPresentationDiagnostics = null,
         ISettingsFormRefreshScheduler? refreshScheduler = null)
@@ -82,6 +87,8 @@ internal sealed class QuickShellServices : IQuickShellServices
         TerminalListIcons = terminalListIcons ?? throw new ArgumentNullException(nameof(terminalListIcons));
         TerminalLaunchGlyphs = terminalLaunchGlyphs ?? throw new ArgumentNullException(nameof(terminalLaunchGlyphs));
         TerminalCatalogPrewarm = terminalCatalogPrewarm ?? throw new ArgumentNullException(nameof(terminalCatalogPrewarm));
+        FormViewBuilder = formViewBuilder ?? throw new ArgumentNullException(nameof(formViewBuilder));
+        WorkspaceEditors = workspaceEditors ?? throw new ArgumentNullException(nameof(workspaceEditors));
         RowPresentationDiagnostics = rowPresentationDiagnostics ?? new RowPresentationDiagnostics();
         RowPresentation = rowPresentation ?? new WorkspaceRowPresentationCache(
             RowPresentationDiagnostics,

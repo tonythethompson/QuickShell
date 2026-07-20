@@ -208,6 +208,9 @@ public sealed class CommandRouterTests : IDisposable
         public ITerminalListIconCache TerminalListIcons => _provider.GetRequiredService<ITerminalListIconCache>();
         public ITerminalLaunchGlyphs TerminalLaunchGlyphs => _provider.GetRequiredService<ITerminalLaunchGlyphs>();
         public TerminalCatalogPrewarm TerminalCatalogPrewarm => _provider.GetRequiredService<TerminalCatalogPrewarm>();
+        public IShortcutFormViewBuilder FormViewBuilder => _provider.GetRequiredService<IShortcutFormViewBuilder>();
+        public QuickShell.Services.WorkspaceEditor.IWorkspaceEditorFactory WorkspaceEditors =>
+            _provider.GetRequiredService<QuickShell.Services.WorkspaceEditor.IWorkspaceEditorFactory>();
     }
 
     private sealed class TestWorkspaceGitOperations : IWorkspaceGitOperations

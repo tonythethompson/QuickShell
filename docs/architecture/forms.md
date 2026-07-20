@@ -15,13 +15,13 @@ In-palette create/edit (CmdPal Adaptive Cards), disk drafts, and the **two** und
 
 ```
 ShortcutFormPage
-  └─ ShortcutForm (FormContent)
-        FormDraft + baseline (dirty detection)
-        FormEditHistory (launch-row snapshots)
-        TemplateJson / DataJson (Adaptive Card)
+  └─ IWorkspaceEditorFactory → IWorkspaceEditor
+  └─ ShortcutForm (FormContent; thin event mapper)
+        └─ IShortcutFormViewBuilder → TemplateJson / DataJson
+        FormEditHistory lives on WorkspaceEditor (launch-row snapshots)
 ```
 
-Templates: `ShortcutFormTemplateJson` (+ cache). Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding). Each command row is **Command + terminal profile + Admin** (`LaunchRunAsAdmin_{i}`). Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
+`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` is a partial facade (`Draft` / `Directory` / `Suggestions` / `Undo` files) behind `IWorkspaceEditor`. Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding). Each command row is **Command + terminal profile + Admin** (`LaunchRunAsAdmin_{i}`). Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
 
 Browse/Paste folder on the form fills name (if unset), repo URL, and Dev Server URL when empty. It does **not** auto-seed launch commands or companion apps. Suggestion pills add commands; companion presets stay user-chosen. Discover create seeds via `WorkspaceSeedFactory` (see [intelligence.md](./intelligence.md), [companions.md](./companions.md)).
 
@@ -29,10 +29,9 @@ Suggestion pills on the form call into [intelligence.md](./intelligence.md); com
 
 ## Adaptive Card loop
 
-1. Host shows card from template + data JSON.  
-2. Submit → merge field payload into `FormDraft`.  
-3. Dispatch action: save, cancel, discard, pill add, clear row, browse folder, companion pick, etc.  
-4. `ApplyDraft` → maybe rebuild template → optional disk draft persist.
+1. Host shows card from `IShortcutFormViewBuilder` (template + data JSON).  
+2. Submit → `WorkspaceFormActionParser` → `IWorkspaceEditor.TryApplyInputs` / action methods.  
+3. Editor raises `Changed` → form rebuilds via the view builder → optional disk draft persist.
 
 ## Two undo stacks
 

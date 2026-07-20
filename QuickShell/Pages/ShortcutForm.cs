@@ -11,6 +11,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
 {
     private readonly IWorkspaceEditor _editor;
     private readonly IQuickShellServices _services;
+    private readonly IShortcutFormViewBuilder _viewBuilder;
     private readonly Action? _onClosed;
     private readonly object _sync = new();
     private bool _disposed;
@@ -22,6 +23,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
         _services = services ?? throw new ArgumentNullException(nameof(services));
+        _viewBuilder = services.FormViewBuilder;
         _onClosed = onClosed;
         _editor.Changed += OnEditorChanged;
         RebuildFromState(_editor.GetState());
@@ -195,8 +197,9 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
                 return CommandResult.GoBack();
             case WorkspaceEditResultKind.PromptDiscard:
                 _showingDiscardPrompt = true;
-                TemplateJson = ShortcutFormTemplateJson.BuildDiscardPromptTemplate();
-                DataJson = "{}";
+                var discardCard = _viewBuilder.BuildDiscardPrompt();
+                TemplateJson = discardCard.TemplateJson;
+                DataJson = discardCard.DataJson;
                 return CommandResult.KeepOpen();
             case WorkspaceEditResultKind.StayOpen:
             default:
@@ -274,56 +277,19 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         {
             var commandCount = Math.Max(1, state.Commands.Count);
             var companionCount = Math.Max(1, state.Companions.Count);
-            var terminalApplicationId = _services.Settings.TerminalApplicationId;
-            var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
-            var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(_services.ProjectAnalysis, state.Directory);
+            var card = _viewBuilder.BuildMain(state, _services.Settings.TerminalApplicationId);
 
             if (_templateCommandCount != commandCount
                 || _templateCompanionCount != companionCount)
             {
-                TemplateJson = ShortcutFormTemplateCache.GetOrBuild(
-                    commandCount,
-                    terminalApplicationId,
-                    companionChoicesJson,
-                    taskTypeChoicesJson,
-                    () => ShortcutFormTemplateJson.BuildTemplate(
-                        FormTerminalChoicesJson(terminalApplicationId),
-                        companionChoicesJson,
-                        state.Commands.Select(c => (c.Command, c.TaskType, c.LaunchTarget, c.RunAsAdmin)).ToList(),
-                        QuickShellBrand.DisplayName,
-                        companionCount));
+                TemplateJson = card.TemplateJson;
                 _templateCommandCount = commandCount;
                 _templateCompanionCount = companionCount;
             }
 
-            DataJson = ShortcutFormTemplateJson.BuildDataJson(
-                new ShortcutFormTemplateJson.DataPayload
-                {
-                    OriginalName = state.OriginalName ?? string.Empty,
-                    Name = state.Name,
-                    Abbreviation = state.Abbreviation,
-                    Directory = state.Directory,
-                    LaunchTarget = state.LaunchTarget,
-                    DevServerUrl = state.DevServerUrl,
-                    RepoUrl = state.RepoUrl,
-                    CompanionAppPreset = state.CompanionAppPreset,
-                    CompanionAppPath = state.CompanionAppPath,
-                    CompanionAppArguments = state.CompanionAppArguments,
-                    Companions = state.Companions,
-                    OpenDevServerOnLaunch = state.OpenDevServerOnLaunch,
-                    ShowRestoredDraftNote = state.ShowRestoredDraftNote,
-                    ExpandSuggestionPills = state.ExpandSuggestionPills,
-                    SuggestionScanning = state.IsSuggestionScanning,
-                    SaveError = state.SaveError ?? string.Empty,
-                },
-                _services.ProjectAnalysis,
-                _services.CommandSuggestions,
-                state.Commands.Select(c => (c.Command, c.TaskType, c.LaunchTarget, c.RunAsAdmin)).ToList());
+            DataJson = card.DataJson;
         }
     }
-
-    private string FormTerminalChoicesJson(string terminalApplicationId) =>
-        _services.TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, terminalApplicationId);
 
     private static string? GetFieldFromPayload(string payload, string field)
     {

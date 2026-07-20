@@ -15,7 +15,7 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
     private readonly Action? _onSaved;
     private readonly bool _hasOnSaved;
     private readonly Lock _formSync = new();
-    private WorkspaceEditor? _editor;
+    private IWorkspaceEditor? _editor;
     private ShortcutForm? _form;
     private bool _formNeedsReset;
     private bool _commandsInitialized;
@@ -61,7 +61,7 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
             {
                 _editor?.Dispose();
                 _form?.Dispose();
-                _editor = new WorkspaceEditor(_services, _services.Lifetime, _onSaved);
+                _editor = _services.WorkspaceEditors.Create(_onSaved);
                 _editor.ResetForOpen(_existing, _existing is null ? _createSeed : null);
                 _form = new ShortcutForm(_editor, _services, MarkFormNeedsReset);
                 _formNeedsReset = false;
