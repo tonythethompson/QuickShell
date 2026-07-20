@@ -25,8 +25,8 @@ internal sealed class QuickShellSettingsReader
     internal QuickShellSettingsReader(IAppDataPaths? appDataPaths, ITerminalCatalog? catalog)
     {
         _catalog = catalog ?? new TerminalCatalog(new WtProfilesService());
-        var directory = Path.Combine((appDataPaths ?? new AppDataPaths()).Root, "QuickShell");
-        SettingsPath = Path.Combine(directory, "settings.json");
+        var directory = Path.Join((appDataPaths ?? new AppDataPaths()).Root, "QuickShell");
+        SettingsPath = Path.Join(directory, "settings.json");
     }
 
     public string SettingsPath { get; }
