@@ -116,7 +116,7 @@ public sealed class TaskRunCancellationGuardTests
                 }
 
                 // Track regular string literals
-                if (!inChar && ch == '"' && (index == 0 || text[index - 1] != '\\'))
+                if (!inChar && ch == '"' && !HasOddTrailingBackslashes(text, index))
                 {
                     inString = !inString;
                     index++;
@@ -124,7 +124,7 @@ public sealed class TaskRunCancellationGuardTests
                 }
 
                 // Track char literals
-                if (!inString && ch == '\'' && (index == 0 || text[index - 1] != '\\'))
+                if (!inString && ch == '\'' && !HasOddTrailingBackslashes(text, index))
                 {
                     inChar = !inChar;
                     index++;
@@ -161,6 +161,23 @@ public sealed class TaskRunCancellationGuardTests
 
     private static bool IsIdentifierChar(char c) =>
         char.IsLetterOrDigit(c) || c == '_';
+
+    /// <summary>
+    /// Returns true if the character at <paramref name="index"/> is preceded by an odd number
+    /// of consecutive backslashes, indicating the character is escaped. Handles chains like
+    /// \\" (even count, quote closes literal) vs \\\" (odd count, quote is escaped).
+    /// </summary>
+    private static bool HasOddTrailingBackslashes(string text, int index)
+    {
+        var backslashCount = 0;
+        var i = index - 1;
+        while (i >= 0 && text[i] == '\\')
+        {
+            backslashCount++;
+            i--;
+        }
+        return (backslashCount % 2) == 1;
+    }
 
     private static bool ContainsTokenLikeIdentifier(string argumentListText)
     {

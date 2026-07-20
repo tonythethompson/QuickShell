@@ -14,9 +14,11 @@ internal static class TestQuickShellServicesFactory
     /// </summary>
     public static TerminalLaunchGlyphs CreateGlyphs()
     {
+        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var appDataPaths = new AppDataPaths(testRoot);
         var profiles = new WtProfilesService();
         var catalog = new TerminalCatalog(profiles);
-        var resolver = new TerminalProfileResolver(new QuickShellSettingsReader(), profiles, catalog);
+        var resolver = new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths), profiles, catalog);
         return new TerminalLaunchGlyphs(resolver);
     }
 
@@ -36,12 +38,7 @@ internal static class TestQuickShellServicesFactory
         var classificationCache = new ProjectClassificationCache(analysis);
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
         var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
-        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
-        var appDataPaths = new AppDataPaths(testRoot);
-        var glyphs = new TerminalLaunchGlyphs(
-            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths: null, bundle.Catalog), bundle.Profiles, bundle.Catalog));
-        var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, appDataPaths);
-        var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
+        var (appDataPaths, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         return new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
@@ -78,12 +75,7 @@ internal static class TestQuickShellServicesFactory
         var bundle = launch ?? LaunchTestServices.CreateBundle();
         var classificationCache = new ProjectClassificationCache(analysis);
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
-        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
-        var appDataPaths = new AppDataPaths(testRoot);
-        var glyphs = new TerminalLaunchGlyphs(
-            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths: null, bundle.Catalog), bundle.Profiles, bundle.Catalog));
-        var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, appDataPaths);
-        var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
+        var (appDataPaths, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         return new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
@@ -141,4 +133,20 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<ITerminalListIconCache>(),
             provider.GetRequiredService<ITerminalLaunchGlyphs>(),
             provider.GetRequiredService<TerminalCatalogPrewarm>());
+
+    /// <summary>
+    /// Centralizes terminal-wiring construction (AppDataPaths, glyphs, icon cache, prewarm)
+    /// used by both Create overloads. Returns a tuple with all four components initialized
+    /// from a test-isolated temporary directory.
+    /// </summary>
+    private static (AppDataPaths appDataPaths, TerminalLaunchGlyphs glyphs, TerminalListIconCache listIcons, TerminalCatalogPrewarm prewarm) BuildTerminalWiring(LaunchTestBundle bundle)
+    {
+        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var appDataPaths = new AppDataPaths(testRoot);
+        var glyphs = new TerminalLaunchGlyphs(
+            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths, bundle.Catalog), bundle.Profiles, bundle.Catalog));
+        var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, appDataPaths);
+        var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
+        return (appDataPaths, glyphs, listIcons, prewarm);
+    }
 }
