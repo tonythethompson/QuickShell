@@ -397,7 +397,7 @@ internal sealed class QuickShellSettingsManager
 
     private static (string App, string Profile) LoadLegacyTerminalDefaults()
     {
-        var legacyPath = Path.Combine(AppDataRoot.Current, "QuickShell", "settings.json");
+        var legacyPath = Path.Join(AppDataRoot.Current, "QuickShell", "settings.json");
 
         var legacyValue = LoadLegacyDefaultTerminal(legacyPath);
         return MigrateLegacyDefaultTerminal(legacyValue);
