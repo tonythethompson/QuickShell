@@ -71,7 +71,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
                 return;
             }
 
-            ApplyResult(result, querySnapshot);
+            ApplyResult(result, querySnapshot, searchIndex.Revision);
             if (result.Kind == RootPaletteResultKind.None)
             {
                 RegisterForGitRefresh();
@@ -88,7 +88,10 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         }
     }
 
-    private void ApplyResult(in RootPaletteSearchResult result, string query)
+    private void ApplyResult(
+        in RootPaletteSearchResult result,
+        string query,
+        long repositoryVersion)
     {
         switch (result.Kind)
         {
@@ -108,8 +111,8 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             case RootPaletteResultKind.Workspaces:
                 {
                     var listPage = _listPage.Value;
-                    listPage.SetWorkspaceResults(query, result.Workspaces!);
-                    ApplyWorkspaceResult(result.Workspaces!, query);
+                    listPage.SetWorkspaceResults(query, result.Workspaces!, repositoryVersion);
+                    ApplyWorkspaceResult(result.Workspaces!, query, repositoryVersion);
                 }
                 break;
 
@@ -132,12 +135,21 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
         }
     }
 
-    private void ApplyWorkspaceResult(IReadOnlyList<TerminalShortcut> shortcuts, string query)
+    private void ApplyWorkspaceResult(
+        IReadOnlyList<TerminalShortcut> shortcuts,
+        string query,
+        long repositoryVersion)
     {
         if (shortcuts.Count == 1)
         {
-            Title = shortcuts[0].Name;
-            Subtitle = ShortcutDisplay.BuildDirectorySubtitle(shortcuts[0]);
+            // Reuse the shared row presentation so root-palette and list-page rows agree.
+            var presentation = _context.Services.RowPresentation.GetOrBuild(
+                shortcuts[0],
+                repositoryVersion,
+                _context.Settings.RowPresentationFingerprint,
+                WorkspaceRowPresentationMode.SearchResult);
+            Title = presentation.Title;
+            Subtitle = presentation.Subtitle;
         }
         else
         {

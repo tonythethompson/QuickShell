@@ -23,10 +23,14 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// </summary>
     private readonly Dictionary<string, ListItem> _unpinnedItemCache =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly WorkspaceRowEnrichmentCoordinator _rowEnrichment;
     private readonly ConcurrentDictionary<string, bool> _directoryRepairStates =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, byte> _directoryRepairChecks =
         new(StringComparer.OrdinalIgnoreCase);
+    private long _refreshSnapshotVersion;
+    private long _refreshEnrichmentGeneration;
+    private string _refreshSettingsFingerprint = string.Empty;
     private IListItem[] _items = [];
     private string _query = string.Empty;
     private bool _hasShownInitialList;
@@ -52,6 +56,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         _settings = context.Settings;
         _createShortcutCommand = context.CreateShortcut;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
+        _rowEnrichment = new WorkspaceRowEnrichmentCoordinator(_services.CallbackQueue);
         Id = QuickShellNavigation.HomePageId;
         Icon = QuickShellBrandIcons.App;
         Title = QuickShellBrand.DisplayName;
@@ -287,6 +292,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             Monitor.PulseAll(_refreshSync);
         }
 
+        _rowEnrichment.Dispose();
         _searchDebouncer.Dispose();
     }
 
@@ -409,6 +415,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 snapshot = _services.Shortcuts.GetSnapshot();
             }
 
+            _refreshSnapshotVersion = snapshot.Version;
+            _refreshSettingsFingerprint = _settings.RowPresentationFingerprint;
+            _refreshEnrichmentGeneration = _rowEnrichment.BeginRefresh(
+                snapshot.Version,
+                _refreshSettingsFingerprint);
             var allShortcuts = snapshot.Shortcuts;
             PruneUnpinnedItemCache(allShortcuts);
             var pinnedInOrder = BuildPinnedInOrder(allShortcuts);
@@ -485,6 +496,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 _warmupSnapshotPendingPublication = snapshot;
             }
 
+            // Icons and other optional enrichment start only after the list is published.
+            _rowEnrichment.Flush();
+
+            // #region agent log
             SupportDiagnostics.Write(
                 "QuickShellPage.cs:RefreshItems",
                 "complete",
@@ -588,19 +603,40 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             && !string.IsNullOrWhiteSpace(shortcut.Id)
             && _unpinnedItemCache.TryGetValue(shortcut.Id, out var cached))
         {
+            if (!needsRepair)
+            {
+                _rowEnrichment.ScheduleIconUpgrade(
+                    shortcut,
+                    _refreshEnrichmentGeneration,
+                    cached);
+            }
+
             return cached;
         }
+
+        var presentation = _services.RowPresentation.GetOrBuild(
+            shortcut,
+            _refreshSnapshotVersion,
+            _refreshSettingsFingerprint,
+            WorkspaceRowPresentationMode.Home);
 
         var item = ShortcutListItems.CreateOpen(
             _context,
             shortcut,
+            presentation,
             Reload,
             PinnedMoveVisibility.ForShortcut(shortcut, pinnedInOrder),
             onFavoritesReordered: () => Reload(preserveUnpinnedItemCache: true),
             useHomePinContextMenu: true,
             needsRepairOverride: needsRepair);
 
-        ScheduleProfileIconUpgrade(shortcut, item);
+        if (!needsRepair)
+        {
+            _rowEnrichment.ScheduleIconUpgrade(
+                shortcut,
+                _refreshEnrichmentGeneration,
+                item);
+        }
 
         if (!string.IsNullOrWhiteSpace(shortcut.Id))
         {
@@ -615,34 +651,6 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         return item;
-    }
-
-    private void ScheduleProfileIconUpgrade(TerminalShortcut shortcut, ListItem item)
-    {
-        if (shortcut.RunAsAdmin || RequiresHomeRepair(shortcut))
-        {
-            return;
-        }
-
-        _ = Task.Run(() =>
-        {
-            TerminalListIconCache.PrewarmProfiles();
-            var icon = TerminalListIconCache.TryResolveUpgradedListIcon(shortcut);
-            if (string.IsNullOrWhiteSpace(icon))
-            {
-                return;
-            }
-
-            _services.CallbackQueue.Enqueue(() =>
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-
-                item.Icon = new IconInfo(icon);
-            });
-        });
     }
 
     private IEnumerable<IListItem> BuildHomeLayoutItems(

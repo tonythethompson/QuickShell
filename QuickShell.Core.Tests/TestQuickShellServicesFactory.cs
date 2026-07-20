@@ -40,5 +40,5 @@ internal static class TestQuickShellServicesFactory
         IProjectAnalysisService analysis,
         IQuickShellLifetime lifetime,
         IGitRepoIndex? gitRepos = null) =>
-        new(repository, drafts, settings, analysis, provider.GetRequiredService<ICommandSuggestionService>(), provider.GetRequiredService<IShortcutLaunchExecutor>(), provider.GetRequiredService<IWorkspaceGitOperations>(), provider.GetRequiredService<ICompanionAppLauncher>(), provider.GetRequiredService<IWorkspaceHealthChecker>(), provider.GetRequiredService<WorkspaceGitLaunchGate>(), lifetime, gitRepos ?? provider.GetRequiredService<IGitRepoIndex>(), provider.GetRequiredService<IProjectClassificationCache>(), new ExtensionCallbackQueue());
+        new(repository, drafts, settings, analysis, provider.GetRequiredService<ICommandSuggestionService>(), provider.GetRequiredService<IShortcutLaunchExecutor>(), provider.GetRequiredService<IWorkspaceGitOperations>(), provider.GetRequiredService<ICompanionAppLauncher>(), provider.GetRequiredService<IWorkspaceHealthChecker>(), provider.GetRequiredService<WorkspaceGitLaunchGate>(), lifetime, gitRepos ?? provider.GetRequiredService<IGitRepoIndex>(), provider.GetRequiredService<IProjectClassificationCache>(), new ExtensionCallbackQueue(), provider.GetRequiredService<IWorkspaceRowPresentationCache>());
 }
