@@ -7,10 +7,16 @@ internal static class StartupPerformanceTrace
 {
     private const string EnabledEnvironmentVariable = "QUICKSHELL_STARTUP_TRACE";
 
-    public static IDisposable Measure(string name) =>
-        IsEnabledValue(Environment.GetEnvironmentVariable(EnabledEnvironmentVariable))
-            ? new Measurement(name)
-            : NoopDisposable.Instance;
+    public static IDisposable Measure(string name)
+    {
+        var writeTrace = IsEnabledValue(Environment.GetEnvironmentVariable(EnabledEnvironmentVariable));
+        if (!writeTrace && !QuickShellEventSource.Log.IsEnabled())
+        {
+            return NoopDisposable.Instance;
+        }
+
+        return new Measurement(name, writeTrace);
+    }
 
     public static void Write(string message)
     {
@@ -29,12 +35,14 @@ internal static class StartupPerformanceTrace
     private sealed class Measurement : IDisposable
     {
         private readonly string _name;
+        private readonly bool _writeTrace;
         private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         private bool _disposed;
 
-        public Measurement(string name)
+        public Measurement(string name, bool writeTrace)
         {
             _name = name;
+            _writeTrace = writeTrace;
         }
 
         public void Dispose()
@@ -46,10 +54,17 @@ internal static class StartupPerformanceTrace
 
             _disposed = true;
             _stopwatch.Stop();
+            var elapsedMs = _stopwatch.Elapsed.TotalMilliseconds;
+            QuickShellEventSource.Log.WriteStartupSpan(_name, elapsedMs);
+            if (!_writeTrace)
+            {
+                return;
+            }
+
             Trace.WriteLine(
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"QuickShell startup: {_name} {_stopwatch.Elapsed.TotalMilliseconds:0.###}ms"));
+                    $"QuickShell startup: {_name} {elapsedMs:0.###}ms"));
         }
     }
 

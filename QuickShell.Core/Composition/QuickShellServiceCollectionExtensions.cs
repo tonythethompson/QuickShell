@@ -106,12 +106,15 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<ICompanionAppLauncher>(),
                 sp.GetRequiredService<WorkspaceGitLaunchGate>(),
                 sp.GetRequiredService<IShortcutRepository>(),
-                sp.GetRequiredService<ITerminalCatalog>()));
+                sp.GetRequiredService<ITerminalCatalog>(),
+                sp.GetRequiredService<IQuickShellEventSource>()));
         services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
         services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
         services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
         services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
-        services.AddSingleton<IRowPresentationDiagnostics, RowPresentationDiagnostics>();
+        services.AddSingleton<IQuickShellEventSource>(_ => QuickShellEventSource.Log);
+        services.AddSingleton<IRowPresentationDiagnostics>(sp =>
+            new RowPresentationDiagnostics(sp.GetRequiredService<IQuickShellEventSource>()));
         services.AddSingleton<IWorkspaceRowPresentationCache>(sp =>
             new WorkspaceRowPresentationCache(
                 sp.GetRequiredService<IRowPresentationDiagnostics>(),

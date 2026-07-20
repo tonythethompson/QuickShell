@@ -250,6 +250,8 @@ Based on the existing architecture tours and the `remaining-architectural-gaps` 
 ### Tier 3 — Performance (measure and tune)
 
 - Row presentation cache, launch plan cache, project classification cache, and git index TTL are implemented.
+- [x] Structured ETW (`QuickShell-Diagnostics`) beside support JSONL (see `diagnostics.md`).
+- [x] Perf harness CI artifact upload (`Category=PerformanceMeasurement`); critical-path contracts remain the blocking gate.
 - Measure provider ctor time, list reload, and discover scan time with real workspace counts before adding more caching layers.
 
 ### Tier 4 — Non-goals

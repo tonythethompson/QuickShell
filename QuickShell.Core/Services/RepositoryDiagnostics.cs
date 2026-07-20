@@ -10,6 +10,9 @@ internal static class RepositoryDiagnostics
 {
     internal static Action<string, string, long?>? Sink { get; set; }
 
-    internal static void Report(string location, string eventName, long? elapsedMs = null) =>
+    internal static void Report(string location, string eventName, long? elapsedMs = null)
+    {
         Sink?.Invoke(location, eventName, elapsedMs);
+        QuickShellEventSource.Log.WriteRepository(location, eventName, elapsedMs);
+    }
 }

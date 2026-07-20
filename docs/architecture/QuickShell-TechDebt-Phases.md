@@ -24,6 +24,8 @@ This document is a concrete execution plan derived from `QuickShell-TechDebt-Ove
 
 **Goal:** Prove performance and reliability before adding new product surfaces. Add structured diagnostics/ETW, benchmark with real workspace counts, extend security adversarial tests, and add end-to-end tests for form, trust, and import flows.
 
+**Status (landed):** EventSource (`QuickShell-Diagnostics`) beside support JSONL; perf harness CI artifacts; adversarial + form/trust/import flow tests. See detailed plan below.
+
 ---
 
 ## Phase 1 — Detailed plan
@@ -129,3 +131,48 @@ Use the current inventory (≈69 static classes in `QuickShell.Core/Services` pl
 ### Phase 1 exit milestone
 
 The codebase has **no process-wide mutable static service seams**, `Task.Run` fire-and-forget is replaced with lifetime-aware scheduling, and `QuickShell.Core.Tests` can run in parallel. This unblocks isolated unit tests for pages/commands and is the foundation for Phase 2.
+
+---
+
+## Phase 4 — Detailed plan
+
+### Workstream A — Structured diagnostics / EventSource
+
+- Add `IQuickShellEventSource` / `QuickShellEventSource` (`QuickShell-Diagnostics`) with stable event IDs for row cache, plan cache, startup spans, repository reports, support write success/failure, and git discovery completion.
+- Bridge from `RowPresentationDiagnostics`, `ShortcutLaunchExecutor` plan-cache callbacks, `RepositoryDiagnostics`, `SupportDiagnostics`, `StartupPerformanceTrace`, and `GitRepoDiscovery`.
+- Document the catalog in `docs/architecture/diagnostics.md`. Do **not** replace JSONL support logs or introduce OpenTelemetry.
+
+### Workstream B — Benchmarks and CI tracking
+
+- Keep `PerformanceRegressionHarnessTests` (`Category=PerformanceMeasurement`) as the wall-clock source of truth.
+- Fix `performance.md` cache table to match landed `WorkspaceLaunchPlanCache` / `WorkspaceRowPresentationCache`.
+- Add a non-blocking CI job that runs the measurement filter and uploads `artifacts/perf/*` (no absolute ms budgets).
+- Record actual workspace count from real-machine measurements into `artifacts/perf/real-machine-workspace-count.json`.
+
+### Workstream C — Security adversarial expansion
+
+- Add `WorkspaceSecurityAdversarialTests` for `InvalidCommand` / control characters, URL schemes, UNC/pipe/env paths, malformed/oversized import, and newline injection in commands.
+- Add invoke-level tests for `GrantWorkspaceTrustCommand` / `RevokeWorkspaceTrustCommand`.
+- Keep symlink/junction resolution as a documented v1 non-goal in `trust-model.md`.
+
+### Workstream D — Form / trust / import flow tests
+
+- Service/command-level flows (no CmdPal COM UI automation):
+  - Form: editor create → save → repository snapshot (+ form-local undo).
+  - Trust: untrusted → grant (review token) → launch allowed → revoke → blocked.
+  - Import: conflict pending → merge/replace/cancel decision path.
+
+### Workstream E — Docs and phase exit
+
+- Expand this Phase 4 section; keep Overview Tier 3 aligned when workstreams land.
+
+### Phase 4 acceptance criteria
+
+- EventSource + catalog documented; support JSONL unchanged in behavior.
+- `performance.md` cache table accurate; perf artifact CI job exists.
+- Adversarial + trust-command + form/trust/import flow tests green.
+- `dotnet build QuickShell.sln -c Release -p:Platform=x64` has **0** warnings; Core tests green.
+
+### Phase 4 exit milestone
+
+Measurement and hardening gates exist before new product surfaces: ETW alongside support logs, tracked perf artifacts, expanded adversarial coverage, and flow-level regression tests for form/trust/import.

@@ -101,6 +101,7 @@ internal static partial class GitRepoDiscovery
         var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots, defaultRootCandidates);
         if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
         {
+            QuickShellEventSource.Log.WriteGitDiscoveryComplete(0);
             return [];
         }
 
@@ -127,9 +128,11 @@ internal static partial class GitRepoDiscovery
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        return results
+        var ordered = results
             .OrderBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        QuickShellEventSource.Log.WriteGitDiscoveryComplete(ordered.Count);
+        return ordered;
 
         void Enqueue(string directory, int depth)
         {

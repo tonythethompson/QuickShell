@@ -42,10 +42,12 @@ internal sealed class SupportDiagnostics : ISupportDiagnostics
 
     private readonly object _gate = new();
     private readonly SupportDiagnosticsOptions _options;
+    private readonly IQuickShellEventSource _events;
 
-    public SupportDiagnostics(SupportDiagnosticsOptions? options = null)
+    public SupportDiagnostics(SupportDiagnosticsOptions? options = null, IQuickShellEventSource? events = null)
     {
         _options = options ?? new SupportDiagnosticsOptions();
+        _events = events ?? QuickShellEventSource.Log;
     }
 
     public void WriteInfo(string eventCode) => WriteEvent(SupportLogSeverity.Info, eventCode);
@@ -108,6 +110,8 @@ internal sealed class SupportDiagnostics : ISupportDiagnostics
 
                 File.AppendAllText(path, line, Encoding.UTF8);
             }
+
+            _events.WriteSupportEvent(eventCode);
         }
         catch (Exception ex) when (
             ex is IOException
@@ -117,6 +121,7 @@ internal sealed class SupportDiagnostics : ISupportDiagnostics
             or JsonException)
         {
             // Support diagnostics must never interfere with the extension host.
+            _events.WriteSupportWriteFailure(ex.GetType().Name);
         }
     }
 

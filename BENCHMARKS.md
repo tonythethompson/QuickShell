@@ -28,7 +28,9 @@ dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Pla
   store, git roots disabled, 50 in-memory fake workspaces). Fast and machine-independent.
 - `Measure_RealMachine_DiscoverScan_And_ListReload` — **representative** (scans the real user
   profile / drives for git repos and loads a read-only copy of `%LOCALAPPDATA%\QuickShell\shortcuts.json`).
-  Nothing on disk is mutated.
+  Nothing on disk is mutated. Writes `artifacts/perf/real-machine-workspace-count.json` with the
+  **actual** workspace count used for the list reload (override directory with
+  `QUICKSHELL_PERF_OUTPUT_DIR`).
 
 Add new numbers below after meaningful merges. Capture `dotnet --version`, the TF, and a
 one-line machine note (CPU / SSD) so comparisons stay honest.

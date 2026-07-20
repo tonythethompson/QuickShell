@@ -21,6 +21,12 @@ internal sealed class RowPresentationDiagnostics : IRowPresentationDiagnostics
     public const string EnrichmentCancelled = "row-enrichment:cancelled";
 
     private readonly ConcurrentDictionary<string, long> _counters = new(StringComparer.Ordinal);
+    private readonly IQuickShellEventSource _events;
+
+    public RowPresentationDiagnostics(IQuickShellEventSource? events = null)
+    {
+        _events = events ?? QuickShellEventSource.Log;
+    }
 
     public void Record(string eventName)
     {
@@ -30,6 +36,7 @@ internal sealed class RowPresentationDiagnostics : IRowPresentationDiagnostics
         }
 
         _counters.AddOrUpdate(eventName, 1, static (_, count) => count + 1);
+        _events.WriteRowCache(eventName);
     }
 
     public long GetCount(string eventName) =>

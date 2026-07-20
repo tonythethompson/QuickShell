@@ -46,6 +46,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
     private readonly WorkspaceGitLaunchGate _gitLaunchGate;
     private readonly IShortcutRepository? _repository;
     private readonly ITerminalCatalog _catalog;
+    private readonly IQuickShellEventSource _events;
     private readonly WorkspaceLaunchPlanCache _planCache = new();
 
     public ShortcutLaunchExecutor(
@@ -54,7 +55,8 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         ICompanionAppLauncher companionAppLauncher,
         WorkspaceGitLaunchGate gitLaunchGate,
         IShortcutRepository? repository = null,
-        ITerminalCatalog? catalog = null)
+        ITerminalCatalog? catalog = null,
+        IQuickShellEventSource? events = null)
     {
         _terminalLauncher = terminalLauncher ?? throw new ArgumentNullException(nameof(terminalLauncher));
         _healthChecker = healthChecker ?? throw new ArgumentNullException(nameof(healthChecker));
@@ -62,6 +64,7 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         _gitLaunchGate = gitLaunchGate ?? throw new ArgumentNullException(nameof(gitLaunchGate));
         _repository = repository;
         _catalog = catalog ?? new TerminalCatalog(new WtProfilesService());
+        _events = events ?? QuickShellEventSource.Log;
     }
 
     public ShortcutLaunchResult Launch(
@@ -85,10 +88,26 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         var plan = _planCache.GetOrBuild(
             key,
             () => BuildPlan(freshShortcut, repositoryVersion, effectiveApp, defaultProfileId, opts, null),
-            onHit: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheHit, "Launch plan cache hit.", FormatCacheKeyDimensions(key)),
-            onMiss: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheMiss, "Launch plan cache miss.", FormatCacheKeyDimensions(key)),
-            onBuild: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheBuild, "Launch plan cache build.", FormatCacheKeyDimensions(key)),
-            onEvicted: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheEvicted, "Launch plan cache evicted."));
+            onHit: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheHit, "Launch plan cache hit.", FormatCacheKeyDimensions(key));
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheHit.ToString());
+            },
+            onMiss: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheMiss, "Launch plan cache miss.", FormatCacheKeyDimensions(key));
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheMiss.ToString());
+            },
+            onBuild: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheBuild, "Launch plan cache build.", FormatCacheKeyDimensions(key));
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheBuild.ToString());
+            },
+            onEvicted: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheEvicted, "Launch plan cache evicted.");
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheEvicted.ToString());
+            });
 
         WorkspaceHealthResult health;
         using (StartupPerformanceTrace.Measure("launch health check"))
@@ -172,10 +191,26 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         var plan = _planCache.GetOrBuild(
             key,
             () => BuildPlan(freshShortcut, repositoryVersion, effectiveApp, defaultProfileId, opts, freshLaunch.Id),
-            onHit: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheHit, "Launch plan cache hit.", FormatCacheKeyDimensions(key)),
-            onMiss: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheMiss, "Launch plan cache miss.", FormatCacheKeyDimensions(key)),
-            onBuild: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheBuild, "Launch plan cache build.", FormatCacheKeyDimensions(key)),
-            onEvicted: () => diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheEvicted, "Launch plan cache evicted."));
+            onHit: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheHit, "Launch plan cache hit.", FormatCacheKeyDimensions(key));
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheHit.ToString());
+            },
+            onMiss: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheMiss, "Launch plan cache miss.", FormatCacheKeyDimensions(key));
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheMiss.ToString());
+            },
+            onBuild: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheBuild, "Launch plan cache build.", FormatCacheKeyDimensions(key));
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheBuild.ToString());
+            },
+            onEvicted: () =>
+            {
+                diagnostics.AddInfo(LaunchDiagnosticKind.PlanCacheEvicted, "Launch plan cache evicted.");
+                _events.WritePlanCache(LaunchDiagnosticKind.PlanCacheEvicted.ToString());
+            });
 
         WorkspaceHealthResult health;
         using (StartupPerformanceTrace.Measure("launch entry health check"))
