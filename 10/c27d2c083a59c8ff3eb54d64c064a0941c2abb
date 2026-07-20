@@ -1,0 +1,52 @@
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_4cf0edde39c7ec::t_4460a0417d9f0b 6
+  s_4cf0edde39c7ec::t_22bfe75fd3f308 22-24,45-49,68-70,91-95,105-112,136-154
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_4cf0edde39c7ec::t_3cce3a08cee81c 211-213
+QuickShell/Pages/ShortcutForm.cs
+  s_4cf0edde39c7ec::t_00e8d35c897644 14,26,200-202,280,285,290
+QuickShell/Pages/ShortcutFormPage.cs
+  s_4cf0edde39c7ec::t_2ef0e12496c2df 18,64
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_4cf0edde39c7ec::t_218fa6e0311470 28-32,55-56
+QuickShell/Services/IQuickShellServices.cs
+  s_4cf0edde39c7ec::t_d8818f250a928e 3,60-63
+QuickShell/Services/IShortcutFormViewBuilder.cs
+  s_4cf0edde39c7ec::t_0707269a827ece 1-24
+QuickShell/Services/QuickShellServices.cs
+  s_4cf0edde39c7ec::t_e393ca46e65ba6 6,38-39,63-64,90-91
+QuickShell/Services/ShortcutFormViewBuilder.cs
+  s_4cf0edde39c7ec::t_0af16d0cc54f97 1-79
+QuickShell/Services/WorkspaceEditor/IWorkspaceEditorFactory.cs
+  s_4cf0edde39c7ec::t_eccd87cde5ed09 5
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.Directory.cs
+  s_4cf0edde39c7ec::t_476af1cea74ac6 1-76
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.Draft.cs
+  s_4cf0edde39c7ec::t_e40a8a6d422081 1-520
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.Suggestions.cs
+  s_4cf0edde39c7ec::t_d1be964b67ccb7 1-109
+QuickShell/Services/WorkspaceEditor/WorkspaceEditor.Undo.cs
+  s_4cf0edde39c7ec::t_8a014414bf97cb 1-39
+QuickShell/Services/WorkspaceEditor/WorkspaceEditorFactory.cs
+  s_4cf0edde39c7ec::t_02fd049a6ba78c 7,10,16-17
+docs/architecture/QuickShell-TechDebt-Phases.md
+  s_4cf0edde39c7ec::t_76e2f7b70e13e6 17-18
+docs/architecture/forms.md
+  s_4cf0edde39c7ec::t_8acf2b210fe0f4 18-21,24,32-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "10c27d2c083a59c8ff3eb54d64c064a0941c2abb",
+  "prompts": {},
+  "sessions": {
+    "s_4cf0edde39c7ec": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5c3eb6e8-a113-4663-b18c-871a08fd14ee",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
