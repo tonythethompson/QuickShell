@@ -8,7 +8,7 @@
 
 QuickShell is a well-architected, feature-rich launcher built around a clean separation between a reusable .NET `QuickShell.Core` library and two Windows UI hosts (CmdPal, PowerToys Run), plus a parallel TypeScript Raycast extension. It persists user-defined “workspaces” (project folders + terminal launches, companion apps, git branch targets, dev-server URLs), validates them before launch, opens them in the user’s preferred terminal (Windows Terminal / Intelligent Terminal / WSL / classic shells), and can run post-launch companion apps or browser URLs.
 
-The **foundations are strong**: Core has no CmdPal SDK dependency, DI is partially wired, persistence is atomic with a versioned envelope, typed command routing exists, and the launch/health/git pipeline is sophisticated. The main risks are **complexity debt** from ~90 narrow `Services/` helpers (many still `static`), an **incomplete DI migration** that still relies on a static service locator, **fragile command-ID plumbing**, and **weak cancellation/lifecycle ownership** in a long-lived CmdPal host.
+The **foundations are strong**: Core has no CmdPal SDK dependency, DI is partially wired, persistence is atomic with a versioned envelope, typed command routing exists, and the launch/health/git pipeline is sophisticated. The main risks are **complexity debt** from the workspace form/editing surface and residual narrow `Services/` helpers, **residual static catalog/builder helpers** in suggestions and companions, and **incomplete consolidation** of a few `Task.Run` fire-and-forget sites. The trust/security model, command-ID contract, launch/row caches, and lifecycle ownership have been addressed or significantly improved.
 
 ## 2. Architecture at a Glance
 
@@ -25,57 +25,31 @@ The **foundations are strong**: Core has no CmdPal SDK dependency, DI is partial
 
 Stack: .NET 10, `net10.0-windows10.0.26100.0`, Windows App SDK / CsWinRT / MSIX, AOT + trimming, NuGet central package management. Version is pinned in `Directory.Build.props` (`0.2.0.0`).
 
-### Layers
-
-```
-CmdPal pages/commands ──┐
-PowerToys Run plugin ───┼──► DI / service facade ──► QuickShell.Core
-Raycast TS UI ─────────┘          (shared desktop)          (domain)
-```
-
-### Hosting
-
-- `QuickShellExtension` (`QuickShell/QuickShell.cs`) implements `IExtension` with a stable `[Guid]` and a `ManualResetEvent` dispose signal.
-- `QuickShellCommandsProvider` (`QuickShell/QuickShellCommandsProvider.cs`) is the composition root: it builds the `ServiceProvider`, wires fallback/top-level commands, and exposes `GetCommandItem(id)` for deep links.
-
 ### Data model
 
 - `TerminalShortcut` = a workspace (name, directory, launches, companion, dev server, pin, abbreviation).
 - `WorkspaceEntry` = one terminal row inside a workspace.
 - On disk layout is a **versioned envelope** in `%LOCALAPPDATA%\QuickShell\shortcuts.json`:
 
-  ```json
   { "version": 1, "entries": [ … shortcuts + separators … ] }
-  ```
-
-- `worktree-branch-targets.json` stores per-worktree git branch targets.
+  
 - `settings.json` stores global terminal / multi-launch / git-launch preferences.
 
 ### Launch pipeline (`QuickShell.Core/Services/ShortcutLaunchExecutor.cs`)
 
-```
-Launch / LaunchEntry
-  1. EnsureLaunchesFromLegacy
-  2. WorkspaceHealthCheck.Check / CheckEntry      ← blocking errors stop
-  3. Directory exists
-  4. WorkspaceGitLaunchGate                       ← branch switch / dirty block
-  5. CompanionAppLauncher (full workspace only)
-  6. Single row → TerminalLauncher.Open
+  1. WorkspaceGitLaunchGate                       ← branch switch / dirty block
+  2. CompanionAppLauncher (full workspace only)
+  3. Single row → TerminalLauncher.Open
      Multi     → Resolve → GroupPlans → OpenGroup ("; new-tab")
-  7. BuildPostLaunchResult (dev server, warnings, dismiss/stay)
-```
+  4. BuildPostLaunchResult (dev server, warnings, dismiss/stay)
 
-### Command routing
-
-- Deep-link strings → `CommandIdParser` → `CommandDescriptor` (kind + ids) → `CommandRouter` → `ICommandItemHandler` → page/command.
-- 11 `CommandKind` values cover open/create/discover/status/settings/import/etc.
-
-### Intelligence / suggestions
-
-- `IProjectClassifier` implementations detect stacks from `package.json`, `*.csproj`, `docker-compose.yml`, `Taskfile`, etc.
-- `TaskTypeCatalog` labels rows (`api`, `frontend`, `services`, `logs`, `test`, `build`, `agent`).
-- `CommandSuggestionService.GetPills` merges, scores, and caps suggestion pills.
-- `AgentCliSuggestion` adds PATH/markers-based agent CLI pills (`claude`, `codex`, `cursor-agent`, etc.).
+```csharp
+public async Task<PostLaunchResult> Execute(WorkspaceShortcut shortcut)
+{
+  // ... (omitted for brevity)
+  var postLaunchResult = await BuildPostLaunchResult(shortcut, launchPlan);
+  return postLaunchResult;
+}
 
 ## 3. Strengths
 
@@ -93,155 +67,159 @@ Launch / LaunchEntry
 
 **Evidence:**
 
-- `AddQuickShellCore` registers ~30 services, but several “services” are thin wrappers that immediately delegate to `static` classes:
+- `AddQuickShellCore` registers core services by interface to real instance services. The wrapper+static-backer table from earlier snapshots is gone; `IWorkspaceLaunchService`, `IWorkspaceRowPresentationCache`, and other new services are registered directly (`QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs`).
+- `QuickShellServices` is a constructor-injected aggregate implementing `IQuickShellServices`. It has no `Current` static property; a production search for `QuickShellServices.Current` returns **0** hits.
+- `ProjectAnalysisAccessor` is only referenced in `RuntimeStaticStateGuardsTests.cs` as a banned substring, not in production code.
+- `QuickShell.Core/Services` contains **~116 `.cs` files / ~18.4 kLOC** and **~69 `static class` declarations** across Core.
+- Residual static state remains in `RowPresentationDiagnostics` (process-wide counters) and several suggestion/companion catalog/builder helpers.
 
-  | Interface | Service | Static backer |
-  | --- | --- | --- |
-  | `ITerminalLauncher` | `TerminalLauncherService` | `TerminalLauncher` |
-  | `IWorkspaceHealthChecker` | `WorkspaceHealthCheckerService` | `WorkspaceHealthCheck` |
-  | `ITerminalProfileResolver` | `TerminalProfileResolverService` | `TerminalProfileResolver` |
-  | `IWorkspaceMapper` | `WorkspaceMapperService` | `WorkspaceMapper` |
-  | `IWorkspaceGitOperations` | `WorkspaceGitOperationsService` | `WorkspaceGitOperations` |
-  | `IGitRepoIndex` | `GitRepoIndexService` | `GitRepoIndex` |
+**Impact:** DI covers the hot path, but residual static helpers and a few `Task.Run` sites still make some pages/commands hard to unit-test in isolation.
 
-- The CmdPal host still resolves shared state through `QuickShellServices.Current` — a static service locator. As of this audit, **27 files** in `QuickShell/` use `QuickShellServices.Current`.
-- `ProjectAnalysisAccessor.Instance` is a static mutator set from the provider constructor.
-- `QuickShell.Core/Services` contains **117 `.cs` files / ~17.6 kLOC** and **91 `static class` declarations** across Core.
+**Recommended direction:** Finish extracting the remaining static helpers (`TaskTypeCandidateBuilder`, `WorkspaceSetupSuggestion`, `SuggestionPillPresentation`, `SuggestCommandLineArgs`, `AgentCliCatalog`, `SettingsFormHelpers`) behind instance interfaces registered in `AddQuickShellCore`; give `WorkspaceRowEnrichmentCoordinator` a proper `CancellationToken` instead of the default `Task.Run` scheduler.
 
-**Impact:** Tests against the wrapper test almost nothing; pages/commands cannot be unit-tested in isolation; adding a feature requires touching the static hub and the facade.
-
-**Recommended direction:** Inline the 6 wrappers into real instance services, migrate the 27 call sites to constructor injection, and delete `QuickShellServices.Current`.
-
-### 4.2 Command routing ID contract is scattered
+### 4.2 Command routing ID contract is now consolidated
 
 **Evidence:**
 
-- The deep-link format is split across **four** files:
-  - `QuickShellDeepLinkIds` — prefix constants
-  - `ShortcutCommandIds` — ID builders
-  - `CommandIdParser` — parsers
-  - `CommandIdEncoding` — serialization
-- `.admin`/`.standard` suffix stripping lives in the parser; builders do not append them — the suffix is added ad-hoc by `ShortcutFieldButtonFactory` call sites.
-- No `CommandDescriptor.ForOpenWorkspace(id)` factory exists.
+- `CommandDescriptor` owns the whole deep-link schema: prefix constants, `VariantSuffix`, factories (`OpenWorkspace`, `OpenLaunch`, `DiscoverCreate`, `WorkspaceStatus`, `WorktreeBranchPicker`, `WorktreeBranchSelect`, `WorktreeBranchClear`, `FavoriteToggle`, `FavoriteMove`), and page-ID factories (`NewWorkspaceFormPageId`, `EditWorkspaceFormPageId`, etc.).
+- The parsing is centralized in `CommandDescriptor.Parser`; `CommandIdParser` is a thin adapter.
+- The earlier `QuickShellDeepLinkIds`, `ShortcutCommandIds`, and `CommandIdEncoding` files no longer exist.
 
-**Impact:** The ID string is a public contract (deep links survive in CmdPal history), but its schema is hard to reason about and easy to break.
+**Impact:** The ID schema is now defined in one place; deep-link stability is easier to reason about and test.
 
-**Recommended direction:** Add `CommandDescriptor` static factories, rebuild `ShortcutCommandIds` call sites, delete the scattered ID files, and document the frozen contract.
+**Recommended direction:** Keep `CommandDescriptor` as the single owner of the contract; add any new kinds or factories there and extend `CommandIdParser` only as an adapter.
 
 ### 4.3 Service explosion / static intelligence helpers
 
 **Evidence:**
 
-- `QuickShell.Core/Services` has 117 files; many are narrow `*Discovery`, `*Actions`, `*Form*`, `*Catalog`, `*Cache` helpers.
-- Classification has been partially registry-ized (`IProjectClassifier` with 13 implementations), but the **suggestion/companion half is not**:
-  - `CommandSuggestionService` — static
-  - `TaskTypeCommandSuggestion` — static, 500+ LOC
-  - `TaskTypeCandidateBuilder` — static
-  - `TaskTypeCatalog` — static
-  - `SuggestionPillPresentation` — static
-  - `SuggestCommandLineArgs` — static
-  - `CompanionAppCatalog` — static
-  - `CompanionAppDetection` — static (duplicates the DI `ICompanionAppDetector`)
-  - `CompanionAppLauncher` — static
-  - `WorkspaceCompanionSignals` — static
-  - `WorkspaceSetupSuggestion` — static
-  - `ProjectClassificationCache` — static `ConcurrentDictionary`
+- `QuickShell.Core/Services` has many narrow `*Discovery`, `*Actions`, `*Form*`, `*Catalog`, and `*Cache` helpers.
+- Classification is fully registry-ized through `IEnumerable<IProjectClassifier>` (13 implementations).
+- The suggestion/companion path is mostly DI-registered:
+  - `CommandSuggestionService` is an instance service consuming `IEnumerable<ITaskSuggestionProvider>`.
+  - `TaskTypeCatalog` is `ITaskTypeCatalog`.
+  - `CompanionAppCatalog` is `ICompanionAppCatalog`.
+  - `CompanionAppLauncher` is `ICompanionAppLauncher`.
+  - `ProjectClassificationCache` is `IProjectClassificationCache`.
+  - `ICompanionAppDetector`, `ICompanionAppNormalization`, `ICompanionAppArgumentValidation`, and `IInstallDiscovery` are registered as instances.
+- Static helpers that still remain:
+  - `TaskTypeCandidateBuilder`
+  - `WorkspaceSetupSuggestion`
+  - `SuggestionPillPresentation`
+  - `SuggestCommandLineArgs`
+  - `AgentCliCatalog`
+  - `WorkspaceCompanionSignals`
+  - `SettingsFormHelpers`
 
-**Impact:** New pill sources or companion presets require editing multiple static files; ordering/scoring logic is buried.
+**Impact:** Adding a new pill source or companion preset still requires touching several static files; ordering/scoring logic is still partly buried.
 
-**Recommended direction:** Define `ITaskSuggestionProvider`, extract pill providers from `TaskTypeCandidateBuilder`, register them in DI, and delete the duplicate static companion detector.
+**Recommended direction:** Define `ITaskSuggestionProvider` / `ITaskTypeCandidateSource` (or expand the existing registry) and move the static builders into DI-registered providers. Delete duplicate or leftover static companion/suggestion helpers once their logic is subsumed by instance services.
 
 ### 4.4 Cancellation, dispose, and lifecycle gaps
 
 **Evidence:**
 
-- `QuickShellExtension.Dispose()` only signals `_extensionDisposedEvent.Set()`; it **does not call** `_provider.Dispose()`. The provider’s real dispose chain (settings unsubscribe, page dispose, service unbind, `ServiceProvider.Dispose`) only runs if the host happens to trigger it.
-- Fire-and-forget `Task.Run` sites without `CancellationToken`:
-  - `KickoffGitRepoIndexPrewarm` (provider ctor)
-  - `GitRepoIndex.StartRefreshLocked`
-  - `GitRepoDiscovery.Discover`
-  - `QuickShellServices.BeginShortcutPreload`
-  - settings prewarm (`QuickShellCommandsProvider` ctor)
-- Static mutable state survives provider instances:
-  - `GitRepoIndex` — 6 static fields
-  - `ProjectClassificationCache` — static `ConcurrentDictionary` + `Queue`
+- `QuickShellLifetime` is registered as `IQuickShellLifetime` and owns the root `CancellationTokenSource` (`QuickShell.Core/Services/QuickShellLifetime.cs`).
+- `QuickShellExtension.Dispose()` disposes the provider, which cancels the lifetime and cascades disposal to pages and the service provider (`QuickShell/QuickShell.cs:28-32`).
+- `WorkspaceRowEnrichmentCoordinator` is `IDisposable`, uses `IExtensionCallbackQueue` for UI marshaling, discards stale refresh results, and tracks refresh identity (`QuickShell/Services/WorkspaceRowEnrichmentCoordinator.cs`).
+- `ProjectClassificationCache` and `GitRepoIndex` are instance services with bounded size/TTL and `Dispose` support; `ShortcutRepository.Dispose` safely drains the persist timer.
+- Still un-canceled fire-and-forget `Task.Run` sites:
+  - `SettingsFormHelpers.ScheduleRefresh`
+  - `QuickShellPage` profile-prewarm / directory-repair probes
+  - `WorkspaceRowEnrichmentCoordinator`'s default `Action<Action>` scheduler uses `Task.Run(...)` with no `CancellationToken`
+- Mutable static state still exists in `RowPresentationDiagnostics` (process-wide counters) and `SupportDiagnostics` (log-path overrides).
 
-**Impact:** Background work can outlive the extension; static caches may leak or race across reloads; no clean shutdown path.
+**Impact:** The extension lifecycle and major background services are now controlled, but a few scheduler/test seams still carry process-wide mutable state and can race during reloads.
 
-**Recommended direction:** Introduce a root `QuickShellLifetime` / `CancellationTokenSource`, thread the token through `IGitRepoIndex` and discovery, clear static caches on dispose, and wire `QuickShellExtension.Dispose` → cancel → dispose provider → set event.
+**Recommended direction:** Replace the remaining `Task.Run` defaults with `IQuickShellLifetime`-aware scheduling; remove static test overrides from diagnostics by making them constructor-injectable or by deleting the static mutable fields.
 
 ### 4.5 Raycast / host parity drift
 
 **Evidence:**
 
-- Raycast does not load `QuickShell.Core`; it reimplements storage, schema, launch grouping, and health in TypeScript.
-- Raycast has **no** `worktree-branch-targets.json` integration and no `blockDirtyBranchSwitch` gate.
-- Companion presets, full health checks, and `GitRepoIndex` prewarm are weaker or absent in Raycast.
-- CmdPal and Run share `%LOCALAPPDATA%\QuickShell\` JSON; Raycast uses its own `STORAGE_KEY` blob unless the user manually imports/exports.
+- Raycast does not load `QuickShell.Core`; it reimplements storage, schema, launch grouping, health, and now the trust model in TypeScript.
+- `QuickShell.Raycast/src/lib/security.ts` mirrors the C# `WorkspaceSecurityPolicy`: per-workspace trust, review tokens, `authorize`, `authorizePostLaunchEffects`, and local-directory/URL guards.
+- `launch-executor.ts`, `workspace-health.ts`, `post-launch-actions.ts`, and `open-workspace.tsx` were updated to enforce trust and group launches.
+- Still missing in Raycast:
+  - `worktree-branch-targets.json` integration and the `WorkspaceGitLaunchGate` dirty/branch block.
+  - Reuse of the C# `CompanionAppCatalog` presets (it reimplements executable resolution).
+  - Shared on-disk storage with CmdPal/Run; Raycast keeps its own `STORAGE_KEY` blob unless the user manually imports/exports.
 
-**Impact:** Every desktop improvement must be manually mirrored in TypeScript, and the two ecosystems can diverge silently.
+**Impact:** Trust, launch grouping, and basic health are now at parity, but git worktree gating, companion-preset reuse, and storage unification remain manual maintenance burdens.
 
-**Recommended direction:** Treat parity as a deliberate budget; use the parity matrix in `docs/architecture/parity-matrix.md` before adding a host-only feature; do not “fix” a Raycast gap unless product commits to it.
+**Recommended direction:** Keep parity explicit through `docs/architecture/parity-matrix.md`. Do not add new Raycast-only launch or security behavior without updating the matrix; consider a shared JSONL or small Core-hosted service for worktree branch targets if Raycast needs the feature.
 
 ### 4.6 Form / editing complexity
 
 **Evidence:**
 
-- `ShortcutFormPage` is ~1,200 LOC, plus `ShortcutForm`, `ShortcutFormTemplateJson`, `FormEditHistory`, `LaunchRowListEditor`, `FormPayloadMerge`, `ShortcutDraftStore`, etc.
-- Two independent undo stacks: form-local launch-row history and full repository layout history.
-- Disk drafts for in-progress edits (`shortcut-edit-draft.json`) plus pending-edit pages and import-conflict pages.
+- `ShortcutFormPage.cs`, `ShortcutForm.cs`, `ShortcutDetailsFormPage.cs`, `ShortcutTransferSettingsForm.cs`, and `PendingShortcutEditPage.cs` remain large CmdPal-facing pages.
+- `WorkspaceEditor` in `QuickShell/Services/WorkspaceEditor/` has been partially extracted but is still a large partial class (~47 KB) handling draft state, undo/redo, suggestion scanning, save/discard, companion rows, and form-state cloning.
+- `ShortcutForm` still mixes Adaptive Card template caching (`ShortcutFormTemplateCache`/`ShortcutFormTemplateJson`), action dispatch, and clipboard/folder parsing.
+- Two independent undo models remain: form-local launch-row history in `WorkspaceEditor` and full repository layout history in `ShortcutRepository`.
+- Disk drafts for in-progress edits (`shortcut-edit-draft.json`) plus pending-edit pages and import-conflict pages still exist.
 
-**Impact:** The in-palette editor is a differentiator but a large maintenance surface; Adaptive Card SDK churn increases risk.
+**Impact:** The in-palette editor is a differentiator but a large maintenance surface; Adaptive Card SDK churn and duplicated template/data JSON construction increase risk.
 
-**Recommended direction:** Keep the in-palette UX, but extract a bounded “WorkspaceEditor” domain service and avoid adding more form-only state to Core.
+**Recommended direction:** Keep the in-palette UX, but move all Adaptive Card JSON construction into a single `ShortcutFormViewBuilder` driven by `WorkspaceEditState`. Reduce `ShortcutForm` to a thin mapper of UI events to `WorkspaceEditor` and `CommandResult`. Consolidate or document the relationship between form-local undo and repository-level undo.
 
-### 4.7 Security / trust surface
+### 4.7 Security / trust surface — addressed
+
+**Status:** Implemented by the repository-owned trust boundary.
 
 Implementation status: addressed by the repository-owned trust boundary, centralized action authorization, revision-bound review confirmation, and host launch audit described in [trust-model.md](./trust-model.md).
 
 **Evidence:**
 
-- Workspaces can run arbitrary commands (`Command` field) and can be launched elevated (`RunAsAdmin`).
-- `Import workspaces` merges user-provided JSON into the local store without a trust boundary.
-- Companion apps / dev-server URLs are opened via `Process.Start` / browser.
+- `WorkspaceSecurityPolicy` authorizes every external effect (`LaunchTerminal`, `LaunchEntry`, `StartCompanion`, `OpenUrl`, `OpenDevServer`, `OpenDirectory`, `CopyPath`, `GrantTrust`, `RevokeTrust`) and returns issues, risks, and exact effective values (`QuickShell.Core/Services/WorkspaceSecurityPolicy.cs`).
+- `StoredWorkspace` pairs portable `TerminalShortcut` content with repository-owned `WorkspaceSecurityMetadata` (`IsTrusted`, monotonic `Revision`) (`QuickShell.Core/Models/WorkspaceSecurityMetadata.cs`).
+- `WorkspaceLaunchService` is the ID-based launch chokepoint: it reloads the current workspace, authorizes, clones content via `WorkspaceClone`, and hands the executor only the approved copy (`QuickShell.Core/Services/WorkspaceLaunchService.cs`).
+- `GrantWorkspaceTrustCommand` / `RevokeWorkspaceTrustCommand` provide two-phase review-token confirmation (`QuickShell/Commands/WorkspaceTrustCommands.cs`).
+- `ShortcutRepository` owns `BeginTrustReview`, `GrantTrust`, and `RevokeTrust` transitions under its lock (`QuickShell.Core/Services/ShortcutRepository.cs`).
+- Import/restore/synced/community records start **untrusted**; local/manual/duplicated records start trusted; export omits trust metadata.
+- Raycast parity: `QuickShell.Raycast/src/lib/security.ts` implements `authorize`, review tokens, and post-launch effect authorization.
+- `docs/architecture/trust-model.md` documents the threat model and non-goals.
 
-**Impact:** A malicious or malformed imported workspace could run unwanted code or trigger UAC.
+**Remaining risk:** Trust is a local-store decision, not a tamper-detecting hash. It does not protect against an attacker who can modify QuickShell persistence, executable replacement after review, or a trusted command that downloads more code.
 
-**Recommended direction:** Validate/sanitize paths and commands on load and before launch; consider a “trusted workspace” flag or hash for imported sets; document the trust model.
+**Recommended direction:** Keep trust metadata under the repository lock; ensure future form/import changes preserve the trust rules documented in `trust-model.md`.
 
 ### 4.8 Performance / responsiveness risks
 
 **Evidence:**
 
-- Health checks, git status, and project classification can run on list render / selection paths.
-- `GitRepoIndex` / classification caches have no TTL; there is no structured cache invalidation strategy.
-- Prewarm is best-effort with empty `catch` blocks; failures are silent.
+- `WorkspaceRowPresentationCache` provides bounded (`MaxShortcutCount * 3`), version-pruned immutable presentation data; builds avoid icon extraction, git IO, and directory-existence probes (`QuickShell.Core/Services/WorkspaceRowPresentationCache.cs`).
+- `WorkspaceRowEnrichmentCoordinator` defers terminal profile icon upgrades off the first-paint path and discards stale results (`QuickShell/Services/WorkspaceRowEnrichmentCoordinator.cs`).
+- `WorkspaceLaunchPlanCache` provides bounded (`MaxEntries = 50`), revision-keyed, single-flighted launch plan resolution (`QuickShell.Core/Services/WorkspaceLaunchPlanCache.cs`).
+- `ProjectClassificationCache` has a max of 64 entries and signature-based invalidation.
+- `GitRepoIndex` uses a TTL-based `CacheLifetime`.
+- `CommandSuggestionService` caches results with a 2500 ms TTL.
+- Health checks are still used on launch; list-render presentation no longer triggers expensive probes.
 
-**Impact:** As workspace counts grow, list/open latency can degrade.
+**Impact:** The major first-paint and launch hot paths now have explicit cache invalidation; remaining risk is mostly in very large workspace counts or slow git operations on the launch path.
 
-**Recommended direction:** Cache health snapshots with TTL or explicit invalidation; make expensive checks opt-in “Refresh” actions; add ETW/file logging for silent prewarm failures.
+**Recommended direction:** Measure provider ctor, list reload, and discover scan times with real workspace counts before further optimization; add ETW/structured support diagnostics around any remaining slow paths.
 
 ### 4.9 Secondary maintainability nits
 
-- `UseWindowsForms = true` in Core pulls WinForms in just for `FolderPickerService` / `StaClipboard`; consider narrowing or replacing with WinRT/Storage APIs.
-- `Microsoft.Web.WebView2` is pinned in `Directory.Packages.props` but no project references it.
-- `QuickShell.Core` enables WinForms; this is a CmdPal-only extension at heart.
+- `UseWindowsForms` is set in `QuickShell/QuickShell.csproj` and `QuickShell.Run/QuickShell.Run.csproj` to support `FolderPickerService` / `StaClipboard`; `QuickShell.Core` does **not** enable WinForms.
+- `Microsoft.Web.WebView2` is not pinned in `Directory.Packages.props` and is not referenced by any project.
 
 ## 5. Quantitative Snapshot
 
 | Metric | Value |
 | --- | --- |
-| Total `.cs` files | ~318 |
-| Total C# LOC (desktop projects + tests) | ~42,500 |
-| `QuickShell.Core/Services` files | 117 |
-| `QuickShell.Core/Services` LOC | ~17,600 |
-| `QuickShell/Pages` files / LOC | 17 / ~4,900 |
-| `QuickShell/Commands` files / LOC | 15 / ~800 |
-| `QuickShell.Core/Classification` files / LOC | 22 / ~1,300 |
-| `static class` declarations in `QuickShell.Core` | ~91 |
-| `QuickShellServices.Current` references in `QuickShell/` | 66 |
+| Total `.cs` files | ~426 |
+| Total C# LOC (desktop projects + tests) | ~48,800 |
+| `QuickShell.Core/Services` files | ~116 |
+| `QuickShell.Core/Services` LOC | ~18,400 |
+| `QuickShell/Pages` files / LOC | 18 / ~4,000 |
+| `QuickShell/Commands` files / LOC | 15 / ~850 |
+| `QuickShell.Core/Classification` files / LOC | 24 / ~1,400 |
+| `static class` declarations in `QuickShell.Core` | ~69 |
+| `QuickShellServices.Current` references in `QuickShell/` | 0 |
 | `IProjectClassifier` implementations | 13 |
-| `Task.Run(` call sites in `QuickShell/` | 6 |
+| `Task.Run(` call sites in `QuickShell/` | 3 |
 | Abstractions/interfaces in `QuickShell.Core` | ~15 |
 
 ## 6. Recommended Roadmap
@@ -255,21 +233,24 @@ Based on the existing architecture tours and the `remaining-architectural-gaps` 
 
 ### Tier 1 — High-leverage engineering
 
-1. **Finish DI for hot paths.** Inline the 6 static-wrapper services, migrate the 27 `QuickShellServices.Current` call sites to constructor injection, and remove the static locator. This unlocks isolated unit tests for pages/commands.
-2. **Suggestion / companion registry.** Add `ITaskSuggestionProvider`, register pill providers in DI, delete duplicate static companion detection, and keep classification/suggestion growth bounded.
-3. **Freeze the command ID contract.** Move ID construction behind `CommandDescriptor` factories, delete `ShortcutCommandIds`/`QuickShellDeepLinkIds`/`CommandIdEncoding`, and document the deep-link schema.
-4. **Root lifetime / cancellation.** Add `QuickShellLifetime`, propagate `CancellationToken` through git/discovery/preload, clear static caches on dispose, and wire extension dispose correctly.
+1. **Finish DI for remaining static helpers.** Move the residual static catalog/builder helpers (`TaskTypeCandidateBuilder`, `WorkspaceSetupSuggestion`, `SuggestionPillPresentation`, `SuggestCommandLineArgs`, `AgentCliCatalog`, `SettingsFormHelpers`) behind instance interfaces registered in `AddQuickShellCore`. Migrate any remaining `QuickShellServices.Current` call sites (currently **0** in production) and keep the `RuntimeStaticStateGuardsTests` banned-substring list current.
+2. **Suggestion / companion registry.** Expand `IEnumerable<ITaskSuggestionProvider>` so `TaskTypeCandidateBuilder` logic becomes registered providers; delete leftover static companion/suggestion duplication.
+3. **Command ID contract is frozen.** Keep `CommandDescriptor` as the single owner; do not add new `QuickShellDeepLinkIds`/`ShortcutCommandIds`/`CommandIdEncoding` files.
+4. **Root lifetime / cancellation.** Replace remaining `Task.Run` defaults with `IQuickShellLifetime`-aware scheduling; remove static mutable fields from `RowPresentationDiagnostics` and `SupportDiagnostics`.
 
 ### Tier 2 — Product-quality fixes
 
 - [x] `WorkspaceHealthCheck` resolves every enabled `same-as-previous` row before validating its effective terminal, profile, WSL distro, and executable.
 - [x] Companion detection includes current desktop IDEs, including TRAE’s `.trae/` workspace marker and installed executable preset.
 - [x] Support diagnostics use bounded, redacted JSONL logs plus a copyable aggregate support bundle; detailed launch diagnostics remain an explicit user action.
+- [x] Workspace trust/security model (`WorkspaceSecurityPolicy`, `WorkspaceLaunchService`, `StoredWorkspace` + `WorkspaceSecurityMetadata`, `GrantWorkspaceTrustCommand`/`RevokeWorkspaceTrustCommand`, `docs/architecture/trust-model.md`).
+- [x] Immutable row presentation cache + deferred icon enrichment (`WorkspaceRowPresentationCache`, `WorkspaceRowEnrichmentCoordinator`, `IWorkspaceRowPresentationCache`).
+- [x] Revision-keyed launch plan cache (`WorkspaceLaunchPlanCache`, `ResolvedWorkspaceLaunchPlan`, `LaunchPlanCacheKey`).
 
-### Tier 3 — Performance (only with numbers)
+### Tier 3 — Performance (measure and tune)
 
-- Measure provider ctor time, list reload, and discover scan time before optimizing.
-- If needed, add TTL’d health snapshots and bounded GitRepoIndex refresh.
+- Row presentation cache, launch plan cache, project classification cache, and git index TTL are implemented.
+- Measure provider ctor time, list reload, and discover scan time with real workspace counts before adding more caching layers.
 
 ### Tier 4 — Non-goals
 
@@ -280,7 +261,7 @@ Based on the existing architecture tours and the `remaining-architectural-gaps` 
 
 ## 7. Bottom Line
 
-QuickShell has a **strong core** — a reusable workspace-launch engine with good persistence, health, git, and terminal abstractions. The biggest payoff is completing the **DI migration and cancellation ownership** that is already half-built, then consolidating the **suggestion/intelligence helpers** behind a registry. Do that, and new hosts, new pill sources, and new companion presets become additive rather than invasive. Keep Raycast parity explicit and measured; do not let the TypeScript surface drift ahead of the documented parity matrix.
+QuickShell has a **strong core** — a reusable workspace-launch engine with good persistence, health, git, trust, terminal, and cache abstractions. The biggest remaining payoffs are finishing the **residual static helpers** (suggestions, companions, diagnostics, form scheduling), consolidating the **workspace form/editing surface**, and keeping **Raycast parity** explicit through the parity matrix. Do that, and new hosts, new pill sources, and new companion presets become additive rather than invasive.
 
 ---
 
