@@ -29,15 +29,78 @@ export type LaunchOptions = {
   runAsStandard?: boolean;
 };
 
+export type WslUncLocation = {
+  distro: string;
+  linuxPath: string;
+};
+
 const PACKAGE_MANAGER_COMMANDS = new Set(["npm", "pnpm", "yarn", "bun", "npx", "dotnet", "cargo", "go"]);
+
+export function buildSelectedLaunchWorkspace(
+  workspace: Workspace,
+  launchId: string,
+  settings?: QuickShellSettings,
+): Workspace | null {
+  const selected = workspace.launches.find((launch) => launch.id === launchId);
+  if (!selected?.isEnabled) {
+    return null;
+  }
+
+  let selectedLaunch = { ...selected };
+  if (settings) {
+    let previousTerminal: string | undefined;
+    let previousProfile: string | null | undefined;
+    for (const launch of workspace.launches
+      .filter((entry) => entry.isEnabled)
+      .sort((left, right) => left.order - right.order)) {
+      const resolved = resolveTerminalForLaunch(launch, settings, previousTerminal, previousProfile);
+      if (launch.id === launchId) {
+        selectedLaunch = { ...selected, terminal: resolved.terminal, wtProfile: resolved.wtProfile ?? null };
+        break;
+      }
+      previousTerminal = resolved.terminal;
+      previousProfile = resolved.wtProfile;
+    }
+  }
+
+  return {
+    ...workspace,
+    terminal: selectedLaunch.terminal,
+    wtProfile: selectedLaunch.wtProfile ?? null,
+    command: selectedLaunch.command ?? null,
+    launches: [selectedLaunch],
+  };
+}
+
+export function parseWslUncPath(value: string): WslUncLocation | null {
+  if (value !== value.trim() || value.length > 1024 || /[\r\n\0%]/.test(value)) {
+    return null;
+  }
+
+  const match = /^\\\\wsl\$\\([a-zA-Z0-9][a-zA-Z0-9._-]*)(?:\\(.*))?$/i.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const segments = match[2] ? match[2].split("\\") : [];
+  if (segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    return null;
+  }
+
+  return {
+    distro: match[1],
+    linuxPath: segments.length > 0 ? `/${segments.join("/")}` : "/",
+  };
+}
 
 export function resolveTerminalForLaunch(
   launch: LaunchEntry,
   settings: QuickShellSettings,
   previousTerminal?: string,
+  previousProfile?: string | null,
 ): { terminal: string; wtProfile?: string | null } {
   if (launch.terminal === "same-as-previous" && previousTerminal) {
-    return { terminal: previousTerminal, wtProfile: launch.wtProfile };
+    return { terminal: previousTerminal, wtProfile: launch.wtProfile ?? previousProfile };
   }
 
   if (launch.terminal === "default") {
@@ -171,12 +234,15 @@ export function buildLaunchArguments(entry: LaunchPlanEntry): string[] {
   }
 
   if (target.kind === "wsl") {
-    if (target.profileOrDistro) {
-      args.push("-d", target.profileOrDistro);
+    const wslLocation = parseWslUncPath(directory);
+    const distro = target.profileOrDistro ?? wslLocation?.distro;
+    const linuxDirectory = wslLocation?.linuxPath ?? directory;
+    if (distro) {
+      args.push("-d", distro);
     }
     const wslCommand = command
-      ? `cd ${shellQuoteForBash(directory)} && ${command}`
-      : `cd ${shellQuoteForBash(directory)} && exec $SHELL -l`;
+      ? `cd ${shellQuoteForBash(linuxDirectory)} && ${command}`
+      : `cd ${shellQuoteForBash(linuxDirectory)} && exec $SHELL -l`;
     args.push("--", "bash", "-lc", wslCommand);
     return args;
   }
@@ -240,12 +306,14 @@ export function buildWorkspaceLaunchPlan(
   const enabledLaunches = workspace.launches.filter((launch) => launch.isEnabled);
   const entries: LaunchPlanEntry[] = [];
   let previousTerminal: string | undefined;
+  let previousProfile: string | null | undefined;
 
   for (const launch of enabledLaunches.sort((left, right) => left.order - right.order)) {
-    const resolved = resolveTerminalForLaunch(launch, settings, previousTerminal);
+    const resolved = resolveTerminalForLaunch(launch, settings, previousTerminal, previousProfile);
     previousTerminal = resolved.terminal;
+    previousProfile = resolved.wtProfile;
     const target = resolveLaunchTarget(resolved.terminal, resolved.wtProfile);
-    const command = launch.command?.trim() || null;
+    const command = launch.command || null;
     const wantsAdmin = launch.runAsAdmin || workspace.runAsAdmin;
     const runAsAdmin = options.runAsStandard ? false : (options.runAsAdmin ?? wantsAdmin);
 
@@ -298,14 +366,17 @@ export function buildWindowsTerminalTabArguments(entry: LaunchPlanEntry): string
   }
 
   if (target.kind === "wsl") {
+    const wslLocation = parseWslUncPath(directory);
+    const distro = target.profileOrDistro ?? wslLocation?.distro;
+    const linuxDirectory = wslLocation?.linuxPath ?? directory;
     const wslCommand = command
-      ? `cd ${shellQuoteForBash(directory)} && ${command}`
-      : `cd ${shellQuoteForBash(directory)} && exec $SHELL -l`;
-    const args: string[] = [];
-    if (target.profileOrDistro) {
-      args.push("-p", target.profileOrDistro);
+      ? `cd ${shellQuoteForBash(linuxDirectory)} && ${command}`
+      : `cd ${shellQuoteForBash(linuxDirectory)} && exec $SHELL -l`;
+    const args = ["wsl.exe"];
+    if (distro) {
+      args.push("-d", distro);
     }
-    args.push("wsl.exe", "-e", "bash", "-lc", wslCommand);
+    args.push("-e", "bash", "-lc", wslCommand);
     return args;
   }
 

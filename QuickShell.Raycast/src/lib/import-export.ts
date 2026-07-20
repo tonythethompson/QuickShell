@@ -13,7 +13,9 @@ export type ImportResult = {
 };
 
 export function exportStoredData(data: StoredData): string {
-  return JSON.stringify(data, null, 2);
+  const portable = { ...data };
+  delete portable.workspaceSecurity;
+  return JSON.stringify(portable, null, 2);
 }
 
 export function parseImportPayload(raw: string): ImportResult {
@@ -105,6 +107,17 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
       version: imported.version,
       settings: { ...base.settings, ...imported.settings },
       workspaces: merged,
+      workspaceSecurity: Object.fromEntries(
+        merged.map((workspace) => {
+          const existingSecurity = base.workspaceSecurity?.[workspace.id];
+          return [
+            workspace.id,
+            existingSecurity && base.workspaces.some((candidate) => candidate.id === workspace.id)
+              ? { ...existingSecurity }
+              : { isTrusted: false, revision: 1 },
+          ];
+        }),
+      ),
     },
     imported: merged.length - base.workspaces.length,
     skipped,

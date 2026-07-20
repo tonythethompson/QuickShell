@@ -2,6 +2,8 @@
 
 How the three launchers share concepts and where they diverge.
 
+All hosts retain workspace IDs rather than trust-bearing snapshots and resolve current repository state immediately before external effects. CmdPal and Run use Core `IWorkspaceLaunchService`; Raycast applies the equivalent policy in `src/lib/security.ts`. See [trust-model.md](./trust-model.md).
+
 ## Matrix
 
 | Concern | CmdPal (`QuickShell/`) | PowerToys Run (`QuickShell.Run/`) | Raycast (`QuickShell.Raycast/`) |

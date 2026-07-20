@@ -38,7 +38,7 @@ internal static class CompanionAppNormalization
                 Path = shortcut.CompanionAppPath.Trim(),
                 Arguments = string.IsNullOrWhiteSpace(shortcut.CompanionAppArguments)
                     ? null
-                    : shortcut.CompanionAppArguments.Trim(),
+                    : shortcut.CompanionAppArguments,
                 OpenOnLaunch = shortcut.OpenCompanionAppOnLaunch,
                 Order = 0,
             },
@@ -64,7 +64,7 @@ internal static class CompanionAppNormalization
         shortcut.CompanionAppPath = string.IsNullOrWhiteSpace(primary.Path) ? null : primary.Path.Trim();
         shortcut.CompanionAppArguments = string.IsNullOrWhiteSpace(primary.Arguments)
             ? null
-            : primary.Arguments.Trim();
+            : primary.Arguments;
         shortcut.OpenCompanionAppOnLaunch = primary.OpenOnLaunch;
     }
 
@@ -80,7 +80,7 @@ internal static class CompanionAppNormalization
             }
 
             entry.Path = string.IsNullOrWhiteSpace(entry.Path) ? null : entry.Path.Trim();
-            entry.Arguments = string.IsNullOrWhiteSpace(entry.Arguments) ? null : entry.Arguments.Trim();
+            entry.Arguments = string.IsNullOrWhiteSpace(entry.Arguments) ? null : entry.Arguments;
         }
 
         DropEmptyCompanions(shortcut);
@@ -126,7 +126,7 @@ internal static class CompanionAppNormalization
             {
                 Id = string.IsNullOrWhiteSpace(primaryId) ? Guid.NewGuid().ToString("N") : primaryId,
                 Path = trimmedPath,
-                Arguments = string.IsNullOrWhiteSpace(arguments) ? null : arguments.Trim(),
+                Arguments = string.IsNullOrWhiteSpace(arguments) ? null : arguments,
                 OpenOnLaunch = openOnLaunch,
                 Order = 0,
             });

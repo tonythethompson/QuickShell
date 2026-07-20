@@ -30,6 +30,14 @@ internal interface IShortcutRepository
 
     TerminalShortcut? ResolveForOpenCommand(string key);
 
+    StoredWorkspace? GetStoredWorkspace(string id);
+
+    WorkspaceReviewSnapshot BeginTrustReview(string workspaceId);
+
+    TrustTransitionResult GrantTrust(string workspaceId, WorkspaceReviewToken reviewToken);
+
+    TrustTransitionResult RevokeTrust(string workspaceId);
+
     void Reload();
 
     void FlushPendingWrites();

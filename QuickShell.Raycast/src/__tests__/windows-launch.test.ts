@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildLaunchArguments,
+  buildSelectedLaunchWorkspace,
+  buildWindowsTerminalTabArguments,
   buildWorkspaceLaunchPlan,
   escapeWindowsArgument,
+  parseWslUncPath,
   resolveLaunchTarget,
 } from "../lib/windows-launch";
 import type { Workspace } from "../lib/schema";
@@ -112,5 +115,112 @@ describe("windows-launch", () => {
     expect(plan.entries).toHaveLength(2);
     expect(plan.groupedArguments.join(" ")).toContain("new-tab");
     expect(plan.groupedArguments.join(" ")).not.toContain("-w");
+  });
+
+  it("builds a selected launch workspace from the repository entry only", () => {
+    const selected = buildSelectedLaunchWorkspace(
+      {
+        ...workspace,
+        command: "bad\r\nworkspace command",
+        launches: [
+          { ...workspace.launches[0], id: "selected", command: "npm test", isEnabled: true },
+          { ...workspace.launches[0], id: "invalid", label: "", command: "bad\r\nsibling", isEnabled: false },
+        ],
+      },
+      "selected",
+    );
+
+    expect(selected?.command).toBe("npm test");
+    expect(selected?.launches).toEqual([
+      expect.objectContaining({ id: "selected", command: "npm test", isEnabled: true }),
+    ]);
+    expect(buildWorkspaceLaunchPlan(selected!, DEFAULT_SETTINGS).entries).toHaveLength(1);
+  });
+
+  it("does not build a selected workspace for a disabled authoritative launch", () => {
+    const selected = buildSelectedLaunchWorkspace(
+      {
+        ...workspace,
+        launches: [{ ...workspace.launches[0], id: "disabled", isEnabled: false }],
+      },
+      "disabled",
+      DEFAULT_SETTINGS,
+    );
+
+    expect(selected).toBeNull();
+  });
+
+  it("resolves same-as-previous from the preceding ordered repository launch", () => {
+    const selected = buildSelectedLaunchWorkspace(
+      {
+        ...workspace,
+        launches: [
+          {
+            ...workspace.launches[0],
+            id: "first",
+            terminal: "wt",
+            wtProfile: "PowerShell",
+            order: 0,
+          },
+          {
+            ...workspace.launches[0],
+            id: "selected",
+            terminal: "same-as-previous",
+            wtProfile: null,
+            command: "npm test",
+            order: 1,
+          },
+        ],
+      },
+      "selected",
+      DEFAULT_SETTINGS,
+    );
+
+    expect(selected?.launches[0]).toMatchObject({
+      id: "selected",
+      terminal: "wt",
+      wtProfile: "PowerShell",
+    });
+    expect(buildWorkspaceLaunchPlan(selected!, DEFAULT_SETTINGS).entries[0].target).toMatchObject({
+      kind: "wt",
+      profileOrDistro: "PowerShell",
+    });
+  });
+
+  it("parses supported WSL UNC paths strictly", () => {
+    expect(parseWslUncPath("\\\\wsl$\\Ubuntu-24.04\\home\\dev\\My Project")).toEqual({
+      distro: "Ubuntu-24.04",
+      linuxPath: "/home/dev/My Project",
+    });
+    expect(parseWslUncPath("\\\\server\\share\\path")).toBeNull();
+    expect(parseWslUncPath("\\\\wsl$\\..\\home\\dev")).toBeNull();
+  });
+
+  it("converts WSL UNC paths and infers the distro for direct launches", () => {
+    const wslWorkspace: Workspace = {
+      ...workspace,
+      directory: "\\\\wsl$\\Ubuntu\\home\\dev\\project",
+      launches: [{ ...workspace.launches[0], terminal: "wsl", wtProfile: null }],
+    };
+    const plan = buildWorkspaceLaunchPlan(wslWorkspace, DEFAULT_SETTINGS);
+    const args = buildLaunchArguments(plan.entries[0]);
+
+    expect(args.slice(0, 2)).toEqual(["-d", "Ubuntu"]);
+    expect(args.join(" ")).toContain("cd '/home/dev/project'");
+    expect(args.join(" ")).not.toContain("\\\\wsl$");
+  });
+
+  it("converts WSL UNC paths and infers the distro for grouped Windows Terminal launches", () => {
+    const wslWorkspace: Workspace = {
+      ...workspace,
+      directory: "\\\\wsl$\\Debian\\srv\\api",
+      launches: [{ ...workspace.launches[0], terminal: "wsl", wtProfile: null }],
+    };
+    const plan = buildWorkspaceLaunchPlan(wslWorkspace, DEFAULT_SETTINGS);
+    const args = buildWindowsTerminalTabArguments(plan.entries[0]);
+
+    expect(args.slice(0, 5)).toEqual(["wsl.exe", "-d", "Debian", "-e", "bash"]);
+    expect(args.join(" ")).toContain("cd '/srv/api'");
+    expect(args.join(" ")).not.toContain("\\\\wsl$");
   });
 });

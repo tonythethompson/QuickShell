@@ -398,6 +398,7 @@ public class StartupWarmupCoordinatorTests
         var bundle = LaunchTestServices.CreateBundle();
         return new QuickShellServices(
             repository,
+            new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
             settings,
             analysis,

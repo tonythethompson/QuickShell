@@ -45,16 +45,10 @@ internal sealed partial class OpenTerminalShortcutCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
-        var shortcut = _services.Shortcuts.GetById(_shortcutId);
-        if (shortcut is null)
-        {
-            return QuickShellNavigation.StayOpen(Strings.WorkspaceNotFound);
-        }
-
         var settings = _services.Settings;
         var launchDefaults = settings.GetValidatedLaunchDefaults();
-        var result = _services.LaunchExecutor.Launch(
-            shortcut,
+        var result = _services.WorkspaceLaunch.Launch(
+            _shortcutId,
             launchDefaults.TerminalApplicationId,
             launchDefaults.DefaultProfileId,
             new ShortcutLaunchOptions(

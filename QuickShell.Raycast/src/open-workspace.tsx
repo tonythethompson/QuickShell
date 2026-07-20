@@ -34,11 +34,13 @@ import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from "./lib/launch-context";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
-import { buildWorkspaceLaunchPlan } from "./lib/windows-launch";
+import { buildSelectedLaunchWorkspace, buildWorkspaceLaunchPlan } from "./lib/windows-launch";
+import { authorize, authorizePostLaunchEffects, createReviewToken, matchesReviewToken } from "./lib/security";
 
 type LoadedData = {
   workspaces: Workspace[];
   settings: QuickShellSettings;
+  securityById: Record<string, { isTrusted: boolean; revision: number }>;
   canUndo: boolean;
   canRedo: boolean;
 };
@@ -62,9 +64,15 @@ export default function OpenWorkspaceCommand({
 
   const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
     const [workspaces, settings] = await Promise.all([storage.getWorkspaces(), storage.getSettings()]);
+    const securityEntries = await Promise.all(
+      workspaces.map(async (workspace) => [workspace.id, await storage.getWorkspaceSecurity(workspace.id)] as const),
+    );
     return {
       workspaces,
       settings,
+      securityById: Object.fromEntries(
+        securityEntries.map(([id, security]) => [id, security ?? { isTrusted: true, revision: 1 }]),
+      ),
       canUndo: storage.canUndo(),
       canRedo: storage.canRedo(),
     };
@@ -171,15 +179,34 @@ export default function OpenWorkspaceCommand({
       return;
     }
 
-    const launchWorkspace = launch
-      ? {
-          ...workspace,
-          launches: workspace.launches.map((entry) =>
-            entry.id === launch.id ? { ...entry, isEnabled: true } : { ...entry, isEnabled: false },
-          ),
-        }
-      : workspace;
+    const stored = await storage.getStoredWorkspace(workspace.id);
+    if (!stored) {
+      await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
+      return;
+    }
 
+    const authorization = authorize(
+      stored,
+      launch ? { kind: "launchEntry", launchId: launch.id } : { kind: "terminal" },
+    );
+    if (!authorization.isAllowed) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Launch blocked",
+        message: authorization.issues.map((issue) => issue.message).join(" "),
+      });
+      return;
+    }
+    const launchWorkspace = launch
+      ? buildSelectedLaunchWorkspace(stored.content, launch.id, data.settings)
+      : { ...stored.content, launches: stored.content.launches.map((entry) => ({ ...entry })) };
+    if (!launchWorkspace) {
+      await showToast({ style: Toast.Style.Failure, title: "Selected launch not found" });
+      return;
+    }
+    if (authorization.effectiveValues.directory) {
+      launchWorkspace.directory = authorization.effectiveValues.directory;
+    }
     const health = assessWorkspaceHealthForLaunch(launchWorkspace, data.settings);
     if (!health.ok) {
       await showHealthFailure(health.issues);
@@ -190,9 +217,14 @@ export default function OpenWorkspaceCommand({
       runAsAdmin: options?.runAsAdmin,
       runAsStandard: options?.runAsStandard,
     });
-    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec, {
+    const authorizedEffects = authorizePostLaunchEffects(stored, {
       includeCompanion: !launch,
       includeDevServer: !launch,
+    });
+    const result = await executeWorkspaceLaunch(plan, data.settings, raycastExec, {
+      authorizedEffects: authorizedEffects.plan,
+      authorizationWarnings: authorizedEffects.warnings,
+      openUrl: open,
     });
     if (!result.ok) {
       await showLaunchFailure(result);
@@ -254,11 +286,89 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleOpenFolder(workspace: Workspace) {
+    const stored = await storage.getStoredWorkspace(workspace.id);
+    const authorization = authorize(stored, { kind: "directory" });
+    if (!authorization.isAllowed || !authorization.effectiveValues.directory) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Folder opening blocked",
+        message: "Trust this workspace and use a valid local folder.",
+      });
+      return;
+    }
     try {
-      await open(workspace.directory);
+      await open(authorization.effectiveValues.directory);
     } catch (openError) {
       await showStorageFailure("Open folder", openError);
     }
+  }
+
+  async function handleOpenUrl(workspace: Workspace, kind: "repo" | "dev") {
+    const stored = await storage.getStoredWorkspace(workspace.id);
+    const url = kind === "repo" ? stored?.content.repoUrl : stored?.content.devServerUrl;
+    const authorization = authorize(stored, { kind: "url", url });
+    if (!authorization.isAllowed || !authorization.effectiveValues.url) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Link opening blocked",
+        message: "Trust this workspace and use a valid HTTP(S) URL.",
+      });
+      return;
+    }
+    try {
+      await open(authorization.effectiveValues.url);
+    } catch (openError) {
+      await showStorageFailure("Open link", openError);
+    }
+  }
+
+  async function handleTrust(workspace: Workspace) {
+    const stored = await storage.getStoredWorkspace(workspace.id);
+    const assessment = authorize(stored, { kind: "grantTrust" });
+    if (!stored || !assessment.isAllowed) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Workspace needs repair",
+        message: assessment.issues.map((issue) => issue.message).join(" "),
+      });
+      return;
+    }
+    const token = createReviewToken(stored);
+    const confirmed = await confirmAlert({
+      title: "Trust workspace?",
+      message:
+        "Trust applies to this editable local workspace. It can execute arbitrary code, and later command or launch-setting edits remain trusted until you revoke trust.",
+      primaryAction: { title: "Trust Workspace" },
+    });
+    if (!confirmed) {
+      return;
+    }
+    const current = await storage.getStoredWorkspace(workspace.id);
+    if (!current || !matchesReviewToken(current, token)) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Workspace changed",
+        message: "Review the updated workspace and confirm again.",
+      });
+      return;
+    }
+    const result = await storage.grantTrust(workspace.id, token);
+    await revalidate();
+    await showToast({
+      style: result === "granted" ? Toast.Style.Success : Toast.Style.Failure,
+      title: result === "granted" ? "Workspace trusted" : "Trust not granted",
+      message: result,
+    });
+  }
+
+  async function handleRevoke(workspace: Workspace) {
+    const result = await storage.revokeTrust(workspace.id);
+    await revalidate();
+    await showToast({
+      style: result === "revoked" ? Toast.Style.Success : Toast.Style.Failure,
+      title: result === "revoked" ? "Trust revoked" : "Trust not changed",
+      message: result,
+    });
   }
 
   async function handleExport() {
@@ -288,7 +398,7 @@ export default function OpenWorkspaceCommand({
       await showToast({
         style: Toast.Style.Success,
         title: "Import complete",
-        message: `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed.`,
+        message: `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed. Imported workspaces are untrusted until reviewed.`,
       });
     } catch (importError) {
       await showStorageFailure("Import workspaces", importError);
@@ -334,6 +444,10 @@ export default function OpenWorkspaceCommand({
         tooltip: health.issues[0]?.message,
       });
     }
+    const security = data.securityById[workspace.id] ?? { isTrusted: true, revision: 1 };
+    if (!security.isTrusted) {
+      accessories.push({ icon: { source: Icon.Lock, tintColor: Color.Orange }, tooltip: "Untrusted workspace" });
+    }
     if (workspace.isPinned) {
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
     }
@@ -374,7 +488,7 @@ export default function OpenWorkspaceCommand({
                 onAction={() => handleOpenFolder(workspace)}
               />
               {workspace.repoUrl ? (
-                <Action.OpenInBrowser title="Open Repository" url={workspace.repoUrl} icon={Icon.Globe} />
+                <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}
             </ActionPanel.Section>
             <ActionPanel.Section title="Manage">
@@ -397,6 +511,11 @@ export default function OpenWorkspaceCommand({
                 shortcut={{ modifiers: ["cmd"], key: "f" }}
                 onAction={() => handleToggleFavorite(workspace)}
               />
+              {security.isTrusted ? (
+                <Action title="Revoke Workspace Trust" icon={Icon.Lock} onAction={() => handleRevoke(workspace)} />
+              ) : (
+                <Action title="Trust Workspace…" icon={Icon.Shield} onAction={() => handleTrust(workspace)} />
+              )}
               <Action
                 title="Duplicate"
                 icon={Icon.Duplicate}

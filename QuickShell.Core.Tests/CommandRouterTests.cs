@@ -190,6 +190,7 @@ public sealed class CommandRouterTests : IDisposable
         public QuickShellSettingsManager Settings => _provider.GetRequiredService<QuickShellSettingsManager>();
         public IProjectAnalysisService ProjectAnalysis => _provider.GetRequiredService<IProjectAnalysisService>();
         public ICommandSuggestionService CommandSuggestions => _provider.GetRequiredService<ICommandSuggestionService>();
+        public IWorkspaceLaunchService WorkspaceLaunch => _provider.GetRequiredService<IWorkspaceLaunchService>();
         public IShortcutLaunchExecutor LaunchExecutor => _provider.GetRequiredService<IShortcutLaunchExecutor>();
         public IWorkspaceGitOperations GitOperations => _provider.GetRequiredService<IWorkspaceGitOperations>();
         public ICompanionAppLauncher CompanionApps => _provider.GetRequiredService<ICompanionAppLauncher>();

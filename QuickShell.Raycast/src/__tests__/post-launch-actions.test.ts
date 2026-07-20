@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCompanionArguments } from "../lib/post-launch-actions";
+import { buildCompanionArguments, buildOpenUrlInvocation, runPostLaunchActions } from "../lib/post-launch-actions";
 
 describe("post-launch-actions", () => {
   it("expands folder placeholders in companion arguments", () => {
@@ -12,5 +12,51 @@ describe("post-launch-actions", () => {
       "John's",
       "--reuse-window",
     ]);
+  });
+
+  it("opens URL metacharacters as data without a command shell", async () => {
+    const opened: string[] = [];
+    const url = "https://localhost:5173/?next=a&mode=b%20c#done";
+    const invocation = buildOpenUrlInvocation(url);
+
+    const result = await runPostLaunchActions(
+      { companions: [], devServerUrl: url },
+      {
+        openUrl: async (value) => {
+          opened.push(value);
+        },
+      },
+    );
+
+    expect(invocation).toEqual({ executable: "explorer.exe", args: [url] });
+    expect(invocation.executable).not.toBe("cmd.exe");
+    expect(opened).toEqual([url]);
+    expect(result.devServerOpened).toBe(true);
+  });
+
+  it("executes only companions present in the authorized effects plan", async () => {
+    const launched: string[] = [];
+
+    const result = await runPostLaunchActions(
+      {
+        companions: [
+          {
+            companionId: "second",
+            executablePath: process.execPath,
+            arguments: "--project {folder}",
+            workingDirectory: "C:\\Projects\\web",
+          },
+        ],
+        devServerUrl: null,
+      },
+      {
+        launchCompanion: async (effect) => {
+          launched.push(effect.companionId);
+        },
+      },
+    );
+
+    expect(launched).toEqual(["second"]);
+    expect(result.companionOpened).toBe(true);
   });
 });

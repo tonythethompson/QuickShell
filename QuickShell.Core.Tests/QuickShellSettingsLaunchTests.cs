@@ -136,7 +136,7 @@ public sealed class QuickShellSettingsLaunchTests
                 [
                     new WorkspaceEntry
                     {
-                        Id = "default-entry",
+                        Id = "00000000000000000000000000000001",
                         Label = "Default",
                         Terminal = "default",
                         IsEnabled = true,

@@ -82,6 +82,8 @@ internal static class ShortcutContextCommands
 
         AddElevationContextCommand(context, items, shortcut);
 
+        AddTrustContextCommand(items, shortcut, onChanged, context.Services);
+
         // Workspace
         AddFolderAndLinkCommands(context, items, shortcut);
         AddSwitchBranchCommand(context, items, shortcut, onChanged);
@@ -201,6 +203,8 @@ internal static class ShortcutContextCommands
 
         AddStatusCommand(context, items, shortcut, onChanged);
         AddLaunchDiagnosticsCommand(items);
+
+        AddTrustContextCommand(items, shortcut, onChanged, context.Services);
 
         items.Add(WithShortcut(
             new ShortcutFormPage(context.Services, shortcut, onChanged),
@@ -425,6 +429,36 @@ internal static class ShortcutContextCommands
                 ShowInHoverActions = true,
                 HoverOrder = HoverOrderCompanionApp,
 #endif
+            });
+        }
+    }
+
+    private static void AddTrustContextCommand(
+        List<CommandContextItem> items,
+        TerminalShortcut shortcut,
+        Action onChanged,
+        IQuickShellServices services)
+    {
+        var stored = services.Shortcuts.GetStoredWorkspace(shortcut.Id);
+        if (stored is null)
+        {
+            return;
+        }
+
+        if (stored.Security.IsTrusted)
+        {
+            items.Add(new CommandContextItem(new RevokeWorkspaceTrustCommand(shortcut.Id, onChanged, services))
+            {
+                Title = "Revoke workspace trust",
+                Icon = new IconInfo("\uE72E"),
+            });
+        }
+        else
+        {
+            items.Add(new CommandContextItem(new GrantWorkspaceTrustCommand(shortcut.Id, onChanged, services))
+            {
+                Title = "Trust workspace…",
+                Icon = new IconInfo("\uE72E"),
             });
         }
     }

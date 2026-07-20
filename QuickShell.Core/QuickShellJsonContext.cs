@@ -20,6 +20,7 @@ namespace QuickShell;
 [JsonSerializable(typeof(List<WorkspaceEntry>))]
 [JsonSerializable(typeof(CompanionAppEntry))]
 [JsonSerializable(typeof(List<CompanionAppEntry>))]
+[JsonSerializable(typeof(WorkspaceSecurityMetadata))]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(Dictionary<string, object?>))]
 [JsonSerializable(typeof(WorktreeBranchTargetsDocument))]

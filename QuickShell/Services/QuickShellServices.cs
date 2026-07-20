@@ -9,6 +9,9 @@ namespace QuickShell.Services;
 internal sealed class QuickShellServices : IQuickShellServices
 {
     public IShortcutRepository Shortcuts { get; }
+
+    public IWorkspaceLaunchService WorkspaceLaunch { get; }
+
     public IDraftStore Drafts { get; }
     public QuickShellSettingsManager Settings { get; }
     public IProjectAnalysisService ProjectAnalysis { get; }
@@ -26,6 +29,7 @@ internal sealed class QuickShellServices : IQuickShellServices
 
     public QuickShellServices(
         IShortcutRepository shortcuts,
+        IWorkspaceLaunchService workspaceLaunch,
         IDraftStore drafts,
         QuickShellSettingsManager settings,
         IProjectAnalysisService projectAnalysis,
@@ -42,6 +46,7 @@ internal sealed class QuickShellServices : IQuickShellServices
         IWorkspaceRowPresentationCache? rowPresentation = null)
     {
         Shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
+        WorkspaceLaunch = workspaceLaunch ?? throw new ArgumentNullException(nameof(workspaceLaunch));
         Drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         ProjectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));

@@ -563,7 +563,7 @@ internal static class ShortcutFormSave
         {
             Id = Guid.NewGuid().ToString("N"),
             Label = string.IsNullOrWhiteSpace(name) ? "Main" : name.Trim(),
-            Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim(),
+            Command = string.IsNullOrWhiteSpace(command) ? null : command,
             RunAsAdmin = runAsAdmin,
             IsEnabled = true,
             Order = order,
@@ -581,7 +581,7 @@ internal static class ShortcutFormSave
         bool runAsAdmin,
         string taskType)
     {
-        launch.Command = string.IsNullOrWhiteSpace(command) ? null : command.Trim();
+        launch.Command = string.IsNullOrWhiteSpace(command) ? null : command;
         launch.RunAsAdmin = runAsAdmin;
         launch.TaskType = TaskTypeCatalog.Normalize(taskType);
 

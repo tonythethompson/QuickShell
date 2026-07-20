@@ -56,12 +56,13 @@ internal static class ShortcutListItems
             ? new ShortcutFormPage(services, shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, services);
 
+        var stored = services.Shortcuts.GetStoredWorkspace(shortcut.Id);
+        var trustPrefix = stored is not null && !stored.Security.IsTrusted ? "Untrusted · " : string.Empty;
         var item = new ListItem(primaryCommand)
         {
-            Title = presentation?.Title ?? shortcut.Name,
-            Subtitle = presentation?.Subtitle
-                ?? ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists),
-            Icon = new IconInfo(presentation?.Glyph ?? ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
+            Title = shortcut.Name,
+            Subtitle = trustPrefix + ShortcutHealth.BuildListSubtitle(shortcut, requireDirectoryExists),
+            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, needsRepair)),
         };
 
         var tags = ShortcutDisplayTags.BuildTags(

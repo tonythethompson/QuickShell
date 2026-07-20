@@ -54,7 +54,9 @@ internal static class ShortcutLayoutJson
         };
     }
 
-    public static byte[] Serialize(IReadOnlyList<ShortcutLayoutEntry> layout)
+    public static byte[] Serialize(
+        IReadOnlyList<ShortcutLayoutEntry> layout,
+        bool includeSecurity = false)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
@@ -62,7 +64,7 @@ internal static class ShortcutLayoutJson
             writer.WriteStartObject();
             writer.WriteNumber("version", PersistenceVersion.Current);
             writer.WritePropertyName("entries");
-            WriteEntries(writer, layout);
+            WriteEntries(writer, layout, includeSecurity);
             writer.WriteEndObject();
         }
 
@@ -117,19 +119,30 @@ internal static class ShortcutLayoutJson
                 continue;
             }
 
-            var shortcut = element.Deserialize(QuickShellJsonContext.Default.TerminalShortcut);
+            var security = TryReadSecurity(element);
+            var workspaceElement = element;
+            if (element.TryGetProperty("Workspace", out var wrappedWorkspace) &&
+                wrappedWorkspace.ValueKind == JsonValueKind.Object)
+            {
+                workspaceElement = wrappedWorkspace;
+            }
+
+            var shortcut = workspaceElement.Deserialize(QuickShellJsonContext.Default.TerminalShortcut);
             if (shortcut is null || string.IsNullOrWhiteSpace(shortcut.Name) || string.IsNullOrWhiteSpace(shortcut.Directory))
             {
                 continue;
             }
 
-            layout.Add(ShortcutLayoutEntry.FromShortcut(shortcut));
+            layout.Add(ShortcutLayoutEntry.FromShortcut(shortcut, security));
         }
 
         return true;
     }
 
-    private static void WriteEntries(Utf8JsonWriter writer, IReadOnlyList<ShortcutLayoutEntry> layout)
+    private static void WriteEntries(
+        Utf8JsonWriter writer,
+        IReadOnlyList<ShortcutLayoutEntry> layout,
+        bool includeSecurity)
     {
         writer.WriteStartArray();
 
@@ -153,10 +166,53 @@ internal static class ShortcutLayoutJson
                 continue;
             }
 
+            if (!includeSecurity)
+            {
+                JsonSerializer.Serialize(writer, entry.Shortcut, QuickShellJsonContext.Default.TerminalShortcut);
+                continue;
+            }
+
+            writer.WriteStartObject();
+            writer.WritePropertyName("Workspace");
             JsonSerializer.Serialize(writer, entry.Shortcut, QuickShellJsonContext.Default.TerminalShortcut);
+            writer.WritePropertyName("Security");
+            JsonSerializer.Serialize(
+                writer,
+                entry.Security ?? new WorkspaceSecurityMetadata(),
+                QuickShellJsonContext.Default.WorkspaceSecurityMetadata);
+            writer.WriteEndObject();
         }
 
         writer.WriteEndArray();
+    }
+
+    private static WorkspaceSecurityMetadata? TryReadSecurity(JsonElement element)
+    {
+        if (!element.TryGetProperty("Security", out var securityElement) ||
+            securityElement.ValueKind != JsonValueKind.Object)
+        {
+            return new WorkspaceSecurityMetadata();
+        }
+
+        try
+        {
+            var security = securityElement.Deserialize(QuickShellJsonContext.Default.WorkspaceSecurityMetadata);
+            return security is null
+                ? new WorkspaceSecurityMetadata()
+                : new WorkspaceSecurityMetadata
+                {
+                    IsTrusted = security.IsTrusted,
+                    Revision = security.Revision <= 0 ? 1 : security.Revision,
+                };
+        }
+        catch (JsonException)
+        {
+            return new WorkspaceSecurityMetadata();
+        }
+        catch (NotSupportedException)
+        {
+            return new WorkspaceSecurityMetadata();
+        }
     }
 
     private static bool TryReadSeparator(JsonElement element, out ShortcutLayoutEntry separator)

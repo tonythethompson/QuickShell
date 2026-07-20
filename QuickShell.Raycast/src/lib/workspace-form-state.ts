@@ -62,7 +62,7 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
       label: row.label.trim() || suggestionLabelForCommand(row.command, `Launch ${index + 1}`),
       terminal: terminalForLaunchRow(row, state),
       wtProfile: wtProfileForLaunchRow(row, state),
-      command: row.command.trim() || null,
+      command: row.command || null,
       runAsAdmin: usesSharedLaunchControls(state) ? state.runAsAdmin : row.runAsAdmin || state.runAsAdmin,
       isEnabled: row.isEnabled,
       order: index,
@@ -80,7 +80,7 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
     companionApps.push({
       id: existingCompanions[0]?.id || createStableId(),
       path: primaryPath,
-      arguments: state.companionAppArguments?.trim() || null,
+      arguments: state.companionAppArguments || null,
       openOnLaunch: state.openCompanionAppOnLaunch ?? false,
       order: 0,
     });

@@ -49,6 +49,18 @@ export type Workspace = {
   companionAppArguments?: string | null;
 };
 
+/** Repository-owned trust metadata; never part of portable workspace content. */
+export type WorkspaceSecurityMetadata = {
+  isTrusted: boolean;
+  revision: number;
+};
+
+export type StoredWorkspace = {
+  content: Workspace;
+  security: WorkspaceSecurityMetadata;
+  revision: number;
+};
+
 export type MultiLaunchPresentation = "singleWindowTabs" | "separateWindows";
 
 export type QuickShellSettings = {
@@ -62,6 +74,7 @@ export type StoredData = {
   version: number;
   workspaces: Workspace[];
   settings: QuickShellSettings;
+  workspaceSecurity?: Record<string, WorkspaceSecurityMetadata>;
 };
 
 export const DEFAULT_SETTINGS: QuickShellSettings = {

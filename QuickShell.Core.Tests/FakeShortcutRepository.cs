@@ -77,6 +77,25 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public TerminalShortcut? ResolveForOpenCommand(string key) => GetById(key) ?? GetByName(key);
 
+    public StoredWorkspace? GetStoredWorkspace(string id)
+    {
+        var shortcut = GetById(id);
+        return shortcut is null
+            ? null
+            : new StoredWorkspace(shortcut, new WorkspaceSecurityMetadata(), 1);
+    }
+
+    public WorkspaceReviewSnapshot BeginTrustReview(string workspaceId) =>
+        new(GetStoredWorkspace(workspaceId), null,
+            new WorkspaceAuthorizationResult(true, null, [], [],
+                new WorkspaceEffectiveValues(null, null, null, null, null, null), 1));
+
+    public TrustTransitionResult GrantTrust(string workspaceId, WorkspaceReviewToken reviewToken) =>
+        new(TrustTransitionStatus.AlreadyInRequestedState, string.Empty);
+
+    public TrustTransitionResult RevokeTrust(string workspaceId) =>
+        new(TrustTransitionStatus.AlreadyInRequestedState, string.Empty);
+
     public void Reload()
     {
     }

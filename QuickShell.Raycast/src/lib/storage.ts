@@ -1,9 +1,17 @@
-import type { LaunchEntry, QuickShellSettings, StoredData, Workspace } from "./schema";
+import type {
+  LaunchEntry,
+  QuickShellSettings,
+  StoredData,
+  StoredWorkspace,
+  Workspace,
+  WorkspaceSecurityMetadata,
+} from "./schema";
 import { STORAGE_KEY, createEmptyStoredData } from "./schema";
 import { createStableId, ensureStableId } from "./ids";
 import { importParsedPayload, type ImportResult } from "./import-export";
 import { migrateStoredData } from "./migration";
 import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
+import { digest, matchesReviewToken, type WorkspaceReviewToken } from "./security";
 
 export type StorageAdapter = {
   getItem: (key: string) => Promise<string | undefined>;
@@ -53,7 +61,7 @@ export class QuickShellStorage {
       return false;
     }
 
-    this.cache = this.cloneData(previous);
+    this.cache = this.preserveCurrentTrust(this.cloneData(previous), this.cache);
     await this.persistCache({ recordHistory: false });
     return true;
   }
@@ -73,7 +81,7 @@ export class QuickShellStorage {
       return false;
     }
 
-    this.cache = this.cloneData(next);
+    this.cache = this.preserveCurrentTrust(this.cloneData(next), this.cache);
     await this.persistCache({ recordHistory: false });
     return true;
   }
@@ -81,25 +89,54 @@ export class QuickShellStorage {
   async exportJson(): Promise<string> {
     const data = await this.load();
     const settings = await this.getSettings();
-    return JSON.stringify({ ...data, settings }, null, 2);
+    const portable = { ...data };
+    delete portable.workspaceSecurity;
+    return JSON.stringify({ ...portable, settings }, null, 2);
   }
 
   async importJson(raw: string, mode: "merge" | "replace" = "merge"): Promise<ImportResult> {
     await this.flushRecentWrites();
     const existing = mode === "merge" ? await this.load() : createEmptyStoredData();
     const result = importParsedPayload(JSON.parse(raw) as unknown, existing);
-    await this.save(result.data);
+    await this.save(result.data, { preserveSecurity: false, allowSubmittedSecurity: true });
     return result;
   }
 
-  async save(data: StoredData, options?: { recordHistory?: boolean }): Promise<void> {
+  async save(
+    data: StoredData,
+    options?: {
+      recordHistory?: boolean;
+      preserveSecurity?: boolean;
+      allowSubmittedSecurity?: boolean;
+    },
+  ): Promise<void> {
     const recordHistory = options?.recordHistory ?? true;
+    const preserveSecurity = options?.preserveSecurity ?? true;
+    const allowSubmittedSecurity = options?.allowSubmittedSecurity ?? false;
 
     const normalized: StoredData = {
       version: data.version,
       settings: { ...data.settings },
       workspaces: data.workspaces.map((workspace) => normalizeWorkspace({ ...workspace })),
+      workspaceSecurity: {},
     };
+
+    for (const workspace of normalized.workspaces) {
+      const prior = this.cache?.workspaceSecurity?.[workspace.id];
+      const submitted = data.workspaceSecurity?.[workspace.id];
+      if (preserveSecurity && prior) {
+        const previousWorkspace = this.cache?.workspaces.find((candidate) => candidate.id === workspace.id);
+        const changed = JSON.stringify(previousWorkspace) !== JSON.stringify(workspace);
+        normalized.workspaceSecurity![workspace.id] = {
+          ...prior,
+          revision: changed ? prior.revision + 1 : prior.revision,
+        };
+      } else if (allowSubmittedSecurity && submitted) {
+        normalized.workspaceSecurity![workspace.id] = { ...submitted };
+      } else {
+        normalized.workspaceSecurity![workspace.id] = { isTrusted: false, revision: 1 };
+      }
+    }
 
     const countResult = validateWorkspaceCount(normalized.workspaces.length);
     if (!countResult.ok) {
@@ -123,7 +160,71 @@ export class QuickShellStorage {
 
   async getWorkspaces(): Promise<Workspace[]> {
     await this.ensureLoaded();
-    return this.cache!.workspaces.map((workspace) => ({ ...workspace, launches: [...workspace.launches] }));
+    return this.cache!.workspaces.map((workspace) => this.cloneWorkspace(workspace));
+  }
+
+  async getStoredWorkspace(workspaceId: string): Promise<StoredWorkspace | null> {
+    await this.ensureLoaded();
+    const content = this.cache!.workspaces.find((workspace) => workspace.id === workspaceId);
+    if (!content) {
+      return null;
+    }
+    const security = this.cache!.workspaceSecurity?.[workspaceId] ?? { isTrusted: true, revision: 1 };
+    return {
+      content: this.cloneWorkspace(content),
+      security: { ...security },
+      revision: security.revision,
+    };
+  }
+
+  async getWorkspaceSecurity(workspaceId: string): Promise<WorkspaceSecurityMetadata | null> {
+    const stored = await this.getStoredWorkspace(workspaceId);
+    return stored ? { ...stored.security } : null;
+  }
+
+  async grantTrust(
+    workspaceId: string,
+    reviewToken: WorkspaceReviewToken,
+  ): Promise<"granted" | "already" | "changed" | "invalid" | "missing"> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const workspace = data.workspaces.find((candidate) => candidate.id === workspaceId);
+    if (!workspace) {
+      return "missing";
+    }
+    const security = data.workspaceSecurity?.[workspaceId] ?? { isTrusted: true, revision: 1 };
+    const currentStored: StoredWorkspace = { content: workspace, security, revision: security.revision };
+    if (security.isTrusted) {
+      return "already";
+    }
+    if (!matchesReviewToken(currentStored, reviewToken)) {
+      return "changed";
+    }
+    const validation = validateWorkspace(workspace);
+    if (!validation.ok) {
+      return "invalid";
+    }
+    data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
+    data.workspaceSecurity[workspaceId] = { isTrusted: true, revision: security.revision + 1 };
+    await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+    return "granted";
+  }
+
+  async revokeTrust(workspaceId: string): Promise<"revoked" | "already" | "missing"> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const workspace = data.workspaces.find((candidate) => candidate.id === workspaceId);
+    if (!workspace) {
+      return "missing";
+    }
+    const security = data.workspaceSecurity?.[workspaceId] ?? { isTrusted: true, revision: 1 };
+    if (!security.isTrusted) {
+      return "already";
+    }
+    data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
+    data.workspaceSecurity[workspaceId] = { isTrusted: false, revision: security.revision + 1 };
+    await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+    return "revoked";
   }
 
   async getSettings(): Promise<QuickShellSettings> {
@@ -161,9 +262,11 @@ export class QuickShellStorage {
         throw new Error(countResult.message);
       }
       data.workspaces.push(normalized);
+      data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
+      data.workspaceSecurity[normalized.id] = { isTrusted: true, revision: 1 };
     }
 
-    await this.save(data);
+    await this.save(data, { allowSubmittedSecurity: true });
     return normalized;
   }
 
@@ -196,7 +299,12 @@ export class QuickShellStorage {
       })),
     });
 
-    return this.upsertWorkspace(duplicate);
+    const sourceSecurity = data.workspaceSecurity?.[workspaceId] ?? { isTrusted: true, revision: 1 };
+    data.workspaces.push(duplicate);
+    data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
+    data.workspaceSecurity[duplicate.id] = { isTrusted: sourceSecurity.isTrusted, revision: 1 };
+    await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+    return duplicate;
   }
 
   async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
@@ -310,8 +418,43 @@ export class QuickShellStorage {
       workspaces: data.workspaces.map((workspace) => ({
         ...workspace,
         launches: workspace.launches.map((launch) => ({ ...launch })),
+        companionApps: workspace.companionApps?.map((entry) => ({ ...entry })),
       })),
+      workspaceSecurity: data.workspaceSecurity
+        ? Object.fromEntries(Object.entries(data.workspaceSecurity).map(([id, security]) => [id, { ...security }]))
+        : {},
     };
+  }
+
+  private cloneWorkspace(workspace: Workspace): Workspace {
+    return {
+      ...workspace,
+      launches: workspace.launches.map((launch) => ({ ...launch })),
+      companionApps: workspace.companionApps?.map((entry) => ({ ...entry })),
+    };
+  }
+
+  private preserveCurrentTrust(next: StoredData, current: StoredData | null): StoredData {
+    const currentSecurity = current?.workspaceSecurity ?? {};
+    next.workspaceSecurity = Object.fromEntries(
+      next.workspaces.map((workspace) => {
+        const security = currentSecurity[workspace.id];
+        if (!security) {
+          return [workspace.id, { isTrusted: false, revision: 1 }];
+        }
+
+        const currentWorkspace = current?.workspaces.find((candidate) => candidate.id === workspace.id);
+        const contentChanged = currentWorkspace ? digest(currentWorkspace) !== digest(workspace) : true;
+        return [
+          workspace.id,
+          {
+            ...security,
+            revision: contentChanged ? security.revision + 1 : security.revision,
+          },
+        ];
+      }),
+    );
+    return next;
   }
 }
 

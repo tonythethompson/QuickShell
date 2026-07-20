@@ -23,6 +23,7 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
         services.AddSingleton(settingsManager);
         services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
             sp.GetRequiredService<IShortcutRepository>(),
+            sp.GetRequiredService<IWorkspaceLaunchService>(),
             sp.GetRequiredService<IDraftStore>(),
             sp.GetRequiredService<QuickShellSettingsManager>(),
             sp.GetRequiredService<IProjectAnalysisService>(),

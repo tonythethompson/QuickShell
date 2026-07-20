@@ -32,10 +32,30 @@ export function migrateStoredData(raw: unknown): StoredData {
 
   const settings = migrateSettings(record.settings);
 
+  const workspaceSecurity: Record<string, { isTrusted: boolean; revision: number }> = {};
+  const rawSecurity = record.workspaceSecurity;
+  if (rawSecurity && typeof rawSecurity === "object") {
+    for (const [id, value] of Object.entries(rawSecurity as UnknownRecord)) {
+      if (!value || typeof value !== "object") {
+        continue;
+      }
+      const security = value as UnknownRecord;
+      workspaceSecurity[id] = {
+        isTrusted: security.isTrusted !== false,
+        revision: typeof security.revision === "number" && security.revision > 0 ? security.revision : 1,
+      };
+    }
+  }
+
+  for (const workspace of workspaces) {
+    workspaceSecurity[workspace.id] ??= { isTrusted: true, revision: 1 };
+  }
+
   const data: StoredData = {
     version: SCHEMA_VERSION,
     workspaces,
     settings,
+    workspaceSecurity,
   };
 
   return data;

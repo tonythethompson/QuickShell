@@ -39,6 +39,8 @@ In memory:
 
 `PersistenceVersion.Current = 1` (`PersistenceVersion.cs`). Serialize/parse: `ShortcutLayoutJson`.
 
+Workspace trust metadata is local-persistence-only and is documented in [trust-model.md](./trust-model.md). Portable export omits it; direct legacy shortcut JSON remains readable and migrates to trusted metadata.
+
 **Read** accepts:
 
 | Root | Behavior |
