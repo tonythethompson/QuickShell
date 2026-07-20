@@ -1,0 +1,128 @@
+QuickShell.Core.Tests/WorkspaceTrustCommandTests.cs
+  s_aecdb4cfe17926::t_2fc81458be86b6 1
+  s_aecdb4cfe17926::t_eb6c093db61595 46-50
+  s_aecdb4cfe17926::t_dd9b01babf7948 15-41,66-67
+  s_aecdb4cfe17926::t_cf37f21118bd8b 2-4,12-14
+  s_aecdb4cfe17926::t_bfb71491db6cc1 42-45
+  s_aecdb4cfe17926::t_904c0e11bd6c8c 51-53,63-65
+  s_aecdb4cfe17926::t_7972e050107e70 68-70
+  s_aecdb4cfe17926::t_0e2c66cefe0ac0 5-11,54-62,71-115
+QuickShell.Core.Tests/QuickShellEventSourceTests.cs
+  s_aecdb4cfe17926::t_ccf29509f90924 29,53,55-56,59-60,67-68
+  s_aecdb4cfe17926::t_d75a601d37fabe 1-28,30-52,54,58,62-66
+  s_aecdb4cfe17926::t_13f09678c7f975 61
+  s_aecdb4cfe17926::t_bd1641402d1327 57
+  s_aecdb4cfe17926::t_409c2c163e2249 69-70
+QuickShell.Core/Services/QuickShellEventSource.cs
+  s_aecdb4cfe17926::t_267a0f9c0c1f22 8-37
+  s_aecdb4cfe17926::t_1bc34a3e42953a 39-60
+  s_aecdb4cfe17926::t_b9fbdf62da9aa5 5-7
+  s_aecdb4cfe17926::t_274555c9f8e004 38
+  s_aecdb4cfe17926::t_73db30f7bf780b 61
+  s_aecdb4cfe17926::t_0a479b289cc88d 1-4
+QuickShell.Core.Tests/Flows/FormTrustImportFlowTests.cs
+  s_aecdb4cfe17926::t_a90a8e885d6a33 76-85
+  s_aecdb4cfe17926::t_b594b83cc2ec15 364-365
+  s_aecdb4cfe17926::t_1bab8caf839735 401
+  s_aecdb4cfe17926::t_afee8fc14f5f92 3
+  s_aecdb4cfe17926::t_2dda0ccf5b17d6 21,30,33,37,41,58,62,73,86,92,94,100,105-107,112-120,127,129-291,304,314,317,323,327,329,371,375,386,390,396,400,403,407,409,415,420-422,427-435
+  s_aecdb4cfe17926::t_64646c78685000 351
+  s_aecdb4cfe17926::t_8c2a9553ef1753 439
+  s_aecdb4cfe17926::t_0d3feda70292cf 331-343
+  s_aecdb4cfe17926::t_73ac3264d359f5 1
+  s_aecdb4cfe17926::t_b48ec89241dfdc 344-345,347-350,352-363,369
+  s_aecdb4cfe17926::t_81af1ba0f1c6b1 440-442
+  s_aecdb4cfe17926::t_363132b379e6a8 2
+  s_aecdb4cfe17926::t_d34c0c3979321d 4-6,18-20
+  s_aecdb4cfe17926::t_178acc0cd54243 22-24,27-29
+  s_aecdb4cfe17926::t_4d08c66257a09d 31-32
+  s_aecdb4cfe17926::t_9f1b0c352400fe 34-36
+  s_aecdb4cfe17926::t_92f9e1fc45c9a5 38-40
+  s_aecdb4cfe17926::t_0498db2d9fa8fd 42-44,55-57
+  s_aecdb4cfe17926::t_e70ba432b65968 59-61
+  s_aecdb4cfe17926::t_8e90aa30833747 63-65,70-72
+  s_aecdb4cfe17926::t_b4ee530896dbd6 74-75
+  s_aecdb4cfe17926::t_220a7192aa88de 87-91
+  s_aecdb4cfe17926::t_7c6401ff29b950 93
+  s_aecdb4cfe17926::t_303c07d1848c38 95-99
+  s_aecdb4cfe17926::t_5f5b0b112398f0 101-104
+  s_aecdb4cfe17926::t_a67a09cbf6e293 108-111
+  s_aecdb4cfe17926::t_5f70f40d263033 121-126
+  s_aecdb4cfe17926::t_297c291055c84d 128
+  s_aecdb4cfe17926::t_640cca2e4a10a1 292-294,301-303
+  s_aecdb4cfe17926::t_22966931e7b65d 305-307,311-313
+  s_aecdb4cfe17926::t_6eeb5da71219a7 315-316
+  s_aecdb4cfe17926::t_947f8980013cbb 318-322
+  s_aecdb4cfe17926::t_36505601589b8f 324-326
+  s_aecdb4cfe17926::t_8641b6a8fb6359 328
+  s_aecdb4cfe17926::t_0b2fbd3dce928c 330
+  s_aecdb4cfe17926::t_b1ad201fc3b3d1 346
+  s_aecdb4cfe17926::t_7fc28edd86e161 366-368
+  s_aecdb4cfe17926::t_f1f38f9444ec21 370
+  s_aecdb4cfe17926::t_0b604297fa97eb 372-374
+  s_aecdb4cfe17926::t_21bb72de26a3c2 376-378,383-385
+  s_aecdb4cfe17926::t_bd5062fd8ed43e 387-389
+  s_aecdb4cfe17926::t_8b450a336ad32b 391-395
+  s_aecdb4cfe17926::t_559deb1df6595a 397-399
+  s_aecdb4cfe17926::t_f0351c14db7db7 402
+  s_aecdb4cfe17926::t_e14449ecb2ab0d 404-406
+  s_aecdb4cfe17926::t_4dbbe67383bb01 408
+  s_aecdb4cfe17926::t_a885863c577492 410-414
+  s_aecdb4cfe17926::t_5fe7a21a9a92a5 416-419
+  s_aecdb4cfe17926::t_1c9bb166e8620a 423-426
+  s_aecdb4cfe17926::t_3e52542588273d 436-438
+  s_aecdb4cfe17926::t_ad41c8762fd33a 443-444
+  s_aecdb4cfe17926::t_86dc7794f0ee3c 7-17,25-26,45-54,66-69,295-300,308-310,379-382
+.github/workflows/ci.yml
+  s_aecdb4cfe17926::t_bec11c13ec7167 69-105
+BENCHMARKS.md
+  s_aecdb4cfe17926::t_f4a25dc3841a38 31-33
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_aecdb4cfe17926::t_54c0de1470a648 121,131,316-341
+QuickShell.Core.Tests/WorkspaceSecurityAdversarialTests.cs
+  s_aecdb4cfe17926::t_7147af44f64352 1-183
+QuickShell.Core/Abstractions/IQuickShellEventSource.cs
+  s_aecdb4cfe17926::t_51da91f2967c07 1-24
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_aecdb4cfe17926::t_b6d85b879270e5 109-110,115-117
+QuickShell.Core/Services/GitRepoDiscovery.cs
+  s_aecdb4cfe17926::t_1c3b78e3e63c83 104,131,134-135
+QuickShell.Core/Services/RepositoryDiagnostics.cs
+  s_aecdb4cfe17926::t_6a0535a488eb80 13-14,16-17
+QuickShell.Core/Services/RowPresentationDiagnostics.cs
+  s_aecdb4cfe17926::t_ef83847a3bd0d1 24-29,39
+QuickShell.Core/Services/ShortcutLaunchExecutor.cs
+  s_aecdb4cfe17926::t_3ac2d91949195f 49,58-59,67,91-110,194-213
+QuickShell.Core/Services/StartupPerformanceTrace.cs
+  s_aecdb4cfe17926::t_b3ac3aa0147518 10-19,38,42,45,57-63,67
+QuickShell/Services/SupportDiagnostics.cs
+  s_aecdb4cfe17926::t_df4b6119414a55 45,47,50,113-114,124
+docs/architecture/QuickShell-TechDebt-Overview.md
+  s_aecdb4cfe17926::t_9268da27c7cbec 253-254
+docs/architecture/QuickShell-TechDebt-Phases.md
+  s_aecdb4cfe17926::t_607fac75e9b4db 27-28,134-178
+docs/architecture/README.md
+  s_aecdb4cfe17926::t_1e5c9bed9cdd85 43-44
+docs/architecture/diagnostics.md
+  s_aecdb4cfe17926::t_58cf16b09d2918 1-39
+docs/architecture/performance.md
+  s_aecdb4cfe17926::t_fe88b550456a26 67-69,78-79,86-87,127,180-182
+docs/architecture/trust-model.md
+  s_aecdb4cfe17926::t_5c3f24971aac58 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9ad1c9b67eca02b9983c560b36b4655fbac9009e",
+  "prompts": {},
+  "sessions": {
+    "s_aecdb4cfe17926": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e2941b8-e6bb-4487-839c-774807fed75c",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
