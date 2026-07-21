@@ -86,7 +86,8 @@ internal sealed class QuickShellServices : IQuickShellServices
         RowPresentation = rowPresentation ?? new WorkspaceRowPresentationCache(
             RowPresentationDiagnostics,
             TerminalCatalog,
-            TerminalLaunchGlyphs);
+            TerminalLaunchGlyphs,
+            WtProfiles);
         RefreshScheduler = refreshScheduler ?? new SettingsFormRefreshScheduler(Lifetime, CallbackQueue);
         settings.InitializeServices(this);
         BeginShortcutPreload();
