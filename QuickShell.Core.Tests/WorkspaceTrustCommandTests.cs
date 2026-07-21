@@ -13,7 +13,7 @@ public sealed class WorkspaceTrustCommandTests
     public void Grant_then_confirm_with_token_trusts_workspace()
     {
         using var repository = CreateRepository();
-        repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace());
+        repository.Upsert(CreateWorkspace());
         var workspace = repository.GetByName("Workspace")!;
         Assert.Equal(TrustTransitionStatus.Revoked, repository.RevokeTrust(workspace.Id).Status);
 
@@ -42,7 +42,7 @@ public sealed class WorkspaceTrustCommandTests
     public void Grant_with_stale_token_stays_open_without_trusting()
     {
         using var repository = CreateRepository();
-        repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace());
+        repository.Upsert(CreateWorkspace());
         var workspace = repository.GetByName("Workspace")!;
         Assert.Equal(TrustTransitionStatus.Revoked, repository.RevokeTrust(workspace.Id).Status);
 
@@ -72,7 +72,7 @@ public sealed class WorkspaceTrustCommandTests
     public void Revoke_clears_trust()
     {
         using var repository = CreateRepository();
-        repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace());
+        repository.Upsert(CreateWorkspace());
         var workspace = repository.GetByName("Workspace")!;
         Assert.True(repository.GetStoredWorkspace(workspace.Id)!.Security.IsTrusted);
 
@@ -101,6 +101,26 @@ public sealed class WorkspaceTrustCommandTests
             lifetime);
         return (services, lifetime, drafts);
     }
+
+
+    private static TerminalShortcut CreateWorkspace() =>
+        new()
+        {
+            Name = "Workspace",
+            Directory = Path.GetTempPath(),
+            Command = "echo one",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = "launch-1",
+                    Label = "Launch",
+                    Terminal = "default",
+                    Command = "echo one",
+                    IsEnabled = true,
+                },
+            ],
+        };
 
     private static ShortcutRepository CreateRepository()
     {

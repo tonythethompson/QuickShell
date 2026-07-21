@@ -12,7 +12,7 @@ public sealed class WorkspaceSecurityAdversarialTests
     [InlineData("echo one\0echo two")]
     public void InvalidCommand_rejects_control_characters(string command)
     {
-        var content = WorkspaceTestingHelpers.CreateWorkspace(id: "workspace-adversarial");
+        var content = CreateWorkspace();
         content.Command = command;
         content.Launches =
         [
@@ -41,7 +41,7 @@ public sealed class WorkspaceSecurityAdversarialTests
     [InlineData("vbscript:msgbox(1)")]
     public void InvalidUrl_rejects_unsafe_schemes(string url)
     {
-        var content = WorkspaceTestingHelpers.CreateWorkspace(id: "workspace-adversarial");
+        var content = CreateWorkspace();
         content.DevServerUrl = url;
         var workspace = new StoredWorkspace(content, new WorkspaceSecurityMetadata { IsTrusted = true }, 1);
 
@@ -57,20 +57,20 @@ public sealed class WorkspaceSecurityAdversarialTests
     [InlineData(@"%TEMP%\project")]
     public void OpenDirectory_rejects_unc_pipe_and_env_paths(string directory)
     {
-        var content = WorkspaceTestingHelpers.CreateWorkspace(id: "workspace-adversarial");
+        var content = CreateWorkspace();
         content.Directory = directory;
         var workspace = new StoredWorkspace(content, new WorkspaceSecurityMetadata { IsTrusted = true }, 1);
 
         var open = WorkspaceSecurityPolicy.Authorize(workspace, WorkspaceAction.OpenDirectory);
 
         Assert.False(open.IsAllowed);
-        Assert.Equal(WorkspaceIssueCode.InvalidDirectory, open.PrimaryIssueCode);
+        Assert.Equal(WorkspaceIssueCode.DirectoryOpenNotAllowed, open.PrimaryIssueCode);
     }
 
     [Fact]
     public void Companion_rejects_newline_injection_in_path_and_arguments()
     {
-        var content = WorkspaceTestingHelpers.CreateWorkspace(id: "workspace-adversarial");
+        var content = CreateWorkspace();
         content.CompanionApps =
         [
             new CompanionAppEntry
@@ -133,5 +133,50 @@ public sealed class WorkspaceSecurityAdversarialTests
 
         Assert.False(result.Success);
         Assert.Contains("No valid shortcuts were found", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static TerminalShortcut CreateWorkspace() =>
+        new()
+        {
+            Id = "workspace-adversarial",
+            Name = "Workspace",
+            Directory = Path.GetTempPath(),
+            Command = "echo one",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = "launch-1",
+                    Label = "Launch",
+                    Terminal = "default",
+                    Command = "echo one",
+                    IsEnabled = true,
+                },
+            ],
+        };
+
+    private sealed class TempDataDirectory : IDisposable
+    {
+        public TempDataDirectory()
+        {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "QuickShellAdversarialTests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path);
+        }
+
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Path))
+                {
+                    Directory.Delete(Path, recursive: true);
+                }
+            }
+            catch
+            {
+            }
+        }
     }
 }

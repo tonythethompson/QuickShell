@@ -104,8 +104,6 @@ internal static partial class GitRepoDiscovery
             return [];
         }
 
-        var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots, defaultRootCandidates);
-
         if (roots.Count == 0)
         {
             QuickShellEventSource.Log.WriteGitDiscoveryComplete(0);
