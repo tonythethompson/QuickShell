@@ -10,6 +10,15 @@ internal static class RepositoryDiagnostics
 {
     internal static Action<string, string, long?>? Sink { get; set; }
 
-    internal static void Report(string location, string eventName, long? elapsedMs = null) =>
+    /// <summary>
+    /// Reports a repository diagnostic event to the configured sink and event source.
+    /// </summary>
+    /// <param name="location">The repository location associated with the event.</param>
+    /// <param name="eventName">The name of the diagnostic event.</param>
+    /// <param name="elapsedMs">The optional elapsed time in milliseconds.</param>
+    internal static void Report(string location, string eventName, long? elapsedMs = null)
+    {
         Sink?.Invoke(location, eventName, elapsedMs);
+        QuickShellEventSource.Log.WriteRepository(location, eventName, elapsedMs);
+    }
 }

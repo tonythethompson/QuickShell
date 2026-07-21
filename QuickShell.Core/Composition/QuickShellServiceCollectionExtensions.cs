@@ -31,6 +31,8 @@ internal static class QuickShellServiceCollectionExtensions
     /// When null, uses the real <c>%LOCALAPPDATA%</c> (tests inject a temp root instead of
     /// mutating the process-wide environment variable).
     /// </param>
+    /// <returns>The configured service collection.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddQuickShellCore(
         this IServiceCollection services,
         string? configDirectory = null,
@@ -106,12 +108,18 @@ internal static class QuickShellServiceCollectionExtensions
                 sp.GetRequiredService<ICompanionAppLauncher>(),
                 sp.GetRequiredService<WorkspaceGitLaunchGate>(),
                 sp.GetRequiredService<IShortcutRepository>(),
-                sp.GetRequiredService<ITerminalCatalog>()));
+                sp.GetRequiredService<ITerminalCatalog>(),
+                sp.GetRequiredService<IQuickShellEventSource>()));
         services.AddSingleton<IWorkspaceMapper, WorkspaceMapper>();
         services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
         services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
         services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
-        services.AddSingleton<IRowPresentationDiagnostics, RowPresentationDiagnostics>();
+        // Register the process-wide EventSource instance directly (not via factory delegate):
+        // DI disposes instances it constructs itself when the container is torn down, and
+        // disposing an EventSource permanently silences it for the rest of the process.
+        services.AddSingleton<IQuickShellEventSource>(QuickShellEventSource.Log);
+        services.AddSingleton<IRowPresentationDiagnostics>(sp =>
+            new RowPresentationDiagnostics(sp.GetRequiredService<IQuickShellEventSource>()));
         services.AddSingleton<IWorkspaceRowPresentationCache>(sp =>
             new WorkspaceRowPresentationCache(
                 sp.GetRequiredService<IRowPresentationDiagnostics>(),

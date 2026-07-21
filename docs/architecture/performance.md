@@ -40,10 +40,10 @@ already published, applied through `IExtensionCallbackQueue`.
 > **Known gap, tracked separately:** every row's `MoreCommands` context menu is still built
 > eagerly during first list construction (`ShortcutContextCommands.Build`), reused across
 > refreshes only via `QuickShellPage`'s `_unpinnedItemCache`. Lazy per-row menu construction
-> and an immutable row-presentation cache are the subject of a follow-on PR; this harness
+> is the subject of a follow-on PR; the immutable row-presentation cache is deployed. This harness
 > measures `workspace-list` cold/warm construction cost today specifically so that change has
 > a baseline to compare against, and `CriticalPathContractTests` intentionally does not assert
-> "no menus built on first paint" until that lands.
+> "no menus built on first paint" until lazy menu construction lands.
 
 **Root-palette typing** (`QuickShellFallback.UpdateQuery`) must not:
 - reacquire multiple repository snapshots per query
@@ -64,12 +64,9 @@ counting `IGitRepoIndex` fake rather than timing.
 - evaluate current Git state when required
 - treat cached launch plans as deterministic preparation only
 
-There is currently no launch-plan cache to violate this contract — every `Launch` call runs
-`IWorkspaceHealthChecker.Check` and `WorkspaceGitLaunchGate.EvaluateBeforeLaunch` fresh. See
-`CriticalPathContractTests.Launch_EvaluatesHealthAndGitEveryCall_NeverMemoizesAcrossLaunches`.
-If a launch-plan cache is added later, it must keep this property: caching may skip
-recomputation of *deterministic* preparation (argv formatting, terminal resolution) but must
-never skip the health/trust/Git checks themselves.
+`WorkspaceLaunchPlanCache` may skip recomputation of *deterministic* preparation (argv
+formatting, terminal resolution) but must never skip the health/trust/Git checks themselves.
+See `CriticalPathContractTests.Launch_EvaluatesHealthAndGitEveryCall_NeverMemoizesAcrossLaunches`.
 
 ## Cache ownership and invalidation
 
@@ -78,15 +75,16 @@ never skip the health/trust/Git checks themselves.
 | Repository snapshot | `ShortcutRepository.GetSnapshot()` | none (latest) | new snapshot on every call; `Version` increments on mutation | N/A (one snapshot object per call) | no (backed by `shortcuts.json`) | no — always current | n/a |
 | Root-palette query index | `QuickShellFallback._cachedSearchIndex` (`RootPaletteSearchIndex`) | implicit — one instance per `QuickShellFallback` | `snapshot.Version` mismatch rebuilds; per-query generation guard discards stale async results | 1 instance | memory-only | no | n/a |
 | Persistent Git index | `GitRepoIndex` (in-memory only today) | `rootKey` (sorted, newline-joined search roots) + `includeDefaultSearchRoots` flag | `Invalidate()` (repository change), 10-minute TTL (`CacheLifetime`), or `rootKey` mismatch | 1 cache entry (single most-recent root set) | **no** — memory only, lost on process restart | yes, up to 10 minutes (stale-while-revalidate: `Search`/`GetAll` return the cached set immediately and kick a background refresh) | n/a |
-| Launch-plan cache | none — no such cache exists yet | — | — | — | — | — | — |
-| Row presentation cache | none — no such cache exists yet (planned) | — | — | — | — | — | — |
+| Launch-plan cache | `WorkspaceLaunchPlanCache` (owned by `ShortcutLaunchExecutor`) | `LaunchPlanCacheKey` (workspace id, repository version, terminal app, profile, launch entry, options fingerprint, terminal catalog fingerprint) | repository version bump evicts older keys; catalog changes invalidate plans; capacity trim (`MaxEntries = 50`) | 50 | memory-only | no — version-keyed | health, trust, and git gate results (always evaluated after cache lookup) |
+| Row presentation cache | `WorkspaceRowPresentationCache` (deployed) | workspace id + repository version + presentation mode | newer repository version prunes older entries | `MaxShortcutCount * 3` | memory-only | no — version-keyed | icon extraction, git IO, directory-existence probes |
 
 Security-sensitive values excluded from every cache above and from diagnostics logging:
 launch health results, process state, trust/authorization decisions, and directory-existence
 results are always evaluated fresh at use (see the Launch contract). `SupportDiagnostics`
 (`QuickShell/Services/SupportDiagnostics.cs`) redacts free-text messages and structured data
 to SHA-256 hash tags before writing, and never logs full user paths, command contents, or
-environment variables.
+environment variables. ETW mirrors (`QuickShell-Diagnostics`) are documented in
+[`diagnostics.md`](diagnostics.md).
 
 ## Benchmark harness
 
@@ -126,7 +124,7 @@ universal number** — see "Hardware-dependent metrics" below.
 | cold home-list construction, 10 workspaces | ~4 ms | |
 | cold home-list construction, 100 workspaces | ~3.5 ms | |
 | cold home-list construction, 500 workspaces (`MaxShortcutCount`) | ~9.6 ms | |
-| warm home-list construction, 500 workspaces | ~9.9 ms | no reuse today — full baseline for the planned row-presentation cache |
+| warm home-list construction, 500 workspaces | ~9.9 ms | row presentation cache may warm on repeat; harness still reports full construction cost |
 | root-palette abbreviation/name/task hit | <0.1 ms | |
 | cold Git discovery, 10 repos | ~37 ms | synthetic tree, no default roots |
 | cold Git discovery, 100 repos | ~118 ms | |
@@ -179,3 +177,6 @@ derived from `"File.cs:Method"` locations and short, fixed message strings (`"st
 `#region agent log` markers. Free-text messages and structured `data` payloads are hashed to
 a bounded `message:sha256:…` / `data:present` tag before being written, so log output never
 contains raw command lines, full file paths, or other user content by default.
+
+Structured ETW events (`QuickShell-Diagnostics` EventSource) mirror cache and timing codes
+without user content. Full catalog: [`diagnostics.md`](diagnostics.md).

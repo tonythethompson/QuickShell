@@ -110,7 +110,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var ctorTrace = _trace.Builder.ToString();
 
         // List reload against a read-only copy of the real shortcuts.json.
-        var listReloadMs = MeasureListReloadFromRealShortcuts(out var listGetItemsMs, out var workspaceCount);
+        var listReloadMs = MeasureListReloadFromRealShortcuts(out var listGetItemsMs, out var workspaceCount, out var originalWorkspaceCount);
 
         _output.WriteLine("=== QuickShell startup measurements (real machine) ===");
         _output.WriteLine($"Discover scan cold : {discoverCold.TotalMilliseconds:0.###} ms (real profile)");
@@ -118,6 +118,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         _output.WriteLine($"Provider ctor      : {ctorMs:0.###} ms");
         _output.WriteLine($"List reload (cold) : {listReloadMs.TotalMilliseconds:0.###} ms ({workspaceCount} workspaces)");
         _output.WriteLine($"List GetItems warm : {listGetItemsMs.TotalMilliseconds:0.###} ms");
+        WriteRealMachineWorkspaceCountArtifact(originalWorkspaceCount);
         if (!string.IsNullOrWhiteSpace(ctorTrace))
         {
             _output.WriteLine("Provider ctor breakdown (QUICKSHELL_STARTUP_TRACE):");
@@ -127,6 +128,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Assert.True(discoverCold.TotalMilliseconds >= 0);
         Assert.True(ctorMs >= 0);
         Assert.True(listReloadMs.TotalMilliseconds >= 0);
+        Assert.True(workspaceCount >= 0);
     }
 
     [Fact]
@@ -165,7 +167,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Assert.Contains("Warmup stage", traceAfterWarmup);
     }
 
-    private TimeSpan MeasureListReloadFromRealShortcuts(out TimeSpan getItemsMs, out int workspaceCount)
+    private TimeSpan MeasureListReloadFromRealShortcuts(out TimeSpan getItemsMs, out int workspaceCount, out int originalWorkspaceCount)
     {
         var configDir = Path.Combine(_tempRoot, "real-list-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(configDir);
@@ -199,7 +201,8 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             analysis,
             lifetime);
 
-        workspaceCount = repository.GetShortcuts().Count;
+        originalWorkspaceCount = repository.GetShortcuts().Count;
+        workspaceCount = originalWorkspaceCount;
         if (workspaceCount == 0)
         {
             // No real workspaces saved; fall back to a synthetic 50 so the reload path is exercised.
@@ -309,6 +312,32 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         action();
         sw.Stop();
         return sw.Elapsed;
+    }
+
+    private static void WriteRealMachineWorkspaceCountArtifact(int workspaceCount)
+    {
+        var directory = Environment.GetEnvironmentVariable("QUICKSHELL_PERF_OUTPUT_DIR");
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            var probe = new DirectoryInfo(AppContext.BaseDirectory);
+            while (probe is not null && !File.Exists(Path.Join(probe.FullName, "QuickShell.sln")))
+            {
+                probe = probe.Parent;
+            }
+
+            directory = Path.Join(probe?.FullName ?? AppContext.BaseDirectory, "artifacts", "perf");
+        }
+
+        Directory.CreateDirectory(directory);
+        var path = Path.Join(directory, "real-machine-workspace-count.json");
+        File.WriteAllText(
+            path,
+            $$"""
+            {
+              "workspaceCount": {{workspaceCount}},
+              "capturedAtUtc": "{{DateTimeOffset.UtcNow:O}}"
+            }
+            """);
     }
 
     private static void BuildGitRepoTree(string root, int repoCount)

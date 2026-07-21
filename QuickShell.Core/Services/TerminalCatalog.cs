@@ -141,7 +141,7 @@ internal sealed class TerminalCatalog : ITerminalCatalog
         }
     }
 
-    private string ComputeFingerprint(CatalogSnapshot snapshot)
+    private static string ComputeFingerprint(CatalogSnapshot snapshot)
     {
         var builder = new StringBuilder();
         foreach (var target in snapshot.Targets.OrderBy(static t => t.Id, StringComparer.OrdinalIgnoreCase))
@@ -448,7 +448,7 @@ internal sealed class TerminalCatalog : ITerminalCatalog
             : id);
     }
 
-    private bool IsProfileLaunch(string id, TerminalShortcut shortcut) =>
+    private static bool IsProfileLaunch(string id, TerminalShortcut shortcut) =>
         id.Equals("wt", StringComparison.OrdinalIgnoreCase)
         || id.StartsWith("wt:", StringComparison.OrdinalIgnoreCase)
         || id.Equals("it", StringComparison.OrdinalIgnoreCase)
@@ -544,7 +544,7 @@ internal sealed class TerminalCatalog : ITerminalCatalog
         };
     }
 
-    private LaunchTarget WithFallbackReason(LaunchTarget target, string fallbackReason) =>
+    private static LaunchTarget WithFallbackReason(LaunchTarget target, string fallbackReason) =>
         new()
         {
             Id = target.Id,
@@ -556,7 +556,7 @@ internal sealed class TerminalCatalog : ITerminalCatalog
             FallbackReason = fallbackReason,
         };
 
-    private bool IsStandaloneShellId(string id) =>
+    private static bool IsStandaloneShellId(string id) =>
         IsStandaloneShellLaunchTarget(id);
 
     public static bool IsStandaloneShellLaunchTarget(string? launchTargetId)

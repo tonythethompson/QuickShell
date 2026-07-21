@@ -117,7 +117,7 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
         return RankTop(merged.Values, MaxPills);
     }
 
-    private static IReadOnlyList<WorkspaceEntry> BuildEntries(IReadOnlySet<string> used) =>
+    private static WorkspaceEntry[] BuildEntries(IReadOnlySet<string> used) =>
         used.Count == 0 ? [] : used.Select(c => new WorkspaceEntry { Command = c }).ToArray();
 
     private static void Consider(Dictionary<string, CommandSuggestionPill> merged, CommandSuggestionPill pill)
