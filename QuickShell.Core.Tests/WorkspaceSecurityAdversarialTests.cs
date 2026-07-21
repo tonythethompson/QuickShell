@@ -174,7 +174,10 @@ public sealed class WorkspaceSecurityAdversarialTests
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
             {
             }
         }
