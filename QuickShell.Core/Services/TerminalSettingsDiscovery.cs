@@ -77,7 +77,7 @@ internal static class TerminalSettingsDiscovery
         List<TerminalSettingsLocation> locations,
         HashSet<string> seenSettingsPaths)
     {
-        var packagesRoot = Path.Combine(AppDataRoot.Current, "Packages");
+        var packagesRoot = Path.Join(AppDataRoot.Current, "Packages");
 
         if (!Directory.Exists(packagesRoot))
         {

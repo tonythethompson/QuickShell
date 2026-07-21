@@ -10,6 +10,30 @@ namespace QuickShell.Core.Tests;
 internal static class TestQuickShellServicesFactory
 {
     /// <summary>
+    /// Creates a TerminalLaunchGlyphs instance with default test dependencies.
+    /// Centralizes the repeated construction pattern used across ShortcutHealth and enrichment tests.
+    /// </summary>
+    public static TerminalLaunchGlyphs CreateGlyphs()
+    {
+        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var appDataPaths = new AppDataPaths(testRoot);
+        var profiles = new WtProfilesService();
+        var catalog = new TerminalCatalog(profiles);
+        var resolver = new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths), profiles, catalog);
+        return new TerminalLaunchGlyphs(resolver);
+    }
+
+    /// <summary>
+    /// Creates a TerminalCatalog instance with default test dependencies.
+    /// Centralizes the repeated construction pattern used across ShortcutHealth tests.
+    /// </summary>
+    public static TerminalCatalog CreateCatalog()
+    {
+        var profiles = new WtProfilesService();
+        return new TerminalCatalog(profiles);
+    }
+
+    /// <summary>
     /// Creates a fully configured <see cref="QuickShellServices"/> instance for testing.
     /// </summary>
     /// <param name="launch">Optional test service bundle to use when configuring the services.</param>
@@ -20,10 +44,7 @@ internal static class TestQuickShellServicesFactory
         var classificationCache = new ProjectClassificationCache(analysis);
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
         var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
-        var glyphs = new TerminalLaunchGlyphs(
-            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths: null, bundle.Catalog), bundle.Profiles, bundle.Catalog));
-        var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, new AppDataPaths());
-        var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
+        var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
         QuickShellServices? services = null;
         var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
@@ -72,10 +93,7 @@ internal static class TestQuickShellServicesFactory
         var bundle = launch ?? LaunchTestServices.CreateBundle();
         var classificationCache = new ProjectClassificationCache(analysis);
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
-        var glyphs = new TerminalLaunchGlyphs(
-            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths: null, bundle.Catalog), bundle.Profiles, bundle.Catalog));
-        var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, new AppDataPaths());
-        var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
+        var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
         QuickShellServices? services = null;
         var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
@@ -155,5 +173,21 @@ internal static class TestQuickShellServicesFactory
             formViewBuilder,
             editorFactory);
         return services;
+    }
+
+    /// <summary>
+    /// Centralizes terminal-wiring construction (AppDataPaths, glyphs, icon cache, prewarm)
+    /// used by both Create overloads. Returns a tuple with all four components initialized
+    /// from a test-isolated temporary directory.
+    /// </summary>
+    private static (AppDataPaths appDataPaths, TerminalLaunchGlyphs glyphs, TerminalListIconCache listIcons, TerminalCatalogPrewarm prewarm) BuildTerminalWiring(LaunchTestBundle bundle)
+    {
+        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var appDataPaths = new AppDataPaths(testRoot);
+        var glyphs = new TerminalLaunchGlyphs(
+            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths, bundle.Catalog), bundle.Profiles, bundle.Catalog));
+        var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, appDataPaths);
+        var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
+        return (appDataPaths, glyphs, listIcons, prewarm);
     }
 }

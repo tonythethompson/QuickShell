@@ -29,15 +29,21 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
     public WorkspaceRowPresentationCache(
         IRowPresentationDiagnostics? diagnostics = null,
         ITerminalCatalog? catalog = null,
-        ITerminalLaunchGlyphs? glyphs = null)
+        ITerminalLaunchGlyphs? glyphs = null,
+        IWtProfilesService? profiles = null)
     {
         _diagnostics = diagnostics ?? new RowPresentationDiagnostics();
-        var profiles = new WtProfilesService();
-        _catalog = catalog ?? new TerminalCatalog(profiles);
+
+        // Reuse the same profiles instance for both the default catalog and the default
+        // glyph resolver so a caller who supplies one of {catalog, glyphs} but not the
+        // other never ends up with two disconnected WtProfilesService snapshots backing
+        // the same cache entry.
+        var resolvedProfiles = profiles ?? new WtProfilesService();
+        _catalog = catalog ?? new TerminalCatalog(resolvedProfiles);
         _glyphs = glyphs ?? new TerminalLaunchGlyphs(
             new TerminalProfileResolver(
                 new QuickShellSettingsReader(appDataPaths: null, _catalog),
-                profiles,
+                resolvedProfiles,
                 _catalog));
     }
 

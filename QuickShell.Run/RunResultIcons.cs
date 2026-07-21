@@ -2,6 +2,7 @@ using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 using System.IO;
+using System.Text;
 using Wox.Plugin;
 
 namespace QuickShell.Run;
@@ -112,9 +113,9 @@ internal static class RunResultIcons
             return false;
         }
 
-        foreach (var ch in icon)
+        foreach (var rune in icon.EnumerateRunes())
         {
-            if (ch > 0xFFFF)
+            if (rune.Value > 0xFFFF)
             {
                 return true;
             }

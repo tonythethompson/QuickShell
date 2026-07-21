@@ -1341,8 +1341,8 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.True(ShortcutHealth.WouldNeedRepair(shortcut));
-        Assert.Equal(ShortcutGlyphs.IncidentTriangle, ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService())))));
-        Assert.Contains("Folder not found", ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService())), StringComparison.Ordinal);
+        Assert.Equal(ShortcutGlyphs.IncidentTriangle, ShortcutHealth.GetListGlyph(shortcut, TestQuickShellServicesFactory.CreateGlyphs()));
+        Assert.Contains("Folder not found", ShortcutHealth.BuildListSubtitle(shortcut, TestQuickShellServicesFactory.CreateCatalog()), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1356,7 +1356,7 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
-        var glyph = ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))));
+        var glyph = ShortcutHealth.GetListGlyph(shortcut, TestQuickShellServicesFactory.CreateGlyphs());
         Assert.False(string.IsNullOrWhiteSpace(glyph));
     }
 
@@ -1372,7 +1372,7 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
-        Assert.Equal(ShortcutGlyphs.AdminLaunch, ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService())))));
+        Assert.Equal(ShortcutGlyphs.AdminLaunch, ShortcutHealth.GetListGlyph(shortcut, TestQuickShellServicesFactory.CreateGlyphs()));
     }
 
     [Fact]
@@ -1388,7 +1388,7 @@ public sealed class ShortcutHealthTests : IDisposable
         };
 
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
-        Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService())), StringComparison.Ordinal);
+        Assert.Contains("Companion app missing", ShortcutHealth.BuildListSubtitle(shortcut, TestQuickShellServicesFactory.CreateCatalog()), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1403,8 +1403,8 @@ public sealed class ShortcutHealthTests : IDisposable
             Launches = [],
         };
 
-        _ = ShortcutHealth.GetListGlyph(shortcut, new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))));
-        _ = ShortcutHealth.BuildListSubtitle(shortcut, new TerminalCatalog(new WtProfilesService()));
+        _ = ShortcutHealth.GetListGlyph(shortcut, TestQuickShellServicesFactory.CreateGlyphs());
+        _ = ShortcutHealth.BuildListSubtitle(shortcut, TestQuickShellServicesFactory.CreateCatalog());
 
         Assert.Empty(shortcut.Launches);
         Assert.False(ShortcutHealth.WouldNeedRepair(shortcut));
@@ -1428,7 +1428,7 @@ public sealed class TerminalLaunchGlyphsTests
     public void GetForLaunch_UsesPowerShellProfileIconForPwshWhenAvailable()
     {
                 var launch = new WorkspaceEntry { Terminal = "pwsh", IsEnabled = true };
-        var icon = new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch);
+        var icon = TestQuickShellServicesFactory.CreateGlyphs().GetForLaunch(launch);
 
         Assert.False(string.IsNullOrWhiteSpace(icon));
         Assert.True(
@@ -1443,14 +1443,14 @@ public sealed class TerminalLaunchGlyphsTests
     {
         var launch = new WorkspaceEntry { Terminal = "wt", WtProfile = "Ubuntu", IsEnabled = true };
 
-        Assert.Equal("\U0001F427", new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch));
+        Assert.Equal("\U0001F427", TestQuickShellServicesFactory.CreateGlyphs().GetForLaunch(launch));
     }
 
     [Fact]
     public void GetForLaunch_UsesConfiguredDefaultProfileIcon()
     {
                 var launch = new WorkspaceEntry { Terminal = "default", IsEnabled = true };
-        var icon = new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch);
+        var icon = TestQuickShellServicesFactory.CreateGlyphs().GetForLaunch(launch);
 
         Assert.False(string.IsNullOrWhiteSpace(icon));
         Assert.NotEqual(ShortcutGlyphs.IncidentTriangle, icon);

@@ -191,6 +191,7 @@ internal sealed class RunDirectorySuggestionLoader : IDisposable
         }
 
         previous?.Cancel();
+        previous?.Dispose();
         var token = cancellation.Token;
         var generation = Interlocked.Increment(ref _generation);
         onGenerationStarted(generation);

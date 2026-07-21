@@ -116,7 +116,8 @@ internal static class QuickShellServiceCollectionExtensions
             new WorkspaceRowPresentationCache(
                 sp.GetRequiredService<IRowPresentationDiagnostics>(),
                 sp.GetRequiredService<ITerminalCatalog>(),
-                sp.GetRequiredService<ITerminalLaunchGlyphs>()));
+                sp.GetRequiredService<ITerminalLaunchGlyphs>(),
+                sp.GetRequiredService<IWtProfilesService>()));
 
         services.AddSingleton<IProjectLayoutAnalyzer, ProjectLayoutAnalyzer>();
         services.AddSingleton<IProjectClassifier, NodeProjectClassifier>();

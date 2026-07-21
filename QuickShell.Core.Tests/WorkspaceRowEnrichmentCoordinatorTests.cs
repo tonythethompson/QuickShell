@@ -16,8 +16,8 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests
             _queue,
             new TerminalListIconCache(
                 new WtProfilesService([]),
-                new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))),
-                new AppDataPaths()),
+                TestQuickShellServicesFactory.CreateGlyphs(),
+                new AppDataPaths(Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N")))),
             _diagnostics,
             resolveIcon ?? (shortcut =>
             {
