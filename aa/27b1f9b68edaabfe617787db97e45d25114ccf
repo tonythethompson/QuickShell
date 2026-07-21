@@ -1,0 +1,22 @@
+QuickShell.Raycast/package.json
+  s_b6f09b908b7b0f::t_6273667932ecaa 8-14,16-25,35-50
+  s_b6f09b908b7b0f::t_4c09b6d431fbf7 92-99,108-113,130-134,151-157,166-172,180-182,201-203
+QuickShell.Raycast/package-lock.json
+  s_b6f09b908b7b0f::t_463c7e3ccc8697 27-29,43-45,59-61,75-77,91-93,107-109,123-125,139-141,155-157,171-173,187-189,203-205,219-221,235-237,251-253,267-269,283-285,299-301,315-317,331-333,347-349,363-365,379-381,395-397,411-413,427-429,494-496,575-577,2383-2385,2395-2420,2549-2551,2760-2762
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "aa27b1f9b68edaabfe617787db97e45d25114ccf",
+  "prompts": {},
+  "sessions": {
+    "s_b6f09b908b7b0f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "373ef5e0-3528-4903-8942-32acd2e23734",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
