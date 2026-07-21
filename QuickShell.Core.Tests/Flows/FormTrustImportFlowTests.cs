@@ -107,6 +107,7 @@ public sealed class FormEditFlowTests : IDisposable
             }
             catch (DirectoryNotFoundException)
             {
+                // Already gone; nothing to clean up.
             }
             catch (IOException ex)
             {
@@ -219,6 +220,7 @@ public sealed class TrustLaunchFlowTests
             }
             catch (DirectoryNotFoundException)
             {
+                // Already gone; nothing to clean up.
             }
             catch (IOException ex)
             {
@@ -442,6 +444,7 @@ public sealed class ImportConflictFlowTests : IDisposable
             }
             catch (DirectoryNotFoundException)
             {
+                // Already gone; nothing to clean up.
             }
             catch (IOException ex)
             {
