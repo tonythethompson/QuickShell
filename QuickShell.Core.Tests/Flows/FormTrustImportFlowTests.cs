@@ -108,11 +108,13 @@ public sealed class FormEditFlowTests : IDisposable
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                TestContext.Current?.SendDiagnosticMessage($"Failed to delete temp test directory '{Path}' due to I/O error: {ex.Message}");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                TestContext.Current?.SendDiagnosticMessage($"Failed to delete temp test directory '{Path}' due to access error: {ex.Message}");
             }
         }
     }
