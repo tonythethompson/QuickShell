@@ -96,7 +96,7 @@ public sealed class TrustLaunchFlowTests
     public void Untrusted_grant_launch_revoke_blocks_again()
     {
         using var repository = CreateRepository();
-        var folder = Path.Combine(Path.GetTempPath(), "QuickShellTrustFlowDir", Guid.NewGuid().ToString("N"));
+        var folder = Path.Join(Path.GetTempPath(), "QuickShellTrustFlowDir", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         try
         {
