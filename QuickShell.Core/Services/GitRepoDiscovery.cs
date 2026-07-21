@@ -98,7 +98,6 @@ internal static partial class GitRepoDiscovery
             defaultRootCandidates = scope.DefaultRootCandidates;
         }
 
-        var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots, defaultRootCandidates);
         if (cancellationToken.IsCancellationRequested)
         {
             return [];
