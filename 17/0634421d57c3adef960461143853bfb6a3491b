@@ -1,0 +1,244 @@
+docs/architecture/hosts.md
+  s_b210e48caa21a0::t_b31a8b588b9781 67
+QuickShell.Raycast/src/components/set-target-branch-form.tsx
+  s_b210e48caa21a0::t_d107b83c200b70 3-8,30-33,48-79
+  s_b210e48caa21a0::t_078a25db3e5f81 1-2,9-29,34-47,80-111
+QuickShell.Raycast/src/__tests__/launch-diagnostics.test.ts
+  s_b210e48caa21a0::t_ff70567486b14a 1-54
+docs/architecture/QuickShell-TechDebt-Phases.md
+  s_b210e48caa21a0::t_0c47bb72eff48d 19,21-24,27-34,36-38
+  s_b210e48caa21a0::t_8736a6ef68a87f 154-186,188-191,193-195
+  s_b210e48caa21a0::t_65d98837e0c99c 187,192
+  s_b210e48caa21a0::t_f7ec2da503dd8c 25-26,35
+QuickShell.Raycast/src/lib/suggest-commands.ts
+  s_7204ad8e418bcb::t_3767c753bdfed6 2,5,22-28,34-67,76,80,94-117
+QuickShell.Raycast/src/lib/workspace-form-state.ts
+  s_b210e48caa21a0::t_02d9682c4273d1 16-22,32
+  s_b210e48caa21a0::t_84aa7b3bfd5ba6 135-140,151
+  s_b210e48caa21a0::t_4a0a27ecd6d5a2 79-88,105-107
+QuickShell.Raycast/src/lib/terminal-options.ts
+  s_b210e48caa21a0::t_8cb5ba3d13c13b 57-58
+QuickShell.Raycast/README.md
+  s_b210e48caa21a0::t_fbc84bcea9b729 74-75
+  s_b210e48caa21a0::t_209fec018e546d 76
+  s_b210e48caa21a0::t_a079844fdbffc9 13
+QuickShell.Raycast/src/lib/launch-diagnostics.ts
+  s_7204ad8e418bcb::t_3767c753bdfed6 1-43
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_b210e48caa21a0::t_4ebcd426c13828 1-4,8-28
+  s_b210e48caa21a0::t_278b1100836afa 29,109-120,122-123,125-144,146-147,149-165
+  s_b210e48caa21a0::t_50fb0dd857d5c6 121,124
+  s_26d71d31fcaaaf::t_10079267d3389a 145,148
+QuickShell.Raycast/src/__tests__/easy-gaps.test.ts
+  s_b210e48caa21a0::t_aa1d62e2c13673 1-4,8-20,22-29,31-58,84-86,90-154
+  s_b210e48caa21a0::t_d8f474164db5e7 5-7,21,30,59-83,87-88
+  s_b210e48caa21a0::t_b0310f93383b49 89
+docs/architecture/settings.md
+  s_b210e48caa21a0::t_bc878b6582e30e 30
+QuickShell.Raycast/src/__tests__/workspace-form-state.test.ts
+  s_b210e48caa21a0::t_68013768dc89cd 50
+QuickShell.Raycast/src/lib/migration.ts
+  s_b210e48caa21a0::t_078a25db3e5f81 5,11,56-58,64-65,71-85,87-112,114-118,120-124,126-127,130-145,173,177-191
+  s_72ca03cf8ef0f6::t_6574da86692d76 113,119,125,128-129
+  s_b210e48caa21a0::t_895c75a7131a6e 13
+  s_b210e48caa21a0::t_18ea10961288dd 86
+  s_b210e48caa21a0::t_274cb02c31bef0 192
+QuickShell.Raycast/src/__tests__/trust-import-flow.test.ts
+  s_b210e48caa21a0::t_c198f213bad571 1-153
+QuickShell.Raycast/src/__tests__/single-row-launch.test.ts
+  s_b210e48caa21a0::t_64bf38bf0cd372 2-58
+  s_b210e48caa21a0::t_ade3a880e59648 1
+QuickShell.Raycast/src/lib/terminal-catalog.ts
+  s_b210e48caa21a0::t_0be569024e9f0a 179-190
+  s_b210e48caa21a0::t_c46d9391d7391c 1
+  s_b210e48caa21a0::t_783532ff468706 191-211
+  s_b210e48caa21a0::t_9920a7fa001c99 84-92
+QuickShell.Raycast/src/lib/post-launch-actions.ts
+  s_b210e48caa21a0::t_6666714fc38c3c 13-14,24,26-27,42-52,63-89
+  s_b210e48caa21a0::t_a99191b787df20 90
+QuickShell.Raycast/src/__tests__/companion-form.test.ts
+  s_7204ad8e418bcb::t_3767c753bdfed6 1-68
+QuickShell.Raycast/src/lib/companion-detection.ts
+  s_b210e48caa21a0::t_825e47e5561e5e 1-51
+QuickShell.Raycast/src/lib/security.ts
+  s_b210e48caa21a0::t_1205455c2421da 137-153
+docs/architecture/parity-matrix.md
+  s_b210e48caa21a0::t_c3c528f05edc8a 81,83-84
+  s_b210e48caa21a0::t_6c8988452c88a5 128
+  s_b210e48caa21a0::t_8e2086e326e2e1 70
+  s_b210e48caa21a0::t_861127fb2c15d0 97-99
+  s_b210e48caa21a0::t_8809a759dd5cda 123
+  s_b210e48caa21a0::t_478971315b158a 37
+  s_b210e48caa21a0::t_f6a77380df14e2 54
+  s_b210e48caa21a0::t_68ec367fcf51cc 55-56
+  s_b210e48caa21a0::t_346ace316e2d8b 124-125
+  s_b210e48caa21a0::t_2fce9e05e1fb15 4,8-9
+  s_b210e48caa21a0::t_4a164edeb641b2 100-101
+  s_b210e48caa21a0::t_bae69b371b637d 40-41
+  s_b210e48caa21a0::t_efa8c0b799068c 43
+  s_b210e48caa21a0::t_dd1f954da103ab 127
+QuickShell.Raycast/src/__tests__/launch-executor.test.ts
+  s_b210e48caa21a0::t_d91ce8def0e0aa 53-93,126-133
+  s_b210e48caa21a0::t_5667202795f44a 22
+QuickShell.Raycast/src/lib/git-launch-gate.ts
+  s_b210e48caa21a0::t_66a961074e7e18 145,148-162,168-172,174-177,199-201,205-218
+  s_b210e48caa21a0::t_078a25db3e5f81 1-21,32-44,46-51,53-144,146-147,163-167,173,178-198,202-204,219-272
+  s_72ca03cf8ef0f6::t_f5f8dd4a367d76 22-31,45,52
+docs/architecture/git-and-discover.md
+  s_b210e48caa21a0::t_30ed9f79642a60 102
+QuickShell.Raycast/src/lib/failure-feedback.ts
+  s_7204ad8e418bcb::t_3767c753bdfed6 1,3-4,12-15,17-28,31-64
+QuickShell.Raycast/src/__tests__/ranking.test.ts
+  s_b210e48caa21a0::t_277e4eb5d1af19 69-85
+QuickShell.Raycast/src/__tests__/suggest-commands.test.ts
+  s_7204ad8e418bcb::t_3767c753bdfed6 1-56
+QuickShell.Raycast/src/settings.tsx
+  s_b1110fe9487e1d::t_bffeac64dcda56 1-12,66-77,83
+QuickShell.Raycast/src/components/add-separator-form.tsx
+  s_b210e48caa21a0::t_078a25db3e5f81 1-45
+QuickShell.Raycast/src/lib/launch-executor.ts
+  s_b210e48caa21a0::t_2d3ac9222acc99 43,46-50,56-64
+QuickShell.Raycast/src/__tests__/migration.test.ts
+  s_b210e48caa21a0::t_cdf1edb27d5858 50-112
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_b210e48caa21a0::t_b36728e28030c5 17
+  s_b210e48caa21a0::t_70092dc71bc25c 178,185-186,192-193,197-201,203-219,222-237,243-273
+  s_b210e48caa21a0::t_8a987c6bf7bf96 319,324
+  s_b210e48caa21a0::t_13cbc434463007 464,466
+  s_b210e48caa21a0::t_820af3f3bf1beb 636
+  s_b210e48caa21a0::t_ee35c038d427d8 432
+  s_b210e48caa21a0::t_ece5ac12c69798 132,135-138
+  s_7204ad8e418bcb::t_3767c753bdfed6 16,23,30,124-126,133-134,169,179-184,194-196,318,320-323,325-346,348-351,353-364,375,417,433-434,451-463,465,467-475,488-513,581-590,597-633
+  s_b210e48caa21a0::t_0b93b60235d4b6 347,352
+  s_b1110fe9487e1d::t_8a45e24802b936 187-191
+QuickShell.Raycast/src/__tests__/workspace-health.test.ts
+  s_b210e48caa21a0::t_078a25db3e5f81 4,84-86
+  s_b210e48caa21a0::t_18dc1772ee4b94 80-81,83,92-93
+  s_b210e48caa21a0::t_7f35d6b276c859 62-76
+  s_b210e48caa21a0::t_f6924985b29f1d 18-19,26,57-61,77-79,82,87-91,94-96
+QuickShell.Raycast/src/__tests__/git-launch-gate.test.ts
+  s_b210e48caa21a0::t_078a25db3e5f81 1,10-85,87,94,96-102
+  s_b210e48caa21a0::t_81816391154c85 2-9,91
+  s_b210e48caa21a0::t_f769aba11764c3 86
+  s_b210e48caa21a0::t_fd11bbd115ad71 88-90
+  s_b210e48caa21a0::t_2b71a0d1edfbb0 92-93
+  s_b210e48caa21a0::t_4c473060e7cc1c 95
+QuickShell.Raycast/src/lib/ranking.ts
+  s_72ca03cf8ef0f6::t_5e9c426acb204d 146-192
+  s_72ca03cf8ef0f6::t_c71a81b4f1cd66 144-145
+  s_72ca03cf8ef0f6::t_3b645d1c1f90db 193-195
+  s_b210e48caa21a0::t_2790fb3e110515 1,108-113,118-119,122-126,140,196
+QuickShell.Raycast/src/__tests__/import-export.test.ts
+  s_b210e48caa21a0::t_02740aa6c13c39 67-71,87,89-112
+  s_b210e48caa21a0::t_4a2ea7c839fd4d 72-86,88
+docs/architecture/post-launch.md
+  s_b210e48caa21a0::t_152dfb5094fe1c 74,76-78,80
+QuickShell.Raycast/src/__tests__/extension-preferences.test.ts
+  s_b210e48caa21a0::t_a1f741623a1ae2 10,17,26
+docs/architecture/companions.md
+  s_b210e48caa21a0::t_4fdf71cfd61dd4 83
+QuickShell.Raycast/src/open-workspace.tsx
+  s_b210e48caa21a0::t_a0c34227ca4a44 655
+  s_b210e48caa21a0::t_3b3a853f56cf3e 846
+  s_b1110fe9487e1d::t_9bac1e82e7f5e3 25-31,33,39-42,49,55-57,67-72,75,86-91,225-226,229,266-274,292-300,329-338,476-487,581-582,672,705-713,715-720,756-757
+  s_b210e48caa21a0::t_266323b9f5357a 246-264
+  s_b210e48caa21a0::t_078a25db3e5f81 126,714
+  s_b210e48caa21a0::t_c2f1d138d6d83c 588
+  s_b210e48caa21a0::t_9ad1fb00738cda 783-793
+  s_b210e48caa21a0::t_78c1ab75cea230 151,155,518-546,551-580,584,589,599-603,652-654,656-671,687-698,751-755
+  s_b210e48caa21a0::t_70d6e2aabaa17c 148-150
+  s_b210e48caa21a0::t_c4ce5958e6a138 152-154
+  s_b1110fe9487e1d::t_6a2fa0b8336d7b 227-228
+  s_b1110fe9487e1d::t_fa496c9ce965d0 230-232
+  s_b210e48caa21a0::t_2dfd9a5cf3f31d 22-23,95,99-101,143-147,223,233
+docs/architecture/intelligence.md
+  s_b210e48caa21a0::t_d1a9952e9978aa 77
+QuickShell.Raycast/src/__tests__/companion-detection.test.ts
+  s_b210e48caa21a0::t_aa45d093a461ce 1-63
+QuickShell.Raycast/src/lib/storage.ts
+  s_72ca03cf8ef0f6::t_fbf2255b6f1f9c 19
+  s_b210e48caa21a0::t_be27b9c8644be6 12-17
+  s_b210e48caa21a0::t_a2e5f202ac6791 349-351
+  s_b210e48caa21a0::t_48b1a5ac7a2828 444-451,454-474
+  s_72ca03cf8ef0f6::t_e9607b3de58885 613-616,646
+  s_b210e48caa21a0::t_fc03111fab0711 109,114-116
+  s_b210e48caa21a0::t_6991f8a6501c9f 22
+  s_72ca03cf8ef0f6::t_9dc7631016a6c0 383-387,399,407
+  s_72ca03cf8ef0f6::t_9afe3548f588cb 452-453
+  s_b210e48caa21a0::t_078a25db3e5f81 3,18,117,136-137,283,294-296,326,331-348,352-382,388-398,400-406,408-420,569-570,606-612,617-645
+  s_b210e48caa21a0::t_c127f7d19e948f 102
+  s_b210e48caa21a0::t_72521c07755842 118
+  s_b210e48caa21a0::t_1516d5f72da18c 421
+  s_72ca03cf8ef0f6::t_fae6944008cb8a 647
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_b210e48caa21a0::t_58798c79028528 118
+  s_b210e48caa21a0::t_f177383bdf4b7e 168
+QuickShell.Raycast/src/lib/import-export.ts
+  s_72ca03cf8ef0f6::t_86cded0d937b07 143,148
+  s_b210e48caa21a0::t_1c6a877d27eba9 3,28-29,117,121,138,142,144-147,149-150,167-169,177-190
+  s_b210e48caa21a0::t_31141bfb2ba273 8-10,34-45,191-192
+  s_b210e48caa21a0::t_9933e7dc62693d 18-24,33,46-57
+QuickShell.Raycast/src/lib/workspace-health.ts
+  s_b210e48caa21a0::t_e7db4d719b91c2 21-22
+  s_b210e48caa21a0::t_078a25db3e5f81 2,19-20,23,27,29-33,39,41-45,51-55,146-152,154-158,173-278
+  s_b210e48caa21a0::t_a4e15ca8463150 4-6,71-78,96-127,135-136,139,153,159-160,279-280
+QuickShell.Raycast/src/lib/companion-catalog.ts
+  s_b210e48caa21a0::t_3e1560cc8a716f 1-64,71-152
+  s_b210e48caa21a0::t_bb18b6bc702c7f 65-70
+QuickShell.Raycast/package.json
+  s_b210e48caa21a0::t_ac3052ecd323c3 53-61
+QuickShell.Raycast/src/lib/preferences.ts
+  s_b210e48caa21a0::t_87117dbec8068a 11,27
+QuickShell.Raycast/src/lib/schema.ts
+  s_b210e48caa21a0::t_23ecef2d22a1ba 71-72,75-88,94-97,105,119-120
+QuickShell.Raycast/src/lib/workspace-health-index.ts
+  s_b210e48caa21a0::t_5a920cad9c9b0a 4-5,12,29-30,36-40,43-46,48-49,51-64,77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "170634421d57c3adef960461143853bfb6a3491b",
+  "prompts": {},
+  "sessions": {
+    "s_26d71d31fcaaaf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "315392a3-2e68-4d31-867c-e49d746841b6",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_7204ad8e418bcb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0a2fda73-6d1a-45e2-8fdb-c54fe7da331e",
+        "model": "default"
+      },
+      "human_author": null
+    },
+    "s_72ca03cf8ef0f6": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "dcfbecab-edd7-4036-8d07-da6a3e59beeb",
+        "model": "default"
+      },
+      "human_author": null
+    },
+    "s_b1110fe9487e1d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c09abd84-0d40-4a87-b2a8-a10aed4ed545",
+        "model": "default"
+      },
+      "human_author": null
+    },
+    "s_b210e48caa21a0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4f2dfd76-512d-42b4-84e4-07fe989c1736",
+        "model": "default"
+      },
+      "human_author": null
+    }
+  }
+}
