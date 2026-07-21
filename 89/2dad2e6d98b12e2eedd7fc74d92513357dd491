@@ -1,0 +1,134 @@
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_2cbb0805a2993a::t_56cd04dba5d223 1
+  s_15a9af5697c977::t_9fc8012ad65c86 228,231,244,280-281,298
+QuickShell/Services/CmdPalExtensionThreadScheduler.cs
+  s_2cbb0805a2993a::t_16dd77ef686a95 1-59
+QuickShell.Core/Services/GitRepoIndex.cs
+  s_2cbb0805a2993a::t_41f15f06a27549 400,415
+  s_2cbb0805a2993a::t_da873e220ce86d 507-510
+  s_2cbb0805a2993a::t_0f8cc6550d431e 265,268-269,274-278,280,282-283,286-287
+  s_2cbb0805a2993a::t_052ef4006dd3cf 356,359-361,369,372-373
+  s_2cbb0805a2993a::t_2ebf46fec0ccff 288,297,299-303
+  s_2cbb0805a2993a::t_f32de470a590f5 8,12-14,16-33,35-40,43-45,48,52,59,62,64,66,70,73,75,82,84,91,93,98,106-107,142-143,146,149,153,155-159,161-163,172,188,194,212,218,241-256,258,260-264,266-267,289-293,308,310,316,322,329,336,340,345,357-358,362-367,376,384,387-388,390-393,396,398,424,427,429,434-435,442,450,457,466,469,471,477
+  s_15a9af5697c977::t_788666ebd7e490 368,478
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_2cbb0805a2993a::t_936b3c61f8e4c1 1
+  s_15a9af5697c977::t_d707ec0acf7d06 172,178,209-213
+QuickShell.Core.Tests/ProjectSetupSuggestionTests.cs
+  s_2cbb0805a2993a::t_404510a89e99a6 2
+  s_15a9af5697c977::t_4e67d7f1f16050 16,24-27,277,285-286,288,320
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_2cbb0805a2993a::t_a4d286afef541c 2
+  s_15a9af5697c977::t_8b7526b82bb515 23,33,181,193
+QuickShell/Services/IQuickShellServices.cs
+  s_2cbb0805a2993a::t_1a504c1e702004 29-34
+QuickShell/Services/ExtensionCallbackQueue.cs
+  s_2cbb0805a2993a::t_26606ccc3779d8 2,10,12,14,17,20,22
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_2cbb0805a2993a::t_a734a411df394b 1
+  s_15a9af5697c977::t_6734a949478875 45-46,48-49,63,77,80-81,102,157-158,168,174-175,177,215-216,231
+QuickShell.Core.Tests/WorkspaceUtilityTests.cs
+  s_2cbb0805a2993a::t_46a881fe96be69 2
+  s_15a9af5697c977::t_16020cee998112 498,506-509,518,521-522,524,528,544-546,548-550,559
+QuickShell.Core/Abstractions/IExtensionThreadScheduler.cs
+  s_2cbb0805a2993a::t_80f328a1557b72 1-10
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_2cbb0805a2993a::t_69e4aea2394237 1
+  s_15a9af5697c977::t_f26d69951803fb 50,54-55,81
+QuickShell.Core/Abstractions/IProjectClassificationCache.cs
+  s_2cbb0805a2993a::t_6cc254f53ca4b2 2-14
+  s_2cbb0805a2993a::t_4975cd4bfae09c 1
+QuickShell.Core/Services/ProjectClassificationCache.cs
+  s_2cbb0805a2993a::t_e8ff1358b86663 4,9,13-16,18,20-21,23-24,34,40-41,46,50,52-53,60-61,67,69,72-73,75,80,82,87-88,98
+QuickShell/Services/QuickShellServices.cs
+  s_2cbb0805a2993a::t_4efdd450d43f49 32-37,50-53,65-67
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_2cbb0805a2993a::t_4dde1c3259649b 2
+  s_15a9af5697c977::t_6caf472e27f39d 16,22,263,287,305,330,342,374-375
+QuickShell/Services/SettingsFormHelpers.cs
+  s_2cbb0805a2993a::t_58e044f9ab288f 3
+  s_15a9af5697c977::t_27585207c04db4 19-21,23,25,34
+QuickShell.Core.Tests/ExtensionCallbackQueueTests.cs
+  s_2cbb0805a2993a::t_32e5e92bd822a7 15,17-19,21,29-30,36,38-39,43,45,56,58-60,62,71-72,78,80-82,86,89-102
+  s_15a9af5697c977::t_e64aa1f94a6900 103
+QuickShell.Core/Services/SyncExtensionThreadScheduler.cs
+  s_2cbb0805a2993a::t_ef9833fac8110d 1-15
+QuickShell/Services/CommandRouting/QuickShellCommandRoutingServiceCollectionExtensions.cs
+  s_2cbb0805a2993a::t_08c379daa1c7d7 1
+  s_15a9af5697c977::t_b66d5a9d2672f1 33-36,62-64,66-71
+QuickShell.Core/Abstractions/IExtensionCallbackQueue.cs
+  s_2cbb0805a2993a::t_1981554e4edf76 1-12
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_2cbb0805a2993a::t_93021d29220f8f 22-23,34-37,57-60
+QuickShell.Core.Tests/ProjectClassificationCacheTests.cs
+  s_2cbb0805a2993a::t_ce6a0ccf88adbb 13,21,29-30,41,44,53-54,57,84,89,116,137,147,154,194-196,198-206
+QuickShell.Core.Tests/GitRepoIndexCacheTests.cs
+  s_2cbb0805a2993a::t_9fbb1eb442e120 2,14-15,21-22,30-33,38,49,51,63,71-72,81,92,94,105,107,110-111,121,132,134-136,142,151,153-155,160,168-169,180,187,191,193-195,198-199,201,208,219,221,225-248
+  s_15a9af5697c977::t_4e4312470ce79c 249
+QuickShell.Core/Abstractions/IGitRepoIndex.cs
+  s_2cbb0805a2993a::t_7bc4712ad58dd6 15-20,22-24,27-28
+QuickShell.Core.Tests/Architecture/RuntimeStaticStateGuardsTests.cs
+  s_15a9af5697c977::t_0c0a60bdbfea26 34-41
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_15a9af5697c977::t_56a8ad948fad9b 2,17,25,34,52-54,63,65,79-80,115,126,143,159
+QuickShell.Core.Tests/ProjectAnalysisServiceTests.cs
+  s_15a9af5697c977::t_2ab0ed1880d586 36,58,85,98,111
+QuickShell.Core.Tests/QuickShellCompositionRootTests.cs
+  s_15a9af5697c977::t_e402167c9a3be8 77-78
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_15a9af5697c977::t_4bee92fa269ef8 57-58
+QuickShell.Run/Main.cs
+  s_15a9af5697c977::t_d3b813c7cc2874 49,75,143,279,358-364,409
+QuickShell.Run/QuickShellRunSettingsPanel.cs
+  s_15a9af5697c977::t_e6a20c62a5736a 16,23,31,78-80
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_15a9af5697c977::t_4e638344356aca 62-63,78,89-90,648-649,1733,1751-1756
+QuickShell.Suggest/Program.cs
+  s_15a9af5697c977::t_a226081a431458 15,17
+QuickShell/Pages/BehaviorSettingsForm.cs
+  s_15a9af5697c977::t_746129fcfee86b 134
+QuickShell/Pages/DiscoverGitReposPage.cs
+  s_15a9af5697c977::t_619adaef831578 44,60,64,154,188-189,191
+QuickShell/Pages/HomeDisplaySettingsForm.cs
+  s_15a9af5697c977::t_33cd32940cafc3 56
+QuickShell/Pages/MultiLaunchSettingsForm.cs
+  s_15a9af5697c977::t_4e2b2a93107b59 57
+QuickShell/Pages/PendingShortcutEditPage.cs
+  s_15a9af5697c977::t_b9a809a8d774b0 127
+QuickShell/Pages/QuickShellFallbackPage.cs
+  s_15a9af5697c977::t_9080f787c19bf9 146,151,167
+QuickShell/Pages/QuickShellPage.cs
+  s_15a9af5697c977::t_4e7a10f535c317 110,550
+QuickShell/Pages/ShortcutFormPage.cs
+  s_15a9af5697c977::t_df2e4dc5289409 596-597,1173,1197-1201
+QuickShell/Pages/TerminalDefaultsSettingsForm.cs
+  s_15a9af5697c977::t_36a1f66e1429a3 133
+QuickShell/QuickShellCommandsProvider.cs
+  s_15a9af5697c977::t_c19d69b8ebd103 173,184
+QuickShell/QuickShellFallback.cs
+  s_15a9af5697c977::t_bfeee9af78da1c 78,83-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "892dad2e6d98b12e2eedd7fc74d92513357dd491",
+  "prompts": {},
+  "sessions": {
+    "s_15a9af5697c977": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_091335512ffeS7YvSswG7kFHhd",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    },
+    "s_2cbb0805a2993a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_090d1fd87ffeZ74hg4F1aMxobT",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <tonythethompson@hotmail.com>"
+    }
+  }
+}
