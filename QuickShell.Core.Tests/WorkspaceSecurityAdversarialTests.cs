@@ -159,7 +159,7 @@ public sealed class WorkspaceSecurityAdversarialTests
     {
         public TempDataDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "QuickShellAdversarialTests", Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Join(System.IO.Path.GetTempPath(), "QuickShellAdversarialTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
 
