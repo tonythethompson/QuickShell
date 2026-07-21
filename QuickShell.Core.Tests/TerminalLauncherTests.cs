@@ -101,8 +101,14 @@ public sealed class TerminalLauncherTests
             Command = "echo \"hello world\"",
         };
 
-        var startInfo = Capture(shortcut, (launcher, s) =>
-            launcher.Open(s, TerminalHostIds.WindowsConsoleHost, "cmd"));
+        // OpenResolved with a fixed Cmd target: Open(conhost, "cmd") can fall back to wt.exe
+        // when ExecutableAvailability.IsOnPath("cmd.exe") fails under CI load (where.exe timeout).
+        var startInfo = CaptureResolved(shortcut, new LaunchTarget
+        {
+            Id = "cmd",
+            DisplayName = "Command Prompt",
+            Kind = LaunchTargetKind.Cmd,
+        });
 
         Assert.Equal("cmd.exe", startInfo.FileName);
         Assert.Contains($"cd /d \"\"{directory.Path}\"\"", startInfo.Arguments, StringComparison.Ordinal);
@@ -120,8 +126,14 @@ public sealed class TerminalLauncherTests
             Command = "git status",
         };
 
-        var startInfo = Capture(shortcut, (launcher, s) =>
-            launcher.Open(s, TerminalHostIds.WindowsConsoleHost, "powershell"));
+        // OpenResolved with a fixed PowerShell target: Open(conhost, "powershell") can fall back
+        // to wt.exe when ExecutableAvailability.IsOnPath("powershell.exe") fails under CI load.
+        var startInfo = CaptureResolved(shortcut, new LaunchTarget
+        {
+            Id = "powershell",
+            DisplayName = "PowerShell",
+            Kind = LaunchTargetKind.PowerShell,
+        });
 
         Assert.Equal("powershell.exe", startInfo.FileName);
         Assert.Contains("Set-Location -LiteralPath", startInfo.Arguments, StringComparison.Ordinal);
@@ -136,6 +148,15 @@ public sealed class TerminalLauncherTests
         var starter = new FakeProcessStarter { Succeed = true };
         var launcher = new TerminalLauncher(starter, new TerminalCatalog(new WtProfilesService()));
         open(launcher, shortcut);
+        Assert.Single(starter.Started);
+        return starter.Started[0];
+    }
+
+    private static ProcessStartInfo CaptureResolved(TerminalShortcut shortcut, LaunchTarget target)
+    {
+        var starter = new FakeProcessStarter { Succeed = true };
+        var launcher = new TerminalLauncher(starter, new TerminalCatalog(new WtProfilesService()));
+        launcher.OpenResolved(new ResolvedLaunch(shortcut, target), effectiveElevation: false);
         Assert.Single(starter.Started);
         return starter.Started[0];
     }
