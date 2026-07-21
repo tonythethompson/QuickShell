@@ -13,6 +13,11 @@ namespace QuickShell.Services.CommandRouting;
 /// </summary>
 internal static class QuickShellCommandRoutingServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers QuickShell command-routing services and handlers in the dependency injection container.
+    /// </summary>
+    /// <param name="settingsManager">The manager used to provide QuickShell settings.</param>
+    /// <returns>The configured service collection.</returns>
     public static IServiceCollection AddQuickShellCommandRouting(
         this IServiceCollection services,
         QuickShellSettingsManager settingsManager)
@@ -25,6 +30,11 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             new SettingsFormRefreshScheduler(
                 sp.GetRequiredService<IQuickShellLifetime>(),
                 sp.GetRequiredService<IExtensionCallbackQueue>()));
+        services.AddSingleton<IShortcutFormViewBuilder, ShortcutFormViewBuilder>();
+        services.AddSingleton<IWorkspaceEditorFactory>(sp =>
+            new WorkspaceEditorFactory(
+                () => sp.GetRequiredService<IQuickShellServices>(),
+                sp.GetRequiredService<IQuickShellLifetime>()));
         services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
             sp.GetRequiredService<IShortcutRepository>(),
             sp.GetRequiredService<IWorkspaceLaunchService>(),
@@ -47,11 +57,12 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<ITerminalListIconCache>(),
             sp.GetRequiredService<ITerminalLaunchGlyphs>(),
             sp.GetRequiredService<TerminalCatalogPrewarm>(),
+            sp.GetRequiredService<IShortcutFormViewBuilder>(),
+            sp.GetRequiredService<IWorkspaceEditorFactory>(),
             sp.GetRequiredService<IWorkspaceRowPresentationCache>(),
             sp.GetRequiredService<IRowPresentationDiagnostics>(),
             sp.GetRequiredService<ISettingsFormRefreshScheduler>()));
         services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
-        services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
 
         services.AddSingleton<ICommandItemHandler, OpenSettingsCommandHandler>();
         services.AddSingleton<ICommandItemHandler, ImportConflictCommandHandler>();

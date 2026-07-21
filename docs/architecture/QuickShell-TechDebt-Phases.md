@@ -14,6 +14,8 @@ This document is a concrete execution plan derived from `QuickShell-TechDebt-Ove
 
 **Goal:** Reduce the in-palette editor maintenance surface while preserving the current UX. Extract a single `ShortcutFormViewBuilder` and thin `ShortcutForm`, split `WorkspaceEditor` into focused collaborators, and resolve or document the relationship between form-local undo and repository-level undo.
 
+**Status (Implemented — manual validation pending):** `IShortcutFormViewBuilder` / `ShortcutFormViewBuilder` owns Adaptive Card JSON; `ShortcutForm` is a thin action mapper; `ShortcutFormPage` constructs editors only via `IWorkspaceEditorFactory`; `WorkspaceEditor` is split into Draft / Directory / Suggestions / Undo partials. Dual undo remains as documented in `forms.md` (form-local launch-row history + repository layout history); stacks are not merged.
+
 ### Phase 3 — Raycast parity and shared storage
 
 **Goal:** Stop silent divergence between desktop hosts and the Raycast TypeScript extension. Update the parity matrix, decide `worktree-branch-targets.json` sharing, reuse or document companion-preset resolution, and resolve the long-term storage strategy.

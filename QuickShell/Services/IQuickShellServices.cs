@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Services.WorkspaceEditor;
 
 namespace QuickShell.Services;
 
@@ -56,4 +57,8 @@ internal interface IQuickShellServices
     ITerminalLaunchGlyphs TerminalLaunchGlyphs { get; }
 
     TerminalCatalogPrewarm TerminalCatalogPrewarm { get; }
+
+    IShortcutFormViewBuilder FormViewBuilder { get; }
+
+    IWorkspaceEditorFactory WorkspaceEditors { get; }
 }

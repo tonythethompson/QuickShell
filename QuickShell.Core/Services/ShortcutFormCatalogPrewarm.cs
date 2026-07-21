@@ -11,6 +11,12 @@ namespace QuickShell.Services;
 /// </summary>
 internal static class ShortcutFormCatalogPrewarm
 {
+    /// <summary>
+    /// Prewarms the terminal and companion catalogs and caches the default shortcut form template.
+    /// </summary>
+    /// <param name="terminalApplicationId">The terminal application identifier, or the Windows Terminal identifier when omitted or blank.</param>
+    /// <param name="terminalPrewarm">The service used to warm terminal catalog entries.</param>
+    /// <param name="catalog">The terminal catalog used to build form choices.</param>
     public static void Warm(
         string? terminalApplicationId,
         TerminalCatalogPrewarm terminalPrewarm,
@@ -37,6 +43,7 @@ internal static class ShortcutFormCatalogPrewarm
         const string schemaKey = "commands-admin-companions-v10-name-kw-widths-c1-cmd1";
         ShortcutFormTemplateCache.GetOrBuild(
             commandCount: 1,
+            companionCount: 1,
             appId,
             companionChoicesJson,
             schemaKey,
