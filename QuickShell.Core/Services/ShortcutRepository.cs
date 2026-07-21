@@ -60,7 +60,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public event EventHandler? WorkspacesChanged;
 
-    public ShortcutRepository()
+    internal ShortcutRepository()
         : this(configDirectory: null)
     {
     }

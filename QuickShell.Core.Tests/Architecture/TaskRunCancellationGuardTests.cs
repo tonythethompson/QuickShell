@@ -181,21 +181,21 @@ public sealed class TaskRunCancellationGuardTests
 
     private static bool ContainsTokenLikeIdentifier(string argumentListText)
     {
+        const string Token = "token";
         var span = argumentListText.AsSpan();
         var index = 0;
         while (index < span.Length)
         {
-            var pos = span[index..].IndexOf("token", StringComparison.OrdinalIgnoreCase);
+            var pos = span[index..].IndexOf(Token, StringComparison.OrdinalIgnoreCase);
             if (pos < 0)
             {
                 return false;
             }
 
             var absolutePos = index + pos;
-            var beforeOk = absolutePos == 0 || !IsIdentifierChar(span[absolutePos - 1]);
-            var afterOk = absolutePos + 5 >= span.Length || !IsIdentifierChar(span[absolutePos + 5]);
+            var endPos = absolutePos + Token.Length;
 
-            if (beforeOk && afterOk)
+            if (IsTokenWordBoundaryBefore(span, absolutePos) && IsTokenWordBoundaryAfter(span, endPos))
             {
                 return true;
             }
@@ -204,6 +204,37 @@ public sealed class TaskRunCancellationGuardTests
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// True when the character immediately before a "token" match starts a new identifier
+    /// word: either it isn't an identifier character at all (e.g. "(", ",", "."), or it's a
+    /// lowercase letter directly followed by the uppercase "T" of "Token" (a camelCase
+    /// boundary, as in <c>cancellationToken</c> or <c>_cancellationToken</c>).
+    /// </summary>
+    private static bool IsTokenWordBoundaryBefore(ReadOnlySpan<char> span, int position)
+    {
+        if (position == 0 || !IsIdentifierChar(span[position - 1]))
+        {
+            return true;
+        }
+
+        return char.IsLower(span[position - 1]) && char.IsUpper(span[position]);
+    }
+
+    /// <summary>
+    /// True when the character immediately after a "token" match ends the current identifier
+    /// word: either it isn't an identifier character at all, or it's an uppercase letter that
+    /// starts a new camelCase word (as in <c>tokenForTask</c>).
+    /// </summary>
+    private static bool IsTokenWordBoundaryAfter(ReadOnlySpan<char> span, int position)
+    {
+        if (position >= span.Length || !IsIdentifierChar(span[position]))
+        {
+            return true;
+        }
+
+        return char.IsUpper(span[position]);
     }
 
     private static bool IsExcludedPath(string file)

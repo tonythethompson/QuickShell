@@ -7,8 +7,10 @@ namespace QuickShell;
 internal static class TerminalCatalogChoices
 {
     private static readonly object CacheLock = new();
+    private static ITerminalCatalog? _appChoicesCatalog;
     private static List<ChoiceSetSetting.Choice>? _appChoices;
     private static string? _appChoicesJson;
+    private static ITerminalCatalog? _profileChoicesCatalog;
     private static string? _profileChoicesAppId;
     private static List<ChoiceSetSetting.Choice>? _profileChoices;
     private static string? _profileChoicesJson;
@@ -19,7 +21,7 @@ internal static class TerminalCatalogChoices
 
         lock (CacheLock)
         {
-            if (_appChoices is not null)
+            if (_appChoices is not null && ReferenceEquals(_appChoicesCatalog, catalog))
             {
                 return _appChoices;
             }
@@ -28,6 +30,7 @@ internal static class TerminalCatalogChoices
         var choices = BuildAppChoices(catalog);
         lock (CacheLock)
         {
+            _appChoicesCatalog = catalog;
             _appChoices = choices;
             _appChoicesJson = SettingsCardJson.BuildChoicesJson(choices);
             return _appChoices;
@@ -57,6 +60,7 @@ internal static class TerminalCatalogChoices
         lock (CacheLock)
         {
             if (_profileChoices is not null
+                && ReferenceEquals(_profileChoicesCatalog, catalog)
                 && string.Equals(_profileChoicesAppId, appId, StringComparison.OrdinalIgnoreCase))
             {
                 return _profileChoices;
@@ -66,6 +70,7 @@ internal static class TerminalCatalogChoices
         var choices = BuildProfileChoices(catalog, appId);
         lock (CacheLock)
         {
+            _profileChoicesCatalog = catalog;
             _profileChoicesAppId = appId;
             _profileChoices = choices;
             _profileChoicesJson = SettingsCardJson.BuildChoicesJson(choices);
@@ -78,7 +83,8 @@ internal static class TerminalCatalogChoices
         _ = GetDefaultProfileChoices(catalog, terminalApplicationId);
         lock (CacheLock)
         {
-            if (string.Equals(_profileChoicesAppId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
+            if (ReferenceEquals(_profileChoicesCatalog, catalog)
+                && string.Equals(_profileChoicesAppId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
                 && _profileChoicesJson is not null)
             {
                 return _profileChoicesJson;
@@ -92,8 +98,10 @@ internal static class TerminalCatalogChoices
     {
         lock (CacheLock)
         {
+            _appChoicesCatalog = null;
             _appChoices = null;
             _appChoicesJson = null;
+            _profileChoicesCatalog = null;
             _profileChoicesAppId = null;
             _profileChoices = null;
             _profileChoicesJson = null;
