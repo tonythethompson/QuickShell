@@ -576,10 +576,15 @@ internal sealed partial class WorkspaceEditor
             && !string.IsNullOrWhiteSpace(_draft.Directory))
         {
             var derived = DeriveNameFromDirectory(_draft.Directory);
-            if (!string.Equals(
+            if (string.Equals(
                     Normalize(mergedName),
                     Normalize(derived),
                     StringComparison.OrdinalIgnoreCase))
+            {
+                _autoFilledName = mergedName;
+                _nameCustomized = false;
+            }
+            else
             {
                 _nameCustomized = true;
             }
