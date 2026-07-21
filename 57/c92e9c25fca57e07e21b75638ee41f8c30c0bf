@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/Flows/FormTrustImportFlowTests.cs
+  s_7907d4d8dd6716::t_48d3e25c9397d5 90-114,128,159,162,176,222-240,327,347,399-423
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "57c92e9c25fca57e07e21b75638ee41f8c30c0bf",
+  "prompts": {},
+  "sessions": {
+    "s_7907d4d8dd6716": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e95d79dd-7ff3-4e90-9333-48fd7f5e3fe5",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
