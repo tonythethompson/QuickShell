@@ -38,7 +38,7 @@ internal static class TestQuickShellServicesFactory
         var classificationCache = new ProjectClassificationCache(analysis);
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
         var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
-        var (appDataPaths, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
+        var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         return new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
@@ -75,7 +75,7 @@ internal static class TestQuickShellServicesFactory
         var bundle = launch ?? LaunchTestServices.CreateBundle();
         var classificationCache = new ProjectClassificationCache(analysis);
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
-        var (appDataPaths, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
+        var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         return new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
