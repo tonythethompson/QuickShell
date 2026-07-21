@@ -129,6 +129,7 @@ public sealed class TrustLaunchFlowTests
         using var repository = CreateRepository();
         var folder = Path.Join(Path.GetTempPath(), "QuickShellTrustFlowDir", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
+        XunitException? cleanupError = null;
         try
         {
             repository.Upsert(CreateWorkspace(folder));
@@ -164,12 +165,17 @@ public sealed class TrustLaunchFlowTests
             }
             catch (IOException ex)
             {
-                throw new XunitException($"Failed to delete temporary test directory '{folder}'.", ex);
+                cleanupError = new XunitException($"Failed to delete temporary test directory '{folder}'.", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
-                throw new XunitException($"Insufficient permissions to delete temporary test directory '{folder}'.", ex);
+                cleanupError = new XunitException($"Insufficient permissions to delete temporary test directory '{folder}'.", ex);
             }
+        }
+
+        if (cleanupError is not null)
+        {
+            throw cleanupError;
         }
     }
 
