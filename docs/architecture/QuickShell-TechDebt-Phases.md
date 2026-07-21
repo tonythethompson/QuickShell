@@ -16,9 +16,26 @@ This document is a concrete execution plan derived from `QuickShell-TechDebt-Ove
 
 **Status (Implemented — manual validation pending):** `IShortcutFormViewBuilder` / `ShortcutFormViewBuilder` owns Adaptive Card JSON; `ShortcutForm` is a thin action mapper; `ShortcutFormPage` constructs editors only via `IWorkspaceEditorFactory`; `WorkspaceEditor` is split into Draft / Directory / Suggestions / Undo partials. Dual undo remains as documented in `forms.md` (form-local launch-row history + repository layout history); stacks are not merged.
 
-### Phase 3 — Raycast parity and shared storage
+### Phase 3 — Raycast parity (parallel LocalStorage)
 
-**Goal:** Stop silent divergence between desktop hosts and the Raycast TypeScript extension. Update the parity matrix, decide `worktree-branch-targets.json` sharing, reuse or document companion-preset resolution, and resolve the long-term storage strategy.
+**Goal:** Stop silent divergence between desktop hosts and the Raycast TypeScript extension without merging persistence.
+
+**Storage decision (locked):** Keep Raycast `LocalStorage` (`quickshell-data`). Import/export remains the bridge. Do **not** share `%LOCALAPPDATA%\QuickShell\` stores, `worktree-branch-targets.json`, or `blockDirtyBranchSwitch` in this phase. ETW is out of scope.
+
+**Status (Implemented — manual Store validation pending):** Stages 0–5 landed: trust/import/adversarial Vitest; Suggest.exe form wiring with local fallback; multi-companion form + preset catalog; health terminal-host checks + copyable launch diagnostics; matrix/hosts/README updated.
+
+**Staged workstreams:**
+
+| Stage | Focus | Exit |
+|-------|--------|------|
+| 0 | Freeze parity matrix intentional gaps; document this Phase 3 plan | Matrix + this section agree |
+| 1 | Trust / import / adversarial Vitest mirroring Core Phase 4 contracts | Same issue classes covered in TS |
+| 2 | Wire Suggest.exe pills into create/edit form (local heuristic fallback) | Pills when CLI present |
+| 3 | Multi-companion form editing + preset catalog | Form manages multi companions |
+| 4 | Health subset (terminal host) + launch diagnostics copy | Copyable failure summary |
+| 5 | Docs / matrix / README closeout | Matrix matches shipped Raycast |
+
+See [parity-matrix.md](./parity-matrix.md), [hosts.md](./hosts.md), [trust-model.md](./trust-model.md).
 
 ### Phase 4 — Measure, tune, and harden
 
@@ -131,6 +148,48 @@ Use the current inventory (≈69 static classes in `QuickShell.Core/Services` pl
 ### Phase 1 exit milestone
 
 The codebase has **no process-wide mutable static service seams**, `Task.Run` fire-and-forget is replaced with lifetime-aware scheduling, and `QuickShell.Core.Tests` can run in parallel. This unblocks isolated unit tests for pages/commands and is the foundation for Phase 2.
+
+---
+
+## Phase 3 — Detailed plan
+
+### Workstream A — Trust / import / adversarial (Core Phase 4 contracts)
+
+- Expand `QuickShell.Raycast/src/__tests__/security.test.ts` and add storage+authorize flow tests.
+- Mirror issue classes from `WorkspaceSecurityAdversarialTests`, `WorkspaceTrustCommandTests`, and `FormTrustImportFlowTests`.
+- Keep export content-only; import always untrusted for new/collision cases ([trust-model.md](./trust-model.md)).
+
+### Workstream B — Suggest.exe form wiring
+
+- Call `suggest-commands.ts` from create/edit `workspace-form.tsx`; fall back to `project-setup-suggestion.ts` when Suggest.exe is missing.
+- Respect `QUICKSHELL_SUGGEST_EXE` and packaged `bin/QuickShell.Suggest.exe`.
+
+### Workstream C — Companion UX
+
+- Multi `companionApps` rows in the form; preset picker from a TS catalog mirrored from Core `CompanionAppCatalog`.
+- Full detector parity and companion-before-terminals reorder are optional; document ordering difference if left as-is.
+
+### Workstream D — Health and diagnostics subset
+
+- Missing terminal executable / profile checks in `workspace-health.ts`.
+- Copyable launch diagnostics summary (no ETW). Ports/process/git dirty gate remain intentional Partial/No.
+
+### Workstream E — Docs closeout
+
+- Update [parity-matrix.md](./parity-matrix.md), [hosts.md](./hosts.md), [companions.md](./companions.md), `QuickShell.Raycast/README.md`.
+
+### Phase 3 acceptance criteria
+
+- Parallel LocalStorage remains the only Raycast workspace store.
+- Vitest covers adversarial + trust/import flows aligned with Core Phase 4 issue classes.
+- Suggest pills appear when the CLI is available; heuristics remain fallback.
+- Form edits multi companions with presets.
+- Health catches missing terminal host; launch failures offer a diagnostics copy path.
+- Matrix intentional gaps (shared store, git targets, ETW) stay explicit.
+
+### Phase 3 exit milestone
+
+**Reached (code + docs):** Raycast stops silently diverging on trust, suggestions, companions, and launch feedback while remaining a parallel TypeScript host with import/export as the desktop bridge. Manual Raycast Store validation remains optional.
 
 ---
 

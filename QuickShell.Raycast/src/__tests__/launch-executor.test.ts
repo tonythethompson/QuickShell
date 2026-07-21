@@ -19,6 +19,7 @@ const settings: QuickShellSettings = {
   defaultProfile: "__default__",
   recentWorkspaceCount: 8,
   multiLaunchPresentation: "singleWindowTabs",
+  blockDirtyBranchSwitch: true,
 };
 
 const workspace: Workspace = {
@@ -49,6 +50,47 @@ const workspace: Workspace = {
 };
 
 describe("launch-executor", () => {
+  it("runs companions before terminals and dev-server after", async () => {
+    runPostLaunchActionsMock.mockClear();
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const order: string[] = [];
+    runPostLaunchActionsMock.mockImplementation(async (_plan, options) => {
+      order.push(`post:${options?.phase ?? "all"}`);
+      return { companionOpened: false, devServerOpened: false, warnings: [] };
+    });
+    const execFn: ExecFn = async () => {
+      order.push("terminal");
+    };
+
+    const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+    const plan = buildWorkspaceLaunchPlan(workspace, settings);
+    const authorizedEffects = {
+      companions: [
+        {
+          companionId: "authorized",
+          executablePath: process.execPath,
+          arguments: null,
+          workingDirectory: workspace.directory,
+        },
+      ],
+      devServerUrl: "http://localhost:5173",
+    };
+    const result = await executeWorkspaceLaunch(plan, settings, execFn, { authorizedEffects });
+
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    expect(result.ok).toBe(true);
+    expect(order).toEqual(["post:companions", "terminal", "post:devServer"]);
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
+      openUrl: undefined,
+      phase: "companions",
+    });
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
+      openUrl: undefined,
+      phase: "devServer",
+    });
+  });
+
   it("passes only the authorized effects plan to post-launch execution", async () => {
     runPostLaunchActionsMock.mockClear();
     const originalPlatform = process.platform;
@@ -81,7 +123,14 @@ describe("launch-executor", () => {
 
     Object.defineProperty(process, "platform", { value: originalPlatform });
     expect(result.ok).toBe(true);
-    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, { openUrl: undefined });
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
+      openUrl: undefined,
+      phase: "companions",
+    });
+    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
+      openUrl: undefined,
+      phase: "devServer",
+    });
   });
 
   it("refuses launch on non-windows platforms", async () => {

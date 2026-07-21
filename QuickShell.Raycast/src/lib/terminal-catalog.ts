@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { WORKSPACE_TERMINAL_CHOICES, type TerminalChoice } from "./terminal-options";
@@ -80,7 +81,15 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
     });
   }
   if (executableExists("wsl.exe")) {
-    choices.push({ id: "wsl", title: "WSL", terminal: "wsl", wtProfile: null });
+    choices.push({ id: "wsl", title: "WSL (default distro)", terminal: "wsl", wtProfile: null });
+    for (const distro of listWslDistros()) {
+      choices.push({
+        id: `wsl:${distro}`,
+        title: `WSL · ${distro}`,
+        terminal: "wsl",
+        wtProfile: distro,
+      });
+    }
   }
 
   cachedChoices =
@@ -165,6 +174,39 @@ function executableExists(command: string): boolean {
   }
 
   return candidates.some((candidate) => existsSync(candidate));
+}
+
+/** True when the host executable is resolvable on PATH / known install locations. */
+export function terminalHostExecutableExists(hostExecutable: string): boolean {
+  const trimmed = hostExecutable.trim();
+  if (!trimmed) {
+    return false;
+  }
+  if (existsSync(trimmed)) {
+    return true;
+  }
+  return executableExists(path.basename(trimmed));
+}
+
+export function parseWslDistroListOutput(buffer: Buffer): string[] {
+  const text = buffer.toString("utf16le").replace(/^\uFEFF/, "");
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\0/g, "").trim())
+    .filter(Boolean);
+}
+
+function listWslDistros(): string[] {
+  try {
+    const output = execFileSync("wsl.exe", ["-l", "-q"], {
+      windowsHide: true,
+      encoding: "buffer",
+      timeout: 3000,
+    });
+    return parseWslDistroListOutput(output);
+  } catch {
+    return [];
+  }
 }
 
 function readWindowsTerminalProfiles(): string[] {

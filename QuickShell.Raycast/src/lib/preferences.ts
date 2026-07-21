@@ -8,6 +8,7 @@ export type ExtensionPreferences = {
   defaultProfile?: string;
   showRecents?: boolean;
   singleWindowTabs?: boolean;
+  blockDirtyBranchSwitch?: boolean;
 };
 
 export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSettings {
@@ -23,5 +24,6 @@ export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSe
     defaultProfile,
     recentWorkspaceCount: recentCountFromEnabled(prefs.showRecents ?? true),
     multiLaunchPresentation: (prefs.singleWindowTabs ?? true) ? "singleWindowTabs" : "separateWindows",
+    blockDirtyBranchSwitch: prefs.blockDirtyBranchSwitch ?? DEFAULT_SETTINGS.blockDirtyBranchSwitch,
   };
 }

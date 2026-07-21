@@ -19,28 +19,42 @@ import { useEffect, useMemo, useState } from "react";
 import EditWorkspaceView from "./components/edit-workspace-view";
 import WindowsRequiredView from "./components/windows-required-view";
 import WorkspaceForm from "./components/workspace-form";
+import SetTargetBranchForm from "./components/set-target-branch-form";
+import AddSeparatorForm from "./components/add-separator-form";
 import { createBlankWorkspace } from "./lib/create-workspace-initial";
-import { showHealthFailure, showLaunchFailure, showLaunchSuccess, showStorageFailure } from "./lib/failure-feedback";
+import {
+  showAuthorizationFailure,
+  showHealthFailure,
+  showLaunchFailure,
+  showLaunchSuccess,
+  showStorageFailure,
+} from "./lib/failure-feedback";
 import { executeWorkspaceLaunch } from "./lib/launch-executor";
+import type { LaunchDiagnosticsReport } from "./lib/launch-diagnostics";
 import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
-import type { LaunchEntry, QuickShellSettings, Workspace } from "./lib/schema";
-import { assessWorkspaceHealthForLaunch } from "./lib/workspace-health";
-import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
+import type { LaunchEntry, LayoutEntry, QuickShellSettings, Workspace } from "./lib/schema";
+import { assessWorkspaceHealthWithPortProbe } from "./lib/workspace-health";
+import { buildWorkspaceHealthIndexWithPorts, lookupWorkspaceHealth } from "./lib/workspace-health-index";
+import type { WorkspaceHealthIndex } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
 import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from "./lib/launch-context";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildSelectedLaunchWorkspace, buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 import { authorize, authorizePostLaunchEffects, createReviewToken, matchesReviewToken } from "./lib/security";
+import { evaluateGitLaunchGate, resolveWorktreeKey } from "./lib/git-launch-gate";
 
 type LoadedData = {
   workspaces: Workspace[];
   settings: QuickShellSettings;
   securityById: Record<string, { isTrusted: boolean; revision: number }>;
+  layoutEntries: LayoutEntry[];
+  branchTargets: Record<string, string>;
+  healthIndex: WorkspaceHealthIndex;
   canUndo: boolean;
   canRedo: boolean;
 };
@@ -50,9 +64,15 @@ type WorkspaceRow = {
   launch?: LaunchEntry;
 };
 
+type SeparatorRow = {
+  kind: "separator";
+  id: string;
+  title?: string | null;
+};
+
 type SectionGroup = {
   title?: string;
-  rows: WorkspaceRow[];
+  rows: Array<WorkspaceRow | SeparatorRow>;
 };
 
 export default function OpenWorkspaceCommand({
@@ -63,13 +83,22 @@ export default function OpenWorkspaceCommand({
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
-    const [workspaces, settings] = await Promise.all([storage.getWorkspaces(), storage.getSettings()]);
+    const [workspaces, settings, layoutEntries, branchTargets] = await Promise.all([
+      storage.getWorkspaces(),
+      storage.getSettings(),
+      storage.getLayoutEntries(),
+      storage.getBranchTargets(),
+    ]);
     const securityEntries = await Promise.all(
       workspaces.map(async (workspace) => [workspace.id, await storage.getWorkspaceSecurity(workspace.id)] as const),
     );
+    const healthIndex = await buildWorkspaceHealthIndexWithPorts(workspaces, settings);
     return {
       workspaces,
       settings,
+      layoutEntries,
+      branchTargets,
+      healthIndex,
       securityById: Object.fromEntries(
         securityEntries.map(([id, security]) => [id, security ?? { isTrusted: true, revision: 1 }]),
       ),
@@ -87,13 +116,6 @@ export default function OpenWorkspaceCommand({
     }
   }, [fallbackText, launchContext?.focusWorkspaceId, launchContext?.focusWorkspaceName]);
 
-  const healthIndex = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-    return buildWorkspaceHealthIndex(data.workspaces, data.settings);
-  }, [data]);
-
   const sectionGroups = useMemo((): SectionGroup[] => {
     if (!data) {
       return [];
@@ -101,7 +123,7 @@ export default function OpenWorkspaceCommand({
 
     const query = searchText.trim();
     if (!query) {
-      const sections = buildBrowseSections(data.workspaces, data.settings.recentWorkspaceCount);
+      const sections = buildBrowseSections(data.workspaces, data.settings.recentWorkspaceCount, data.layoutEntries);
       const groups: SectionGroup[] = [];
 
       if (sections.favorites.length > 0) {
@@ -118,11 +140,19 @@ export default function OpenWorkspaceCommand({
         });
       }
 
-      if (sections.workspaces.length > 0) {
-        groups.push({
-          title: sections.favorites.length > 0 ? "Workspaces" : undefined,
-          rows: sections.workspaces.map((workspace) => ({ workspace })),
-        });
+      for (const layoutSection of sections.layoutSections) {
+        const rows: SectionGroup["rows"] = [];
+        if (layoutSection.separator) {
+          rows.push({
+            kind: "separator",
+            id: layoutSection.separator.id,
+            title: layoutSection.separator.title,
+          });
+        }
+        rows.push(...layoutSection.workspaces.map((workspace) => ({ workspace })));
+        if (rows.length > 0) {
+          groups.push({ title: layoutSection.title, rows });
+        }
       }
 
       return groups;
@@ -190,11 +220,17 @@ export default function OpenWorkspaceCommand({
       launch ? { kind: "launchEntry", launchId: launch.id } : { kind: "terminal" },
     );
     if (!authorization.isAllowed) {
-      await showToast({
-        style: Toast.Style.Failure,
+      const diagnostics: LaunchDiagnosticsReport = {
         title: "Launch blocked",
-        message: authorization.issues.map((issue) => issue.message).join(" "),
-      });
+        workspaceName: workspace.name,
+        workspaceId: workspace.id,
+        directory: authorization.effectiveValues.directory,
+        command: authorization.effectiveValues.command,
+        elevation: options?.runAsAdmin ? "admin" : options?.runAsStandard ? "standard" : null,
+        denialCode: authorization.primaryIssueCode,
+        issues: authorization.issues.map((issue) => `${issue.code}: ${issue.message}`),
+      };
+      await showAuthorizationFailure(authorization.issues.map((issue) => issue.message).join(" "), diagnostics);
       return;
     }
     const launchWorkspace = launch
@@ -207,9 +243,35 @@ export default function OpenWorkspaceCommand({
     if (authorization.effectiveValues.directory) {
       launchWorkspace.directory = authorization.effectiveValues.directory;
     }
-    const health = assessWorkspaceHealthForLaunch(launchWorkspace, data.settings);
+
+    const gate = await evaluateGitLaunchGate(
+      launchWorkspace.directory,
+      data.settings.blockDirtyBranchSwitch,
+      (key) => data.branchTargets[key],
+    );
+    if (!gate.canProceed) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Git branch gate",
+        message: gate.message ?? "Launch blocked by branch target policy.",
+      });
+      return;
+    }
+
+    const health = await assessWorkspaceHealthWithPortProbe(launchWorkspace, data.settings, {
+      includeLaunchPlan: true,
+      includeDirectoryExists: true,
+    });
     if (!health.ok) {
-      await showHealthFailure(health.issues);
+      await showHealthFailure(health.issues, {
+        title: "Health check failed",
+        workspaceName: workspace.name,
+        workspaceId: workspace.id,
+        directory: launchWorkspace.directory,
+        command: launchWorkspace.command,
+        elevation: options?.runAsAdmin ? "admin" : options?.runAsStandard ? "standard" : null,
+        issues: health.issues.map((issue) => `${issue.code}: ${issue.message}`),
+      });
       return;
     }
 
@@ -227,7 +289,15 @@ export default function OpenWorkspaceCommand({
       openUrl: open,
     });
     if (!result.ok) {
-      await showLaunchFailure(result);
+      await showLaunchFailure(result, {
+        title: "Launch failed",
+        workspaceName: workspace.name,
+        workspaceId: workspace.id,
+        directory: launchWorkspace.directory,
+        command: launchWorkspace.command,
+        elevation: options?.runAsAdmin ? "admin" : options?.runAsStandard ? "standard" : null,
+        message: result.message,
+      });
       return;
     }
 
@@ -253,6 +323,16 @@ export default function OpenWorkspaceCommand({
       await showLaunchSuccess(workspace.isPinned ? "Removed from favorites" : "Added to favorites", workspace.name);
     } catch (favoriteError) {
       await showStorageFailure("Favorite update", favoriteError);
+    }
+  }
+
+  async function handleMoveFavorite(workspace: Workspace, direction: "up" | "down") {
+    try {
+      await storage.moveFavorite(workspace.id, direction);
+      await revalidate();
+      await showLaunchSuccess(direction === "up" ? "Moved up" : "Moved down", workspace.name);
+    } catch (favoriteError) {
+      await showStorageFailure("Reorder favorite", favoriteError);
     }
   }
 
@@ -393,6 +473,18 @@ export default function OpenWorkspaceCommand({
         });
         return;
       }
+      const preview = await storage.summarizeImport(trimmed, "merge");
+      if (preview.hasConflicts) {
+        const confirmed = await confirmAlert({
+          title: "Import name conflicts",
+          message: `${preview.renamed} will be renamed with " (imported)", ${preview.skipped} will be skipped. Continue?`,
+          primaryAction: { title: "Import (Rename)", style: Alert.ActionStyle.Default },
+          dismissAction: { title: "Cancel" },
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
       const result = await storage.importJson(trimmed, "merge");
       await revalidate();
       await showToast({
@@ -423,17 +515,78 @@ export default function OpenWorkspaceCommand({
     await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
   }
 
+  async function handleClearTargetBranch(workspace: Workspace) {
+    try {
+      const worktreeKey = await resolveWorktreeKey(workspace.directory);
+      if (!worktreeKey) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Not a git repository",
+          message: workspace.directory,
+        });
+        return;
+      }
+      await storage.clearBranchTarget(worktreeKey);
+      await revalidate();
+      await showToast({ style: Toast.Style.Success, title: "Target branch cleared", message: workspace.name });
+    } catch (error) {
+      await showStorageFailure("Clear target branch", error);
+    }
+  }
+
+  async function handleRemoveSeparator(separatorId: string) {
+    try {
+      await storage.removeLayoutEntry(separatorId);
+      await revalidate();
+      await showToast({ style: Toast.Style.Success, title: "Separator removed" });
+    } catch (error) {
+      await showStorageFailure("Remove separator", error);
+    }
+  }
+
   if (!isWindowsPlatform()) {
     return <WindowsRequiredView />;
   }
 
+  function renderSeparatorItem(row: SeparatorRow) {
+    return (
+      <List.Item
+        key={`separator:${row.id}`}
+        title={row.title?.trim() || "Section separator"}
+        subtitle="Layout separator"
+        icon={Icon.Minus}
+        actions={
+          <ActionPanel>
+            <Action
+              title="Remove Separator"
+              icon={Icon.Trash}
+              style={Action.Style.Destructive}
+              onAction={() => handleRemoveSeparator(row.id)}
+            />
+            <Action.Push
+              title="Add Section Separator"
+              icon={Icon.Plus}
+              target={
+                <AddSeparatorForm
+                  onSaved={async () => {
+                    await revalidate();
+                  }}
+                />
+              }
+            />
+          </ActionPanel>
+        }
+      />
+    );
+  }
+
   function renderWorkspaceItem({ workspace, launch }: WorkspaceRow) {
-    if (!data || !healthIndex) {
+    if (!data) {
       return null;
     }
 
-    const title = launch ? `${workspace.name} — ${launch.label}` : workspace.name;
-    const health = lookupWorkspaceHealth(healthIndex, workspace, data.settings);
+    const title = launch ? `${workspace.name} - ${launch.label}` : workspace.name;
+    const health = lookupWorkspaceHealth(data.healthIndex, workspace, data.settings);
     const accessories: List.Item.Accessory[] = [];
     if (workspace.abbreviation) {
       accessories.push({ text: workspace.abbreviation });
@@ -442,6 +595,11 @@ export default function OpenWorkspaceCommand({
       accessories.push({
         icon: { source: Icon.ExclamationMark, tintColor: Color.Orange },
         tooltip: health.issues[0]?.message,
+      });
+    } else if (health.issues.some((issue) => issue.severity === "warning")) {
+      accessories.push({
+        icon: { source: Icon.ExclamationMark, tintColor: Color.Yellow },
+        tooltip: health.issues.find((issue) => issue.severity === "warning")?.message,
       });
     }
     const security = data.securityById[workspace.id] ?? { isTrusted: true, revision: 1 };
@@ -491,6 +649,27 @@ export default function OpenWorkspaceCommand({
                 <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}
             </ActionPanel.Section>
+            <ActionPanel.Section title="Git">
+              <Action.Push
+                title="Set Target Branch…"
+                icon={Icon.Code}
+                target={
+                  <SetTargetBranchForm
+                    directory={workspace.directory}
+                    workspaceName={workspace.name}
+                    blockDirtyBranchSwitch={data.settings.blockDirtyBranchSwitch}
+                    onSaved={async () => {
+                      await revalidate();
+                    }}
+                  />
+                }
+              />
+              <Action
+                title="Clear Target Branch"
+                icon={Icon.XMarkCircle}
+                onAction={() => handleClearTargetBranch(workspace)}
+              />
+            </ActionPanel.Section>
             <ActionPanel.Section title="Manage">
               <Action.Push
                 title="Edit Workspace"
@@ -505,12 +684,40 @@ export default function OpenWorkspaceCommand({
                   />
                 }
               />
+              <Action.Push
+                title="Add Section Separator"
+                icon={Icon.Minus}
+                target={
+                  <AddSeparatorForm
+                    beforeWorkspaceId={workspace.id}
+                    onSaved={async () => {
+                      await revalidate();
+                    }}
+                  />
+                }
+              />
               <Action
                 title={workspace.isPinned ? "Remove Favorite" : "Add Favorite"}
                 icon={workspace.isPinned ? Icon.StarDisabled : Icon.Star}
                 shortcut={{ modifiers: ["cmd"], key: "f" }}
                 onAction={() => handleToggleFavorite(workspace)}
               />
+              {workspace.isPinned ? (
+                <>
+                  <Action
+                    title="Move Favorite Up"
+                    icon={Icon.ArrowUp}
+                    shortcut={{ modifiers: ["cmd", "opt"], key: "arrowUp" }}
+                    onAction={() => handleMoveFavorite(workspace, "up")}
+                  />
+                  <Action
+                    title="Move Favorite Down"
+                    icon={Icon.ArrowDown}
+                    shortcut={{ modifiers: ["cmd", "opt"], key: "arrowDown" }}
+                    onAction={() => handleMoveFavorite(workspace, "down")}
+                  />
+                </>
+              ) : null}
               {security.isTrusted ? (
                 <Action title="Revoke Workspace Trust" icon={Icon.Lock} onAction={() => handleRevoke(workspace)} />
               ) : (
@@ -541,6 +748,13 @@ export default function OpenWorkspaceCommand({
     );
   }
 
+  function renderRow(row: WorkspaceRow | SeparatorRow) {
+    if ("kind" in row && row.kind === "separator") {
+      return renderSeparatorItem(row);
+    }
+    return renderWorkspaceItem(row);
+  }
+
   return (
     <List
       isLoading={isLoading}
@@ -566,6 +780,17 @@ export default function OpenWorkspaceCommand({
             />
             <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
             <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
+            <Action.Push
+              title="Add Section Separator"
+              icon={Icon.Minus}
+              target={
+                <AddSeparatorForm
+                  onSaved={async () => {
+                    await revalidate();
+                  }}
+                />
+              }
+            />
           </ActionPanel.Section>
           <ActionPanel.Section title="History">
             <Action
@@ -618,7 +843,7 @@ export default function OpenWorkspaceCommand({
 
       {sectionGroups.map((group, index) => (
         <List.Section key={group.title ?? `section-${index}`} title={group.title}>
-          {group.rows.map((row) => renderWorkspaceItem(row))}
+          {group.rows.map((row) => renderRow(row))}
         </List.Section>
       ))}
     </List>

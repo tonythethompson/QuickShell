@@ -1,9 +1,12 @@
 import { createStableId } from "./ids";
 import { migrateStoredData } from "./migration";
-import type { StoredData, Workspace } from "./schema";
+import type { LayoutEntry, StoredData, Workspace } from "./schema";
 import { createEmptyStoredData } from "./schema";
 
 type UnknownRecord = Record<string, unknown>;
+
+/** Mirrors Core import size ceiling (~2 MB). */
+export const MAX_IMPORT_PAYLOAD_BYTES = 2 * 1024 * 1024;
 
 export type ImportResult = {
   data: StoredData;
@@ -12,15 +15,46 @@ export type ImportResult = {
   renamed: number;
 };
 
+export type ImportConflictSummary = {
+  imported: number;
+  renamed: number;
+  skipped: number;
+  hasConflicts: boolean;
+};
+
 export function exportStoredData(data: StoredData): string {
   const portable = { ...data };
   delete portable.workspaceSecurity;
+  // Branch targets drive git switch on launch; keep them Raycast-local (not portable).
+  delete portable.branchTargets;
   return JSON.stringify(portable, null, 2);
 }
 
-export function parseImportPayload(raw: string): ImportResult {
-  const parsed = JSON.parse(raw) as unknown;
-  return importParsedPayload(parsed);
+export function parseImportPayload(raw: string, existing?: StoredData): ImportResult {
+  if (typeof raw !== "string") {
+    throw new Error("Import payload must be a JSON string.");
+  }
+  if (Buffer.byteLength(raw, "utf8") > MAX_IMPORT_PAYLOAD_BYTES) {
+    throw new Error("Import payload is too large.");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error("Import payload is not valid JSON.");
+  }
+  return importParsedPayload(parsed, existing);
+}
+
+/** Dry-run merge counts for conflict confirm UI (does not persist). */
+export function summarizeImportConflicts(raw: string, existing: StoredData): ImportConflictSummary {
+  const result = parseImportPayload(raw, existing);
+  return {
+    imported: result.imported,
+    renamed: result.renamed,
+    skipped: result.skipped,
+    hasConflicts: result.renamed > 0 || result.skipped > 0,
+  };
 }
 
 export function importParsedPayload(parsed: unknown, existing?: StoredData): ImportResult {
@@ -80,9 +114,11 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
   let renamed = 0;
   let skipped = 0;
   const merged: Workspace[] = [...base.workspaces];
+  const idRemap = new Map<string, string>();
 
   for (const workspace of imported.workspaces) {
     let next = workspace;
+    const originalId = workspace.id;
     if (ids.has(workspace.id)) {
       next = { ...next, id: createStableId() };
     }
@@ -99,8 +135,18 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
 
     names.add(next.name.toLowerCase());
     ids.add(next.id);
+    idRemap.set(originalId, next.id);
     merged.push(next);
   }
+
+  const isReplace = base.workspaces.length === 0;
+  const newlyImported = merged.slice(base.workspaces.length);
+  const layoutEntries = isReplace
+    ? remapImportedLayout(imported.layoutEntries, idRemap)
+    : [
+        ...(base.layoutEntries ?? []),
+        ...newlyImported.map((workspace) => ({ type: "workspace" as const, workspaceId: workspace.id })),
+      ];
 
   return {
     data: {
@@ -118,11 +164,30 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
           ];
         }),
       ),
+      // Never adopt imported branchTargets; they auto-switch on launch.
+      branchTargets: { ...(base.branchTargets ?? {}) },
+      layoutEntries,
     },
     imported: merged.length - base.workspaces.length,
     skipped,
     renamed,
   };
+}
+
+function remapImportedLayout(layout: LayoutEntry[] | undefined, idRemap: Map<string, string>): LayoutEntry[] {
+  if (!layout) {
+    return [];
+  }
+  const next: LayoutEntry[] = [];
+  for (const entry of layout) {
+    if (entry.type === "separator") {
+      next.push({ type: "separator", id: entry.id, title: entry.title ?? null });
+      continue;
+    }
+    const remapped = idRemap.get(entry.workspaceId) ?? entry.workspaceId;
+    next.push({ type: "workspace", workspaceId: remapped });
+  }
+  return next;
 }
 
 function normalizeRecordKeys(value: unknown): unknown {

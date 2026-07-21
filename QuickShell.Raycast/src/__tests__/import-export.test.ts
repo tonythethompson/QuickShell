@@ -64,4 +64,50 @@ describe("import-export", () => {
     expect(result.renamed).toBe(1);
     expect(result.data.workspaces.some((workspace) => workspace.name.includes("imported"))).toBe(true);
   });
+
+  it("does not adopt imported branchTargets", () => {
+    const existing = createEmptyStoredData();
+    existing.branchTargets = { "c:\\projects\\local": "safe" };
+
+    const result = importParsedPayload(
+      {
+        version: 1,
+        settings: existing.settings,
+        workspaces: [
+          {
+            id: createStableId(),
+            name: "Imported",
+            directory: "C:\\Projects\\imported",
+          },
+        ],
+        branchTargets: { "c:\\projects\\local": "--detach" },
+      },
+      existing,
+    );
+
+    expect(result.data.branchTargets).toEqual({ "c:\\projects\\local": "safe" });
+  });
+
+  it("preserves separators on replace import", () => {
+    const workspaceId = "a1b2c3d4e5f6478990a1b2c3d4e5f678";
+    const separatorId = "c3d4e5f6478990a1b2c3d4e5f6789012";
+    const result = importParsedPayload({
+      version: 1,
+      settings: createEmptyStoredData().settings,
+      workspaces: [
+        {
+          id: workspaceId,
+          name: "Demo",
+          directory: "C:\\Projects\\Demo",
+        },
+      ],
+      layoutEntries: [
+        { type: "separator", id: separatorId, title: "Apps" },
+        { type: "workspace", workspaceId },
+      ],
+    });
+
+    expect(result.data.layoutEntries?.[0]).toMatchObject({ type: "separator", id: separatorId, title: "Apps" });
+    expect(result.data.layoutEntries?.some((entry) => entry.type === "workspace")).toBe(true);
+  });
 });

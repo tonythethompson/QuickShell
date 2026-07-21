@@ -1,5 +1,6 @@
 import type {
   LaunchEntry,
+  LayoutEntry,
   QuickShellSettings,
   StoredData,
   StoredWorkspace,
@@ -8,10 +9,17 @@ import type {
 } from "./schema";
 import { STORAGE_KEY, createEmptyStoredData } from "./schema";
 import { createStableId, ensureStableId } from "./ids";
-import { importParsedPayload, type ImportResult } from "./import-export";
-import { migrateStoredData } from "./migration";
+import {
+  parseImportPayload,
+  summarizeImportConflicts,
+  type ImportConflictSummary,
+  type ImportResult,
+} from "./import-export";
+import { migrateStoredData, synthesizeLayoutEntries } from "./migration";
+import { getFavoriteWorkspaces } from "./ranking";
 import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
 import { digest, matchesReviewToken, type WorkspaceReviewToken } from "./security";
+import { isSafeGitBranchName } from "./git-launch-gate";
 
 export type StorageAdapter = {
   getItem: (key: string) => Promise<string | undefined>;
@@ -91,15 +99,21 @@ export class QuickShellStorage {
     const settings = await this.getSettings();
     const portable = { ...data };
     delete portable.workspaceSecurity;
+    delete portable.branchTargets;
     return JSON.stringify({ ...portable, settings }, null, 2);
   }
 
   async importJson(raw: string, mode: "merge" | "replace" = "merge"): Promise<ImportResult> {
     await this.flushRecentWrites();
     const existing = mode === "merge" ? await this.load() : createEmptyStoredData();
-    const result = importParsedPayload(JSON.parse(raw) as unknown, existing);
+    const result = parseImportPayload(raw, existing);
     await this.save(result.data, { preserveSecurity: false, allowSubmittedSecurity: true });
     return result;
+  }
+
+  async summarizeImport(raw: string, mode: "merge" | "replace" = "merge"): Promise<ImportConflictSummary> {
+    const existing = mode === "merge" ? await this.load() : createEmptyStoredData();
+    return summarizeImportConflicts(raw, existing);
   }
 
   async save(
@@ -119,6 +133,8 @@ export class QuickShellStorage {
       settings: { ...data.settings },
       workspaces: data.workspaces.map((workspace) => normalizeWorkspace({ ...workspace })),
       workspaceSecurity: {},
+      branchTargets: { ...(data.branchTargets ?? {}) },
+      layoutEntries: syncLayoutEntries(data.layoutEntries, data.workspaces),
     };
 
     for (const workspace of normalized.workspaces) {
@@ -264,6 +280,7 @@ export class QuickShellStorage {
       data.workspaces.push(normalized);
       data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
       data.workspaceSecurity[normalized.id] = { isTrusted: true, revision: 1 };
+      data.layoutEntries = [...(data.layoutEntries ?? []), { type: "workspace", workspaceId: normalized.id }];
     }
 
     await this.save(data, { allowSubmittedSecurity: true });
@@ -274,6 +291,9 @@ export class QuickShellStorage {
     await this.flushRecentWrites();
     const data = await this.load();
     data.workspaces = data.workspaces.filter((workspace) => workspace.id !== workspaceId);
+    data.layoutEntries = (data.layoutEntries ?? []).filter(
+      (entry) => entry.type !== "workspace" || entry.workspaceId !== workspaceId,
+    );
     await this.save(data);
   }
 
@@ -303,8 +323,100 @@ export class QuickShellStorage {
     data.workspaces.push(duplicate);
     data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
     data.workspaceSecurity[duplicate.id] = { isTrusted: sourceSecurity.isTrusted, revision: 1 };
+    data.layoutEntries = [...(data.layoutEntries ?? []), { type: "workspace", workspaceId: duplicate.id }];
     await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
     return duplicate;
+  }
+
+  async getBranchTargets(): Promise<Record<string, string>> {
+    await this.ensureLoaded();
+    return { ...(this.cache!.branchTargets ?? {}) };
+  }
+
+  async getBranchTarget(worktreeKey: string): Promise<string | null> {
+    const targets = await this.getBranchTargets();
+    return targets[worktreeKey.toLowerCase()] ?? null;
+  }
+
+  async setBranchTarget(worktreeKey: string, branch: string): Promise<void> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const key = worktreeKey.trim().toLowerCase();
+    const value = branch.trim();
+    if (!key || !value) {
+      throw new Error("Worktree key and branch are required.");
+    }
+    if (!isSafeGitBranchName(value)) {
+      throw new Error("Invalid branch name.");
+    }
+    data.branchTargets = { ...(data.branchTargets ?? {}), [key]: value };
+    await this.save(data);
+  }
+
+  async clearBranchTarget(worktreeKey: string): Promise<void> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const key = worktreeKey.trim().toLowerCase();
+    if (!data.branchTargets || !(key in data.branchTargets)) {
+      return;
+    }
+    const next = { ...data.branchTargets };
+    delete next[key];
+    data.branchTargets = next;
+    await this.save(data);
+  }
+
+  async getLayoutEntries(): Promise<LayoutEntry[]> {
+    await this.ensureLoaded();
+    return (this.cache!.layoutEntries ?? []).map((entry) => cloneLayoutEntry(entry));
+  }
+
+  async insertSeparator(title?: string | null, beforeWorkspaceId?: string): Promise<LayoutEntry> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const separator: LayoutEntry = {
+      type: "separator",
+      id: createStableId(),
+      title: title?.trim() ? title.trim() : null,
+    };
+    const layout = [...(data.layoutEntries ?? [])];
+    const insertAt = beforeWorkspaceId
+      ? layout.findIndex((entry) => entry.type === "workspace" && entry.workspaceId === beforeWorkspaceId)
+      : -1;
+    if (insertAt >= 0) {
+      layout.splice(insertAt, 0, separator);
+    } else {
+      layout.push(separator);
+    }
+    data.layoutEntries = layout;
+    await this.save(data);
+    return separator;
+  }
+
+  async removeLayoutEntry(entryId: string): Promise<void> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    data.layoutEntries = (data.layoutEntries ?? []).filter((entry) => !layoutEntryMatchesId(entry, entryId));
+    await this.save(data);
+  }
+
+  async moveLayoutEntry(entryId: string, direction: "up" | "down"): Promise<void> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const layout = [...(data.layoutEntries ?? [])];
+    const index = layout.findIndex((entry) => layoutEntryMatchesId(entry, entryId));
+    if (index < 0) {
+      return;
+    }
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= layout.length) {
+      return;
+    }
+    const current = layout[index];
+    layout[index] = layout[swapIndex];
+    layout[swapIndex] = current;
+    data.layoutEntries = layout;
+    await this.save(data);
   }
 
   async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
@@ -327,6 +439,37 @@ export class QuickShellStorage {
 
     await this.save(data);
     return { ...workspace };
+  }
+
+  async moveFavorite(workspaceId: string, direction: "up" | "down"): Promise<Workspace> {
+    await this.flushRecentWrites();
+    const data = await this.load();
+    const workspace = data.workspaces.find((item) => item.id === workspaceId);
+    if (!workspace || !workspace.isPinned) {
+      throw new Error("Favorite workspace not found.");
+    }
+
+    // Same order as browse favorites: null pinOrder sorts last, then name.
+    const favorites = getFavoriteWorkspaces(data.workspaces);
+    const index = favorites.findIndex((item) => item.id === workspaceId);
+    if (index < 0) {
+      throw new Error("Favorite workspace not found.");
+    }
+
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= favorites.length) {
+      return { ...workspace };
+    }
+
+    const current = favorites[index];
+    favorites[index] = favorites[swapIndex];
+    favorites[swapIndex] = current;
+    favorites.forEach((item, orderIndex) => {
+      item.pinOrder = orderIndex + 1;
+    });
+
+    await this.save(data);
+    return { ...favorites[swapIndex] };
   }
 
   async markWorkspaceUsed(workspaceId: string, usedAt = new Date()): Promise<void> {
@@ -423,6 +566,8 @@ export class QuickShellStorage {
       workspaceSecurity: data.workspaceSecurity
         ? Object.fromEntries(Object.entries(data.workspaceSecurity).map(([id, security]) => [id, { ...security }]))
         : {},
+      branchTargets: { ...(data.branchTargets ?? {}) },
+      layoutEntries: (data.layoutEntries ?? []).map((entry) => cloneLayoutEntry(entry)),
     };
   }
 
@@ -456,6 +601,48 @@ export class QuickShellStorage {
     );
     return next;
   }
+}
+
+function cloneLayoutEntry(entry: LayoutEntry): LayoutEntry {
+  if (entry.type === "separator") {
+    return { type: "separator", id: entry.id, title: entry.title ?? null };
+  }
+  return { type: "workspace", workspaceId: entry.workspaceId };
+}
+
+function layoutEntryMatchesId(entry: LayoutEntry, entryId: string): boolean {
+  return entry.type === "separator" ? entry.id === entryId : entry.workspaceId === entryId;
+}
+
+/** Keep separators; drop missing workspaces; append any workspaces not yet in layout. */
+export function syncLayoutEntries(layout: LayoutEntry[] | undefined, workspaces: Workspace[]): LayoutEntry[] {
+  if (!layout || layout.length === 0) {
+    return synthesizeLayoutEntries(workspaces);
+  }
+
+  const workspaceIds = new Set(workspaces.map((workspace) => workspace.id));
+  const seen = new Set<string>();
+  const next: LayoutEntry[] = [];
+
+  for (const entry of layout) {
+    if (entry.type === "separator") {
+      next.push(cloneLayoutEntry(entry));
+      continue;
+    }
+    if (!workspaceIds.has(entry.workspaceId) || seen.has(entry.workspaceId)) {
+      continue;
+    }
+    seen.add(entry.workspaceId);
+    next.push({ type: "workspace", workspaceId: entry.workspaceId });
+  }
+
+  for (const workspace of workspaces) {
+    if (!seen.has(workspace.id)) {
+      next.push({ type: "workspace", workspaceId: workspace.id });
+    }
+  }
+
+  return next;
 }
 
 export function createMemoryStorageAdapter(initial?: StoredData): StorageAdapter {

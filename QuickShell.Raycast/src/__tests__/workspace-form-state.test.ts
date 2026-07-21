@@ -47,12 +47,10 @@ const multiLaunchWorkspace: Workspace = {
 };
 
 const defaultExtras = {
+  companions: [] as Array<{ id: string; path: string; arguments: string; openOnLaunch: boolean }>,
   devServerUrl: "",
   openDevServerOnLaunch: false,
   repoUrl: "",
-  openCompanionAppOnLaunch: false,
-  companionAppPath: "",
-  companionAppArguments: "",
 };
 
 describe("workspace-form-state", () => {

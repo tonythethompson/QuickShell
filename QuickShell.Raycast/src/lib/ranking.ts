@@ -1,4 +1,4 @@
-import type { Workspace } from "./schema";
+import type { LayoutEntry, Workspace } from "./schema";
 import { clampRecentDisplayCount } from "./settings";
 
 const BROWSE_SHORTCUT_BASE_SCORE = 5000;
@@ -105,13 +105,25 @@ export function sortWorkspacesForSearch(workspaces: Workspace[], query: string, 
   });
 }
 
+export type BrowseLayoutSection = {
+  title: string;
+  separator?: { id: string; title?: string | null };
+  workspaces: Workspace[];
+};
+
 export type RankedWorkspaceSections = {
   favorites: Workspace[];
   recents: Workspace[];
   workspaces: Workspace[];
+  /** Separator-driven browse sections for the Workspaces area (ignored in search). */
+  layoutSections: BrowseLayoutSection[];
 };
 
-export function buildBrowseSections(workspaces: Workspace[], recentWorkspaceCount: number): RankedWorkspaceSections {
+export function buildBrowseSections(
+  workspaces: Workspace[],
+  recentWorkspaceCount: number,
+  layoutEntries?: LayoutEntry[],
+): RankedWorkspaceSections {
   const favorites = getFavoriteWorkspaces(workspaces);
   const favoriteIds = new Set(favorites.map((workspace) => workspace.id));
   const recents = getRecentWorkspaces(workspaces, recentWorkspaceCount);
@@ -125,7 +137,61 @@ export function buildBrowseSections(workspaces: Workspace[], recentWorkspaceCoun
     favorites,
     recents,
     workspaces: remaining,
+    layoutSections: buildLayoutSections(remaining, layoutEntries),
   };
+}
+
+/** Group remaining browse workspaces by layout separators. Search mode should ignore this. */
+export function buildLayoutSections(remaining: Workspace[], layoutEntries?: LayoutEntry[]): BrowseLayoutSection[] {
+  const entries = layoutEntries ?? [];
+  const hasSeparators = entries.some((entry) => entry.type === "separator");
+  if (remaining.length === 0 && !hasSeparators) {
+    return [];
+  }
+
+  const byId = new Map(remaining.map((workspace) => [workspace.id, workspace]));
+  const used = new Set<string>();
+  const sections: BrowseLayoutSection[] = [];
+  let current: BrowseLayoutSection | null = null;
+
+  function ensureSection(): BrowseLayoutSection {
+    if (!current) {
+      current = { title: "Workspaces", workspaces: [] };
+      sections.push(current);
+    }
+    return current;
+  }
+
+  function addWorkspace(workspace: Workspace): void {
+    if (used.has(workspace.id)) {
+      return;
+    }
+    ensureSection().workspaces.push(workspace);
+    used.add(workspace.id);
+  }
+
+  for (const entry of entries) {
+    if (entry.type === "separator") {
+      current = {
+        title: entry.title?.trim() || "Workspaces",
+        separator: { id: entry.id, title: entry.title ?? null },
+        workspaces: [],
+      };
+      sections.push(current);
+      continue;
+    }
+
+    const workspace = byId.get(entry.workspaceId);
+    if (workspace) {
+      addWorkspace(workspace);
+    }
+  }
+
+  for (const workspace of remaining) {
+    addWorkspace(workspace);
+  }
+
+  return sections.filter((section) => section.workspaces.length > 0 || section.separator);
 }
 
 export function buildSearchResults(workspaces: Workspace[], query: string, utcNow = new Date()): Workspace[] {
