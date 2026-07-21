@@ -36,7 +36,10 @@ void WriteStartupSpan(string name, double elapsedMs);
 /// </summary>
 /// <param name="location">The repository location associated with the event.</param>
 /// <param name="eventName">The name of the repository event.</param>
-/// <param name="elapsedMs">The optional elapsed time in milliseconds.</param>
+/// <param name="elapsedMs">
+/// The optional elapsed time in milliseconds. A <see langword="null"/> value is recorded as
+/// <c>-1</c>, meaning the duration is unavailable rather than a real measured latency.
+/// </param>
 void WriteRepository(string location, string eventName, long? elapsedMs = null);
 
     /// <summary>

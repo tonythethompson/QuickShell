@@ -103,10 +103,10 @@ public sealed class FormEditFlowTests : IDisposable
         {
             try
             {
-                if (Directory.Exists(Path))
-                {
-                    Directory.Delete(Path, recursive: true);
-                }
+                Directory.Delete(Path, recursive: true);
+            }
+            catch (DirectoryNotFoundException)
+            {
             }
             catch (IOException ex)
             {
@@ -185,6 +185,7 @@ public sealed class TrustLaunchFlowTests
         using var repository = CreateRepository();
         var folder = Path.Combine(Path.GetTempPath(), "QuickShellTrustFlowDir", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
+        XunitException? cleanupError = null;
         try
         {
             repository.Upsert(CreateWorkspace(folder));
@@ -216,14 +217,22 @@ public sealed class TrustLaunchFlowTests
             {
                 Directory.Delete(folder, recursive: true);
             }
+            catch (DirectoryNotFoundException)
+            {
+            }
             catch (IOException ex)
             {
-                Console.Error.WriteLine($"Failed to delete temp test directory '{folder}' due to IO error: {ex}");
+                cleanupError = new XunitException($"Failed to delete temporary test directory '{folder}'.", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.Error.WriteLine($"Failed to delete temp test directory '{folder}' due to access error: {ex}");
+                cleanupError = new XunitException($"Insufficient permissions to delete temporary test directory '{folder}'.", ex);
             }
+        }
+
+        if (cleanupError is not null)
+        {
+            throw cleanupError;
         }
     }
 
@@ -376,6 +385,10 @@ public sealed class ImportConflictFlowTests : IDisposable
         Assert.Equal(CommandResultKind.KeepOpen, result.Kind);
         Assert.True(reloaded >= 1, "Expected import conflict form merge to reload the workspace list.");
         Assert.False(ImportConflictState.HasPending);
+        Assert.Contains(
+            _repository.GetShortcuts(),
+            s => s.Name.Equals("Alpha Copy 2", StringComparison.OrdinalIgnoreCase)
+                && s.Directory.Equals(@"C:\Other3", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -425,10 +438,10 @@ public sealed class ImportConflictFlowTests : IDisposable
         {
             try
             {
-                if (Directory.Exists(Path))
-                {
-                    Directory.Delete(Path, recursive: true);
-                }
+                Directory.Delete(Path, recursive: true);
+            }
+            catch (DirectoryNotFoundException)
+            {
             }
             catch (IOException ex)
             {

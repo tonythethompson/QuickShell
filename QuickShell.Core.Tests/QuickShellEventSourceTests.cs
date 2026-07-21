@@ -55,6 +55,21 @@ public sealed class QuickShellEventSourceTests
         Assert.Equal(1.5, startupSpanEvent.Payload[1]);
     }
 
+    [Fact]
+    public void QuickShellEventSource_WriteRepository_NullElapsedMs_RecordsSentinel()
+    {
+        using var listener = new TestEventListener();
+        listener.EnableEvents(QuickShellEventSource.Log, System.Diagnostics.Tracing.EventLevel.Informational);
+
+        var correlation = Guid.NewGuid().ToString("N");
+        QuickShellEventSource.Log.WriteRepository(correlation, "no-duration");
+
+        var repositoryEvent = listener.Events.First(e =>
+            e.EventId == 4 && e.EventName == "Repository" && Equals(e.Payload.ElementAtOrDefault(0), correlation));
+        Assert.Equal(3, repositoryEvent.Payload.Count);
+        Assert.Equal(-1L, repositoryEvent.Payload[2]);
+    }
+
     private sealed class RecordingQuickShellEventSource : IQuickShellEventSource
     {
         public List<string> RowCacheKinds { get; } = [];

@@ -30,13 +30,7 @@ internal static class QuickShellServiceCollectionExtensions
     /// Optional override for the app-data root services resolve via <see cref="IAppDataPaths"/>.
     /// When null, uses the real <c>%LOCALAPPDATA%</c> (tests inject a temp root instead of
     /// mutating the process-wide environment variable).
-    /// <summary>
-    /// Registers the core QuickShell services with the dependency injection container.
-    /// </summary>
-    /// <param name="services">The service collection to configure.</param>
-    /// <param name="configDirectory">The optional directory used to store shortcut configuration.</param>
-    /// <param name="lifetime">The optional QuickShell lifetime implementation.</param>
-    /// <param name="appDataRoot">The optional root directory for application data.</param>
+    /// </param>
     /// <returns>The configured service collection.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddQuickShellCore(
