@@ -131,11 +131,13 @@ public sealed class TrustLaunchFlowTests
             {
                 Directory.Delete(folder, recursive: true);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                TestContext.Current?.SendDiagnosticMessage($"Cleanup failed deleting '{folder}': {ex.Message}");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                TestContext.Current?.SendDiagnosticMessage($"Cleanup failed deleting '{folder}' due to access restrictions: {ex.Message}");
             }
         }
     }
