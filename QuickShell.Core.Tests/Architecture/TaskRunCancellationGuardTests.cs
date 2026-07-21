@@ -31,7 +31,7 @@ public sealed class TaskRunCancellationGuardTests
         {
             if (!Directory.Exists(directory))
             {
-                continue;
+                throw new DirectoryNotFoundException($"Expected production root was not found: {directory}");
             }
 
             foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
@@ -155,7 +155,11 @@ public sealed class TaskRunCancellationGuardTests
             }
 
             yield return text[argsStart..(index - 1)];
-            searchStart = index;
+
+            // Resume right after this call's own prefix (not past its whole argument
+            // list) so a nested Task.Run(...) inside this call's arguments is still
+            // found and checked on a later iteration.
+            searchStart = callStart + CallPrefix.Length;
         }
     }
 

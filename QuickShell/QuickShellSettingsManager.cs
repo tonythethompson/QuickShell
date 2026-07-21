@@ -30,6 +30,7 @@ internal sealed class QuickShellSettingsManager
     private readonly Action? _onReload;
     private IQuickShellServices _quickShellServices = null!;
     private bool _servicesInitialized;
+    private QuickShell.Abstractions.ITerminalCatalog? _fallbackCatalog;
 
     internal IQuickShellServices Services
     {
@@ -55,7 +56,7 @@ internal sealed class QuickShellSettingsManager
     private QuickShell.Abstractions.ITerminalCatalog ResolveCatalog() =>
         _servicesInitialized
             ? Services.TerminalCatalog
-            : new TerminalCatalog(new WtProfilesService());
+            : _fallbackCatalog ??= new TerminalCatalog(new WtProfilesService());
 
     public QuickShellSettingsManager(Action? onReload = null)
         : this(

@@ -40,11 +40,18 @@ internal static class TerminalCatalogChoices
     /// <summary>Prebuilt Adaptive Card choices JSON for the settings terminal app dropdown.</summary>
     public static string GetTerminalApplicationChoicesJson(ITerminalCatalog catalog)
     {
-        _ = GetTerminalApplicationChoices(catalog);
+        var choices = GetTerminalApplicationChoices(catalog);
         lock (CacheLock)
         {
-            return _appChoicesJson ?? "[]";
+            if (ReferenceEquals(_appChoicesCatalog, catalog)
+                && ReferenceEquals(_appChoices, choices)
+                && _appChoicesJson is not null)
+            {
+                return _appChoicesJson;
+            }
         }
+
+        return SettingsCardJson.BuildChoicesJson(choices);
     }
 
     public static List<ChoiceSetSetting.Choice> GetMinimalDefaultProfileChoices() =>
