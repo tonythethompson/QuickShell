@@ -90,11 +90,11 @@ public sealed class QuickShellEventSourceTests
 
     private sealed class TestEventListener : System.Diagnostics.Tracing.EventListener
     {
-        public List<EventData> Events { get; } = [];
+        public System.Collections.Concurrent.ConcurrentQueue<EventData> Events { get; } = new();
 
         protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
         {
-            Events.Add(new EventData(eventData.EventId, eventData.EventName ?? string.Empty, eventData.Payload?.ToList() ?? []));
+            Events.Enqueue(new EventData(eventData.EventId, eventData.EventName ?? string.Empty, eventData.Payload?.ToList() ?? []));
         }
 
         public sealed record EventData(int EventId, string EventName, List<object?> Payload);
