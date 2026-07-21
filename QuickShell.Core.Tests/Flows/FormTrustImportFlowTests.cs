@@ -110,11 +110,11 @@ public sealed class FormEditFlowTests : IDisposable
             }
             catch (IOException ex)
             {
-                TestContext.Current?.SendDiagnosticMessage($"Failed to delete temp test directory '{Path}' due to I/O error: {ex.Message}");
+                throw new XunitException($"Failed to delete temporary test directory '{Path}'.", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
-                TestContext.Current?.SendDiagnosticMessage($"Failed to delete temp test directory '{Path}' due to access error: {ex.Message}");
+                throw new XunitException($"Insufficient permissions to delete temporary test directory '{Path}'.", ex);
             }
         }
     }

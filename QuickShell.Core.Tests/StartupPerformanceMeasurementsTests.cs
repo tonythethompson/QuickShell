@@ -110,7 +110,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         var ctorTrace = _trace.Builder.ToString();
 
         // List reload against a read-only copy of the real shortcuts.json.
-        var listReloadMs = MeasureListReloadFromRealShortcuts(out var listGetItemsMs, out var workspaceCount);
+        var listReloadMs = MeasureListReloadFromRealShortcuts(out var listGetItemsMs, out var workspaceCount, out var originalWorkspaceCount);
 
         _output.WriteLine("=== QuickShell startup measurements (real machine) ===");
         _output.WriteLine($"Discover scan cold : {discoverCold.TotalMilliseconds:0.###} ms (real profile)");
@@ -118,7 +118,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         _output.WriteLine($"Provider ctor      : {ctorMs:0.###} ms");
         _output.WriteLine($"List reload (cold) : {listReloadMs.TotalMilliseconds:0.###} ms ({workspaceCount} workspaces)");
         _output.WriteLine($"List GetItems warm : {listGetItemsMs.TotalMilliseconds:0.###} ms");
-        WriteRealMachineWorkspaceCountArtifact(workspaceCount);
+        WriteRealMachineWorkspaceCountArtifact(originalWorkspaceCount);
         if (!string.IsNullOrWhiteSpace(ctorTrace))
         {
             _output.WriteLine("Provider ctor breakdown (QUICKSHELL_STARTUP_TRACE):");
@@ -167,7 +167,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Assert.Contains("Warmup stage", traceAfterWarmup);
     }
 
-    private TimeSpan MeasureListReloadFromRealShortcuts(out TimeSpan getItemsMs, out int workspaceCount)
+    private TimeSpan MeasureListReloadFromRealShortcuts(out TimeSpan getItemsMs, out int workspaceCount, out int originalWorkspaceCount)
     {
         var configDir = Path.Combine(_tempRoot, "real-list-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(configDir);
@@ -201,7 +201,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             analysis,
             lifetime);
 
-        var originalWorkspaceCount = repository.GetShortcuts().Count;
+        originalWorkspaceCount = repository.GetShortcuts().Count;
         workspaceCount = originalWorkspaceCount;
         if (workspaceCount == 0)
         {

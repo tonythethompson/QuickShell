@@ -89,6 +89,7 @@ public sealed class WorkspaceSecurityAdversarialTests
         Assert.False(companion.IsAllowed);
         Assert.Equal(WorkspaceIssueCode.InvalidCompanion, companion.PrimaryIssueCode);
         Assert.False(trust.IsAllowed);
+        Assert.Equal(WorkspaceIssueCode.InvalidCompanion, trust.PrimaryIssueCode);
     }
 
     [Fact]
@@ -127,12 +128,13 @@ public sealed class WorkspaceSecurityAdversarialTests
         using var directory = new TempDataDirectory();
         using var repository = new ShortcutRepository(directory.Path);
         var importPath = Path.Join(directory.Path, "future.json");
-        File.WriteAllText(importPath, """{"version":999,"entries":[]}""");
+        File.WriteAllText(importPath, """{"version":999,"entries":[{"Name":"FutureWorkspace","Directory":"C:\\Temp"}]}""");
 
         var result = repository.ImportMerge(importPath);
 
         Assert.False(result.Success);
         Assert.Contains("No valid shortcuts were found", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(repository.GetByName("FutureWorkspace"));
     }
 
     private static TerminalShortcut CreateWorkspace() =>
