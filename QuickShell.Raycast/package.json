@@ -5,10 +5,24 @@
   "description": "Open saved project folders in Windows Terminal and other shells",
   "icon": "extension-icon.png",
   "author": "tonythethompson",
-  "platforms": ["Windows"],
-  "categories": ["Developer Tools", "Productivity"],
+  "platforms": [
+    "Windows"
+  ],
+  "categories": [
+    "Developer Tools",
+    "Productivity"
+  ],
   "license": "MIT",
-  "keywords": ["quickshell", "terminal", "windows terminal", "workspace", "developer", "powershell", "wsl", "git"],
+  "keywords": [
+    "quickshell",
+    "terminal",
+    "windows terminal",
+    "workspace",
+    "developer",
+    "powershell",
+    "wsl",
+    "git"
+  ],
   "preferences": [
     {
       "name": "terminalApplication",
@@ -18,10 +32,22 @@
       "required": false,
       "default": "wt",
       "data": [
-        { "title": "Let Windows choose", "value": "system" },
-        { "title": "Windows Terminal", "value": "wt" },
-        { "title": "Windows Console Host", "value": "conhost" },
-        { "title": "Intelligent Terminal", "value": "it" }
+        {
+          "title": "Let Windows choose",
+          "value": "system"
+        },
+        {
+          "title": "Windows Terminal",
+          "value": "wt"
+        },
+        {
+          "title": "Windows Console Host",
+          "value": "conhost"
+        },
+        {
+          "title": "Intelligent Terminal",
+          "value": "it"
+        }
       ]
     },
     {
@@ -72,7 +98,14 @@
       "subtitle": "QuickShell",
       "description": "Search and open saved workspaces (qs)",
       "icon": "command-open.png",
-      "keywords": ["qs", "quickshell", "workspace", "terminal", "dev", "home"],
+      "keywords": [
+        "qs",
+        "quickshell",
+        "workspace",
+        "terminal",
+        "dev",
+        "home"
+      ],
       "mode": "view"
     },
     {
@@ -81,7 +114,12 @@
       "subtitle": "QuickShell",
       "description": "Create a new workspace with directory, terminal, and launch commands",
       "icon": "command-create.png",
-      "keywords": ["quickshell", "workspace", "terminal", "new"],
+      "keywords": [
+        "quickshell",
+        "workspace",
+        "terminal",
+        "new"
+      ],
       "mode": "view",
       "arguments": [
         {
@@ -98,7 +136,11 @@
       "subtitle": "QuickShell",
       "description": "Edit an existing workspace",
       "icon": "command-edit.png",
-      "keywords": ["quickshell", "workspace", "edit"],
+      "keywords": [
+        "quickshell",
+        "workspace",
+        "edit"
+      ],
       "mode": "view",
       "arguments": [
         {
@@ -115,7 +157,13 @@
       "subtitle": "QuickShell",
       "description": "Scan local folders and add git repositories as workspaces",
       "icon": "command-create.png",
-      "keywords": ["quickshell", "git", "repo", "workspace", "discover"],
+      "keywords": [
+        "quickshell",
+        "git",
+        "repo",
+        "workspace",
+        "discover"
+      ],
       "mode": "view"
     },
     {
@@ -124,13 +172,22 @@
       "subtitle": "QuickShell",
       "description": "Import, export, undo workspace changes, and open extension preferences",
       "icon": "command-settings.png",
-      "keywords": ["quickshell", "settings", "import", "export", "preferences"],
+      "keywords": [
+        "quickshell",
+        "settings",
+        "import",
+        "export",
+        "preferences"
+      ],
       "mode": "view"
     }
   ],
   "dependencies": {
     "@raycast/api": "^1.103.6",
     "@raycast/utils": "^1.19.1"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.0.4",
@@ -150,5 +207,8 @@
     "lint": "ray lint",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }
