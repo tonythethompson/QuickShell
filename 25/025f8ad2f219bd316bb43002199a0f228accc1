@@ -1,0 +1,29 @@
+QuickShell.Raycast/.nvmrc
+  s_ea6f3b95a5e197::t_26b0ed8d11bfc9 1
+QuickShell.Raycast/src/__tests__/launch-diagnostics.test.ts
+  s_ea6f3b95a5e197::t_30d49991daa260 54-82
+QuickShell.Raycast/src/__tests__/launch-executor.test.ts
+  s_ea6f3b95a5e197::t_6b76a16a708762 66-80,82-94
+QuickShell.Raycast/src/lib/workspace-health-index.ts
+  s_ea6f3b95a5e197::t_3ef9ce9cddc182 55-67
+QuickShell.Raycast/src/lib/workspace-health.ts
+  s_ea6f3b95a5e197::t_32aaf05bedca9d 24-28,76-78,90,143
+QuickShell.Raycast/src/open-workspace.tsx
+  s_ea6f3b95a5e197::t_17d8ec87894106 264-277,520-530,662-684,720,857
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "25025f8ad2f219bd316bb43002199a0f228accc1",
+  "prompts": {},
+  "sessions": {
+    "s_ea6f3b95a5e197": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ace255f7-37a6-4c29-a2a4-67aeda78e7b0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
