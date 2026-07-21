@@ -21,6 +21,10 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(settingsManager);
 
         services.AddSingleton(settingsManager);
+        services.AddSingleton<ISettingsFormRefreshScheduler>(sp =>
+            new SettingsFormRefreshScheduler(
+                sp.GetRequiredService<IQuickShellLifetime>(),
+                sp.GetRequiredService<IExtensionCallbackQueue>()));
         services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
             sp.GetRequiredService<IShortcutRepository>(),
             sp.GetRequiredService<IWorkspaceLaunchService>(),
@@ -30,6 +34,7 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<ICommandSuggestionService>(),
             sp.GetRequiredService<IShortcutLaunchExecutor>(),
             sp.GetRequiredService<IWorkspaceGitOperations>(),
+            sp.GetRequiredService<IWorktreeBranchTargetStore>(),
             sp.GetRequiredService<ICompanionAppLauncher>(),
             sp.GetRequiredService<IWorkspaceHealthChecker>(),
             sp.GetRequiredService<WorkspaceGitLaunchGate>(),
@@ -37,7 +42,14 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             sp.GetRequiredService<IGitRepoIndex>(),
             sp.GetRequiredService<IProjectClassificationCache>(),
             sp.GetRequiredService<IExtensionCallbackQueue>(),
-            sp.GetRequiredService<IWorkspaceRowPresentationCache>()));
+            sp.GetRequiredService<ITerminalCatalog>(),
+            sp.GetRequiredService<IWtProfilesService>(),
+            sp.GetRequiredService<ITerminalListIconCache>(),
+            sp.GetRequiredService<ITerminalLaunchGlyphs>(),
+            sp.GetRequiredService<TerminalCatalogPrewarm>(),
+            sp.GetRequiredService<IWorkspaceRowPresentationCache>(),
+            sp.GetRequiredService<IRowPresentationDiagnostics>(),
+            sp.GetRequiredService<ISettingsFormRefreshScheduler>()));
         services.AddSingleton(sp => new QuickShellHostServices(sp.GetRequiredService<IQuickShellServices>()));
         services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
 
@@ -68,6 +80,7 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
         var extensionContext = SynchronizationContext.Current;
 
         services.AddQuickShellCore(configDirectory, lifetime);
+        services.AddSingleton(SupportDiagnostics.Default);
         services.AddSingleton<IExtensionCallbackQueue, ExtensionCallbackQueue>();
         // Override Core's Sync scheduler with CmdPal-aware marshaling.
         services.AddSingleton<IExtensionThreadScheduler>(sp =>

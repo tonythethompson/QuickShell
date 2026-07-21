@@ -13,23 +13,23 @@ public class Program
     public static void Main(string[] args)
     {
         RepositoryDiagnostics.Sink = (location, eventName, elapsedMs) =>
-            SupportDiagnostics.Write(location, eventName, elapsedMs is null ? null : new { elapsedMs });
+            SupportDiagnostics.Default.Write(location, eventName, elapsedMs is null ? null : new { elapsedMs });
 
         AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
         {
             if (eventArgs.ExceptionObject is Exception ex)
             {
-                SupportDiagnostics.WriteException("Program.cs:UnhandledException", ex);
+                SupportDiagnostics.Default.WriteException("Program.cs:UnhandledException", ex);
             }
             else
             {
-                SupportDiagnostics.Write(
+                SupportDiagnostics.Default.Write(
                     "Program.cs:UnhandledException",
                     "non-exception unhandled",
                     new { value = eventArgs.ExceptionObject?.ToString() });
             }
         };
-        SupportDiagnostics.Write(
+        SupportDiagnostics.Default.Write(
             "Program.cs:Main",
             "entry",
             new { argCount = args.Length, firstArg = args.Length > 0 ? args[0] : null });
@@ -45,7 +45,7 @@ public class Program
 
     private static void RunComServer()
     {
-        SupportDiagnostics.Write("Program.cs:RunComServer", "start");
+        SupportDiagnostics.Default.Write("Program.cs:RunComServer", "start");
 
         global::Shmuelie.WinRTServer.ComServer server = new();
 
@@ -53,33 +53,33 @@ public class Program
         QuickShellExtension extensionInstance;
         try
         {
-            SupportDiagnostics.Write("Program.cs:RunComServer", "creating extension");
+            SupportDiagnostics.Default.Write("Program.cs:RunComServer", "creating extension");
             extensionInstance = new QuickShellExtension(extensionDisposedEvent);
-            SupportDiagnostics.Write("Program.cs:RunComServer", "extension created");
+            SupportDiagnostics.Default.Write("Program.cs:RunComServer", "extension created");
         }
         catch (Exception ex)
         {
-            SupportDiagnostics.WriteException("Program.cs:RunComServer", ex);
+            SupportDiagnostics.Default.WriteException("Program.cs:RunComServer", ex);
             throw;
         }
 
         server.RegisterClass<QuickShellExtension, IExtension>(() => extensionInstance);
         server.Start();
 
-        SupportDiagnostics.Write("Program.cs:RunComServer", "com server started");
+        SupportDiagnostics.Default.Write("Program.cs:RunComServer", "com server started");
 
         try
         {
             Console.CancelKeyPress += (_, e) =>
             {
                 e.Cancel = true;
-                SupportDiagnostics.Write("Program.cs:CancelKeyPress", "signal-exit");
+                SupportDiagnostics.Default.Write("Program.cs:CancelKeyPress", "signal-exit");
                 extensionDisposedEvent.Set();
             };
         }
         catch (Exception ex)
         {
-            SupportDiagnostics.WriteException("Program.cs:CancelKeyPress", ex);
+            SupportDiagnostics.Default.WriteException("Program.cs:CancelKeyPress", ex);
         }
 
         extensionDisposedEvent.WaitOne();

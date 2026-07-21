@@ -47,7 +47,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
         if (!_started.Wait(TimeSpan.FromSeconds(5)))
         {
             // Keep waiting on COM lifetime; shutdown signals may be unavailable.
-            SupportDiagnostics.Write("PackageServicingShutdownWatcher", "start-timeout");
+            SupportDiagnostics.Default.Write("PackageServicingShutdownWatcher", "start-timeout");
         }
     }
 
@@ -75,7 +75,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
         {
             // Message-pump threads can't be safely force-terminated; if the pump
             // hasn't exited we let it run and the process exits with the COM host.
-            SupportDiagnostics.Write("PackageServicingShutdownWatcher", "join-timeout");
+            SupportDiagnostics.Default.Write("PackageServicingShutdownWatcher", "join-timeout");
 
             var currentHwnd = _hwnd;
             if (currentHwnd != IntPtr.Zero)
@@ -85,7 +85,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
                 {
                     if (!_thread.Join(TimeSpan.FromSeconds(1)))
                     {
-                        SupportDiagnostics.Write("PackageServicingShutdownWatcher", "join-timeout-after-quit");
+                        SupportDiagnostics.Default.Write("PackageServicingShutdownWatcher", "join-timeout-after-quit");
                     }
                 }
             }
@@ -118,7 +118,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
 
             if (_hwnd == IntPtr.Zero)
             {
-                SupportDiagnostics.Write(
+                SupportDiagnostics.Default.Write(
                     "PackageServicingShutdownWatcher",
                     "create-window-failed",
                     new { error = Marshal.GetLastWin32Error() });
@@ -126,7 +126,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
                 return;
             }
 
-            SupportDiagnostics.Write(
+            SupportDiagnostics.Default.Write(
                 "PackageServicingShutdownWatcher",
                 "listening",
                 new { hwnd = _hwnd.ToInt64() });
@@ -147,7 +147,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
                 }
                 else
                 {
-                    SupportDiagnostics.Write(
+                    SupportDiagnostics.Default.Write(
                         "PackageServicingShutdownWatcher",
                         "getmessage-failed",
                         new { hwnd = _hwnd.ToInt64(), errorCode = Marshal.GetLastWin32Error() });
@@ -157,7 +157,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
         }
         catch (Exception ex)
         {
-            SupportDiagnostics.WriteException("PackageServicingShutdownWatcher", ex);
+            SupportDiagnostics.Default.WriteException("PackageServicingShutdownWatcher", ex);
             _started.Set();
         }
         finally
@@ -198,7 +198,7 @@ internal sealed partial class PackageServicingShutdownWatcher : IDisposable
 
     private void SignalExit(string reason)
     {
-        SupportDiagnostics.Write("PackageServicingShutdownWatcher", "signal-exit", new { reason });
+        SupportDiagnostics.Default.Write("PackageServicingShutdownWatcher", "signal-exit", new { reason });
 
         try
         {

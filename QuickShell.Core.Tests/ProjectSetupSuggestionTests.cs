@@ -24,9 +24,8 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         _gitRepoIndex = new GitRepoIndex(
             _projectAnalysis,
             _provider.GetRequiredService<IQuickShellLifetime>(),
-            new SyncExtensionThreadScheduler());
-        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
+            new SyncExtensionThreadScheduler(),
+            discoverOverride: roots => GitRepoDiscovery.Discover(_projectAnalysis, roots, includeDefaultSearchRoots: false));
     }
 
     [Fact]
@@ -276,7 +275,7 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
         File.WriteAllText(Path.Combine(repoPath, "go.mod"), "module example.com/api\n");
         _gitRepoIndex.Invalidate();
 
-        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root]);
+        var discovered = GitRepoDiscovery.Discover(_projectAnalysis, [_root], includeDefaultSearchRoots: false);
 
         var candidate = Assert.Single(discovered);
         Assert.True(candidate.Classification.Has(ProjectStack.Go));
@@ -319,8 +318,6 @@ public sealed class ProjectSetupSuggestionTests : IDisposable
     {
         _gitRepoIndex.Dispose();
         _provider.Dispose();
-        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
-        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
         try
         {
             Directory.Delete(_root, recursive: true);

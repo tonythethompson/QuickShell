@@ -154,7 +154,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
 
     private CommandResult HandleRefreshTerminals()
     {
-        TerminalCatalog.InvalidateCache();
+        _services.TerminalCatalog.InvalidateCache();
         ShortcutFormTemplateCache.Invalidate();
         lock (_sync)
         {
@@ -163,7 +163,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
             _templateCompanionCount = -1;
         }
 
-        var targets = TerminalCatalog.GetLaunchTargets(includeDefaultChoice: true);
+        var targets = _services.TerminalCatalog.GetLaunchTargets(includeDefaultChoice: true);
         var targetIds = targets.Select(t => t.Id).ToList();
         return MapResult(_editor.RefreshTerminals(targetIds, "default"));
     }
@@ -322,8 +322,8 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         }
     }
 
-    private static string FormTerminalChoicesJson(string terminalApplicationId) =>
-        TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, terminalApplicationId);
+    private string FormTerminalChoicesJson(string terminalApplicationId) =>
+        _services.TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, terminalApplicationId);
 
     private static string? GetFieldFromPayload(string payload, string field)
     {

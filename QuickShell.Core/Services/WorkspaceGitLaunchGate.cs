@@ -13,10 +13,12 @@ internal sealed class WorkspaceGitLaunchGate
 {
     private const int LaunchGitStatusTimeoutMs = 3000;
     private readonly IWorkspaceGitOperations _git;
+    private readonly IWorktreeBranchTargetStore _targetStore;
 
-    public WorkspaceGitLaunchGate(IWorkspaceGitOperations git)
+    public WorkspaceGitLaunchGate(IWorkspaceGitOperations git, IWorktreeBranchTargetStore targetStore)
     {
         _git = git ?? throw new ArgumentNullException(nameof(git));
+        _targetStore = targetStore ?? throw new ArgumentNullException(nameof(targetStore));
     }
 
     internal int SwitchAttemptCount { get; private set; }
@@ -25,7 +27,7 @@ internal sealed class WorkspaceGitLaunchGate
         string directory,
         bool blockDirtyBranchSwitch)
     {
-        var target = WorktreeBranchTargetStore.GetTargetForDirectory(directory, _git);
+        var target = _targetStore.GetTargetForDirectory(directory, _git);
         if (string.IsNullOrWhiteSpace(target))
         {
             return WorkspaceGitLaunchGateResult.Proceed();
@@ -39,7 +41,7 @@ internal sealed class WorkspaceGitLaunchGate
         string branch,
         bool blockDirtyBranchSwitch)
     {
-        if (!WorktreeBranchTargetStore.TrySetTargetForDirectory(directory, branch, _git, out var storeError))
+        if (!_targetStore.TrySetTargetForDirectory(directory, branch, _git, out var storeError))
         {
             return WorkspaceGitLaunchGateResult.StayOpen(storeError ?? "Could not save branch target.");
         }
@@ -49,7 +51,7 @@ internal sealed class WorkspaceGitLaunchGate
 
     public WorkspaceGitLaunchGateResult ClearTargetBranch(string directory)
     {
-        WorktreeBranchTargetStore.ClearTargetForDirectory(directory, _git);
+        _targetStore.ClearTargetForDirectory(directory, _git);
         return WorkspaceGitLaunchGateResult.Proceed();
     }
 

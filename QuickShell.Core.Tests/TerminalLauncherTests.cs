@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using System.Diagnostics;
 using QuickShell.Models;
 using QuickShell.Services;
@@ -5,20 +6,9 @@ using QuickShell.Services;
 namespace QuickShell.Core.Tests;
 
 /// <summary>
-/// Groups launch-related tests that share terminal-discovery stubs
-/// (<see cref="WtProfilesService.TestLocationsOverride"/>).
-/// </summary>
-[CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class TerminalLauncherOverrideIsolation
-{
-    public const string Name = "WtProfilesService.TestLocationsOverride";
-}
-
-/// <summary>
 /// End-to-end coverage for <see cref="TerminalLauncher.Open"/> using a capturing
 /// <see cref="FakeProcessStarter"/> instead of process-wide static overrides.
 /// </summary>
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class TerminalLauncherTests
 {
     [Fact]
@@ -31,7 +21,7 @@ public sealed class TerminalLauncherTests
         };
 
         var starter = new FakeProcessStarter { Succeed = true };
-        var launcher = new TerminalLauncher(starter);
+        var launcher = new TerminalLauncher(starter, new TerminalCatalog(new WtProfilesService()));
 
         Assert.Throws<DirectoryNotFoundException>(() =>
             launcher.Open(shortcut, "wt", TerminalHostIds.DefaultProfile));
@@ -144,7 +134,7 @@ public sealed class TerminalLauncherTests
         Action<TerminalLauncher, TerminalShortcut> open)
     {
         var starter = new FakeProcessStarter { Succeed = true };
-        var launcher = new TerminalLauncher(starter);
+        var launcher = new TerminalLauncher(starter, new TerminalCatalog(new WtProfilesService()));
         open(launcher, shortcut);
         Assert.Single(starter.Started);
         return starter.Started[0];

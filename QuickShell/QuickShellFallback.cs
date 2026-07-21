@@ -59,7 +59,7 @@ internal sealed partial class QuickShellFallback : FallbackCommandItem, IDisposa
             {
                 if (_cachedSearchIndex is null || _cachedSearchIndex.Revision != snapshot.Version)
                 {
-                    _cachedSearchIndex = new RootPaletteSearchIndex(snapshot);
+                    _cachedSearchIndex = new RootPaletteSearchIndex(snapshot, _context.Services.TerminalCatalog);
                 }
 
                 searchIndex = _cachedSearchIndex;

@@ -75,7 +75,7 @@ internal static class ShortcutContextCommands
                 items.Add(new CommandContextItem(new OpenShortcutLaunchCommand(shortcut, launch, context.Services))
                 {
                     Title = ShortcutDisplay.GetLaunchContextMenuTitle(launch, enabledLaunches),
-                    Icon = new IconInfo(TerminalLaunchGlyphs.GetForList(launch)),
+                    Icon = new IconInfo(context.Services.TerminalLaunchGlyphs.GetForList(launch)),
                 });
             }
         }

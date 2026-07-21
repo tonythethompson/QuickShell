@@ -53,7 +53,7 @@ internal static class TerminalSettingsDiscovery
         HashSet<string> seenSettingsPaths)
     {
         var settingsPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            AppDataRoot.Current,
             "Microsoft",
             "Windows Terminal",
             "settings.json");
@@ -77,9 +77,7 @@ internal static class TerminalSettingsDiscovery
         List<TerminalSettingsLocation> locations,
         HashSet<string> seenSettingsPaths)
     {
-        var packagesRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Packages");
+        var packagesRoot = Path.Join(AppDataRoot.Current, "Packages");
 
         if (!Directory.Exists(packagesRoot))
         {

@@ -30,6 +30,7 @@ internal sealed class QuickShellSettingsManager
     private readonly Action? _onReload;
     private IQuickShellServices _quickShellServices = null!;
     private bool _servicesInitialized;
+    private QuickShell.Abstractions.ITerminalCatalog? _fallbackCatalog;
 
     internal IQuickShellServices Services
     {
@@ -52,13 +53,18 @@ internal sealed class QuickShellSettingsManager
         Services = services;
     }
 
+    private QuickShell.Abstractions.ITerminalCatalog ResolveCatalog() =>
+        _servicesInitialized
+            ? Services.TerminalCatalog
+            : _fallbackCatalog ??= new TerminalCatalog(new WtProfilesService());
+
     public QuickShellSettingsManager(Action? onReload = null)
         : this(
             new QuickShellJsonSettingsStore(),
             onReload,
-            TerminalCatalog.HasTerminalApplication,
-            TerminalCatalogChoices.GetTerminalApplicationChoices,
-            TerminalCatalogChoices.GetDefaultProfileChoices)
+            hasTerminalApplication: null,
+            getTerminalApplicationChoices: null,
+            getDefaultProfileChoices: null)
     {
     }
 
@@ -71,10 +77,12 @@ internal sealed class QuickShellSettingsManager
     {
         _onReload = onReload;
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
-        _hasTerminalApplication = hasTerminalApplication ?? TerminalCatalog.HasTerminalApplication;
-        _getTerminalApplicationChoices = getTerminalApplicationChoices ?? TerminalCatalogChoices.GetTerminalApplicationChoices;
-        _getDefaultProfileChoices = getDefaultProfileChoices ?? TerminalCatalogChoices.GetDefaultProfileChoices;
-        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "start");
+        _hasTerminalApplication = hasTerminalApplication ?? (id => ResolveCatalog().HasTerminalApplication(id));
+        _getTerminalApplicationChoices = getTerminalApplicationChoices
+            ?? (() => TerminalCatalogChoices.GetTerminalApplicationChoices(ResolveCatalog()));
+        _getDefaultProfileChoices = getDefaultProfileChoices
+            ?? (app => TerminalCatalogChoices.GetDefaultProfileChoices(ResolveCatalog(), app));
+        SupportDiagnostics.Default.Write("QuickShellSettingsManager.cs:ctor", "start");
 
         _settings = _settingsStore.Settings;
 
@@ -128,7 +136,7 @@ internal sealed class QuickShellSettingsManager
         _settings.Add(_multiLaunchPresentationSetting);
         _settingsStore.LoadSettings();
 
-        SupportDiagnostics.Write(
+        SupportDiagnostics.Default.Write(
             "QuickShellSettingsManager.cs:ctor",
             "after LoadSettings",
             new { exists = File.Exists(_settingsStore.FilePath) });
@@ -139,7 +147,7 @@ internal sealed class QuickShellSettingsManager
 
         if (string.IsNullOrWhiteSpace(initialApp))
         {
-            (initialApp, initialProfile) = LoadLegacyTerminalDefaults();
+            (initialApp, initialProfile) = LoadLegacyTerminalDefaults(_settingsStore.ConfigDirectory);
             usedLegacyDefaults = true;
         }
 
@@ -153,7 +161,7 @@ internal sealed class QuickShellSettingsManager
 
         // Terminal/profile catalog choices and final validation are deferred to the
         // staged startup coordinator so provider construction stays off the hot path.
-        SupportDiagnostics.Write(
+        SupportDiagnostics.Default.Write(
             "QuickShellSettingsManager.cs:ctor",
             "terminal defaults deferred",
             new { initialApp, initialProfile });
@@ -163,7 +171,7 @@ internal sealed class QuickShellSettingsManager
             _settingsStore.SaveSettings();
         }
 
-        SupportDiagnostics.Write("QuickShellSettingsManager.cs:ctor", "complete");
+        SupportDiagnostics.Default.Write("QuickShellSettingsManager.cs:ctor", "complete");
     }
 
     public event EventHandler? SettingsChanged;
@@ -388,12 +396,9 @@ internal sealed class QuickShellSettingsManager
             ? TerminalHostIds.DefaultProfile
             : value.Trim();
 
-    private static (string App, string Profile) LoadLegacyTerminalDefaults()
+    private static (string App, string Profile) LoadLegacyTerminalDefaults(string configDirectory)
     {
-        var legacyPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuickShell",
-            "settings.json");
+        var legacyPath = Path.Join(configDirectory, "settings.json");
 
         var legacyValue = LoadLegacyDefaultTerminal(legacyPath);
         return MigrateLegacyDefaultTerminal(legacyValue);

@@ -25,11 +25,12 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
 {
     private readonly string _tempRoot;
     private readonly string _localAppData;
-    private readonly string? _originalLocalAppData;
     private readonly StringBuilderTraceListener _trace;
     private readonly ITestOutputHelper _output;
     private readonly ServiceProvider _provider;
     private readonly IProjectAnalysisService _projectAnalysis;
+    private readonly GitRepoDiscovery.TestScope _gitScope;
+    private readonly AppDataRoot.TestScope _appDataScope;
 
     public StartupPerformanceMeasurementsTests(ITestOutputHelper output)
     {
@@ -39,12 +40,10 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         // Isolate settings.json / shortcuts.json from the real install.
         _localAppData = Path.Combine(_tempRoot, "localappdata");
         Directory.CreateDirectory(_localAppData);
-        _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", _localAppData);
+        _appDataScope = new AppDataRoot.TestScope(_localAppData);
 
         // Keep the provider's background git prewarm from scanning the real machine.
-        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [];
+        _gitScope = new GitRepoDiscovery.TestScope(includeDefaultSearchRoots: false, defaultRootCandidates: []);
 
         _provider = new ServiceCollection().AddQuickShellCore().BuildServiceProvider();
         _projectAnalysis = _provider.GetRequiredService<IProjectAnalysisService>();
@@ -62,8 +61,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         // --- Discover scan (cold) on a controlled temp tree -------------------
         var scanRoot = Path.Combine(_tempRoot, "repos");
         BuildGitRepoTree(scanRoot, repoCount: 25);
-        GitRepoDiscovery.IncludeDefaultSearchRoots = false;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = () => [scanRoot];
+        using var methodScope = new GitRepoDiscovery.TestScope(includeDefaultSearchRoots: false, defaultRootCandidates: [scanRoot]);
 
         var discoverCold = TimeCold(() => GitRepoDiscovery.Discover(_projectAnalysis, [scanRoot]));
         // Warm discover: reuses prior results within the same process walk.
@@ -102,8 +100,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
     public void Measure_RealMachine_DiscoverScan_And_ListReload()
     {
         // Use the real search roots (user profile common folders + all drives).
-        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
+        using var methodScope = new GitRepoDiscovery.TestScope(includeDefaultSearchRoots: true, defaultRootCandidates: null);
 
         var discoverCold = TimeCold(() => GitRepoDiscovery.Discover(_projectAnalysis));
         var discoverWarm = TimeWarm(() => GitRepoDiscovery.Discover(_projectAnalysis));
@@ -331,17 +328,8 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         _provider.Dispose();
         Trace.Listeners.Remove(_trace);
         Environment.SetEnvironmentVariable("QUICKSHELL_STARTUP_TRACE", null);
-        GitRepoDiscovery.IncludeDefaultSearchRoots = true;
-        GitRepoDiscovery.DefaultRootCandidatesOverride = null;
-
-        if (_originalLocalAppData is null)
-        {
-            Environment.SetEnvironmentVariable("LOCALAPPDATA", null);
-        }
-        else
-        {
-            Environment.SetEnvironmentVariable("LOCALAPPDATA", _originalLocalAppData);
-        }
+        _gitScope.Dispose();
+        _appDataScope.Dispose();
 
         try
         {

@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Services;
 
@@ -21,6 +22,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     private readonly IProjectAnalysisService _projectAnalysis;
 
+    private readonly ITerminalCatalog _catalog;
+
     private readonly ComboBox _terminalAppBox;
 
     private readonly ComboBox _defaultProfileBox;
@@ -43,7 +46,9 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         IShortcutRepository shortcuts,
 
-        IProjectAnalysisService projectAnalysis)
+        IProjectAnalysisService projectAnalysis,
+
+        ITerminalCatalog catalog)
 
     {
 
@@ -52,6 +57,8 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _shortcuts = shortcuts;
 
         _projectAnalysis = projectAnalysis;
+
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
         Title = "Quick Shell settings";
 
@@ -75,7 +82,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         root.Children.Add(Label("Terminal application"));
 
-        _terminalAppBox = Combo(RunTerminalChoices.GetTerminalApplicationChoices());
+        _terminalAppBox = Combo(RunTerminalChoices.GetTerminalApplicationChoices(_catalog));
 
         _terminalAppBox.SelectionChanged += (_, _) => ReloadProfileChoices();
 
@@ -329,7 +336,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         _defaultProfileBox.Items.Clear();
 
-        foreach (var choice in RunTerminalChoices.GetDefaultProfileChoices(app))
+        foreach (var choice in RunTerminalChoices.GetDefaultProfileChoices(_catalog, app))
 
         {
 
@@ -339,7 +346,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
 
 
-        _defaultProfileBox.SelectedValue = RunTerminalChoices.GetDefaultProfileChoices(app)
+        _defaultProfileBox.SelectedValue = RunTerminalChoices.GetDefaultProfileChoices(_catalog, app)
 
             .Any(choice => choice.Id.Equals(selected, StringComparison.OrdinalIgnoreCase))
 
@@ -549,7 +556,11 @@ internal static class QuickShellRunSettingsDialog
 
 {
 
-    public static void Show(QuickShellSettingsReader settings, IShortcutRepository shortcuts, IProjectAnalysisService projectAnalysis)
+    public static void Show(
+        QuickShellSettingsReader settings,
+        IShortcutRepository shortcuts,
+        IProjectAnalysisService projectAnalysis,
+        ITerminalCatalog catalog)
 
     {
 
@@ -557,7 +568,7 @@ internal static class QuickShellRunSettingsDialog
 
         {
 
-            var window = new QuickShellRunSettingsWindow(settings, shortcuts, projectAnalysis);
+            var window = new QuickShellRunSettingsWindow(settings, shortcuts, projectAnalysis, catalog);
 
             window.ShowDialog();
 

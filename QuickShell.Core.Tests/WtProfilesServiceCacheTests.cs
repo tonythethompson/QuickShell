@@ -3,13 +3,6 @@ using System.Text;
 
 namespace QuickShell.Core.Tests;
 
-[CollectionDefinition(WtProfilesServiceIsolation.Name)]
-public sealed class WtProfilesServiceIsolation
-{
-    public const string Name = nameof(WtProfilesServiceIsolation);
-}
-
-[Collection(WtProfilesServiceIsolation.Name)]
 public sealed class WtProfilesServiceCacheTests : IDisposable
 {
     private readonly string _directory;
@@ -18,13 +11,10 @@ public sealed class WtProfilesServiceCacheTests : IDisposable
     {
         _directory = Path.Combine(Path.GetTempPath(), "quickshell-wt-cache-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
-        WtProfilesService.InvalidateCache();
     }
 
     public void Dispose()
     {
-        WtProfilesService.InvalidateCache();
-
         try
         {
             if (Directory.Exists(_directory))
@@ -53,26 +43,25 @@ public sealed class WtProfilesServiceCacheTests : IDisposable
             };
 
         var parseCount = 0;
-        using (new WtProfilesService.TestScope(locations, () => parseCount++))
-        {
-            var first = WtProfilesService.GetProfiles();
-            Assert.Equal(2, first.Count);
-            Assert.Equal(2, parseCount);
+        var service = new WtProfilesService(locations, () => parseCount++);
 
-            var profiles = WtProfilesService.GetProfiles();
-            Assert.Equal(2, profiles.Count);
-            Assert.Equal(2, parseCount);
+        var first = service.GetProfiles();
+        Assert.Equal(2, first.Count);
+        Assert.Equal(2, parseCount);
 
-            WriteSettings(hostAPath, "Host A Updated");
-            File.SetLastWriteTimeUtc(hostAPath, DateTime.UtcNow.AddSeconds(5));
+        var profiles = service.GetProfiles();
+        Assert.Equal(2, profiles.Count);
+        Assert.Equal(2, parseCount);
 
-            profiles = WtProfilesService.GetProfiles();
+        WriteSettings(hostAPath, "Host A Updated");
+        File.SetLastWriteTimeUtc(hostAPath, DateTime.UtcNow.AddSeconds(5));
 
-            Assert.Equal(2, profiles.Count);
-            Assert.Equal(3, parseCount);
-            Assert.Contains(profiles, profile => profile.Name.Equals("Host A Updated", StringComparison.Ordinal));
-            Assert.Contains(profiles, profile => profile.Name.Equals("Host B Profile", StringComparison.Ordinal));
-        }
+        profiles = service.GetProfiles();
+
+        Assert.Equal(2, profiles.Count);
+        Assert.Equal(3, parseCount);
+        Assert.Contains(profiles, profile => profile.Name.Equals("Host A Updated", StringComparison.Ordinal));
+        Assert.Contains(profiles, profile => profile.Name.Equals("Host B Profile", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -83,19 +72,15 @@ public sealed class WtProfilesServiceCacheTests : IDisposable
         var location = CreateLocation(hostPath, "wt", "Host");
 
         var parseCount = 0;
-        using (new WtProfilesService.TestScope([location], () => parseCount++))
-        {
-            _ = WtProfilesService.GetProfiles();
-            Assert.Equal(1, parseCount);
-        }
+        var service = new WtProfilesService([location], () => parseCount++);
 
-        WtProfilesService.InvalidateCache();
+        _ = service.GetProfiles();
+        Assert.Equal(1, parseCount);
 
-        using (new WtProfilesService.TestScope([location], () => parseCount++))
-        {
-            _ = WtProfilesService.GetProfiles();
-            Assert.Equal(2, parseCount);
-        }
+        service.InvalidateCache();
+
+        _ = service.GetProfiles();
+        Assert.Equal(2, parseCount);
     }
 
     private static TerminalSettingsLocation CreateLocation(string settingsPath, string idPrefix, string label) =>

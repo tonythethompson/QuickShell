@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -10,8 +11,14 @@ namespace QuickShell.Services;
 /// </summary>
 internal static class ShortcutFormCatalogPrewarm
 {
-    public static void Warm(string? terminalApplicationId)
+    public static void Warm(
+        string? terminalApplicationId,
+        TerminalCatalogPrewarm terminalPrewarm,
+        ITerminalCatalog catalog)
     {
+        ArgumentNullException.ThrowIfNull(terminalPrewarm);
+        ArgumentNullException.ThrowIfNull(catalog);
+
         var appId = string.IsNullOrWhiteSpace(terminalApplicationId)
             ? TerminalHostIds.WindowsTerminal
             : terminalApplicationId;
@@ -20,9 +27,9 @@ internal static class ShortcutFormCatalogPrewarm
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
 
         // Terminal launch targets for create/edit form (active app + WT profiles).
-        TerminalCatalogPrewarm.Warm(appId);
+        terminalPrewarm.Warm(appId);
 
-        var terminalChoicesJson = TerminalCatalog.BuildFormChoicesJson(
+        var terminalChoicesJson = catalog.BuildFormChoicesJson(
             includeDefaultChoice: true,
             appId);
 

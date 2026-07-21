@@ -25,6 +25,8 @@ internal interface IQuickShellServices
 
     IWorkspaceGitOperations GitOperations { get; }
 
+    IWorktreeBranchTargetStore TargetStore { get; }
+
     ICompanionAppLauncher CompanionApps { get; }
 
     IWorkspaceHealthChecker HealthChecker { get; }
@@ -39,5 +41,19 @@ internal interface IQuickShellServices
 
     IWorkspaceRowPresentationCache RowPresentation { get; }
 
+    IRowPresentationDiagnostics RowPresentationDiagnostics { get; }
+
+    ISettingsFormRefreshScheduler RefreshScheduler { get; }
+
     IQuickShellLifetime Lifetime { get; }
+
+    ITerminalCatalog TerminalCatalog { get; }
+
+    IWtProfilesService WtProfiles { get; }
+
+    ITerminalListIconCache TerminalListIcons { get; }
+
+    ITerminalLaunchGlyphs TerminalLaunchGlyphs { get; }
+
+    TerminalCatalogPrewarm TerminalCatalogPrewarm { get; }
 }

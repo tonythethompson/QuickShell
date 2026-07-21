@@ -56,7 +56,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         _settings = context.Settings;
         _createShortcutCommand = context.CreateShortcut;
         _searchDebouncer = new SearchDebouncer(ApplyQueryDebounced);
-        _rowEnrichment = new WorkspaceRowEnrichmentCoordinator(_services.CallbackQueue);
+        _rowEnrichment = new WorkspaceRowEnrichmentCoordinator(
+            _services.CallbackQueue,
+            _services.TerminalListIcons,
+            _services.RowPresentationDiagnostics);
         Id = QuickShellNavigation.HomePageId;
         Icon = QuickShellBrandIcons.App;
         Title = QuickShellBrand.DisplayName;
@@ -393,7 +396,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         var refreshStartedUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        SupportDiagnostics.Write(
+        SupportDiagnostics.Default.Write(
             "QuickShellPage.cs:RefreshItems",
             "start",
             new
@@ -450,7 +453,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 var anyMatch = false;
                 using (StartupPerformanceTrace.Measure("CmdPal home list: search task actions"))
                 {
-                    foreach (var taskAction in snapshot.SearchTaskActions(normalizedQuery))
+                    foreach (var taskAction in snapshot.SearchTaskActions(normalizedQuery, _services.TerminalCatalog))
                     {
                         anyMatch = true;
                         items.Add(ShortcutTaskActionListItems.Create(_context, taskAction, Reload));
@@ -500,7 +503,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _rowEnrichment.Flush();
 
             // #region agent log
-            SupportDiagnostics.Write(
+            SupportDiagnostics.Default.Write(
                 "QuickShellPage.cs:RefreshItems",
                 "complete",
                 new
@@ -514,7 +517,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
         catch (Exception ex)
         {
-            SupportDiagnostics.WriteException("QuickShellPage.cs:RefreshItems", ex);
+            SupportDiagnostics.Default.WriteException("QuickShellPage.cs:RefreshItems", ex);
 
             var items = new List<IListItem>();
             items.AddRange(GetOrBuildPageActions(_cachedPageActionsCanUndo, _cachedPageActionsCanRedo));
@@ -750,7 +753,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
             else
             {
-                _ = Task.Run(probe);
+                _ = Task.Run(probe, _services.Lifetime.CancellationToken);
             }
         }
 

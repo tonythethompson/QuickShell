@@ -1,4 +1,5 @@
 using System.Globalization;
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -36,18 +37,20 @@ internal static class ShortcutDisplay
         return "Open folder";
     }
 
-    public static string BuildDirectorySubtitle(TerminalShortcut shortcut)
+    public static string BuildDirectorySubtitle(TerminalShortcut shortcut, ITerminalCatalog catalog)
     {
-        return string.Join(" · ", ShortenPath(shortcut.Directory), TerminalCatalog.GetProfileLabel(shortcut));
+        ArgumentNullException.ThrowIfNull(catalog);
+        return string.Join(" · ", ShortenPath(shortcut.Directory), catalog.GetProfileLabel(shortcut));
     }
 
-    public static string BuildSubtitle(TerminalShortcut shortcut)
+    public static string BuildSubtitle(TerminalShortcut shortcut, ITerminalCatalog catalog)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
         var parts = new List<string> { ShortenPath(shortcut.Directory) };
         var enabledLaunches = ShortcutLaunchNormalization.GetLaunchesForDisplay(shortcut);
         if (enabledLaunches.Count == 1)
         {
-            parts.Add(BuildPrimaryLaunchSummary(enabledLaunches[0]));
+            parts.Add(BuildPrimaryLaunchSummary(enabledLaunches[0], catalog));
         }
         else if (enabledLaunches.Count > 1)
         {
@@ -62,9 +65,9 @@ internal static class ShortcutDisplay
         return string.Join(" · ", parts);
     }
 
-    private static string BuildPrimaryLaunchSummary(WorkspaceEntry launch)
+    private static string BuildPrimaryLaunchSummary(WorkspaceEntry launch, ITerminalCatalog catalog)
     {
-        var terminal = TerminalCatalog.GetProfileLabel(new TerminalShortcut
+        var terminal = catalog.GetProfileLabel(new TerminalShortcut
         {
             Terminal = launch.Terminal,
             WtProfile = launch.WtProfile,
@@ -80,8 +83,11 @@ internal static class ShortcutDisplay
             : $"{terminal}: {launch.Label.Trim()}";
     }
 
-    public static string FormatTerminal(string? launchTargetId) =>
-        TerminalCatalog.Resolve(launchTargetId).DisplayName;
+    public static string FormatTerminal(string? launchTargetId, ITerminalCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        return catalog.Resolve(launchTargetId).DisplayName;
+    }
 
     public static string ShortenPathForDisplay(string path)
     {
@@ -133,8 +139,9 @@ internal static class ShortcutDisplay
         return utc.ToLocalTime().ToString("MMM d", CultureInfo.InvariantCulture);
     }
 
-    public static string BuildLaunchEntrySubtitle(WorkspaceEntry entry)
+    public static string BuildLaunchEntrySubtitle(WorkspaceEntry entry, ITerminalCatalog catalog)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
         var parts = new List<string>();
 
         var taskTitle = TaskTypeCatalog.GetTitle(entry.TaskType);
@@ -143,7 +150,7 @@ internal static class ShortcutDisplay
             parts.Add(taskTitle);
         }
 
-        parts.Add(TerminalCatalog.GetProfileLabel(new TerminalShortcut
+        parts.Add(catalog.GetProfileLabel(new TerminalShortcut
         {
             Terminal = entry.Terminal,
             WtProfile = entry.WtProfile,

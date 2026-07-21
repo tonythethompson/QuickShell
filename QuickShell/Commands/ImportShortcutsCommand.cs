@@ -47,7 +47,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         if (conflicts > 0)
         {
             ImportConflictState.Set(ImportTransferKind.Projects, path, conflicts, imported.Length, _onReload);
-            SettingsFormHelpers.ScheduleRefresh(_onSettingsRefresh);
+            _services.RefreshScheduler.ScheduleRefresh(_onSettingsRefresh);
             return _stayOnSettings
                 ? QuickShellNavigation.StayOnSettings()
                 : QuickShellNavigation.GoToSettings();
@@ -61,7 +61,7 @@ internal sealed partial class ImportShortcutsCommand : InvokableCommand
         }
 
         _onReload();
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsRefresh);
+        _services.RefreshScheduler.ScheduleRefresh(_onSettingsRefresh);
         return Finish(result.Message);
     }
 

@@ -126,7 +126,7 @@ internal sealed partial class ImportConflictForm : FormContent
         if (action == "cancel")
         {
             ImportConflictState.Clear();
-            SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+            _services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
             return QuickShellNavigation.StayOnSettings(Strings.ImportConflictPage_Cancelled);
         }
 
@@ -155,7 +155,7 @@ internal sealed partial class ImportConflictForm : FormContent
 
         ImportConflictState.Clear();
         _onReload();
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        _services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.StayOnSettings(result.Message);
     }
 

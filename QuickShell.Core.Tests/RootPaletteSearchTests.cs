@@ -366,7 +366,7 @@ public sealed class RootPaletteSearchTests : IDisposable
 
         var repository = new FakeShortcutRepository(shortcuts);
         var snapshot = repository.GetSnapshot();
-        var index = new RootPaletteSearchIndex(snapshot);
+        var index = new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService()));
         var git = new FakeGitRepoIndex
         {
             Repos = [new GitRepoCandidate { Name = "UnsavedRepo", Directory = MakeDirectory("unsaved") }],
@@ -374,7 +374,7 @@ public sealed class RootPaletteSearchTests : IDisposable
 
         RunBenchmark(count, "RootPaletteSearchIndex", query => index.Search(query, git));
         RunBenchmark(count, "RootPaletteSearchIndex cold", query =>
-            new RootPaletteSearchIndex(snapshot).Search(query, git));
+            new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService())).Search(query, git));
     }
 
     [Theory]
@@ -402,7 +402,7 @@ public sealed class RootPaletteSearchTests : IDisposable
 
     private static RootPaletteSearchResult LegacySearch(WorkspaceRepositorySnapshot snapshot, string query, FakeGitRepoIndex gitRepos)
     {
-        var taskActions = snapshot.SearchTaskActions(query).ToArray();
+        var taskActions = snapshot.SearchTaskActions(query, new TerminalCatalog(new WtProfilesService())).ToArray();
         if (taskActions.Length > 0)
         {
             return new RootPaletteSearchResult(RootPaletteResultKind.TaskActions, TaskActions: taskActions);
@@ -482,7 +482,7 @@ public sealed class RootPaletteSearchTests : IDisposable
     {
         var repository = new FakeShortcutRepository(shortcuts);
         var snapshot = repository.GetSnapshot();
-        return new RootPaletteSearchIndex(snapshot);
+        return new RootPaletteSearchIndex(snapshot, new TerminalCatalog(new WtProfilesService()));
     }
 
     private static QuickShellFallback CreateFallback(

@@ -32,7 +32,7 @@ internal sealed partial class ResetProjectsCommand : InvokableCommand
             _onReload();
         }
 
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsRefresh);
+        _services.RefreshScheduler.ScheduleRefresh(_onSettingsRefresh);
         return QuickShellNavigation.StayOnSettings(result.Message);
     }
 }

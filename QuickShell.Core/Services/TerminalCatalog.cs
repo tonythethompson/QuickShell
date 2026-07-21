@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using QuickShell.Abstractions;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -34,7 +35,7 @@ internal sealed class LaunchTarget
     public string? FallbackReason { get; init; }
 }
 
-internal static class TerminalCatalog
+internal sealed class TerminalCatalog : ITerminalCatalog
 {
     private sealed class CatalogSnapshot
     {
@@ -45,18 +46,50 @@ internal static class TerminalCatalog
         public required ExecutableAvailability Executables { get; init; }
     }
 
-    private static readonly object Sync = new();
-    private static CatalogSnapshot? _snapshot;
-    private static string? _cachedFormChoicesJson;
-    private static bool _cachedFormChoicesIncludeDefault;
-    private static string? _cachedFormApplicationId;
-    private static string? _cachedFingerprint;
+    private readonly object _sync = new();
+    private readonly IWtProfilesService _profiles;
 
-    public const string SameAsPreviousLaunchTargetId = "same-as-previous";
+    private CatalogSnapshot? _snapshot;
+    private string? _cachedFormChoicesJson;
+    private bool _cachedFormChoicesIncludeDefault;
+    private string? _cachedFormApplicationId;
+    private string? _cachedFingerprint;
 
-    public const string SameAsPreviousDisplayName = "Same as previous command";
+    public const string SameAsPreviousLaunchTargetId = ITerminalCatalog.SameAsPreviousLaunchTargetId;
 
-    public static IReadOnlyList<LaunchTarget> GetLaunchTargets(bool includeDefaultChoice = false)
+    public const string SameAsPreviousDisplayName = ITerminalCatalog.SameAsPreviousDisplayName;
+
+    public TerminalCatalog(IWtProfilesService profiles)
+    {
+        _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
+    }
+
+
+    string ITerminalCatalog.EncodeLaunchTargetId(TerminalShortcut shortcut) =>
+        EncodeLaunchTargetId(shortcut);
+
+    void ITerminalCatalog.ApplyLaunchTargetId(TerminalShortcut shortcut, string? launchTargetId) =>
+        ApplyLaunchTargetId(shortcut, launchTargetId);
+
+    bool ITerminalCatalog.IsStandaloneShellLaunchTarget(string? launchTargetId) =>
+        IsStandaloneShellLaunchTarget(launchTargetId);
+
+    string ITerminalCatalog.NormalizeLaunchTargetId(string? launchTargetId) =>
+        NormalizeLaunchTargetId(launchTargetId);
+
+    string ITerminalCatalog.ResolveEffectiveLaunchTargetId(
+        IReadOnlyList<WorkspaceEntry> orderedLaunches,
+        int index) =>
+        ResolveEffectiveLaunchTargetId(orderedLaunches, index);
+
+    WorkspaceEntry ITerminalCatalog.ResolveLaunchEntry(
+        WorkspaceEntry entry,
+        IReadOnlyList<WorkspaceEntry> orderedLaunches,
+        int index) =>
+        ResolveLaunchEntry(entry, orderedLaunches, index);
+
+
+    public IReadOnlyList<LaunchTarget> GetLaunchTargets(bool includeDefaultChoice = false)
     {
         var snapshot = EnsureCached();
 
@@ -77,25 +110,25 @@ internal static class TerminalCatalog
         ];
     }
 
-    public static void InvalidateCache()
+    public void InvalidateCache()
     {
-        lock (Sync)
+        lock (_sync)
         {
             _snapshot = null;
             _cachedFormChoicesJson = null;
             _cachedFingerprint = null;
         }
 
-        WtProfilesService.InvalidateCache();
+        _profiles.InvalidateCache();
     }
 
     /// <summary>
     /// Returns a stable fingerprint of the current terminal catalog snapshot.
     /// The value changes when installed terminals, Windows Terminal profiles, or WSL distros change.
     /// </summary>
-    public static string GetFingerprint()
+    public string GetFingerprint()
     {
-        lock (Sync)
+        lock (_sync)
         {
             if (_cachedFingerprint is not null)
             {
@@ -108,7 +141,7 @@ internal static class TerminalCatalog
         }
     }
 
-    private static string ComputeFingerprint(CatalogSnapshot snapshot)
+    private string ComputeFingerprint(CatalogSnapshot snapshot)
     {
         var builder = new StringBuilder();
         foreach (var target in snapshot.Targets.OrderBy(static t => t.Id, StringComparer.OrdinalIgnoreCase))
@@ -127,7 +160,7 @@ internal static class TerminalCatalog
         return Convert.ToHexString(hash);
     }
 
-    public static IReadOnlyList<string> GetDefaultProfileIds(string terminalApplicationId)
+    public IReadOnlyList<string> GetDefaultProfileIds(string terminalApplicationId)
     {
         if (!TerminalHostIds.UsesWindowsTerminalProfiles(terminalApplicationId))
         {
@@ -136,7 +169,7 @@ internal static class TerminalCatalog
 
         var effectiveApp = TerminalHostIds.ResolveEffectiveApplication(terminalApplicationId);
         var ids = new List<string> { TerminalHostIds.DefaultProfile };
-        foreach (var profile in WtProfilesService.GetProfilesForApplication(effectiveApp))
+        foreach (var profile in _profiles.GetProfilesForApplication(effectiveApp))
         {
             ids.Add(profile.Name);
         }
@@ -144,7 +177,7 @@ internal static class TerminalCatalog
         return ids;
     }
 
-    private static List<string> GetConsoleHostProfileIds()
+    private List<string> GetConsoleHostProfileIds()
     {
         var snapshot = EnsureCached();
         var ids = new List<string> { TerminalHostIds.DefaultProfile };
@@ -167,7 +200,7 @@ internal static class TerminalCatalog
         return ids;
     }
 
-    public static bool HasTerminalApplication(string terminalApplicationId)
+    public bool HasTerminalApplication(string terminalApplicationId)
     {
         if (terminalApplicationId.Equals(TerminalHostIds.LetWindowsChoose, StringComparison.OrdinalIgnoreCase)
             || terminalApplicationId.Equals(TerminalHostIds.WindowsConsoleHost, StringComparison.OrdinalIgnoreCase))
@@ -175,7 +208,7 @@ internal static class TerminalCatalog
             return true;
         }
 
-        if (WtProfilesService.GetProfilesForApplication(terminalApplicationId).Count > 0)
+        if (_profiles.GetProfilesForApplication(terminalApplicationId).Count > 0)
         {
             return true;
         }
@@ -186,10 +219,10 @@ internal static class TerminalCatalog
             : snapshot.Executables.WindowsTerminal;
     }
 
-    public static IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId) =>
-        WtProfilesService.GetProfilesForApplication(terminalApplicationId);
+    public IReadOnlyList<WtProfileInfo> GetProfilesForApplication(string terminalApplicationId) =>
+        _profiles.GetProfilesForApplication(terminalApplicationId);
 
-    public static string GetDisplayName(TerminalShortcut shortcut)
+    public string GetDisplayName(TerminalShortcut shortcut)
     {
         var id = EncodeLaunchTargetId(shortcut);
         if (id.Equals("default", StringComparison.OrdinalIgnoreCase))
@@ -209,7 +242,7 @@ internal static class TerminalCatalog
     /// <summary>
     /// Profile-only label for workspace list subtitles (no terminal host name).
     /// </summary>
-    public static string GetProfileLabel(TerminalShortcut shortcut)
+    public string GetProfileLabel(TerminalShortcut shortcut)
     {
         var id = EncodeLaunchTargetId(shortcut);
         if (id.Equals("default", StringComparison.OrdinalIgnoreCase))
@@ -369,7 +402,7 @@ internal static class TerminalCatalog
         shortcut.WtProfile = null;
     }
 
-    public static LaunchTarget Resolve(string? launchTargetId)
+    public LaunchTarget Resolve(string? launchTargetId)
     {
         var id = NormalizeLaunchTargetId(launchTargetId);
         if (id.Equals("default", StringComparison.OrdinalIgnoreCase))
@@ -394,7 +427,7 @@ internal static class TerminalCatalog
             };
     }
 
-    public static LaunchTarget ResolveForShortcut(
+    public LaunchTarget ResolveForShortcut(
         TerminalShortcut shortcut,
         string terminalApplicationId,
         string defaultProfileId)
@@ -415,14 +448,14 @@ internal static class TerminalCatalog
             : id);
     }
 
-    private static bool IsProfileLaunch(string id, TerminalShortcut shortcut) =>
+    private bool IsProfileLaunch(string id, TerminalShortcut shortcut) =>
         id.Equals("wt", StringComparison.OrdinalIgnoreCase)
         || id.StartsWith("wt:", StringComparison.OrdinalIgnoreCase)
         || id.Equals("it", StringComparison.OrdinalIgnoreCase)
         || id.StartsWith("it:", StringComparison.OrdinalIgnoreCase)
         || shortcut.Terminal is "wt" or "it";
 
-    private static LaunchTarget ResolveDefaultTarget(string terminalApplicationId, string defaultProfileId)
+    private LaunchTarget ResolveDefaultTarget(string terminalApplicationId, string defaultProfileId)
     {
         if (!TerminalHostIds.UsesWindowsTerminalProfiles(terminalApplicationId))
         {
@@ -456,7 +489,7 @@ internal static class TerminalCatalog
             profileName is null ? prefix : $"{prefix}:{profileName}");
     }
 
-    private static LaunchTarget ResolveProfileTarget(string terminalApplicationId, string? profileName, string fallbackId)
+    private LaunchTarget ResolveProfileTarget(string terminalApplicationId, string? profileName, string fallbackId)
     {
         if (!string.IsNullOrWhiteSpace(profileName))
         {
@@ -494,7 +527,7 @@ internal static class TerminalCatalog
             };
         }
 
-        var profile = WtProfilesService.GetProfilesForApplication(terminalApplicationId)
+        var profile = _profiles.GetProfilesForApplication(terminalApplicationId)
             .FirstOrDefault(p => p.Name.Equals(profileName, StringComparison.OrdinalIgnoreCase));
 
         return new LaunchTarget
@@ -511,7 +544,7 @@ internal static class TerminalCatalog
         };
     }
 
-    private static LaunchTarget WithFallbackReason(LaunchTarget target, string fallbackReason) =>
+    private LaunchTarget WithFallbackReason(LaunchTarget target, string fallbackReason) =>
         new()
         {
             Id = target.Id,
@@ -523,7 +556,7 @@ internal static class TerminalCatalog
             FallbackReason = fallbackReason,
         };
 
-    private static bool IsStandaloneShellId(string id) =>
+    private bool IsStandaloneShellId(string id) =>
         IsStandaloneShellLaunchTarget(id);
 
     public static bool IsStandaloneShellLaunchTarget(string? launchTargetId)
@@ -532,9 +565,9 @@ internal static class TerminalCatalog
         return id is "powershell" or "pwsh" or "cmd" || id.StartsWith("wsl:", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static string BuildFormChoicesJson(bool includeDefaultChoice, string terminalApplicationId)
+    public string BuildFormChoicesJson(bool includeDefaultChoice, string terminalApplicationId)
     {
-        lock (Sync)
+        lock (_sync)
         {
             if (_cachedFormChoicesJson is not null
                 && _cachedFormChoicesIncludeDefault == includeDefaultChoice
@@ -568,7 +601,7 @@ internal static class TerminalCatalog
             ? LaunchTargetKind.IntelligentTerminal
             : LaunchTargetKind.WindowsTerminal;
 
-        foreach (var profile in WtProfilesService.GetProfilesForApplication(terminalApplicationId))
+        foreach (var profile in _profiles.GetProfilesForApplication(terminalApplicationId))
         {
             choiceTargets.Add(new LaunchTarget
             {
@@ -602,7 +635,7 @@ internal static class TerminalCatalog
             .Select(t => $"{{ \"title\": \"{EscapeJson(t.DisplayName)}\", \"value\": \"{EscapeJson(t.Id)}\" }}");
 
         var json = "[" + string.Join(',', choices) + "]";
-        lock (Sync)
+        lock (_sync)
         {
             _cachedFormChoicesIncludeDefault = includeDefaultChoice;
             _cachedFormApplicationId = terminalApplicationId;
@@ -611,7 +644,7 @@ internal static class TerminalCatalog
         }
     }
 
-    public static LaunchTarget ResolveForShortcut(TerminalShortcut shortcut, string defaultLaunchTargetId) =>
+    public LaunchTarget ResolveForShortcut(TerminalShortcut shortcut, string defaultLaunchTargetId) =>
         ResolveForShortcut(shortcut, TerminalHostIds.WindowsTerminal, defaultLaunchTargetId);
 
     public static string ResolveEffectiveLaunchTargetId(
@@ -712,12 +745,12 @@ internal static class TerminalCatalog
         };
     }
 
-    public static string BuildFormChoicesJson(bool includeDefaultChoice) =>
+    public string BuildFormChoicesJson(bool includeDefaultChoice) =>
         BuildFormChoicesJson(includeDefaultChoice, TerminalHostIds.WindowsTerminal);
 
-    private static CatalogSnapshot EnsureCached()
+    private CatalogSnapshot EnsureCached()
     {
-        lock (Sync)
+        lock (_sync)
         {
             if (_snapshot is not null)
             {
@@ -732,10 +765,10 @@ internal static class TerminalCatalog
         }
     }
 
-    private static List<LaunchTarget> DiscoverLaunchTargets(ExecutableAvailability executables)
+    private List<LaunchTarget> DiscoverLaunchTargets(ExecutableAvailability executables)
     {
         var targets = new List<LaunchTarget>();
-        var profiles = WtProfilesService.GetProfiles();
+        var profiles = _profiles.GetProfiles();
 
         foreach (var profile in profiles.Where(p => TerminalHostIds.IsSupportedProfilePrefix(p.IdPrefix)))
         {

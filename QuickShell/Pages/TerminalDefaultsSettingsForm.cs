@@ -97,7 +97,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
         var app = SettingsFormValueReader.ReadString(values, TerminalApplicationField) ?? _pendingApp;
         var profile = SettingsFormValueReader.ReadString(values, DefaultProfileField) ?? _pendingProfile;
         _pendingApp = app;
-        var profileChoices = TerminalCatalogChoices.GetDefaultProfileChoices(_pendingApp);
+        var profileChoices = TerminalCatalogChoices.GetDefaultProfileChoices(_settingsManager.Services.TerminalCatalog, _pendingApp);
         _pendingProfile = profileChoices.Any(choice =>
             string.Equals(choice.Value, profile, StringComparison.OrdinalIgnoreCase))
             ? profile
@@ -130,8 +130,8 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
         // refreshed terminal choices.
         ApplyPendingFromValues(values: null);
         RebuildTemplate();
-        SettingsFormHelpers.SchedulePostNavigationRefresh(_settingsManager.Services.CallbackQueue, _onReload);
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        _settingsManager.Services.RefreshScheduler.SchedulePostNavigationRefresh(_onReload);
+        _settingsManager.Services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.StayOnSettings(Strings.TerminalDefaults_ListRefreshed_Status);
     }
 
@@ -141,7 +141,7 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
         var profile = SettingsFormValueReader.ReadString(values, DefaultProfileField) ?? _pendingProfile;
 
         _pendingApp = app;
-        var profileChoices = TerminalCatalogChoices.GetDefaultProfileChoices(_pendingApp);
+        var profileChoices = TerminalCatalogChoices.GetDefaultProfileChoices(_settingsManager.Services.TerminalCatalog, _pendingApp);
         _pendingProfile = profileChoices.Any(choice =>
             string.Equals(choice.Value, profile, StringComparison.OrdinalIgnoreCase))
             ? profile
@@ -161,8 +161,8 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
 
     private void RebuildTemplate(bool notifyParent)
     {
-        var appChoices = TerminalCatalogChoices.GetTerminalApplicationChoicesJson();
-        var profileChoices = TerminalCatalogChoices.GetDefaultProfileChoicesJson(_pendingApp);
+        var appChoices = TerminalCatalogChoices.GetTerminalApplicationChoicesJson(_settingsManager.Services.TerminalCatalog);
+        var profileChoices = TerminalCatalogChoices.GetDefaultProfileChoicesJson(_settingsManager.Services.TerminalCatalog, _pendingApp);
         // Compact symbol only — MDL2 E72C is private-use and shows as □ in CmdPal action titles.
         // Save lives on the page footer as Save & close.
         var refreshAction = AdaptiveCardFormJson.IconSubmitAction(

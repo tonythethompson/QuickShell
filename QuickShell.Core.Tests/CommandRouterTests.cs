@@ -13,7 +13,6 @@ using System.Threading;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(WtProfilesServiceIsolation.Name)]
 public sealed class CommandRouterTests : IDisposable
 {
     private readonly string _configDirectory;
@@ -193,6 +192,7 @@ public sealed class CommandRouterTests : IDisposable
         public IWorkspaceLaunchService WorkspaceLaunch => _provider.GetRequiredService<IWorkspaceLaunchService>();
         public IShortcutLaunchExecutor LaunchExecutor => _provider.GetRequiredService<IShortcutLaunchExecutor>();
         public IWorkspaceGitOperations GitOperations => _provider.GetRequiredService<IWorkspaceGitOperations>();
+        public IWorktreeBranchTargetStore TargetStore => _provider.GetRequiredService<IWorktreeBranchTargetStore>();
         public ICompanionAppLauncher CompanionApps => _provider.GetRequiredService<ICompanionAppLauncher>();
         public IWorkspaceHealthChecker HealthChecker => _provider.GetRequiredService<IWorkspaceHealthChecker>();
         public WorkspaceGitLaunchGate GitLaunchGate => _provider.GetRequiredService<WorkspaceGitLaunchGate>();
@@ -200,7 +200,14 @@ public sealed class CommandRouterTests : IDisposable
         public IProjectClassificationCache ClassificationCache => _provider.GetRequiredService<IProjectClassificationCache>();
         public IExtensionCallbackQueue CallbackQueue => _provider.GetRequiredService<IExtensionCallbackQueue>();
         public IWorkspaceRowPresentationCache RowPresentation => _provider.GetRequiredService<IWorkspaceRowPresentationCache>();
+        public IRowPresentationDiagnostics RowPresentationDiagnostics => _provider.GetRequiredService<IRowPresentationDiagnostics>();
+        public ISettingsFormRefreshScheduler RefreshScheduler => _provider.GetRequiredService<ISettingsFormRefreshScheduler>();
         public IQuickShellLifetime Lifetime => _provider.GetRequiredService<IQuickShellLifetime>();
+        public ITerminalCatalog TerminalCatalog => _provider.GetRequiredService<ITerminalCatalog>();
+        public IWtProfilesService WtProfiles => _provider.GetRequiredService<IWtProfilesService>();
+        public ITerminalListIconCache TerminalListIcons => _provider.GetRequiredService<ITerminalListIconCache>();
+        public ITerminalLaunchGlyphs TerminalLaunchGlyphs => _provider.GetRequiredService<ITerminalLaunchGlyphs>();
+        public TerminalCatalogPrewarm TerminalCatalogPrewarm => _provider.GetRequiredService<TerminalCatalogPrewarm>();
     }
 
     private sealed class TestWorkspaceGitOperations : IWorkspaceGitOperations

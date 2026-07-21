@@ -69,7 +69,7 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         }
 
         var target = _knownTargetBranch
-            ?? WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, _services.GitOperations);
+            ?? _services.TargetStore.GetTargetForDirectory(shortcut.Directory, _services.GitOperations);
         var branches = _services.GitOperations.ListLocalBranches(shortcut.Directory);
         if (branches.Count == 0)
         {

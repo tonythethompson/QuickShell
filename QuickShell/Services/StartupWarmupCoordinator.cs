@@ -131,7 +131,7 @@ internal sealed partial class StartupWarmupCoordinator : IStartupWarmupCoordinat
                     }
 
                     StartupPerformanceTrace.Write($"Warmup stage failed: {stage.Name} {ex.GetType().Name}: {ex.Message}");
-                    SupportDiagnostics.Write(
+                    SupportDiagnostics.Default.Write(
                         "StartupWarmupCoordinator",
                         "stage failed",
                         new { stage = stage.Name, exception = ex.GetType().Name });

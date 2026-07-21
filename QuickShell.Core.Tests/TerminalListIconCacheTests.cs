@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -10,9 +11,17 @@ namespace QuickShell.Core.Tests;
 /// </summary>
 public sealed class TerminalListIconCacheTests
 {
+    private readonly TerminalListIconCache _cache;
+
     public TerminalListIconCacheTests()
     {
-        TerminalListIconCache.ResetForTests();
+        var profiles = new WtProfilesService([]);
+        var catalog = new TerminalCatalog(profiles);
+        var testRoot = Path.Join(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var appDataPaths = new AppDataPaths(testRoot);
+        var glyphs = new TerminalLaunchGlyphs(
+            new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths: null, catalog), profiles, catalog));
+        _cache = new TerminalListIconCache(profiles, glyphs, appDataPaths);
     }
 
     [Fact]
@@ -20,7 +29,7 @@ public sealed class TerminalListIconCacheTests
     {
         const string glyph = "🚀";
 
-        var result = TerminalListIconCache.PrepareForList(glyph);
+        var result = _cache.PrepareForList(glyph);
 
         Assert.Equal(glyph, result);
     }
@@ -30,7 +39,7 @@ public sealed class TerminalListIconCacheTests
     {
         const string glyph = "ms-appx:///Assets/SomeGlyph.png";
 
-        var result = TerminalListIconCache.PrepareForList(glyph);
+        var result = _cache.PrepareForList(glyph);
 
         Assert.Equal(glyph, result);
     }
@@ -38,7 +47,7 @@ public sealed class TerminalListIconCacheTests
     [Fact]
     public void PrepareForList_trims_surrounding_whitespace()
     {
-        var result = TerminalListIconCache.PrepareForList("  🚀  ");
+        var result = _cache.PrepareForList("  🚀  ");
 
         Assert.Equal("🚀", result);
     }
@@ -48,7 +57,7 @@ public sealed class TerminalListIconCacheTests
     {
         var missing = Path.Combine(Path.GetTempPath(), "qs-missing-icon-" + Guid.NewGuid().ToString("N") + ".png");
 
-        var result = TerminalListIconCache.PrepareForList(missing);
+        var result = _cache.PrepareForList(missing);
 
         Assert.Equal(missing, result);
     }

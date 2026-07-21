@@ -4,7 +4,6 @@ using System.Diagnostics;
 
 namespace QuickShell.Core.Tests;
 
-[Collection(TerminalLauncherOverrideIsolation.Name)]
 public sealed class LaunchPlanCacheMeasurementsTests : IDisposable
 {
     public LaunchPlanCacheMeasurementsTests()

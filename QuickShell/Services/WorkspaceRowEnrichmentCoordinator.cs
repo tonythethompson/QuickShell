@@ -2,6 +2,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Abstractions;
 using QuickShell.Models;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuickShell.Services;
@@ -17,8 +18,12 @@ namespace QuickShell.Services;
 internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 {
     private readonly IExtensionCallbackQueue _callbackQueue;
+    private readonly IRowPresentationDiagnostics _diagnostics;
+    private readonly ITerminalListIconCache _listIcons;
     private readonly Func<TerminalShortcut, string?> _resolveIcon;
     private readonly Action<Action> _runInBackground;
+    private readonly CancellationTokenSource _cts = new();
+    private readonly CancellationToken _cancellationToken;
     private readonly object _sync = new();
     private readonly Dictionary<string, EnrichmentWork> _workByWorkspaceId =
         new(StringComparer.OrdinalIgnoreCase);
@@ -54,13 +59,18 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 
     public WorkspaceRowEnrichmentCoordinator(
         IExtensionCallbackQueue callbackQueue,
+        ITerminalListIconCache listIcons,
+        IRowPresentationDiagnostics? diagnostics = null,
         Func<TerminalShortcut, string?>? resolveIcon = null,
         Action<Action>? backgroundScheduler = null)
     {
         ArgumentNullException.ThrowIfNull(callbackQueue);
         _callbackQueue = callbackQueue;
+        _listIcons = listIcons ?? throw new ArgumentNullException(nameof(listIcons));
+        _diagnostics = diagnostics ?? new RowPresentationDiagnostics();
         _resolveIcon = resolveIcon ?? ResolveUpgradedIcon;
-        _runInBackground = backgroundScheduler ?? (work => _ = Task.Run(work));
+        _cancellationToken = _cts.Token;
+        _runInBackground = backgroundScheduler ?? (work => _ = Task.Run(work, _cancellationToken));
     }
 
     /// <summary>
@@ -86,7 +96,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             {
                 for (var i = 0; i < _pending.Count; i++)
                 {
-                    RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentCancelled);
+                    _diagnostics.Record(RowPresentationDiagnostics.EnrichmentCancelled);
                 }
 
                 _pending.Clear();
@@ -152,7 +162,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
         }
         else if (queuedResolution)
         {
-            RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentQueued);
+            _diagnostics.Record(RowPresentationDiagnostics.EnrichmentQueued);
         }
     }
 
@@ -189,12 +199,15 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             _disposed = true;
             for (var i = 0; i < _pending.Count; i++)
             {
-                RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentCancelled);
+                _diagnostics.Record(RowPresentationDiagnostics.EnrichmentCancelled);
             }
 
             _pending.Clear();
             _workByWorkspaceId.Clear();
         }
+
+        _cts.Cancel();
+        _cts.Dispose();
     }
 
     private void RunBatch(EnrichmentWork[] batch)
@@ -254,7 +267,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
                         var staleCount = work.Items.Count - work.AppliedItemCount;
                         for (var i = 0; i < staleCount; i++)
                         {
-                            RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentDiscardedStale);
+                            _diagnostics.Record(RowPresentationDiagnostics.EnrichmentDiscardedStale);
                         }
 
                         continue;
@@ -276,14 +289,14 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 
             if (appliedAny)
             {
-                RowPresentationDiagnostics.Record(RowPresentationDiagnostics.EnrichmentBatchApplied);
+                _diagnostics.Record(RowPresentationDiagnostics.EnrichmentBatchApplied);
             }
         });
     }
 
-    private static string? ResolveUpgradedIcon(TerminalShortcut shortcut)
+    private string? ResolveUpgradedIcon(TerminalShortcut shortcut)
     {
-        TerminalListIconCache.PrewarmProfiles();
-        return TerminalListIconCache.TryResolveUpgradedListIcon(shortcut);
+        _listIcons.PrewarmProfiles();
+        return _listIcons.TryResolveUpgradedListIcon(shortcut);
     }
 }

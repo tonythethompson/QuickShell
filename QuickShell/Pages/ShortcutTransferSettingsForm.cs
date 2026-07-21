@@ -152,14 +152,14 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
     {
         ImportConflictState.Clear();
         RebuildTemplate();
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        _services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.StayOnSettings("Import cancelled.");
     }
 
     private CommandResult Finish(string message)
     {
         RebuildTemplate();
-        SettingsFormHelpers.ScheduleRefresh(_onSettingsChanged);
+        _services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.StayOnSettings(message);
     }
 
@@ -289,13 +289,13 @@ internal sealed partial class ShortcutTransferSettingsForm : FormContent
 
     private static CommandResult CopySupportBundle()
     {
-        SupportDiagnostics.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var message);
+        SupportDiagnostics.Default.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var message);
         return QuickShellNavigation.StayOnSettings(message);
     }
 
     private static CommandResult OpenSupportLogs()
     {
-        return SupportDiagnostics.TryOpenLogFolder(out var error)
+        return SupportDiagnostics.Default.TryOpenLogFolder(out var error)
             ? QuickShellNavigation.StayOnSettings(Strings.Diagnostics_LogFolderOpened)
             : QuickShellNavigation.StayOnSettings(error);
     }

@@ -1,4 +1,5 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using QuickShell.Abstractions;
 using QuickShell.Services;
 
 namespace QuickShell;
@@ -6,25 +7,30 @@ namespace QuickShell;
 internal static class TerminalCatalogChoices
 {
     private static readonly object CacheLock = new();
+    private static ITerminalCatalog? _appChoicesCatalog;
     private static List<ChoiceSetSetting.Choice>? _appChoices;
     private static string? _appChoicesJson;
+    private static ITerminalCatalog? _profileChoicesCatalog;
     private static string? _profileChoicesAppId;
     private static List<ChoiceSetSetting.Choice>? _profileChoices;
     private static string? _profileChoicesJson;
 
-    public static List<ChoiceSetSetting.Choice> GetTerminalApplicationChoices()
+    public static List<ChoiceSetSetting.Choice> GetTerminalApplicationChoices(ITerminalCatalog catalog)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
+
         lock (CacheLock)
         {
-            if (_appChoices is not null)
+            if (_appChoices is not null && ReferenceEquals(_appChoicesCatalog, catalog))
             {
                 return _appChoices;
             }
         }
 
-        var choices = BuildAppChoices();
+        var choices = BuildAppChoices(catalog);
         lock (CacheLock)
         {
+            _appChoicesCatalog = catalog;
             _appChoices = choices;
             _appChoicesJson = SettingsCardJson.BuildChoicesJson(choices);
             return _appChoices;
@@ -32,13 +38,20 @@ internal static class TerminalCatalogChoices
     }
 
     /// <summary>Prebuilt Adaptive Card choices JSON for the settings terminal app dropdown.</summary>
-    public static string GetTerminalApplicationChoicesJson()
+    public static string GetTerminalApplicationChoicesJson(ITerminalCatalog catalog)
     {
-        _ = GetTerminalApplicationChoices();
+        var choices = GetTerminalApplicationChoices(catalog);
         lock (CacheLock)
         {
-            return _appChoicesJson ?? "[]";
+            if (ReferenceEquals(_appChoicesCatalog, catalog)
+                && ReferenceEquals(_appChoices, choices)
+                && _appChoicesJson is not null)
+            {
+                return _appChoicesJson;
+            }
         }
+
+        return SettingsCardJson.BuildChoicesJson(choices);
     }
 
     public static List<ChoiceSetSetting.Choice> GetMinimalDefaultProfileChoices() =>
@@ -46,21 +59,25 @@ internal static class TerminalCatalogChoices
         new("Default profile for this app", TerminalHostIds.DefaultProfile),
     ];
 
-    public static List<ChoiceSetSetting.Choice> GetDefaultProfileChoices(string terminalApplicationId)
+    public static List<ChoiceSetSetting.Choice> GetDefaultProfileChoices(ITerminalCatalog catalog, string terminalApplicationId)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
+
         var appId = terminalApplicationId ?? string.Empty;
         lock (CacheLock)
         {
             if (_profileChoices is not null
+                && ReferenceEquals(_profileChoicesCatalog, catalog)
                 && string.Equals(_profileChoicesAppId, appId, StringComparison.OrdinalIgnoreCase))
             {
                 return _profileChoices;
             }
         }
 
-        var choices = BuildProfileChoices(appId);
+        var choices = BuildProfileChoices(catalog, appId);
         lock (CacheLock)
         {
+            _profileChoicesCatalog = catalog;
             _profileChoicesAppId = appId;
             _profileChoices = choices;
             _profileChoicesJson = SettingsCardJson.BuildChoicesJson(choices);
@@ -68,37 +85,40 @@ internal static class TerminalCatalogChoices
         }
     }
 
-    public static string GetDefaultProfileChoicesJson(string terminalApplicationId)
+    public static string GetDefaultProfileChoicesJson(ITerminalCatalog catalog, string terminalApplicationId)
     {
-        _ = GetDefaultProfileChoices(terminalApplicationId);
+        _ = GetDefaultProfileChoices(catalog, terminalApplicationId);
         lock (CacheLock)
         {
-            if (string.Equals(_profileChoicesAppId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
+            if (ReferenceEquals(_profileChoicesCatalog, catalog)
+                && string.Equals(_profileChoicesAppId, terminalApplicationId, StringComparison.OrdinalIgnoreCase)
                 && _profileChoicesJson is not null)
             {
                 return _profileChoicesJson;
             }
         }
 
-        return SettingsCardJson.BuildChoicesJson(GetDefaultProfileChoices(terminalApplicationId));
+        return SettingsCardJson.BuildChoicesJson(GetDefaultProfileChoices(catalog, terminalApplicationId));
     }
 
     public static void InvalidateCache()
     {
         lock (CacheLock)
         {
+            _appChoicesCatalog = null;
             _appChoices = null;
             _appChoicesJson = null;
+            _profileChoicesCatalog = null;
             _profileChoicesAppId = null;
             _profileChoices = null;
             _profileChoicesJson = null;
         }
     }
 
-    public static List<ChoiceSetSetting.Choice> GetSettingsChoices() =>
-        GetTerminalApplicationChoices();
+    public static List<ChoiceSetSetting.Choice> GetSettingsChoices(ITerminalCatalog catalog) =>
+        GetTerminalApplicationChoices(catalog);
 
-    private static List<ChoiceSetSetting.Choice> BuildAppChoices()
+    private static List<ChoiceSetSetting.Choice> BuildAppChoices(ITerminalCatalog catalog)
     {
         var choices = new List<ChoiceSetSetting.Choice>
         {
@@ -107,7 +127,7 @@ internal static class TerminalCatalogChoices
             new("Windows Console Host", TerminalHostIds.WindowsConsoleHost),
         };
 
-        if (TerminalCatalog.HasTerminalApplication(TerminalHostIds.IntelligentTerminal))
+        if (catalog.HasTerminalApplication(TerminalHostIds.IntelligentTerminal))
         {
             choices.Add(new ChoiceSetSetting.Choice("Intelligent Terminal", TerminalHostIds.IntelligentTerminal));
         }
@@ -115,8 +135,8 @@ internal static class TerminalCatalogChoices
         return choices;
     }
 
-    private static List<ChoiceSetSetting.Choice> BuildProfileChoices(string terminalApplicationId) =>
-        TerminalCatalog.GetDefaultProfileIds(terminalApplicationId)
+    private static List<ChoiceSetSetting.Choice> BuildProfileChoices(ITerminalCatalog catalog, string terminalApplicationId) =>
+        catalog.GetDefaultProfileIds(terminalApplicationId)
             .Select(id => id.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase)
                 ? new ChoiceSetSetting.Choice("Default profile for this app", id)
                 : id switch

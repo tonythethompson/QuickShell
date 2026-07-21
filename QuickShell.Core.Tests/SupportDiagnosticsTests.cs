@@ -4,13 +4,6 @@ using System.Text.Json;
 
 namespace QuickShell.Core.Tests;
 
-[CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class SupportDiagnosticsIsolation
-{
-    public const string Name = nameof(SupportDiagnosticsIsolation);
-}
-
-[Collection(SupportDiagnosticsIsolation.Name)]
 public sealed class SupportDiagnosticsTests : IDisposable
 {
     private readonly string _root;
@@ -19,16 +12,18 @@ public sealed class SupportDiagnosticsTests : IDisposable
     {
         _root = Path.Join(Path.GetTempPath(), "quickshell-support-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
-        SupportDiagnostics.LogDirectoryOverride = _root;
-        SupportDiagnostics.MaximumLogFileBytesOverride = null;
     }
+
+    private SupportDiagnostics CreateDiagnostics(int? maximumLogFileBytes = null, string? logDirectory = null) =>
+        new(new SupportDiagnosticsOptions(logDirectory ?? _root, maximumLogFileBytes));
 
     [Fact]
     public void Write_RedactsExceptionMessagesAndWritesStructuredEvent()
     {
         const string secret = @"C:\private\secret-project\launch.cmd";
+        var diagnostics = CreateDiagnostics();
 
-        SupportDiagnostics.WriteError("workspace_launch_failed", new InvalidOperationException(secret));
+        diagnostics.WriteError("workspace_launch_failed", new InvalidOperationException(secret));
 
         var logPath = Assert.Single(Directory.GetFiles(_root, "*.jsonl"));
         var line = Assert.Single(File.ReadAllLines(logPath));
@@ -44,8 +39,9 @@ public sealed class SupportDiagnosticsTests : IDisposable
     public void Write_RedactsMessageAndDataAsBoundedTags()
     {
         const string secret = @"C:\private\secret-project\npm.cmd";
+        var diagnostics = CreateDiagnostics();
 
-        SupportDiagnostics.Write("Program.cs:Main", secret, new { command = secret });
+        diagnostics.Write("Program.cs:Main", secret, new { command = secret });
 
         var logPath = Assert.Single(Directory.GetFiles(_root, "*.jsonl"));
         var line = Assert.Single(File.ReadAllLines(logPath));
@@ -62,11 +58,11 @@ public sealed class SupportDiagnosticsTests : IDisposable
     [Fact]
     public void Write_RotatesAndRetainsOnlyThreeLogs()
     {
-        SupportDiagnostics.MaximumLogFileBytesOverride = 1;
+        var diagnostics = CreateDiagnostics(maximumLogFileBytes: 1);
 
         for (var index = 0; index < 5; index++)
         {
-            SupportDiagnostics.WriteInfo($"event.{index}");
+            diagnostics.WriteInfo($"event.{index}");
         }
 
         var contents = string.Join("\n", Directory.GetFiles(_root, "*.jsonl").Select(File.ReadAllText));
@@ -84,7 +80,7 @@ public sealed class SupportDiagnosticsTests : IDisposable
         var diagnostics = new LaunchDiagnosticsReport(workspaceName, DateTimeOffset.UtcNow);
         diagnostics.AddError(LaunchDiagnosticKind.HealthError, "Could not launch", command);
 
-        var bundle = SupportDiagnostics.BuildBundle(diagnostics);
+        var bundle = CreateDiagnostics().BuildBundle(diagnostics);
 
         Assert.Contains("schemaVersion", bundle, StringComparison.Ordinal);
         Assert.Contains("HealthError", bundle, StringComparison.Ordinal);
@@ -100,16 +96,15 @@ public sealed class SupportDiagnosticsTests : IDisposable
     {
         var blockedPath = Path.Join(_root, "not-a-directory");
         File.WriteAllText(blockedPath, "file");
-        SupportDiagnostics.LogDirectoryOverride = blockedPath;
+        var diagnostics = CreateDiagnostics(logDirectory: blockedPath);
 
-        var exception = Record.Exception(() => SupportDiagnostics.WriteInfo("startup.complete"));
+        var exception = Record.Exception(() => diagnostics.WriteInfo("startup.complete"));
 
         Assert.Null(exception);
     }
 
     public void Dispose()
     {
-        SupportDiagnostics.ResetForTests();
         try
         {
             Directory.Delete(_root, recursive: true);

@@ -1,12 +1,21 @@
+using QuickShell.Abstractions;
+
 namespace QuickShell.Services;
 
 /// <summary>
 /// Warms terminal/profile catalogs used by settings and workspace forms.
-/// Safe to call repeatedly: results are cached by <see cref="TerminalCatalog"/>.
+/// Safe to call repeatedly: results are cached by <see cref="ITerminalCatalog"/>.
 /// </summary>
-internal static class TerminalCatalogPrewarm
+internal sealed class TerminalCatalogPrewarm
 {
-    public static void Warm(string? terminalApplicationId)
+    private readonly ITerminalCatalog _catalog;
+
+    public TerminalCatalogPrewarm(ITerminalCatalog catalog)
+    {
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+    }
+
+    public void Warm(string? terminalApplicationId)
     {
         var appId = string.IsNullOrWhiteSpace(terminalApplicationId)
             ? TerminalHostIds.WindowsTerminal
@@ -19,7 +28,7 @@ internal static class TerminalCatalogPrewarm
                      TerminalHostIds.IntelligentTerminal,
                  }.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            _ = TerminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, id);
+            _ = _catalog.BuildFormChoicesJson(includeDefaultChoice: true, id);
         }
     }
 }

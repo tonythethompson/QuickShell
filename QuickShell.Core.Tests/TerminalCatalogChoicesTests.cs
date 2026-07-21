@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell;
 using QuickShell.Models;
 using QuickShell.Services;
@@ -24,7 +25,7 @@ public sealed class TerminalCatalogChoicesTests
             WtProfile = "Nushell",
         };
 
-        Assert.Equal("Nushell", TerminalCatalog.GetProfileLabel(shortcut));
+        Assert.Equal("Nushell", new TerminalCatalog(new WtProfilesService()).GetProfileLabel(shortcut));
     }
 
     [Fact]
@@ -74,6 +75,6 @@ public sealed class TerminalCatalogChoicesTests
     {
         var shortcut = new TerminalShortcut { Terminal = "pwsh" };
 
-        Assert.Equal("PowerShell 7", TerminalCatalog.GetProfileLabel(shortcut));
+        Assert.Equal("PowerShell 7", new TerminalCatalog(new WtProfilesService()).GetProfileLabel(shortcut));
     }
 }

@@ -112,13 +112,15 @@ internal static class WorkspaceStatusService
         string terminalApplicationId,
         string defaultProfileId,
         IWorkspaceHealthChecker healthChecker,
-        IWorkspaceGitOperations gitOperations) =>
+        IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore) =>
         Capture(
             shortcut,
             terminalApplicationId,
             defaultProfileId,
             healthChecker,
             gitOperations,
+            targetStore,
             forceRefresh: false);
 
     public static bool TryGetCached(
@@ -147,10 +149,12 @@ internal static class WorkspaceStatusService
         string defaultProfileId,
         IWorkspaceHealthChecker healthChecker,
         IWorkspaceGitOperations gitOperations,
+        IWorktreeBranchTargetStore targetStore,
         bool forceRefresh = false)
     {
         ArgumentNullException.ThrowIfNull(healthChecker);
         ArgumentNullException.ThrowIfNull(gitOperations);
+        ArgumentNullException.ThrowIfNull(targetStore);
 
         // Scope cache entries to the concrete health/git service instances so two hosts
         // (or test fakes vs production) never reuse each other's snapshots.
@@ -176,7 +180,7 @@ internal static class WorkspaceStatusService
             : null;
         var target = git is null
             ? null
-            : WorktreeBranchTargetStore.GetTargetForDirectory(shortcut.Directory, gitOperations);
+            : targetStore.GetTargetForDirectory(shortcut.Directory, gitOperations);
         var snapshot = new WorkspaceStatusSnapshot(
             health,
             git,

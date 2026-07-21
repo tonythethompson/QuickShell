@@ -1,3 +1,4 @@
+using QuickShell.Abstractions;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -139,7 +140,7 @@ public sealed class TerminalProfileIconResolverTests : IDisposable
             WtProfile = "Debian",
         };
 
-        var glyph = TerminalLaunchGlyphs.GetForLaunch(launch);
+        var glyph = new TerminalLaunchGlyphs(new TerminalProfileResolver(new QuickShellSettingsReader(), new WtProfilesService(), new TerminalCatalog(new WtProfilesService()))).GetForLaunch(launch);
         Assert.Equal(ShortcutGlyphs.Linux, glyph);
     }
 

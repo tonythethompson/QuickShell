@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickShell.Abstractions;
 
 namespace QuickShell.Services;
 
@@ -9,12 +10,23 @@ internal sealed class QuickShellSettingsReader
     private const string BlockDirtyBranchSwitchSettingId = "blockDirtyBranchSwitch";
     private const string MultiLaunchPresentationSettingId = QuickShellMultiLaunchSettings.SettingKey;
 
+    private readonly ITerminalCatalog _catalog;
+
     public QuickShellSettingsReader()
+        : this(appDataPaths: null, catalog: null)
     {
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuickShell");
-        SettingsPath = Path.Combine(directory, "settings.json");
+    }
+
+    internal QuickShellSettingsReader(IAppDataPaths? appDataPaths)
+        : this(appDataPaths, catalog: null)
+    {
+    }
+
+    internal QuickShellSettingsReader(IAppDataPaths? appDataPaths, ITerminalCatalog? catalog)
+    {
+        _catalog = catalog ?? new TerminalCatalog(new WtProfilesService());
+        var directory = Path.Join((appDataPaths ?? new AppDataPaths()).Root, "QuickShell");
+        SettingsPath = Path.Join(directory, "settings.json");
     }
 
     public string SettingsPath { get; }
@@ -33,7 +45,7 @@ internal sealed class QuickShellSettingsReader
             settings[TerminalApplicationSettingId] = app;
             settings[DefaultProfileSettingId] = profile;
         });
-        TerminalCatalog.InvalidateCache();
+        _catalog.InvalidateCache();
     }
 
     public bool ReadBlockDirtyBranchSwitch()
@@ -166,7 +178,7 @@ internal sealed class QuickShellSettingsReader
     private static string EscapeJson(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-    private static string EnsureValidTerminalApplication(string? value)
+    private string EnsureValidTerminalApplication(string? value)
     {
         var normalized = string.IsNullOrWhiteSpace(value)
             ? TerminalHostIds.LetWindowsChoose
@@ -183,7 +195,7 @@ internal sealed class QuickShellSettingsReader
         }
 
         if (normalized.Equals(TerminalHostIds.IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
-            && TerminalCatalog.HasTerminalApplication(TerminalHostIds.IntelligentTerminal))
+            && _catalog.HasTerminalApplication(TerminalHostIds.IntelligentTerminal))
         {
             return TerminalHostIds.IntelligentTerminal;
         }
@@ -191,7 +203,7 @@ internal sealed class QuickShellSettingsReader
         return TerminalHostIds.WindowsTerminal;
     }
 
-    private static string EnsureValidDefaultProfile(string terminalApplicationId, string? value)
+    private string EnsureValidDefaultProfile(string terminalApplicationId, string? value)
     {
         var normalized = string.IsNullOrWhiteSpace(value)
             ? TerminalHostIds.DefaultProfile
@@ -202,19 +214,19 @@ internal sealed class QuickShellSettingsReader
             return TerminalHostIds.DefaultProfile;
         }
 
-        if (TerminalCatalog.IsStandaloneShellLaunchTarget(normalized))
+        if (_catalog.IsStandaloneShellLaunchTarget(normalized))
         {
             return normalized;
         }
 
         if (TryExtractProfileName(normalized, out var profileName)
-            && TerminalCatalog.GetDefaultProfileIds(terminalApplicationId)
+            && _catalog.GetDefaultProfileIds(terminalApplicationId)
                 .Any(id => id.Equals(profileName, StringComparison.OrdinalIgnoreCase)))
         {
             return profileName;
         }
 
-        if (TerminalCatalog.GetDefaultProfileIds(terminalApplicationId)
+        if (_catalog.GetDefaultProfileIds(terminalApplicationId)
             .Any(id => id.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
         {
             return normalized;
@@ -223,18 +235,13 @@ internal sealed class QuickShellSettingsReader
         return TerminalHostIds.DefaultProfile;
     }
 
-    private static (string App, string Profile) LoadLegacyTerminalDefaults()
+    private (string App, string Profile) LoadLegacyTerminalDefaults()
     {
-        var legacyPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuickShell",
-            "settings.json");
-
-        var legacyValue = LoadLegacyDefaultTerminal(legacyPath);
+        var legacyValue = LoadLegacyDefaultTerminal(SettingsPath);
         return MigrateLegacyDefaultTerminal(legacyValue);
     }
 
-    private static (string App, string Profile) MigrateLegacyDefaultTerminal(string legacy)
+    private (string App, string Profile) MigrateLegacyDefaultTerminal(string legacy)
     {
         var value = TerminalCatalog.NormalizeLaunchTargetId(legacy);
 
@@ -251,7 +258,7 @@ internal sealed class QuickShellSettingsReader
             return (TerminalHostIds.WindowsTerminal, value[3..]);
         }
 
-        if (TerminalCatalog.IsStandaloneShellLaunchTarget(value))
+        if (_catalog.IsStandaloneShellLaunchTarget(value))
         {
             return (TerminalHostIds.WindowsTerminal, value);
         }

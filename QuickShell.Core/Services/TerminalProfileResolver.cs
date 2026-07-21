@@ -6,10 +6,17 @@ namespace QuickShell.Services;
 internal sealed class TerminalProfileResolver : ITerminalProfileResolver
 {
     private readonly QuickShellSettingsReader _settingsReader;
+    private readonly IWtProfilesService _profiles;
+    private readonly ITerminalCatalog _catalog;
 
-    public TerminalProfileResolver(QuickShellSettingsReader settingsReader)
+    public TerminalProfileResolver(
+        QuickShellSettingsReader settingsReader,
+        IWtProfilesService profiles,
+        ITerminalCatalog catalog)
     {
         _settingsReader = settingsReader ?? throw new ArgumentNullException(nameof(settingsReader));
+        _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
     }
 
     public WtProfileInfo? ResolveForLaunch(WorkspaceEntry launch)
@@ -21,10 +28,10 @@ internal sealed class TerminalProfileResolver : ITerminalProfileResolver
             var hostTerminal = NormalizeHostTerminal(terminal);
             if (!string.IsNullOrWhiteSpace(launch.WtProfile))
             {
-                return WtProfilesService.FindProfileForLaunch(hostTerminal, launch.WtProfile);
+                return _profiles.FindProfileForLaunch(hostTerminal, launch.WtProfile);
             }
 
-            return WtProfilesService.FindDefaultProfile(hostTerminal);
+            return _profiles.FindDefaultProfile(hostTerminal);
         }
 
         if (terminal == "default")
@@ -34,12 +41,12 @@ internal sealed class TerminalProfileResolver : ITerminalProfileResolver
 
         if (terminal is "pwsh" or "powershell" or "powershell7" or "cmd")
         {
-            return WtProfilesService.FindProfileForStandaloneShell(terminal);
+            return _profiles.FindProfileForStandaloneShell(terminal);
         }
 
         if (terminal == "wsl" && !string.IsNullOrWhiteSpace(launch.WtProfile))
         {
-            return WtProfilesService.FindProfileByNameAcrossHosts(launch.WtProfile);
+            return _profiles.FindProfileByNameAcrossHosts(launch.WtProfile);
         }
 
         return null;
@@ -62,17 +69,17 @@ internal sealed class TerminalProfileResolver : ITerminalProfileResolver
         var defaultProfileId = _settingsReader.DefaultProfileId;
         if (defaultProfileId.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase))
         {
-            return WtProfilesService.FindDefaultProfile(hostTerminal);
+            return _profiles.FindDefaultProfile(hostTerminal);
         }
 
-        if (TerminalCatalog.IsStandaloneShellLaunchTarget(defaultProfileId))
+        if (_catalog.IsStandaloneShellLaunchTarget(defaultProfileId))
         {
-            return WtProfilesService.FindProfileForStandaloneShell(defaultProfileId)
-                ?? WtProfilesService.FindDefaultProfile(hostTerminal);
+            return _profiles.FindProfileForStandaloneShell(defaultProfileId)
+                ?? _profiles.FindDefaultProfile(hostTerminal);
         }
 
-        return WtProfilesService.FindProfileForLaunch(hostTerminal, defaultProfileId)
-            ?? WtProfilesService.FindProfileByNameAcrossHosts(defaultProfileId);
+        return _profiles.FindProfileForLaunch(hostTerminal, defaultProfileId)
+            ?? _profiles.FindProfileByNameAcrossHosts(defaultProfileId);
     }
 
     private static string NormalizeHostTerminal(string terminal) =>

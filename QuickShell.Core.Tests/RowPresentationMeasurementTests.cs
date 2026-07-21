@@ -18,7 +18,6 @@ namespace QuickShell.Core.Tests;
 /// dependent and printed only; the assertions are the deterministic shape contracts
 /// (cache reuse on warm passes, no enrichment applied during construction).
 /// </summary>
-[Collection(RowPresentationIsolation.Name)]
 public sealed class RowPresentationMeasurementTests : IDisposable
 {
     private readonly ITestOutputHelper _output;
@@ -29,12 +28,10 @@ public sealed class RowPresentationMeasurementTests : IDisposable
         _output = output;
         _tempRoot = Path.Join(Path.GetTempPath(), "qs-row-perf-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
-        RowPresentationDiagnostics.ResetForTests();
     }
 
     public void Dispose()
     {
-        RowPresentationDiagnostics.ResetForTests();
         try
         {
             if (Directory.Exists(_tempRoot))
@@ -89,18 +86,16 @@ public sealed class RowPresentationMeasurementTests : IDisposable
             });
         }
 
-        RowPresentationDiagnostics.ResetForTests();
-
         // --- Home list: cold build (first paint) then warm rebuild -------------------
         using var page = new QuickShellPage(context);
         var (homeColdMs, homeColdBytes) = MeasureOnce(() => _ = page.GetItems());
-        var coldBuilds = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
-        var coldQueued = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued);
-        var appliedDuringCold = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied);
+        var coldBuilds = qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild);
+        var coldQueued = qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued);
+        var appliedDuringCold = qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied);
 
         var (homeWarmMs, homeWarmBytes) = MeasureOnce(page.Reload);
-        var warmBuilds = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild) - coldBuilds;
-        var warmHits = RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit);
+        var warmBuilds = qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild) - coldBuilds;
+        var warmHits = qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit);
 
         // --- Search results (fallback page): cold then warm --------------------------
         var snapshot = repository.GetSnapshot();
@@ -116,11 +111,11 @@ public sealed class RowPresentationMeasurementTests : IDisposable
         _output.WriteLine($"Home warm   : {homeWarmMs:0.###} ms, {homeWarmBytes / 1024.0:0.#} KiB allocated");
         _output.WriteLine($"Search cold : {searchColdMs:0.###} ms, {searchColdBytes / 1024.0:0.#} KiB allocated");
         _output.WriteLine($"Search warm : {searchWarmMs:0.###} ms, {searchWarmBytes / 1024.0:0.#} KiB allocated");
-        _output.WriteLine($"row-cache:build={RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild)} " +
-                          $"row-cache:hit={RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit)} " +
-                          $"row-cache:miss={RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheMiss)}");
-        _output.WriteLine($"row-enrichment:queued={RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued)} " +
-                          $"batch-applied={RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied)}");
+        _output.WriteLine($"row-cache:build={qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheBuild)} " +
+                          $"row-cache:hit={qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheHit)} " +
+                          $"row-cache:miss={qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.CacheMiss)}");
+        _output.WriteLine($"row-enrichment:queued={qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued)} " +
+                          $"batch-applied={qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied)}");
 
         // Deterministic shape contracts (the wall-clock numbers above are informational).
         Assert.True(coldBuilds >= workspaceCount, "cold home paint should build one presentation per row");
@@ -130,7 +125,7 @@ public sealed class RowPresentationMeasurementTests : IDisposable
         Assert.True(coldQueued > 0, "icon enrichment should be queued, not run inline");
         Assert.Equal(
             0,
-            RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+            qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
     }
 
     private static (double Milliseconds, long AllocatedBytes) MeasureOnce(Action action)

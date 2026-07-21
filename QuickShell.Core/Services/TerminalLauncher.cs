@@ -17,11 +17,14 @@ internal sealed record TerminalLaunchAttempt(
 internal sealed class TerminalLauncher : ITerminalLauncher
 {
     private readonly IProcessStarter _processStarter;
+    private readonly ITerminalCatalog _catalog;
 
-    public TerminalLauncher(IProcessStarter processStarter)
+    public TerminalLauncher(IProcessStarter processStarter, ITerminalCatalog catalog)
     {
         ArgumentNullException.ThrowIfNull(processStarter);
+        ArgumentNullException.ThrowIfNull(catalog);
         _processStarter = processStarter;
+        _catalog = catalog;
     }
 
     public ResolvedLaunch Resolve(
@@ -58,7 +61,7 @@ internal sealed class TerminalLauncher : ITerminalLauncher
             LastUsedUtc = shortcut.LastUsedUtc,
         };
 
-        var target = TerminalCatalog.ResolveForShortcut(launchShortcut, terminalApplicationId, defaultProfileId);
+        var target = _catalog.ResolveForShortcut(launchShortcut, terminalApplicationId, defaultProfileId);
         return new ResolvedLaunch(launchShortcut, target);
     }
 

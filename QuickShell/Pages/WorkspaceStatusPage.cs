@@ -75,10 +75,10 @@ internal sealed partial class WorkspaceStatusForm : FormContent
                 LaunchDiagnosticsState.TryCopyLastReport(out var message);
                 return QuickShellNavigation.StayOpen(message);
             case "copySupportBundle":
-                SupportDiagnostics.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var supportMessage);
+                SupportDiagnostics.Default.TryCopyBundle(LaunchDiagnosticsState.LastReport, out var supportMessage);
                 return QuickShellNavigation.StayOpen(supportMessage);
             case "openSupportLogs":
-                return SupportDiagnostics.TryOpenLogFolder(out var error)
+                return SupportDiagnostics.Default.TryOpenLogFolder(out var error)
                     ? QuickShellNavigation.StayOpen(Strings.Diagnostics_LogFolderOpened)
                     : QuickShellNavigation.StayOpen(error);
             case "close":
@@ -97,6 +97,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
             _settings.DefaultProfileId,
             _services.HealthChecker,
             _services.GitOperations,
+            _services.TargetStore,
             forceRefresh);
         DataJson = new JsonObject
         {
