@@ -83,13 +83,7 @@ export function assessWorkspaceHealth(
     });
   }
 
-  if (
-    includeDirectoryExists &&
-    directory &&
-    process.platform === "win32" &&
-    !isWslUnc &&
-    !existsSync(directory)
-  ) {
+  if (includeDirectoryExists && directory && process.platform === "win32" && !isWslUnc && !existsSync(directory)) {
     issues.push({ code: "directory_missing", message: `Directory not found: ${directory}`, severity: "error" });
   }
 
