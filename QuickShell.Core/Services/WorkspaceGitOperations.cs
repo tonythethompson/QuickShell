@@ -174,11 +174,21 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             return [];
         }
 
-        return result.StandardOutput
-            .Replace("\0", string.Empty, StringComparison.Ordinal)
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0)
+        var output = result.StandardOutput.Replace("\0", string.Empty, StringComparison.Ordinal);
+        var branches = new List<string>();
+
+        // Bolt: Performance optimization - use output.AsSpan().EnumerateLines() instead of output.Split()
+        // This avoids allocating a string array and string instances for every line in the git branches output.
+        foreach (var line in output.AsSpan().EnumerateLines())
+        {
+            var trimmed = line.Trim();
+            if (!trimmed.IsEmpty)
+            {
+                branches.Add(trimmed.ToString());
+            }
+        }
+
+        return branches
             .Distinct(StringComparer.Ordinal)
             .OrderBy(branch => branch, StringComparer.OrdinalIgnoreCase)
             .ToList();

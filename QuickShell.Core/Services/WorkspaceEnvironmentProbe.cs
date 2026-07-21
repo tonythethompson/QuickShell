@@ -165,11 +165,21 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
                 return [];
             }
 
-            return stdoutTask.Result
-                .Replace("\0", string.Empty, StringComparison.Ordinal)
-                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim())
-                .Where(line => line.Length > 0)
+            var output = stdoutTask.Result.Replace("\0", string.Empty, StringComparison.Ordinal);
+            var names = new List<string>();
+
+            // Bolt: Performance optimization - use output.AsSpan().EnumerateLines() instead of output.Split()
+            // This avoids allocating a string array and string instances for every line in the command output.
+            foreach (var line in output.AsSpan().EnumerateLines())
+            {
+                var trimmed = line.Trim();
+                if (!trimmed.IsEmpty)
+                {
+                    names.Add(trimmed.ToString());
+                }
+            }
+
+            return names
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
