@@ -19,7 +19,7 @@ internal static class TestQuickShellServicesFactory
         var appDataPaths = new AppDataPaths(testRoot);
         var profiles = new WtProfilesService();
         var catalog = new TerminalCatalog(profiles);
-        var resolver = new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths), profiles, catalog);
+        var resolver = new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths, catalog), profiles, catalog);
         return new TerminalLaunchGlyphs(resolver);
     }
 

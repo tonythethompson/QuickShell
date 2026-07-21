@@ -10,6 +10,7 @@ internal static class ShortcutFormTemplateCache
     private static string? _terminalApplicationId;
     private static string? _companionChoicesJson;
     private static string? _taskTypeChoicesJson;
+    private static int _generation;
 
     /// <summary>
     /// Retrieves the cached shortcut form template or builds and caches a template for the specified inputs.
@@ -29,12 +30,15 @@ internal static class ShortcutFormTemplateCache
         string taskTypeChoicesJson,
         Func<string> buildTemplate)
     {
+        int generationBeforeBuild;
         lock (Sync)
         {
             if (Matches(commandCount, companionCount, terminalApplicationId, companionChoicesJson, taskTypeChoicesJson))
             {
                 return _templateJson!;
             }
+
+            generationBeforeBuild = _generation;
         }
 
         // Build outside the lock so an expensive template build for one
@@ -44,6 +48,15 @@ internal static class ShortcutFormTemplateCache
 
         lock (Sync)
         {
+            // Invalidate() may have run while buildTemplate() was executing outside
+            // the lock. If it did, this result is stale relative to whatever
+            // triggered the invalidation (e.g. a terminal refresh); return it to the
+            // caller but do not let it repopulate the cache.
+            if (_generation != generationBeforeBuild)
+            {
+                return built;
+            }
+
             _commandCount = commandCount;
             _companionCount = companionCount;
             _terminalApplicationId = terminalApplicationId;
@@ -89,6 +102,7 @@ internal static class ShortcutFormTemplateCache
             _terminalApplicationId = null;
             _companionChoicesJson = null;
             _taskTypeChoicesJson = null;
+            _generation++;
         }
     }
 }
