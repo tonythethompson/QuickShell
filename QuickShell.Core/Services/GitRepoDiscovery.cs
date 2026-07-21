@@ -82,6 +82,18 @@ internal static partial class GitRepoDiscovery
         public void Dispose() => CurrentScope.Value = _previous;
     }
 
+    /// <summary>
+    /// Discovers Git repositories under the configured search roots.
+    /// </summary>
+    /// <param name="projectAnalysis">The service used to classify discovered repositories.</param>
+    /// <param name="extraRoots">Additional directories to search.</param>
+    /// <param name="maxDegreeOfParallelism">The maximum number of concurrent directory-scanning workers.</param>
+    /// <param name="includeDefaultSearchRoots">Whether to include standard default search roots.</param>
+    /// <param name="defaultRootCandidates">Explicit default roots to use instead of automatically determined candidates.</param>
+    /// <param name="cancellationToken">A token used to cancel discovery.</param>
+    /// <returns>The discovered repositories, ordered by name, up to the configured repository limit.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="projectAnalysis"/> is <see langword="null"/>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when cancellation is requested during discovery.</exception>
     public static IReadOnlyList<GitRepoCandidate> Discover(
         IProjectAnalysisService projectAnalysis,
         IEnumerable<string>? extraRoots = null,

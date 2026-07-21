@@ -44,13 +44,22 @@ internal sealed class SupportDiagnostics : ISupportDiagnostics
     private readonly SupportDiagnosticsOptions _options;
     private readonly IQuickShellEventSource _events;
 
+    /// <summary>
+    /// Initializes a support diagnostics logger with optional configuration and event notifications.
+    /// </summary>
+    /// <param name="options">The logging configuration, or <see langword="null"/> to use the defaults.</param>
+    /// <param name="events">The event source for support notifications, or <see langword="null"/> to use the default event source.</param>
     public SupportDiagnostics(SupportDiagnosticsOptions? options = null, IQuickShellEventSource? events = null)
     {
         _options = options ?? new SupportDiagnosticsOptions();
         _events = events ?? QuickShellEventSource.Log;
     }
 
-    public void WriteInfo(string eventCode) => WriteEvent(SupportLogSeverity.Info, eventCode);
+    /// <summary>
+/// Records an informational support event.
+/// </summary>
+/// <param name="eventCode">The code identifying the event.</param>
+public void WriteInfo(string eventCode) => WriteEvent(SupportLogSeverity.Info, eventCode);
 
     public void WriteWarning(string eventCode) => WriteEvent(SupportLogSeverity.Warning, eventCode);
 
@@ -75,6 +84,13 @@ internal sealed class SupportDiagnostics : ISupportDiagnostics
             exception,
             BuildRedactedTags(message: null, data: null));
 
+    /// <summary>
+    /// Records a support event in the bounded diagnostic log.
+    /// </summary>
+    /// <param name="severity">The severity assigned to the event.</param>
+    /// <param name="eventCode">The identifier for the event.</param>
+    /// <param name="exception">The exception associated with the event, if any.</param>
+    /// <param name="tags">Additional redacted tags associated with the event, if any.</param>
     private void WriteEvent(
         SupportLogSeverity severity,
         string eventCode,

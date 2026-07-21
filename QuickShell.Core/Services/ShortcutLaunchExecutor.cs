@@ -49,6 +49,13 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
     private readonly IQuickShellEventSource _events;
     private readonly WorkspaceLaunchPlanCache _planCache = new();
 
+    /// <summary>
+    /// Creates an executor for resolving and launching terminal shortcuts.
+    /// </summary>
+    /// <param name="repository">The optional shortcut repository used to resolve the latest workspace state.</param>
+    /// <param name="catalog">The optional terminal catalog used to resolve launch targets.</param>
+    /// <param name="events">The optional event source used to record launch-plan cache activity.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required service dependency is <see langword="null"/>.</exception>
     public ShortcutLaunchExecutor(
         ITerminalLauncher terminalLauncher,
         IWorkspaceHealthChecker healthChecker,
@@ -67,6 +74,14 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
         _events = events ?? QuickShellEventSource.Log;
     }
 
+    /// <summary>
+    /// Launches all enabled entries in a workspace after completing health, directory, and Git checks.
+    /// </summary>
+    /// <param name="shortcut">The workspace shortcut to launch.</param>
+    /// <param name="terminalApplicationId">The terminal application used to launch the workspace.</param>
+    /// <param name="defaultProfileId">The default terminal profile used when an entry does not specify one.</param>
+    /// <param name="options">Optional launch behavior settings.</param>
+    /// <returns>The launch result, including whether the UI should close and any diagnostics.</returns>
     public ShortcutLaunchResult Launch(
         TerminalShortcut shortcut,
         string terminalApplicationId,
@@ -158,6 +173,13 @@ internal sealed class ShortcutLaunchExecutor : IShortcutLaunchExecutor
             multiSuccessPrefix: "Workspace launched");
     }
 
+    /// <summary>
+    /// Launches a specific enabled entry from a workspace.
+    /// </summary>
+    /// <param name="launch">The workspace entry to launch.</param>
+    /// <returns>
+    /// The launch result, including diagnostics and any message when the UI should remain open.
+    /// </returns>
     public ShortcutLaunchResult LaunchEntry(
         TerminalShortcut shortcut,
         WorkspaceEntry launch,
