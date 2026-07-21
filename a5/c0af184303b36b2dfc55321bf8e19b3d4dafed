@@ -1,0 +1,21 @@
+QuickShell.Raycast/.npmrc
+  s_b6f09b908b7b0f::t_fc945cebc26a6e 1
+QuickShell.Raycast/package.json
+  s_b6f09b908b7b0f::t_d65fc2367288e5 58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a5c0af184303b36b2dfc55321bf8e19b3d4dafed",
+  "prompts": {},
+  "sessions": {
+    "s_b6f09b908b7b0f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "373ef5e0-3528-4903-8942-32acd2e23734",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
