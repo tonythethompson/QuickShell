@@ -6,6 +6,7 @@ using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
 using QuickShell.Services.WorkspaceEditor;
+using Xunit.Sdk;
 
 namespace QuickShell.Core.Tests.Flows;
 
@@ -419,8 +420,13 @@ public sealed class ImportConflictFlowTests : IDisposable
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch
+            catch (IOException ex)
             {
+                throw new XunitException($"Failed to delete temporary test directory '{Path}'.", ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                throw new XunitException($"Insufficient permissions to delete temporary test directory '{Path}'.", ex);
             }
         }
     }
