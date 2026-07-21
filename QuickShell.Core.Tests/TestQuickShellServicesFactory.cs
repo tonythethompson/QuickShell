@@ -25,8 +25,9 @@ internal static class TestQuickShellServicesFactory
         var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, new AppDataPaths());
         var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        var editorFactory = new DeferredWorkspaceEditorFactory { Lifetime = lifetime };
-        var services = new QuickShellServices(
+        QuickShellServices? services = null;
+        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
+        services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
@@ -50,7 +51,6 @@ internal static class TestQuickShellServicesFactory
             prewarm,
             formViewBuilder,
             editorFactory);
-        editorFactory.Services = services;
         return services;
     }
 
@@ -77,8 +77,9 @@ internal static class TestQuickShellServicesFactory
         var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, new AppDataPaths());
         var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        var editorFactory = new DeferredWorkspaceEditorFactory { Lifetime = lifetime };
-        var services = new QuickShellServices(
+        QuickShellServices? services = null;
+        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
+        services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
@@ -102,7 +103,6 @@ internal static class TestQuickShellServicesFactory
             prewarm,
             formViewBuilder,
             editorFactory);
-        editorFactory.Services = services;
         return services;
     }
 
@@ -125,8 +125,9 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<ITerminalCatalog>(),
             analysis,
             provider.GetRequiredService<ICommandSuggestionService>());
-        var editorFactory = new DeferredWorkspaceEditorFactory { Lifetime = lifetime };
-        var services = new QuickShellServices(
+        QuickShellServices? services = null;
+        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
+        services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(
                 repository,
@@ -153,26 +154,6 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<TerminalCatalogPrewarm>(),
             formViewBuilder,
             editorFactory);
-        editorFactory.Services = services;
         return services;
-    }
-
-    private sealed class DeferredWorkspaceEditorFactory : IWorkspaceEditorFactory
-    {
-        public IQuickShellServices? Services { get; set; }
-
-        public required IQuickShellLifetime Lifetime { get; init; }
-
-        /// <summary>
-                /// Creates a workspace editor associated with the configured QuickShell services.
-                /// </summary>
-                /// <param name="onSaved">An optional callback invoked when the workspace is saved.</param>
-                /// <returns>A new workspace editor.</returns>
-                /// <exception cref="InvalidOperationException">Thrown when QuickShell services have not been assigned.</exception>
-                public IWorkspaceEditor Create(Action? onSaved = null) =>
-            new WorkspaceEditor(
-                Services ?? throw new InvalidOperationException("QuickShellServices was not assigned."),
-                Lifetime,
-                onSaved);
     }
 }

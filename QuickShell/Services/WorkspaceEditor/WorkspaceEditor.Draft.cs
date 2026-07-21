@@ -20,29 +20,7 @@ internal sealed partial class WorkspaceEditor
         _originalName = existing?.Name;
 
         var initial = existing ?? createSeed;
-        var launchTarget = TerminalCatalog.EncodeLaunchTargetId(initial ?? new TerminalShortcut());
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(initial, launchTarget);
-        var companions = CompanionAppFormEditor.FromShortcut(initial);
-        CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
-
-        _draft = new FormDraft
-        {
-            OriginalName = existing?.Name ?? string.Empty,
-            Name = initial?.Name ?? string.Empty,
-            Abbreviation = initial?.Abbreviation ?? string.Empty,
-            Directory = initial?.Directory ?? string.Empty,
-            DevServerUrl = initial?.DevServerUrl ?? string.Empty,
-            RepoUrl = initial?.RepoUrl ?? string.Empty,
-            OpenDevServerOnLaunch = initial?.OpenDevServerOnLaunch ?? false,
-            Companions = companions,
-            OpenCompanionAppOnLaunch = openCompanion,
-            CompanionAppPreset = companionPreset,
-            CompanionAppPath = companionPath,
-            CompanionAppArguments = companionArgs,
-            Commands = commands,
-            LaunchTarget = launchTarget,
-            RunAsAdmin = commands.Count > 0 && commands[0].RunAsAdmin,
-        };
+        _draft = BuildDraftFromShortcut(initial, existing?.Name ?? string.Empty);
 
         OnChanged();
 
@@ -102,20 +80,34 @@ internal sealed partial class WorkspaceEditor
         _nameCustomized = false;
         _autoFilledName = null;
 
-        var launchTarget = TerminalCatalog.EncodeLaunchTargetId(saved);
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(saved, launchTarget);
-        var companions = CompanionAppFormEditor.FromShortcut(saved);
+        _draft = BuildDraftFromShortcut(saved, saved.Name);
+
+        _baselineDraft = CloneDraft(_draft);
+        OnChanged();
+    }
+
+    /// <summary>
+    /// Builds a form draft from a shortcut's saved values, or from defaults when no shortcut is given.
+    /// </summary>
+    /// <param name="source">The shortcut whose values seed the draft, when available.</param>
+    /// <param name="originalName">The original name to record on the draft.</param>
+    /// <returns>A new form draft populated from <paramref name="source"/>.</returns>
+    private static FormDraft BuildDraftFromShortcut(TerminalShortcut? source, string originalName)
+    {
+        var launchTarget = TerminalCatalog.EncodeLaunchTargetId(source ?? new TerminalShortcut());
+        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(source, launchTarget);
+        var companions = CompanionAppFormEditor.FromShortcut(source);
         CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
 
-        _draft = new FormDraft
+        return new FormDraft
         {
-            OriginalName = saved.Name,
-            Name = saved.Name,
-            Abbreviation = saved.Abbreviation ?? string.Empty,
-            Directory = saved.Directory,
-            DevServerUrl = saved.DevServerUrl ?? string.Empty,
-            RepoUrl = saved.RepoUrl ?? string.Empty,
-            OpenDevServerOnLaunch = saved.OpenDevServerOnLaunch,
+            OriginalName = originalName,
+            Name = source?.Name ?? string.Empty,
+            Abbreviation = source?.Abbreviation ?? string.Empty,
+            Directory = source?.Directory ?? string.Empty,
+            DevServerUrl = source?.DevServerUrl ?? string.Empty,
+            RepoUrl = source?.RepoUrl ?? string.Empty,
+            OpenDevServerOnLaunch = source?.OpenDevServerOnLaunch ?? false,
             Companions = companions,
             OpenCompanionAppOnLaunch = openCompanion,
             CompanionAppPreset = companionPreset,
@@ -125,9 +117,6 @@ internal sealed partial class WorkspaceEditor
             LaunchTarget = launchTarget,
             RunAsAdmin = commands.Count > 0 && commands[0].RunAsAdmin,
         };
-
-        _baselineDraft = CloneDraft(_draft);
-        OnChanged();
     }
 
     /// <summary>

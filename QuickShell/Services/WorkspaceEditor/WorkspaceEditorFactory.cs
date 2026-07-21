@@ -20,10 +20,10 @@ internal sealed class WorkspaceEditorFactory : IWorkspaceEditorFactory
     }
 
     /// <summary>
-        /// Creates a workspace editor with an optional callback invoked after saving.
-        /// </summary>
-        /// <param name="onSaved">The callback to invoke after the workspace is saved.</param>
-        /// <returns>A workspace editor.</returns>
-        public IWorkspaceEditor Create(Action? onSaved = null) =>
+    /// Creates a workspace editor with an optional callback invoked after saving.
+    /// </summary>
+    /// <param name="onSaved">The callback to invoke after the workspace is saved.</param>
+    /// <returns>A workspace editor.</returns>
+    public IWorkspaceEditor Create(Action? onSaved = null) =>
         new WorkspaceEditor(_services(), _lifetime, onSaved);
 }

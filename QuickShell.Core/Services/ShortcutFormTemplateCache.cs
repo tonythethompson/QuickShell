@@ -55,15 +55,15 @@ internal static class ShortcutFormTemplateCache
     }
 
     /// <summary>
-        /// Determines whether the specified inputs match the cached template key.
-        /// </summary>
-        /// <param name="commandCount">The number of commands.</param>
-        /// <param name="companionCount">The number of companions.</param>
-        /// <param name="terminalApplicationId">The terminal application identifier.</param>
-        /// <param name="companionChoicesJson">The serialized companion choices.</param>
-        /// <param name="taskTypeChoicesJson">The serialized task type choices.</param>
-        /// <returns><c>true</c> if a cached template exists and all inputs match; <c>false</c> otherwise.</returns>
-        private static bool Matches(
+    /// Determines whether the specified inputs match the cached template key.
+    /// </summary>
+    /// <param name="commandCount">The number of commands.</param>
+    /// <param name="companionCount">The number of companions.</param>
+    /// <param name="terminalApplicationId">The terminal application identifier.</param>
+    /// <param name="companionChoicesJson">The serialized companion choices.</param>
+    /// <param name="taskTypeChoicesJson">The serialized task type choices.</param>
+    /// <returns><c>true</c> if a cached template exists and all inputs match; <c>false</c> otherwise.</returns>
+    private static bool Matches(
         int commandCount,
         int companionCount,
         string terminalApplicationId,

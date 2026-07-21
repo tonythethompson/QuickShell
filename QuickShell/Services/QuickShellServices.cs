@@ -45,7 +45,6 @@ internal sealed class QuickShellServices : IQuickShellServices
     /// <param name="rowPresentationDiagnostics">The row presentation diagnostics service, or a default instance when <see langword="null"/>.</param>
     /// <param name="refreshScheduler">The settings form refresh scheduler, or a default scheduler when <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when a required service dependency is <see langword="null"/>.</exception>
-    ///
     public QuickShellServices(
         IShortcutRepository shortcuts,
         IWorkspaceLaunchService workspaceLaunch,

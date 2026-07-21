@@ -11,15 +11,15 @@ namespace QuickShell.Services.WorkspaceEditor;
 internal sealed partial class WorkspaceEditor
 {
     /// <summary>
-/// Saves the current editor state to the edit history before a change.
-/// </summary>
-private void PushEditSnapshot() => _editHistory.PushBeforeChange(CaptureEditSnapshot());
+    /// Saves the current editor state to the edit history before a change.
+    /// </summary>
+    private void PushEditSnapshot() => _editHistory.PushBeforeChange(CaptureEditSnapshot());
 
     /// <summary>
-        /// Captures the current draft state for later restoration.
-        /// </summary>
-        /// <returns>A snapshot containing cloned command and companion data and the current editor settings.</returns>
-        private FormEditSnapshot CaptureEditSnapshot() =>
+    /// Captures the current draft state for later restoration.
+    /// </summary>
+    /// <returns>A snapshot containing cloned command and companion data and the current editor settings.</returns>
+    private FormEditSnapshot CaptureEditSnapshot() =>
         new()
         {
             Commands = LaunchRowListEditor.CloneRows(_draft.Commands),

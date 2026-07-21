@@ -89,9 +89,9 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
     }
 
     /// <summary>
-        /// Builds the discard confirmation prompt card.
-        /// </summary>
-        /// <returns>A shortcut form card containing the discard prompt.</returns>
-        public ShortcutFormCard BuildDiscardPrompt() =>
+    /// Builds the discard confirmation prompt card.
+    /// </summary>
+    /// <returns>A shortcut form card containing the discard prompt.</returns>
+    public ShortcutFormCard BuildDiscardPrompt() =>
         new(ShortcutFormTemplateJson.BuildDiscardPromptTemplate(), "{}");
 }

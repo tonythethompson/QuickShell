@@ -11,7 +11,6 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
 {
     private readonly IWorkspaceEditor _editor;
     private readonly IQuickShellServices _services;
-    private readonly IShortcutFormViewBuilder _viewBuilder;
     private readonly Action? _onClosed;
     private readonly object _sync = new();
     private bool _disposed;
@@ -31,7 +30,6 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
         _services = services ?? throw new ArgumentNullException(nameof(services));
-        _viewBuilder = services.FormViewBuilder;
         _onClosed = onClosed;
         _editor.Changed += OnEditorChanged;
         RebuildFromState(_editor.GetState());
@@ -215,7 +213,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
                 return CommandResult.GoBack();
             case WorkspaceEditResultKind.PromptDiscard:
                 _showingDiscardPrompt = true;
-                var discardCard = _viewBuilder.BuildDiscardPrompt();
+                var discardCard = _services.FormViewBuilder.BuildDiscardPrompt();
                 TemplateJson = discardCard.TemplateJson;
                 DataJson = discardCard.DataJson;
                 return CommandResult.KeepOpen();
@@ -299,7 +297,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         {
             var commandCount = Math.Max(1, state.Commands.Count);
             var companionCount = Math.Max(1, state.Companions.Count);
-            var card = _viewBuilder.BuildMain(state, _services.Settings.TerminalApplicationId);
+            var card = _services.FormViewBuilder.BuildMain(state, _services.Settings.TerminalApplicationId);
 
             if (_templateCommandCount != commandCount
                 || _templateCompanionCount != companionCount
