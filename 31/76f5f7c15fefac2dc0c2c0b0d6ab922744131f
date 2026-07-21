@@ -1,0 +1,25 @@
+QuickShell.Core.Tests/WorkspaceTrustCommandTests.cs
+  s_27262e40f10686::t_8b0955ae825c99 16,45,75
+  s_27262e40f10686::t_cf64a60d363a65 105-124
+QuickShell.Core.Tests/WorkspaceSecurityAdversarialTests.cs
+  s_27262e40f10686::t_8b0955ae825c99 15,44,60,73
+  s_27262e40f10686::t_2b1403c4171fe7 67,137-181
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_27262e40f10686::t_8ac4535082f381 121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3176f5f7c15fefac2dc0c2c0b0d6ab922744131f",
+  "prompts": {},
+  "sessions": {
+    "s_27262e40f10686": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "805fc6b9-7f6d-40f5-8e1a-7e2afaaa2168",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
