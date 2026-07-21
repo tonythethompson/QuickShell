@@ -6,22 +6,24 @@ In-palette create/edit (CmdPal Adaptive Cards), disk drafts, and the **two** und
 
 | Path | Implementation |
 |------|----------------|
-| Create / Edit / Duplicate | `ShortcutFormPage` + `ShortcutForm` (`QuickShell/Pages/`) |
+| Create / Edit / Duplicate | `ShortcutFormPage` + `ShortcutForm` (`QuickShell/Pages/`) over Core `IWorkspaceEditor` |
 | Pending edit resume | `PendingShortcutEditPage` |
-| Run host editor | `QuickShell.Run/ShortcutWorkspaceEditorWindow.cs` (WPF; same Core save/history ideas) |
+| Shared edit session | `QuickShell.Core/Services/WorkspaceEditor/` (`IWorkspaceEditor`, factory via `AddQuickShellCore`) |
+| Run host editor | `QuickShell.Run/ShortcutWorkspaceEditorWindow.cs` (one-page WPF binder over the same Core session; 680×min 560) |
 | Raycast | React form components + storage history (separate stack) |
 
 ## Form model
 
 ```
-ShortcutFormPage
-  └─ IWorkspaceEditorFactory → IWorkspaceEditor
-  └─ ShortcutForm (FormContent; thin event mapper)
+ShortcutFormPage / ShortcutWorkspaceEditorWindow
+  └─ IWorkspaceEditorFactory → IWorkspaceEditor (Core session: draft, dirty, undo, save)
+  └─ CmdPal: ShortcutForm (FormContent; thin event mapper)
         └─ IShortcutFormViewBuilder → TemplateJson / DataJson
+  └─ Run: ScrollViewer + WPF controls (TryApplyHostFields)
         FormEditHistory lives on WorkspaceEditor (launch-row snapshots)
 ```
 
-`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` is a partial facade (`Draft` / `Directory` / `Suggestions` / `Undo` files) behind `IWorkspaceEditor`. Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding). Each command row is **Command + terminal profile + Admin** (`LaunchRunAsAdmin_{i}`). Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
+`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` lives in `QuickShell.Core/Services/WorkspaceEditor/` behind `IWorkspaceEditor`. Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding). Each command row is **Command + terminal profile + Admin** (`LaunchRunAsAdmin_{i}`). Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
 
 Browse/Paste folder on the form fills name (if unset), repo URL, and Dev Server URL when empty. It does **not** auto-seed launch commands or companion apps. Suggestion pills add commands; companion presets stay user-chosen. Discover create seeds via `WorkspaceSeedFactory` (see [intelligence.md](./intelligence.md), [companions.md](./companions.md)).
 

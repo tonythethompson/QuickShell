@@ -1,8 +1,8 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
-using QuickShell.Classification;
 using QuickShell.Services;
+using QuickShell.Services.WorkspaceEditor;
 
 using System.IO;
 
@@ -25,6 +25,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
     private readonly TerminalShortcut? _existing;
 
     private readonly IShortcutRepository _shortcuts;
+
+    private readonly IWorkspaceEditor _editor;
 
     private readonly TerminalShortcut _working;
 
@@ -78,6 +80,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
     public ShortcutWorkspaceEditorWindow(
         TerminalShortcut? existing,
         IShortcutRepository shortcuts,
+        IWorkspaceEditorFactory editorFactory,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations,
@@ -100,9 +103,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
+        ArgumentNullException.ThrowIfNull(editorFactory);
+
+        _editor = editorFactory.Create();
+
+        _editor.ResetForOpen(existing, createSeed: null);
+
+        var state = _editor.GetState();
+
         _working = existing is null ? new TerminalShortcut() : CloneShortcut(existing);
-
-
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(_working);
 
@@ -113,6 +122,20 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             _working.Launches.Add(CreateLaunchEntry("Launch", string.Empty, "default", false, 0));
 
         }
+
+
+
+        _working.Name = state.Name;
+
+        _working.Abbreviation = string.IsNullOrWhiteSpace(state.Abbreviation) ? null : state.Abbreviation;
+
+        _working.Directory = state.Directory;
+
+        _working.DevServerUrl = string.IsNullOrWhiteSpace(state.DevServerUrl) ? null : state.DevServerUrl;
+
+        _working.OpenDevServerOnLaunch = state.OpenDevServerOnLaunch;
+
+        _working.RepoUrl = string.IsNullOrWhiteSpace(state.RepoUrl) ? null : state.RepoUrl;
 
 
 
@@ -128,23 +151,43 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var root = new DockPanel { Margin = new Thickness(16) };
 
-        var tabs = new TabControl();
-
-        RunWpfUiHelpers.EnableTabKeyboardNavigation(tabs);
+        var body = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
 
 
 
-        var general = new StackPanel { Margin = new Thickness(8) };
+        body.Children.Add(RunWpfUiHelpers.FieldLabel("Folder", WorkspaceFormTooltips.Directory));
 
-        general.Children.Add(RunWpfUiHelpers.FieldLabel("Name", WorkspaceFormTooltips.Name));
+        _directoryBox = new TextBox { Text = _working.Directory, Margin = new Thickness(0, 0, 0, 4) };
+
+        body.Children.Add(_directoryBox);
+
+        body.Children.Add(CreateBrowseFolderButton());
+
+
+
+        body.Children.Add(RunWpfUiHelpers.FieldLabel(
+
+            "Target branch (optional)",
+
+            "Git branch to switch to when this workspace launches. Pick from local branches or type a branch name."));
+
+        _targetBranchBox = CreateEditableCombo();
+
+        body.Children.Add(_targetBranchBox);
+
+        ReloadBranchChoices(_working.Directory, _targetStore.GetTargetForDirectory(_working.Directory, _gitOperations));
+
+
+
+        body.Children.Add(RunWpfUiHelpers.FieldLabel("Name", WorkspaceFormTooltips.Name));
 
         _nameBox = new TextBox { Text = _working.Name, Margin = new Thickness(0, 0, 0, 8) };
 
-        general.Children.Add(_nameBox);
+        body.Children.Add(_nameBox);
 
 
 
-        general.Children.Add(RunWpfUiHelpers.FieldLabel(
+        body.Children.Add(RunWpfUiHelpers.FieldLabel(
 
             "Home keyword (optional)",
 
@@ -156,93 +199,17 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             Text = _working.Abbreviation ?? string.Empty,
 
-            Margin = new Thickness(0, 0, 0, 4),
+            Margin = new Thickness(0, 0, 0, 8),
 
             ToolTip = WorkspaceFormTooltips.HomeKeywordExample,
 
         };
 
-        general.Children.Add(_abbreviationBox);
+        body.Children.Add(_abbreviationBox);
 
 
 
-        general.Children.Add(RunWpfUiHelpers.FieldLabel("Folder", WorkspaceFormTooltips.Directory));
-
-        _directoryBox = new TextBox { Text = _working.Directory, Margin = new Thickness(0, 0, 0, 4) };
-
-        general.Children.Add(_directoryBox);
-
-        general.Children.Add(CreateBrowseFolderButton());
-
-
-
-        general.Children.Add(RunWpfUiHelpers.FieldLabel(
-
-            "Target branch (optional)",
-
-            "Git branch to switch to when this workspace launches. Pick from local branches or type a branch name."));
-
-        _targetBranchBox = CreateEditableCombo();
-
-        general.Children.Add(_targetBranchBox);
-
-        ReloadBranchChoices(_working.Directory, _targetStore.GetTargetForDirectory(_working.Directory, _gitOperations));
-
-
-
-        tabs.Items.Add(RunWpfUiHelpers.CreateTab("_General", general));
-
-
-
-        var launches = new StackPanel { Margin = new Thickness(8) };
-
-        launches.Children.Add(new TextBlock
-
-        {
-
-            Text = "Each launch opens a terminal tab or window. Disable a launch to keep it saved without running it.",
-
-            TextWrapping = TextWrapping.Wrap,
-
-            Foreground = System.Windows.Media.Brushes.Gray,
-
-            Margin = new Thickness(0, 0, 0, 8),
-
-        });
-
-        _suggestionPanel.PillClicked += HandleSuggestionPillClicked;
-
-        launches.Children.Add(_suggestionPanel.Root);
-
-        _launchesPanel = new StackPanel();
-
-        launches.Children.Add(_launchesPanel);
-
-        var addLaunch = new Button
-
-        {
-
-            Content = "Add launch",
-
-            HorizontalAlignment = HorizontalAlignment.Left,
-
-            Margin = new Thickness(0, 8, 0, 0),
-
-        };
-
-        addLaunch.Click += (_, _) => AddLaunchRow();
-
-        launches.Children.Add(addLaunch);
-
-        LoadLaunchRows();
-
-        tabs.Items.Add(RunWpfUiHelpers.CreateTab("_Launches", launches));
-
-
-
-        var links = new StackPanel { Margin = new Thickness(8) };
-
-        links.Children.Add(RunWpfUiHelpers.FieldLabel("Dev server URL", WorkspaceFormTooltips.DevServerUrl));
+        body.Children.Add(RunWpfUiHelpers.FieldLabel("Dev server URL", WorkspaceFormTooltips.DevServerUrl));
 
         _devServerUrlBox = new TextBox
 
@@ -256,7 +223,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         };
 
-        links.Children.Add(_devServerUrlBox);
+        body.Children.Add(_devServerUrlBox);
 
         _openDevServerBox = new CheckBox
 
@@ -272,11 +239,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         };
 
-        links.Children.Add(_openDevServerBox);
+        body.Children.Add(_openDevServerBox);
 
 
 
-        links.Children.Add(RunWpfUiHelpers.FieldLabel("Repository URL", WorkspaceFormTooltips.RepoUrl));
+        body.Children.Add(RunWpfUiHelpers.FieldLabel("Repository URL", WorkspaceFormTooltips.RepoUrl));
 
         _repoUrlBox = new TextBox
 
@@ -290,20 +257,84 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         };
 
-        links.Children.Add(_repoUrlBox);
+        body.Children.Add(_repoUrlBox);
 
 
 
-        links.Children.Add(_companionRowsHost);
-        RebuildCompanionRows(CompanionAppFormEditor.FromShortcut(_working));
+        body.Children.Add(_companionRowsHost);
 
-        tabs.Items.Add(RunWpfUiHelpers.CreateTab("_Links", links));
-
+        RebuildCompanionRows(state.Companions.Count > 0 ? state.Companions : CompanionAppFormEditor.FromShortcut(_working));
 
 
-        DockPanel.SetDock(tabs, Dock.Top);
 
-        root.Children.Add(tabs);
+        body.Children.Add(new TextBlock
+
+        {
+
+            Text = "Commands",
+
+            FontWeight = FontWeights.SemiBold,
+
+            Margin = new Thickness(0, 8, 0, 4),
+
+        });
+
+        body.Children.Add(new TextBlock
+
+        {
+
+            Text = "Each launch opens a terminal tab or window. Disable a launch to keep it saved without running it.",
+
+            TextWrapping = TextWrapping.Wrap,
+
+            Foreground = System.Windows.Media.Brushes.Gray,
+
+            Margin = new Thickness(0, 0, 0, 8),
+
+        });
+
+        _suggestionPanel.PillClicked += HandleSuggestionPillClicked;
+
+        body.Children.Add(_suggestionPanel.Root);
+
+        _launchesPanel = new StackPanel();
+
+        body.Children.Add(_launchesPanel);
+
+        var addLaunch = new Button
+
+        {
+
+            Content = "Add launch",
+
+            HorizontalAlignment = HorizontalAlignment.Left,
+
+            Margin = new Thickness(0, 8, 0, 0),
+
+        };
+
+        addLaunch.Click += (_, _) => AddLaunchRow();
+
+        body.Children.Add(addLaunch);
+
+        LoadLaunchRows(state.Commands);
+
+
+
+        var scroller = new ScrollViewer
+
+        {
+
+            Content = body,
+
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+
+        };
+
+        root.Children.Add(scroller);
+
 
 
 
@@ -376,6 +407,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
     public void Dispose()
     {
         _suggestionLoader.Dispose();
+        _editor.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -449,39 +481,19 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     {
 
-        _directoryBox.Text = directory;
+        _ = _editor.SelectDirectory(directory);
 
-        if (string.IsNullOrWhiteSpace(_nameBox.Text))
+        var state = _editor.GetState();
 
-        {
+        _directoryBox.Text = state.Directory;
 
-            _nameBox.Text = Path.GetFileName(directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        _nameBox.Text = state.Name;
 
-        }
+        _repoUrlBox.Text = state.RepoUrl;
 
+        _devServerUrlBox.Text = state.DevServerUrl;
 
-
-        if (string.IsNullOrWhiteSpace(_repoUrlBox.Text))
-
-        {
-
-            _repoUrlBox.Text = GitRepoDiscovery.TryGetRemoteUrl(directory) ?? string.Empty;
-
-        }
-
-
-
-        if (string.IsNullOrWhiteSpace(_devServerUrlBox.Text))
-
-        {
-
-            _devServerUrlBox.Text = _projectAnalysis.TryDetectDevServerUrl(directory) ?? string.Empty;
-
-        }
-
-
-
-        ReloadBranchChoices(directory, _targetStore.GetTargetForDirectory(directory, _gitOperations));
+        ReloadBranchChoices(state.Directory, _targetStore.GetTargetForDirectory(state.Directory, _gitOperations));
 
         RefreshSuggestionPanel();
 
@@ -549,7 +561,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    private void LoadLaunchRows()
+    private void LoadLaunchRows(IReadOnlyList<LaunchRowDraft>? commands = null)
 
     {
 
@@ -559,11 +571,31 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var order = 0;
 
-        foreach (var launch in _working.Launches.OrderBy(entry => entry.Order))
+        if (commands is { Count: > 0 })
 
         {
 
-            AddLaunchRow(launch, order++);
+            foreach (var command in commands)
+
+            {
+
+                AddLaunchRowFromDraft(command, order++);
+
+            }
+
+        }
+
+        else
+
+        {
+
+            foreach (var launch in _working.Launches.OrderBy(entry => entry.Order))
+
+            {
+
+                AddLaunchRow(launch, order++);
+
+            }
 
         }
 
@@ -576,6 +608,38 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             AddLaunchRow(isEditorPlaceholder: true);
 
         }
+
+    }
+
+
+
+    private void AddLaunchRowFromDraft(LaunchRowDraft draft, int order)
+
+    {
+
+        var entry = new WorkspaceEntry
+
+        {
+
+            Id = string.IsNullOrWhiteSpace(draft.Id) ? Guid.NewGuid().ToString("N") : draft.Id,
+
+            Label = string.IsNullOrWhiteSpace(draft.Label) ? $"Launch {order + 1}" : draft.Label,
+
+            Command = draft.Command,
+
+            RunAsAdmin = draft.RunAsAdmin,
+
+            IsEnabled = draft.IsEnabled,
+
+            Order = order,
+
+            TaskType = TaskTypeCatalog.Normalize(draft.TaskType),
+
+        };
+
+        ApplyLaunchTarget(entry, string.IsNullOrWhiteSpace(draft.LaunchTarget) ? "default" : draft.LaunchTarget);
+
+        AddLaunchRow(entry, order, draft.IsEditorPlaceholder);
 
     }
 
@@ -913,61 +977,49 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     {
 
-        _working.Name = _nameBox.Text.Trim();
+        var launchDrafts = _launchRows
 
-        _working.Abbreviation = string.IsNullOrWhiteSpace(_abbreviationBox.Text) ? null : _abbreviationBox.Text.Trim();
-
-        _working.Directory = _directoryBox.Text.Trim();
-
-        _working.DevServerUrl = string.IsNullOrWhiteSpace(_devServerUrlBox.Text) ? null : _devServerUrlBox.Text.Trim();
-
-        _working.OpenDevServerOnLaunch = _openDevServerBox.IsChecked == true;
-
-        _working.RepoUrl = string.IsNullOrWhiteSpace(_repoUrlBox.Text) ? null : _repoUrlBox.Text.Trim();
-
-
-
-        _working.CompanionApps = CompanionAppFormEditor.ToCompanionEntries(CaptureCompanionFormRows());
-        _working.CompanionAppPath = null;
-        _working.CompanionAppArguments = null;
-        _working.OpenCompanionAppOnLaunch = false;
-        CompanionAppNormalization.NormalizeCompanions(_working);
-
-
-
-        var rowsToSave = _launchRows
-
-            .Where(row => row.ShouldPersist())
+            .Select(row => row.ToLaunchRowDraft())
 
             .ToList();
 
-        if (rowsToSave.Count == 0)
+        if (launchDrafts.Count == 0)
 
         {
 
-            rowsToSave = [_launchRows[0]];
+            launchDrafts.Add(new LaunchRowDraft());
 
         }
 
 
 
-        _working.Launches = rowsToSave
-
-            .Select((row, index) => row.ToEntry(index))
-
-            .ToList();
-
-        ShortcutLaunchNormalization.MirrorLegacyFieldsFromFirstLaunch(_working);
-
-        ShortcutLaunchNormalization.NormalizeShortcut(_working);
-
-
-
-        if (!ShortcutValidation.TryValidate(_working, out var validationError))
+        var applied = _editor.TryApplyHostFields(new WorkspaceHostFieldUpdate
 
         {
 
-            MessageBox.Show(this, validationError, "Quick Shell", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Name = _nameBox.Text.Trim(),
+
+            Abbreviation = _abbreviationBox.Text.Trim(),
+
+            Directory = _directoryBox.Text.Trim(),
+
+            DevServerUrl = _devServerUrlBox.Text.Trim(),
+
+            OpenDevServerOnLaunch = _openDevServerBox.IsChecked == true,
+
+            RepoUrl = _repoUrlBox.Text.Trim(),
+
+            Commands = launchDrafts,
+
+            Companions = CaptureCompanionFormRows(),
+
+        });
+
+        if (!applied)
+
+        {
+
+            MessageBox.Show(this, "Could not apply form values.", "Quick Shell", MessageBoxButton.OK, MessageBoxImage.Warning);
 
             return;
 
@@ -977,13 +1029,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var targetBranch = _targetBranchBox.Text?.Trim();
 
+        var directory = _directoryBox.Text.Trim();
+
         if (!string.IsNullOrWhiteSpace(targetBranch)
 
-            && _gitOperations.TryResolveWorktreeKey(_working.Directory, out _))
+            && _gitOperations.TryResolveWorktreeKey(directory, out _))
 
         {
 
-            var branches = _gitOperations.ListLocalBranches(_working.Directory);
+            var branches = _gitOperations.ListLocalBranches(directory);
 
             if (branches.Count > 0
 
@@ -1017,9 +1071,25 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
+        var result = _editor.Save();
+
+        if (result.Kind != WorkspaceEditResultKind.Saved)
+
+        {
+
+            var message = result.Message ?? _editor.GetState().SaveError ?? "Could not save workspace.";
+
+            MessageBox.Show(this, message, "Quick Shell", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+            return;
+
+        }
+
+
+
         if (!_targetStore.TrySetTargetForDirectory(
 
-                _working.Directory,
+                directory,
 
                 string.IsNullOrWhiteSpace(targetBranch) ? null : targetBranch,
 
@@ -1033,9 +1103,17 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             {
 
-                MessageBox.Show(this, branchError ?? "Could not save target branch.", "Quick Shell", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(
 
-                return;
+                    this,
+
+                    (branchError ?? "Could not save target branch.") + " Workspace was saved.",
+
+                    "Quick Shell",
+
+                    MessageBoxButton.OK,
+
+                    MessageBoxImage.Warning);
 
             }
 
@@ -1043,35 +1121,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-        try
+        ResultMessage = result.Message ?? "Workspace saved.";
 
-        {
+        DialogResult = true;
 
-            var resolvedName = _shortcuts.ResolveAvailableName(_working.Name, _existing?.Name);
-
-            _working.Name = resolvedName;
-
-            _shortcuts.Upsert(_working, _existing?.Name);
-
-            ResultMessage = _existing is null
-
-                ? $"Created workspace '{resolvedName}'."
-
-                : $"Updated workspace '{resolvedName}'.";
-
-            DialogResult = true;
-
-            Close();
-
-        }
-
-        catch (Exception ex)
-
-        {
-
-            MessageBox.Show(this, ex.Message, "Quick Shell", MessageBoxButton.OK, MessageBoxImage.Error);
-
-        }
+        Close();
 
     }
 
@@ -1614,30 +1668,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-        public bool ShouldPersist()
-
-        {
-
-            if (_isEditorPlaceholder
-
-                && string.IsNullOrWhiteSpace(CommandBox.Text)
-
-                && string.Equals(_taskType, TaskTypeCatalog.None, StringComparison.Ordinal))
-
-            {
-
-                return false;
-
-            }
-
-
-
-            return true;
-
-        }
-
-
-
         public RunLaunchRowSnapshot CaptureSnapshot() =>
 
             new(
@@ -1664,47 +1694,23 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             {
 
+                Id = _entryId,
+
+                Label = LabelBox.Text.Trim(),
+
                 Command = CommandBox.Text,
 
                 TaskType = _taskType,
 
                 LaunchTarget = TerminalBox.SelectedValue as string ?? "default",
 
-                IsEditorPlaceholder = _isEditorPlaceholder,
-
-            };
-
-
-
-        public WorkspaceEntry ToEntry(int order)
-
-        {
-
-            var entry = new WorkspaceEntry
-
-            {
-
-                Id = _entryId,
-
-                Label = LabelBox.Text.Trim(),
-
-                Command = string.IsNullOrWhiteSpace(CommandBox.Text) ? null : CommandBox.Text,
-
                 RunAsAdmin = AdminBox.IsChecked == true,
 
                 IsEnabled = EnabledBox.IsChecked == true,
 
-                Order = order,
-
-                TaskType = _taskType,
+                IsEditorPlaceholder = _isEditorPlaceholder,
 
             };
-
-            ApplyLaunchTarget(entry, TerminalBox.SelectedValue as string ?? "default");
-
-            return entry;
-
-        }
 
 
 
@@ -1739,6 +1745,7 @@ internal static class ShortcutEditor
     public static bool TryShowDialog(
         TerminalShortcut? existing,
         IShortcutRepository shortcuts,
+        IWorkspaceEditorFactory editorFactory,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations,
@@ -1763,6 +1770,7 @@ internal static class ShortcutEditor
             var window = new ShortcutWorkspaceEditorWindow(
                 existing,
                 shortcuts,
+                editorFactory,
                 projectAnalysis,
                 commandSuggestions,
                 gitOperations,

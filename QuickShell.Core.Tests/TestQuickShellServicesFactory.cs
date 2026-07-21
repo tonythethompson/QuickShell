@@ -46,9 +46,8 @@ internal static class TestQuickShellServicesFactory
         var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
         var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        QuickShellServices? services = null;
-        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
-        services = new QuickShellServices(
+        var editorFactory = new WorkspaceEditorFactory(repository, drafts, analysis, commandSuggestions, lifetime);
+        var services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
@@ -95,9 +94,8 @@ internal static class TestQuickShellServicesFactory
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
         var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        QuickShellServices? services = null;
-        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
-        services = new QuickShellServices(
+        var editorFactory = new WorkspaceEditorFactory(repository, drafts, analysis, commandSuggestions, lifetime);
+        var services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
@@ -143,9 +141,8 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<ITerminalCatalog>(),
             analysis,
             provider.GetRequiredService<ICommandSuggestionService>());
-        QuickShellServices? services = null;
-        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
-        services = new QuickShellServices(
+        var editorFactory = provider.GetRequiredService<IWorkspaceEditorFactory>();
+        var services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(
                 repository,
@@ -190,4 +187,5 @@ internal static class TestQuickShellServicesFactory
         var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
         return (appDataPaths, glyphs, listIcons, prewarm);
     }
+
 }

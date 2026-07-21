@@ -4,6 +4,8 @@ internal sealed class LaunchRowDraft
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
+    public string Label { get; set; } = string.Empty;
+
     public string Command { get; set; } = string.Empty;
 
     public string TaskType { get; set; } = TaskTypeCatalog.None;
@@ -12,16 +14,20 @@ internal sealed class LaunchRowDraft
 
     public bool RunAsAdmin { get; set; }
 
+    public bool IsEnabled { get; set; } = true;
+
     public bool IsEditorPlaceholder { get; set; }
 
     public LaunchRowDraft Clone() =>
         new()
         {
             Id = Id,
+            Label = Label,
             Command = Command,
             TaskType = TaskType,
             LaunchTarget = LaunchTarget,
             RunAsAdmin = RunAsAdmin,
+            IsEnabled = IsEnabled,
             IsEditorPlaceholder = IsEditorPlaceholder,
         };
 }

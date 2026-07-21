@@ -1,3 +1,5 @@
+using QuickShell.Abstractions;
+using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
 using QuickShell.Services;
 using QuickShell.Services.WorkspaceEditor;
@@ -10,20 +12,14 @@ public sealed class WorkspaceEditorTests : IDisposable
     private readonly TempDataDirectory _temp = new();
     private readonly FakeShortcutRepository _repository;
     private readonly ShortcutDraftStore _drafts;
-    private readonly QuickShellSettingsManager _settings = new();
     private readonly FakeProjectAnalysisService _analysis = new();
-    private readonly QuickShellServices _services;
+    private readonly ICommandSuggestionService _commandSuggestions;
 
     public WorkspaceEditorTests()
     {
         _repository = new FakeShortcutRepository([], _temp.Path);
         _drafts = new ShortcutDraftStore(_repository);
-        _services = TestQuickShellServicesFactory.Create(
-            _repository,
-            _drafts,
-            _settings,
-            _analysis,
-            _lifetime);
+        _commandSuggestions = new CommandSuggestionService([]);
     }
 
     public void Dispose()
@@ -248,11 +244,43 @@ public sealed class WorkspaceEditorTests : IDisposable
         Assert.Equal(CompanionAppCatalog.PresetExplorer, editor.GetState().Companions[0].Preset);
     }
 
-    private WorkspaceEditor CreateEditor(Action? onSaved = null)
+    [Fact]
+    public void TryApplyHostFields_UpdatesScalarsAndMarksDirty()
     {
-        var editor = new WorkspaceEditor(_services, _lifetime, onSaved);
-        return editor;
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Original" });
+        Assert.False(editor.HasUnsavedChanges);
+
+        var applied = editor.TryApplyHostFields(new WorkspaceHostFieldUpdate
+        {
+            Name = "HostName",
+            Abbreviation = "hn",
+            Directory = _temp.Path,
+            DevServerUrl = "http://localhost:3000",
+            OpenDevServerOnLaunch = true,
+            RepoUrl = "https://example.com/repo.git",
+            Commands = editor.GetState().Commands.Select(c => c.Clone()).ToList(),
+            Companions = editor.GetState().Companions.Select(c => c.Clone()).ToList(),
+        });
+
+        Assert.True(applied);
+        var state = editor.GetState();
+        Assert.Equal("HostName", state.Name);
+        Assert.Equal("hn", state.Abbreviation);
+        Assert.Equal("http://localhost:3000", state.DevServerUrl);
+        Assert.True(state.OpenDevServerOnLaunch);
+        Assert.Equal("https://example.com/repo.git", state.RepoUrl);
+        Assert.True(editor.HasUnsavedChanges);
     }
+
+    private WorkspaceEditor CreateEditor(Action? onSaved = null) =>
+        new WorkspaceEditor(
+            _repository,
+            _drafts,
+            _analysis,
+            _commandSuggestions,
+            _lifetime,
+            onSaved);
 
     private static string JsonEscaped(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");

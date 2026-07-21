@@ -1,8 +1,7 @@
 using QuickShell.Abstractions.Classification;
 using QuickShell.Models;
-using QuickShell.Services;
 
-namespace QuickShell.Pages;
+namespace QuickShell.Services;
 
 internal static class ShortcutFormLaunchSection
 {
@@ -23,9 +22,11 @@ internal static class ShortcutFormLaunchSection
                 [
                     new LaunchRowDraft
                     {
+                        Label = shortcut.Name,
                         Command = shortcut.Command ?? string.Empty,
                         LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
                         RunAsAdmin = shortcut.RunAsAdmin,
+                        IsEnabled = true,
                     },
                 ];
             }
@@ -50,7 +51,9 @@ internal static class ShortcutFormLaunchSection
         return rows.Select((row, index) => new ShortcutFormLaunchInput
         {
             Id = row.Id,
-            Label = index == 0 ? labelBase : $"Command {index + 1}",
+            Label = string.IsNullOrWhiteSpace(row.Label)
+                ? index == 0 ? labelBase : $"Command {index + 1}"
+                : row.Label.Trim(),
             Command = row.Command,
             LaunchTarget = string.IsNullOrWhiteSpace(row.LaunchTarget)
                 ? index == 0
@@ -58,7 +61,7 @@ internal static class ShortcutFormLaunchSection
                     : TerminalCatalog.SameAsPreviousLaunchTargetId
                 : row.LaunchTarget,
             RunAsAdmin = row.RunAsAdmin,
-            IsEnabled = true,
+            IsEnabled = row.IsEnabled,
             TaskType = TaskTypeCatalog.Normalize(row.TaskType),
         }).ToList();
     }

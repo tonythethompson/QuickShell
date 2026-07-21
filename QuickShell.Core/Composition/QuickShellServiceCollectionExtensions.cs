@@ -6,6 +6,7 @@ using QuickShell.Classification.Classifiers;
 using QuickShell.Classification.Detectors;
 using QuickShell.Classification.Suggestions;
 using QuickShell.Services;
+using QuickShell.Services.WorkspaceEditor;
 
 namespace QuickShell.Composition;
 
@@ -148,6 +149,8 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<ITaskSuggestionProvider, AgentCliSuggestionProvider>();
         services.AddSingleton<ICommandSuggestionService, CommandSuggestionService>();
         services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
+
+        services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
 
         services.AddSingleton<ICompanionAppArgumentValidation, CompanionAppArgumentValidationInstance>();
         services.AddSingleton<ICompanionAppNormalization, CompanionAppNormalizationInstance>();

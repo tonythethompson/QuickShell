@@ -1,6 +1,7 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Services;
+using QuickShell.Services.WorkspaceEditor;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,6 +13,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
 {
     private readonly QuickShellSettingsReader _settings;
     private readonly IShortcutRepository _shortcuts;
+    private readonly IWorkspaceEditorFactory _editorFactory;
     private readonly IProjectAnalysisService _projectAnalysis;
     private readonly ICommandSuggestionService _commandSuggestions;
     private readonly IWorkspaceGitOperations _gitOperations;
@@ -21,6 +23,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
     public QuickShellRunSettingsPanel(
         QuickShellSettingsReader settings,
         IShortcutRepository shortcuts,
+        IWorkspaceEditorFactory editorFactory,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
         IWorkspaceGitOperations gitOperations,
@@ -31,6 +34,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         _ = onDefaultsSaved;
         _settings = settings;
         _shortcuts = shortcuts;
+        _editorFactory = editorFactory ?? throw new ArgumentNullException(nameof(editorFactory));
         _projectAnalysis = projectAnalysis;
         _commandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
         _gitOperations = gitOperations ?? throw new ArgumentNullException(nameof(gitOperations));
@@ -83,7 +87,7 @@ internal sealed class QuickShellRunSettingsPanel : UserControl
         });
         root.Children.Add(CreateButton(
             "Create shortcut",
-            () => ShortcutEditor.TryShowDialog(null, _shortcuts, _projectAnalysis, _commandSuggestions, _gitOperations, _targetStore, _catalog, out _)));
+            () => ShortcutEditor.TryShowDialog(null, _shortcuts, _editorFactory, _projectAnalysis, _commandSuggestions, _gitOperations, _targetStore, _catalog, out _)));
 
         Content = root;
     }

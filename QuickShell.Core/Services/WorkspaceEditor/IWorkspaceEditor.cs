@@ -20,6 +20,12 @@ internal interface IWorkspaceEditor : IDisposable
 
     bool TryApplyInputs(string payload, bool excludeDirectory = false);
 
+    /// <summary>
+    /// Host-typed field sync (WPF / non-Adaptive-Card hosts). Replaces scalar fields,
+    /// launch rows, and companion rows from the UI without Adaptive Card JSON.
+    /// </summary>
+    bool TryApplyHostFields(WorkspaceHostFieldUpdate update);
+
     WorkspaceEditResult SelectDirectory(string directory);
 
     WorkspaceEditResult TryAddSuggestedCommand(string? command, string? taskType, int pillIndex);
