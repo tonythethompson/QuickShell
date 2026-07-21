@@ -112,7 +112,10 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<IExtensionThreadScheduler, SyncExtensionThreadScheduler>();
         services.AddSingleton<IProjectClassificationCache, ProjectClassificationCache>();
         services.AddSingleton<IGitRepoIndex, GitRepoIndex>();
-        services.AddSingleton<IQuickShellEventSource>(_ => QuickShellEventSource.Log);
+        // Register the process-wide EventSource instance directly (not via factory delegate):
+        // DI disposes instances it constructs itself when the container is torn down, and
+        // disposing an EventSource permanently silences it for the rest of the process.
+        services.AddSingleton<IQuickShellEventSource>(QuickShellEventSource.Log);
         services.AddSingleton<IRowPresentationDiagnostics>(sp =>
             new RowPresentationDiagnostics(sp.GetRequiredService<IQuickShellEventSource>()));
         services.AddSingleton<IWorkspaceRowPresentationCache>(sp =>
