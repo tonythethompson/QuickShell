@@ -1,4 +1,15 @@
-import { Action, ActionPanel, Clipboard, Icon, List, openExtensionPreferences, showToast, Toast } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Alert,
+  Clipboard,
+  Icon,
+  List,
+  confirmAlert,
+  openExtensionPreferences,
+  showToast,
+  Toast,
+} from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useState } from "react";
 import WindowsRequiredView from "./components/windows-required-view";
@@ -52,12 +63,24 @@ export default function SettingsCommand() {
         });
         return;
       }
+      const preview = await storage.summarizeImport(trimmed, "merge");
+      if (preview.hasConflicts) {
+        const confirmed = await confirmAlert({
+          title: "Import name conflicts",
+          message: `${preview.renamed} will be renamed with " (imported)", ${preview.skipped} will be skipped. Continue?`,
+          primaryAction: { title: "Import (Rename)", style: Alert.ActionStyle.Default },
+          dismissAction: { title: "Cancel" },
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
       const result = await storage.importJson(trimmed, "merge");
       await revalidate();
       await showToast({
         style: Toast.Style.Success,
         title: "Import complete",
-        message: `${result.imported} imported, ${result.skipped} skipped.`,
+        message: `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed.`,
       });
     } catch (importError) {
       await showStorageFailure("Import workspaces", importError);

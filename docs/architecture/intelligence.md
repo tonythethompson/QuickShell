@@ -74,7 +74,7 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 |------|-------------|
 | CmdPal | Adaptive Card pill actions on form |
 | Run | `RunLaunchSuggestionPanel` |
-| Raycast | `QuickShell.Suggest.exe` → `CommandSuggestionService.GetPills` JSON (`QUICKSHELL_SUGGEST_EXE` for dev) |
+| Raycast | `QuickShell.Suggest.exe` → JSON pills via `suggest-commands.ts` (form seeds + Actions). Falls back to `project-setup-suggestion.ts` heuristics when Suggest.exe is missing. `QUICKSHELL_SUGGEST_EXE` overrides the path in development. |
 
 ## Related helpers
 

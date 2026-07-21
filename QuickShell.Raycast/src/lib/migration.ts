@@ -2,13 +2,15 @@ import {
   DEFAULT_SETTINGS,
   SCHEMA_VERSION,
   type LaunchEntry,
+  type LayoutEntry,
   type QuickShellSettings,
   type StoredData,
   type Workspace,
   createEmptyStoredData,
 } from "./schema";
-import { ensureStableId } from "./ids";
+import { createStableId, ensureStableId, isStableWorkspaceId } from "./ids";
 import { normalizeLaunches, normalizeWorkspace } from "./validation";
+import { isSafeGitBranchName } from "./git-launch-gate";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -51,14 +53,94 @@ export function migrateStoredData(raw: unknown): StoredData {
     workspaceSecurity[workspace.id] ??= { isTrusted: true, revision: 1 };
   }
 
+  const branchTargets = migrateBranchTargets(record.branchTargets);
+  const layoutEntries = migrateLayoutEntries(record.layoutEntries, workspaces);
+
   const data: StoredData = {
     version: SCHEMA_VERSION,
     workspaces,
     settings,
     workspaceSecurity,
+    branchTargets,
+    layoutEntries,
   };
 
   return data;
+}
+
+export function synthesizeLayoutEntries(workspaces: Workspace[]): LayoutEntry[] {
+  return workspaces.map((workspace) => ({ type: "workspace" as const, workspaceId: workspace.id }));
+}
+
+function migrateBranchTargets(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const targets: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as UnknownRecord)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    const trimmedKey = key.trim().toLowerCase();
+    const trimmedValue = value.trim();
+    if (!trimmedKey || !trimmedValue || !isSafeGitBranchName(trimmedValue)) {
+      continue;
+    }
+    targets[trimmedKey] = trimmedValue;
+  }
+  return targets;
+}
+
+function migrateLayoutEntries(raw: unknown, workspaces: Workspace[]): LayoutEntry[] {
+  if (!Array.isArray(raw)) {
+    return synthesizeLayoutEntries(workspaces);
+  }
+
+  const workspaceIds = new Set(workspaces.map((workspace) => workspace.id));
+  const seenWorkspaceIds = new Set<string>();
+  const entries: LayoutEntry[] = [];
+
+  for (const item of raw) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const record = item as UnknownRecord;
+    const type = typeof record.type === "string" ? record.type.trim().toLowerCase() : "";
+
+    if (type === "separator") {
+      const id =
+        typeof record.id === "string" && isStableWorkspaceId(record.id) ? record.id.toLowerCase() : createStableId();
+      const title = typeof record.title === "string" && record.title.trim() ? record.title.trim() : null;
+      entries.push({ type: "separator", id, title });
+      continue;
+    }
+
+    if (type === "workspace" || type === "shortcut") {
+      const rawId =
+        typeof record.workspaceId === "string"
+          ? record.workspaceId
+          : typeof record.shortcutId === "string"
+            ? record.shortcutId
+            : "";
+      if (!isStableWorkspaceId(rawId)) {
+        continue;
+      }
+      const id = rawId.toLowerCase();
+      if (!workspaceIds.has(id) || seenWorkspaceIds.has(id)) {
+        continue;
+      }
+      seenWorkspaceIds.add(id);
+      entries.push({ type: "workspace", workspaceId: id });
+    }
+  }
+
+  for (const workspace of workspaces) {
+    if (!seenWorkspaceIds.has(workspace.id)) {
+      entries.push({ type: "workspace", workspaceId: workspace.id });
+    }
+  }
+
+  return entries;
 }
 
 function migrateSettings(raw: unknown): QuickShellSettings {
@@ -88,7 +170,24 @@ function migrateSettings(raw: unknown): QuickShellSettings {
     defaultProfile,
     recentWorkspaceCount,
     multiLaunchPresentation: parseMultiLaunchPresentation(record.multiLaunchPresentation),
+    blockDirtyBranchSwitch: parseBooleanFlag(record.blockDirtyBranchSwitch, DEFAULT_SETTINGS.blockDirtyBranchSwitch),
   };
+}
+
+function parseBooleanFlag(raw: unknown, fallback: boolean): boolean {
+  if (typeof raw === "boolean") {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0") {
+      return false;
+    }
+  }
+  return fallback;
 }
 
 function parseMultiLaunchPresentation(raw: unknown): QuickShellSettings["multiLaunchPresentation"] {

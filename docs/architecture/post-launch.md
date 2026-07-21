@@ -71,12 +71,13 @@ Not automatic on every launch unless product UI wires them.
 
 ## Raycast
 
-`post-launch-actions.ts` runs **after** terminal groups:
+`launch-executor.ts` matches Core order on full workspace open:
 
-1. Companion (if enabled)  
-2. Dev server URL (if enabled)  
+1. Companions (`runPostLaunchActions` phase `companions`)
+2. Terminal groups
+3. Dev server URL (phase `devServer`)
 
-Order differs slightly from Core (companion before terminals in Core; after in Raycast). Both treat failures as **warnings**.
+Companion and URL failures are soft **warnings**. Single-row launches omit both (`includeCompanion` / `includeDevServer` false).
 
 ## Diagnostics
 

@@ -68,13 +68,33 @@ export type QuickShellSettings = {
   defaultProfile: string;
   recentWorkspaceCount: number;
   multiLaunchPresentation: MultiLaunchPresentation;
+  /** When true, refuse launch switch if the worktree is dirty and not already on the target branch. */
+  blockDirtyBranchSwitch: boolean;
 };
+
+/** Layout row: workspace reference or a titled section separator (Raycast-local blob). */
+export type LayoutWorkspaceEntry = {
+  type: "workspace";
+  workspaceId: string;
+};
+
+export type LayoutSeparatorEntry = {
+  type: "separator";
+  id: string;
+  title?: string | null;
+};
+
+export type LayoutEntry = LayoutWorkspaceEntry | LayoutSeparatorEntry;
 
 export type StoredData = {
   version: number;
   workspaces: Workspace[];
   settings: QuickShellSettings;
   workspaceSecurity?: Record<string, WorkspaceSecurityMetadata>;
+  /** Worktree key (normalized toplevel path, lowercase) → target branch. Raycast-local only. */
+  branchTargets?: Record<string, string>;
+  /** Browse-order layout including optional section separators. */
+  layoutEntries?: LayoutEntry[];
 };
 
 export const DEFAULT_SETTINGS: QuickShellSettings = {
@@ -82,6 +102,7 @@ export const DEFAULT_SETTINGS: QuickShellSettings = {
   defaultProfile: "__default__",
   recentWorkspaceCount: 8,
   multiLaunchPresentation: "singleWindowTabs",
+  blockDirtyBranchSwitch: true,
 };
 
 export const DEFAULT_TERMINAL = "default";
@@ -95,5 +116,7 @@ export function createEmptyStoredData(): StoredData {
     version: SCHEMA_VERSION,
     workspaces: [],
     settings: { ...DEFAULT_SETTINGS },
+    branchTargets: {},
+    layoutEntries: [],
   };
 }

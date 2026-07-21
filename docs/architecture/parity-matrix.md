@@ -1,9 +1,11 @@
 # Host parity matrix (CmdPal / Run / Raycast)
 
 **Tier 0.2 deliverable**  
-**As of:** 2026-07-13  
+**As of:** 2026-07-20  
 
 Compares product capabilities across hosts. Use this before adding a feature on only one surface.
+
+**Phase 3 storage decision (locked):** Raycast keeps parallel `LocalStorage` (`quickshell-data`). Import/export is the bridge to desktop. Shared `%LOCALAPPDATA%\QuickShell\` stores, ETW/`QuickShellEventSource`, and git worktree targets remain intentional gaps (see below and [QuickShell-TechDebt-Phases.md](./QuickShell-TechDebt-Phases.md) Phase 3).
 
 Legend:
 
@@ -32,13 +34,13 @@ Data stores:
 |------------|--------|-----|---------|--------|
 | List / search workspaces | Full | Full (`qs` + global phrases) | Full | Scoring differs |
 | Create / edit workspace | Full (Adaptive Cards) | Full (WPF editor) | Full (React form) | Different UX stacks |
-| Delete / pin / reorder favorites | Full | Partial (context menu subset) | Partial (list actions) | Verify before assuming full parity |
+| Delete / pin / reorder favorites | Full | Partial (context menu subset) | Full (pin + move up/down) | |
 | Multi-launch rows | Full | Full | Full | Same concept |
 | Tabs vs separate windows | Full | Full | Full | `multiLaunchPresentation`; no `-w` on tab segments |
-| Open elevated / standard | Full | Full | Partial | Check Raycast elevation path |
-| Import / export JSON | Full | Via settings / shared file | Full (extension import-export) | Desktop shares one file; Raycast is separate blob |
+| Open elevated / standard | Full | Full | Full | Raycast elevation + mixed-admin grouping |
+| Import / export JSON | Full | Via settings / shared file | Full (extension import-export) | Desktop shares one file; Raycast is separate blob; import always untrusted |
 | Layout undo / redo | Full | Partial (plugin + editor) | Full (storage history) | |
-| Section separators | Full | Partial | Partial | Layout on disk supports them |
+| Section separators | Full | Partial | Full (Raycast-local `layoutEntries`) | Desktop shared layout file; Raycast blob parallel |
 
 ---
 
@@ -49,9 +51,9 @@ Data stores:
 | Core `ShortcutLaunchExecutor` | Full | Full | **No** (TS reimplementation) | |
 | Terminal catalog / profiles | Full | Full | Partial | TS catalog simplified |
 | same-as-previous resolve | Full | Full | Full (loop-based) | |
-| WSL path handling | Full | Full | Partial | Desktop richer |
-| Launch diagnostics copy | Full | Partial | Partial | CmdPal status/diagnostics strongest |
-| Single-row launch (no companion/dev-server) | Full | Full | Partial | |
+| WSL path handling | Full | Full | Full (distro list when `wsl -l -q` works) | |
+| Launch diagnostics copy | Full | Partial | Full (toast Copy Diagnostics) | Structured text summary; no ETW |
+| Single-row launch (no companion/dev-server) | Full | Full | Full | |
 
 See [launch.md](./launch.md), [hosts.md](./hosts.md).
 
@@ -65,7 +67,7 @@ See [launch.md](./launch.md), [hosts.md](./hosts.md).
 | `defaultProfile` | Full | Full | Full | |
 | `multiLaunchPresentation` | Full | Full | Full | |
 | `recentWorkspaceCount` | Full | Full | Full | Semantics quirks on CmdPal text setting |
-| `blockDirtyBranchSwitch` | Full | Full | **No** (not in Raycast schema) | **Intentional gap** until added |
+| `blockDirtyBranchSwitch` | Full | Full | Full (extension preference) | Raycast-local gate; not shared with desktop JSON |
 | Refresh terminal list | Full | Partial | Partial | |
 
 See [settings.md](./settings.md).
@@ -76,10 +78,10 @@ See [settings.md](./settings.md).
 
 | Capability | CmdPal | Run | Raycast | Notes |
 |------------|--------|-----|---------|--------|
-| Full `WorkspaceHealthCheck` | Full | Full (on launch) | **Partial** | Raycast: path/validation/plan; weak ports/processes/profiles |
+| Full `WorkspaceHealthCheck` | Full | Full (on launch) | **Partial** | Raycast: path/validation/plan + terminal host + WSL note + port-in-use **warnings**; no process-list |
 | List badges / status snapshot | Full | Partial (subtitles/icons) | Partial | |
-| Worktree target branch store | Full | Full (Core gate) | **No** | **Intentional gap** |
-| Git launch gate (dirty block) | Full | Full | **No** / weak | Depends on settings + Core |
+| Worktree target branch store | Full | Full (Core gate) | Full (Raycast-local `branchTargets` in blob) | **No shared** `worktree-branch-targets.json` |
+| Git launch gate (dirty block) | Full | Full | Full (TS `git-launch-gate`) | Same rules; Raycast-local targets |
 | Workspace status page | Full | No | No | CmdPal-only UI |
 | Discover git repos | Full | No | Full | Different scanners |
 | `GitRepoIndex` prewarm | Full | No | N/A | |
@@ -92,11 +94,11 @@ See [git-and-discover.md](./git-and-discover.md), [launch.md](./launch.md).
 
 | Capability | CmdPal | Run | Raycast | Notes |
 |------------|--------|-----|---------|--------|
-| Project classification | Full (Core) | Full (Core) | Partial (TS setup suggest) | |
-| Suggestion pills | Full | Full (panel) | Full via **Suggest.exe** | Same Core when Suggest ships |
-| Setup seed on create/discover | Full | Partial | Partial | |
-| Companion catalog / detection | Full | Full (editor/settings) | Partial | Raycast companion path/args; weaker presets |
-| Dev server URL + open on launch | Full | Full | Full | Timing differs slightly |
+| Project classification | Full (Core) | Full (Core) | Partial (Suggest.exe + local heuristics) | |
+| Suggestion pills | Full | Full (panel) | Full via **Suggest.exe** (local fallback) | Form seeds from Suggest when CLI present |
+| Setup seed on create/discover | Full | Partial | Full (Suggest + heuristics) | |
+| Companion catalog / detection | Full | Full (editor/settings) | Partial (multi-row + presets + folder markers) | No JetBrains/vswhere walks |
+| Dev server URL + open on launch | Full | Full | Full | Companions before terminals; URL after |
 | Agent CLI PATH pills | No | No | No | Roadmap Tier 2 / PR C |
 
 See [intelligence.md](./intelligence.md), [companions.md](./companions.md), [post-launch.md](./post-launch.md).
@@ -118,12 +120,12 @@ See [cmdpal-surface.md](./cmdpal-surface.md).
 
 ## Intentional gaps (do not “fix” without a decision)
 
-1. **Raycast does not share** `%LOCALAPPDATA%\QuickShell\` stores with desktop — import/export is the bridge.  
-2. **Raycast has no** `blockDirtyBranchSwitch` / worktree target file — git gate parity is **not** claimed.  
-3. **Raycast health** is a subset — not a bug until product wants parity.  
+1. **Raycast does not share** `%LOCALAPPDATA%\QuickShell\` stores with desktop — parallel LocalStorage; import/export is the bridge.  
+2. **Raycast git targets** live in the LocalStorage blob (`branchTargets`), not Core `worktree-branch-targets.json`. Dirty block uses preference `blockDirtyBranchSwitch` (default true).  
+3. **Raycast health** covers path/validation/plan + terminal host + WSL note + port-in-use warnings; process-list checks remain desktop-only.  
 4. **Run** is a second desktop host on **shared** Core data — launch behavior must match CmdPal; UI chrome need not.  
-5. **Suggest.exe** is required for Raycast pills in production packaging.
-
+5. **Suggest.exe** is preferred for Raycast pills; local folder heuristics are the fallback when the CLI is missing.  
+6. **ETW / `QuickShell-Diagnostics` EventSource** is desktop Core/CmdPal only — not a Raycast port target.
 ---
 
 ## How to use this matrix
