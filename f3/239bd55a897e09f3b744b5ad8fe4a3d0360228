@@ -1,0 +1,68 @@
+QuickShell.Core.Tests/TestQuickShellServicesFactory.cs
+  s_27262e40f10686::t_bb1885607fb7fb 12-26
+  s_27262e40f10686::t_eee929acc7b47b 27-29
+  s_aecdb4cfe17926::t_8b4264a71d8448 30-35,42,85,161-176
+QuickShell.Core.Tests/Architecture/TaskRunCancellationGuardTests.cs
+  s_7907d4d8dd6716::t_df3d06e3da5aa7 47,49
+  s_aecdb4cfe17926::t_b8c0f4b31282ea 77-83,87-89,92-127,129-145,162-207
+QuickShell/Services/SettingsFormRefreshScheduler.cs
+  s_aecdb4cfe17926::t_c76513b05ac522 56-61
+QuickShell.Core.Tests/TerminalListIconCacheTests.cs
+  s_aecdb4cfe17926::t_3fc3a9b4b0d5f4 20-21,24
+QuickShell.Core.Tests/WorkspaceRowEnrichmentCoordinatorTests.cs
+  s_aecdb4cfe17926::t_15d3af16f91384 19-20
+QuickShell.Core.Tests/WorkspaceUtilityTests.cs
+  s_aecdb4cfe17926::t_9db8e416671516 1344-1345,1359,1375,1391,1406-1407,1431,1446,1453
+QuickShell.Core/Services/QuickShellSettingsReader.cs
+  s_aecdb4cfe17926::t_c8e81c1934c106 28-29
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_aecdb4cfe17926::t_cfaa3d2d5ed176 97,1369
+QuickShell.Core/Services/TerminalListIconCache.cs
+  s_aecdb4cfe17926::t_647ecff257ec56 119,122
+QuickShell.Core/Services/TerminalSettingsDiscovery.cs
+  s_aecdb4cfe17926::t_4357b69cf18fea 80
+QuickShell.Core/Services/WorktreeBranchTargetStore.cs
+  s_aecdb4cfe17926::t_bc52ff29bcb90f 176
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_aecdb4cfe17926::t_9775d95685971c 194
+QuickShell.Run/RunResultIcons.cs
+  s_aecdb4cfe17926::t_483701c7f0854c 5,116,118
+QuickShell/QuickShellSettingsManager.cs
+  s_aecdb4cfe17926::t_7e747863afc2e0 149,398,400
+QuickShell/Services/QuickShellJsonSettingsStore.cs
+  s_aecdb4cfe17926::t_7593e092d574ee 18,20-21
+QuickShell/Services/WorkspaceRowEnrichmentCoordinator.cs
+  s_aecdb4cfe17926::t_9f04ab0ce9b13e 26,72-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f3239bd55a897e09f3b744b5ad8fe4a3d0360228",
+  "prompts": {},
+  "sessions": {
+    "s_27262e40f10686": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "805fc6b9-7f6d-40f5-8e1a-7e2afaaa2168",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_7907d4d8dd6716": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e95d79dd-7ff3-4e90-9333-48fd7f5e3fe5",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_aecdb4cfe17926": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e2941b8-e6bb-4487-839c-774807fed75c",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
