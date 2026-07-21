@@ -300,7 +300,7 @@ public sealed class ImportConflictFlowTests : IDisposable
         Assert.Contains(_repository.GetShortcuts(), s => s.Name.Equals("Beta", StringComparison.OrdinalIgnoreCase));
 
         // Second import with conflicts goes through the conflict form merge action.
-        var secondImportPath = Path.Combine(_temp.Path, "incoming2.json");
+        var secondImportPath = Path.Join(_temp.Path, "incoming2.json");
         File.WriteAllText(secondImportPath, """
             [
               {
