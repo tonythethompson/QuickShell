@@ -255,7 +255,7 @@ export function probePortInUse(port: number): Promise<boolean> {
   });
 }
 
-function defaultPortInUseProbe(_port: number): boolean {
+function defaultPortInUseProbe(): boolean {
   // Sync assessment skips live probes (list path stays cheap). Launch can pass an injected probe.
   return false;
 }
