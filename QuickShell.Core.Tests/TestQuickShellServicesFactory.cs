@@ -14,7 +14,7 @@ internal static class TestQuickShellServicesFactory
     /// </summary>
     public static TerminalLaunchGlyphs CreateGlyphs()
     {
-        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var testRoot = Path.Join(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
         var appDataPaths = new AppDataPaths(testRoot);
         var profiles = new WtProfilesService();
         var catalog = new TerminalCatalog(profiles);
@@ -141,7 +141,7 @@ internal static class TestQuickShellServicesFactory
     /// </summary>
     private static (AppDataPaths appDataPaths, TerminalLaunchGlyphs glyphs, TerminalListIconCache listIcons, TerminalCatalogPrewarm prewarm) BuildTerminalWiring(LaunchTestBundle bundle)
     {
-        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var testRoot = Path.Join(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
         var appDataPaths = new AppDataPaths(testRoot);
         var glyphs = new TerminalLaunchGlyphs(
             new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths, bundle.Catalog), bundle.Profiles, bundle.Catalog));
