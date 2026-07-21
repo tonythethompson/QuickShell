@@ -995,20 +995,8 @@ internal sealed class TerminalCatalog : ITerminalCatalog
                 }
 
                 var cleanOutput = output.Replace("\0", string.Empty);
-                var lines = new List<string>();
 
-                // Bolt: Performance optimization - use output.AsSpan().EnumerateLines() instead of output.Split()
-                // This avoids allocating a string array and string instances for every line in the command output.
-                foreach (var line in cleanOutput.AsSpan().EnumerateLines())
-                {
-                    var trimmed = line.Trim();
-                    if (!trimmed.IsEmpty)
-                    {
-                        lines.Add(trimmed.ToString());
-                    }
-                }
-
-                return lines
+                return LineParsing.SplitTrimmedNonEmptyLines(cleanOutput)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(line => line, StringComparer.OrdinalIgnoreCase)
                     .ToArray();

@@ -166,20 +166,8 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
             }
 
             var output = stdoutTask.Result.Replace("\0", string.Empty, StringComparison.Ordinal);
-            var names = new List<string>();
 
-            // Bolt: Performance optimization - use output.AsSpan().EnumerateLines() instead of output.Split()
-            // This avoids allocating a string array and string instances for every line in the command output.
-            foreach (var line in output.AsSpan().EnumerateLines())
-            {
-                var trimmed = line.Trim();
-                if (!trimmed.IsEmpty)
-                {
-                    names.Add(trimmed.ToString());
-                }
-            }
-
-            return names
+            return LineParsing.SplitTrimmedNonEmptyLines(output)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
