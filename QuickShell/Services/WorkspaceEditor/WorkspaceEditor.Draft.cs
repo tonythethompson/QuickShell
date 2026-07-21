@@ -378,10 +378,13 @@ internal sealed partial class WorkspaceEditor
         List<CompanionAppFormRow> current)
     {
         var changed = false;
-        var count = Math.Min(previous.Count, current.Count);
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < current.Count; i++)
         {
-            if (string.Equals(previous[i].Preset, current[i].Preset, StringComparison.OrdinalIgnoreCase))
+            // Rows beyond the previous list are newly added: they have no prior
+            // preset to compare against, so always apply their preset's state
+            // (path, arguments, launch setting) rather than leaving it blank.
+            if (i < previous.Count
+                && string.Equals(previous[i].Preset, current[i].Preset, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
