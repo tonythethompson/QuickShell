@@ -301,7 +301,8 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
 
             if (_templateCommandCount != commandCount
                 || _templateCompanionCount != companionCount
-                || !string.Equals(_templateDirectory, state.Directory, StringComparison.OrdinalIgnoreCase))
+                || !string.Equals(_templateDirectory, state.Directory, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(card.TemplateJson, TemplateJson, StringComparison.Ordinal))
             {
                 TemplateJson = card.TemplateJson;
                 _templateCommandCount = commandCount;
