@@ -26,6 +26,12 @@ internal sealed partial class WorkspaceEditor
 
         if (_originalName is not null && !_subscribedToDraftCleared)
         {
+            // Capture the drafts service in a local rather than referencing
+            // _services inside the handler: touching an instance field would
+            // implicitly capture `this` in the closure, keeping this editor
+            // alive for as long as it stays subscribed and defeating the
+            // WeakReference below.
+            var drafts = _services.Drafts;
             var weakSelf = new WeakReference<WorkspaceEditor>(this);
             Action<string>? handler = null;
             handler = originalName =>
@@ -36,12 +42,12 @@ internal sealed partial class WorkspaceEditor
                 }
                 else if (handler is not null)
                 {
-                    _services.Drafts.Cleared -= handler;
+                    drafts.Cleared -= handler;
                 }
             };
 
             _draftClearedHandler = handler;
-            _services.Drafts.Cleared += handler;
+            drafts.Cleared += handler;
             _subscribedToDraftCleared = true;
         }
     }
@@ -187,6 +193,16 @@ internal sealed partial class WorkspaceEditor
                 CompanionAppArguments = restored.CompanionAppArguments,
             });
 
+        // TerminalShortcut has no CompanionAppPreset scalar, so FromShortcut above
+        // can only infer a preset from the path. Prefer the persisted preset choice
+        // when one was recorded, rather than silently re-inferring it.
+        if (restored.Companions.Count == 0
+            && !string.IsNullOrWhiteSpace(restored.CompanionAppPreset)
+            && companions.Count > 0)
+        {
+            companions[0].Preset = restored.CompanionAppPreset;
+        }
+
         CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
 
         _draft = new FormDraft
@@ -312,7 +328,10 @@ internal sealed partial class WorkspaceEditor
         }
 
         var mergedName = data["Name"]?.ToString() ?? _draft.Name;
-        UpdateAutoFilledNameTracking(mergedName);
+        var mergedDirectory = excludeDirectory
+            ? _draft.Directory
+            : data["Directory"]?.ToString() ?? _draft.Directory;
+        UpdateAutoFilledNameTracking(mergedName, mergedDirectory);
 
         var previousCompanions = _draft.Companions.Select(row => row.Clone()).ToList();
         var mergedCompanions = MergeCompanionsFromInputs(data, previousCompanions);
@@ -322,9 +341,7 @@ internal sealed partial class WorkspaceEditor
             OriginalName = data["OriginalName"]?.ToString() ?? _draft.OriginalName,
             Name = mergedName,
             Abbreviation = data["Abbreviation"]?.ToString() ?? _draft.Abbreviation,
-            Directory = excludeDirectory
-                ? _draft.Directory
-                : data["Directory"]?.ToString() ?? _draft.Directory,
+            Directory = mergedDirectory,
             Commands = MergeCommandsFromInputs(data, _draft.Commands),
             LaunchTarget = data["LaunchTarget_0"]?.ToString()
                 ?? data["LaunchTarget"]?.ToString()
@@ -548,11 +565,18 @@ internal sealed partial class WorkspaceEditor
     }
 
     /// <summary>
-    /// Updates name customization tracking based on the merged name and current directory.
+    /// Updates name customization tracking based on the merged name and directory.
     /// </summary>
     /// <param name="mergedName">The name merged into the draft.</param>
-    private void UpdateAutoFilledNameTracking(string mergedName)
+    /// <param name="mergedDirectory">
+    /// The directory the merged name should be compared against. Callers that also merge a new
+    /// directory in the same operation must pass that merged value explicitly rather than relying
+    /// on <c>_draft.Directory</c>, which may not be updated yet.
+    /// </param>
+    private void UpdateAutoFilledNameTracking(string mergedName, string? mergedDirectory = null)
     {
+        mergedDirectory ??= _draft.Directory;
+
         if (string.IsNullOrWhiteSpace(mergedName))
         {
             _nameCustomized = false;
@@ -573,9 +597,9 @@ internal sealed partial class WorkspaceEditor
 
         if (_autoFilledName is null
             && !string.IsNullOrWhiteSpace(mergedName)
-            && !string.IsNullOrWhiteSpace(_draft.Directory))
+            && !string.IsNullOrWhiteSpace(mergedDirectory))
         {
-            var derived = DeriveNameFromDirectory(_draft.Directory);
+            var derived = DeriveNameFromDirectory(mergedDirectory);
             if (string.Equals(
                     Normalize(mergedName),
                     Normalize(derived),
