@@ -1,5 +1,6 @@
 using QuickShell.Models;
 using QuickShell.Services;
+using Xunit.Sdk;
 
 namespace QuickShell.Core.Tests;
 
@@ -176,11 +177,13 @@ public sealed class WorkspaceSecurityAdversarialTests
                     Directory.Delete(Path, recursive: true);
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                throw new XunitException($"Failed to delete temporary test directory '{Path}'.", ex);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                throw new XunitException($"Insufficient permissions to delete temporary test directory '{Path}'.", ex);
             }
         }
     }

@@ -162,11 +162,13 @@ public sealed class TrustLaunchFlowTests
             {
                 Directory.Delete(folder, recursive: true);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                throw new XunitException($"Failed to delete temporary test directory '{folder}'.", ex);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                throw new XunitException($"Insufficient permissions to delete temporary test directory '{folder}'.", ex);
             }
         }
     }
