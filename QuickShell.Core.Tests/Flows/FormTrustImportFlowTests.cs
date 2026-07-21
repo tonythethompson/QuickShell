@@ -87,6 +87,31 @@ public sealed class FormEditFlowTests : IDisposable
 
     private static string JsonEscaped(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    private sealed class TempDataDirectory : IDisposable
+    {
+        public TempDataDirectory()
+        {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quickshell-form-flow-tests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path);
+        }
+
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Path))
+                {
+                    Directory.Delete(Path, recursive: true);
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
 }
 
 [Collection("ShortcutRepositoryMutex")]
@@ -100,7 +125,7 @@ public sealed class TrustLaunchFlowTests
         Directory.CreateDirectory(folder);
         try
         {
-            repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace(name: "TrustFlow", directory: folder));
+            repository.Upsert(CreateWorkspace(folder));
             var workspace = repository.GetByName("TrustFlow")!;
             Assert.Equal(TrustTransitionStatus.Revoked, repository.RevokeTrust(workspace.Id).Status);
 
@@ -131,13 +156,11 @@ public sealed class TrustLaunchFlowTests
             {
                 Directory.Delete(folder, recursive: true);
             }
-            catch (IOException ex)
+            catch (IOException)
             {
-                TestContext.Current?.SendDiagnosticMessage($"Cleanup failed deleting '{folder}': {ex.Message}");
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
             {
-                TestContext.Current?.SendDiagnosticMessage($"Cleanup failed deleting '{folder}' due to access restrictions: {ex.Message}");
             }
         }
     }
@@ -150,7 +173,7 @@ public sealed class TrustLaunchFlowTests
         Directory.CreateDirectory(folder);
         try
         {
-            repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace(name: "TrustFlow", directory: folder));
+            repository.Upsert(CreateWorkspace(folder));
             var workspace = repository.GetByName("TrustFlow")!;
             Assert.Equal(TrustTransitionStatus.Revoked, repository.RevokeTrust(workspace.Id).Status);
 
@@ -195,6 +218,25 @@ public sealed class TrustLaunchFlowTests
         var directory = Path.Join(Path.GetTempPath(), "QuickShellTrustFlowTests", Guid.NewGuid().ToString("N"));
         return new ShortcutRepository(directory);
     }
+
+    private static TerminalShortcut CreateWorkspace(string directory) =>
+        new()
+        {
+            Name = "TrustFlow",
+            Directory = directory,
+            Command = "echo one",
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = "launch-1",
+                    Label = "Launch",
+                    Terminal = "default",
+                    Command = "echo one",
+                    IsEnabled = true,
+                },
+            ],
+        };
 
     private sealed class CapturingLaunchExecutor : IShortcutLaunchExecutor
     {
@@ -282,7 +324,7 @@ public sealed class ImportConflictFlowTests : IDisposable
         _repository.Upsert(CreateShortcut("Alpha", folder));
         Assert.NotNull(_repository.GetByName("Alpha"));
 
-        var importPath = Path.Combine(_temp.Path, "incoming.json");
+        var importPath = Path.Join(_temp.Path, "incoming.json");
         File.WriteAllText(importPath, """
             [
               {
@@ -354,6 +396,31 @@ public sealed class ImportConflictFlowTests : IDisposable
             Name = name,
             Directory = directory,
         };
+
+    private sealed class TempDataDirectory : IDisposable
+    {
+        public TempDataDirectory()
+        {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quickshell-import-flow-tests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path);
+        }
+
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Path))
+                {
+                    Directory.Delete(Path, recursive: true);
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
 }
 
 /// <summary>Serializes tests that mutate the process-wide <see cref="ImportConflictState"/>.</summary>
