@@ -32,6 +32,16 @@ internal sealed class WorkspaceRowPresentationCache : IWorkspaceRowPresentationC
         ITerminalLaunchGlyphs? glyphs = null,
         IWtProfilesService? profiles = null)
     {
+        // catalog, glyphs, and profiles all resolve terminal state from the same
+        // WtProfilesService snapshot. Supplying one without the other two would
+        // silently pair it with a disconnected fallback, so require them as one
+        // coherent bundle or omit all three.
+        var hasTerminalOverride = catalog is not null || glyphs is not null || profiles is not null;
+        if (hasTerminalOverride && (catalog is null || glyphs is null || profiles is null))
+        {
+            throw new ArgumentException("catalog, glyphs, and profiles must be supplied together.");
+        }
+
         _diagnostics = diagnostics ?? new RowPresentationDiagnostics();
 
         // Reuse the same profiles instance for both the default catalog and the default
