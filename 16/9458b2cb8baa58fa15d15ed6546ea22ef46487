@@ -1,0 +1,19 @@
+QuickShell.Raycast/src/lib/workspace-health.ts
+  s_ea6f3b95a5e197::t_b1199a4d36003a 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "169458b2cb8baa58fa15d15ed6546ea22ef46487",
+  "prompts": {},
+  "sessions": {
+    "s_ea6f3b95a5e197": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ace255f7-37a6-4c29-a2a4-67aeda78e7b0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
