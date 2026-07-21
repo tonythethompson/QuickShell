@@ -92,7 +92,7 @@ public sealed class FormEditFlowTests : IDisposable
     {
         public TempDataDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quickshell-form-flow-tests", Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Join(System.IO.Path.GetTempPath(), "quickshell-form-flow-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
 
