@@ -10,7 +10,7 @@ Raycast-native workspace launcher for QuickShell on **Windows**.
 - **Discover Git Repos** — scan common project folders and add repositories as workspaces
 - **Manage Workspaces** — import/export, undo/redo, open Raycast extension preferences
 
-**Extension preferences** (Raycast → Extensions → QuickShell): default terminal app, default profile, show recents.
+**Extension preferences** (Raycast → Extensions → QuickShell): default terminal app, default profile, show recents, multi-command tabs, block dirty branch switch.
 
 Root search: type `qs`, `quickshell`, or a workspace home keyword. Register **Open Workspace** as a fallback command to honor root-search text via `fallbackText`.
 
@@ -71,4 +71,6 @@ Run `npm run build` before submitting Store changes. Do not add a `version` fiel
 
 ## Scope
 
-Broader CmdPal parity (shared `shortcuts.json`, git branch targets, full health checks) is tracked separately from this Raycast extension.
+Workspaces live in Raycast `LocalStorage` (`quickshell-data`), not shared `%LOCALAPPDATA%\QuickShell\` files. Import/export is the bridge to CmdPal/Run.
+
+Raycast-local parity includes: trust/import contracts, Suggest.exe pills with local fallback, multi-companion form + presets, terminal-host and port-in-use health warnings, copyable launch diagnostics, git launch gate (`branchTargets` + `blockDirtyBranchSwitch`), and layout section separators. Intentional gaps remain: shared LocalAppData stores / Core `worktree-branch-targets.json`, process-list health, ETW.

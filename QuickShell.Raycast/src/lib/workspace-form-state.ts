@@ -13,6 +13,13 @@ export type LaunchFormRow = {
   label: string;
 };
 
+export type CompanionFormRow = {
+  id: string;
+  path: string;
+  arguments: string;
+  openOnLaunch: boolean;
+};
+
 export type WorkspaceFormState = {
   name: string;
   abbreviation: string;
@@ -22,12 +29,10 @@ export type WorkspaceFormState = {
   isPinned: boolean;
   runAsAdmin: boolean;
   launches: LaunchFormRow[];
+  companions: CompanionFormRow[];
   devServerUrl: string;
   openDevServerOnLaunch: boolean;
   repoUrl: string;
-  openCompanionAppOnLaunch: boolean;
-  companionAppPath: string;
-  companionAppArguments: string;
 };
 
 function savableLaunchRowCount(state: WorkspaceFormState): number {
@@ -71,26 +76,16 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
 
   const primary = launches.find((entry) => entry.isEnabled) ?? launches[0];
 
-  // Form still edits the primary companion; keep additional companions from the existing workspace.
-  const existingCompanions = normalizeCompanionApps(initialWorkspace);
-  const additionalCompanions = existingCompanions.slice(1);
-  const primaryPath = state.companionAppPath?.trim() || null;
-  const companionApps: CompanionAppEntry[] = [];
-  if (primaryPath) {
-    companionApps.push({
-      id: existingCompanions[0]?.id || createStableId(),
-      path: primaryPath,
-      arguments: state.companionAppArguments || null,
-      openOnLaunch: state.openCompanionAppOnLaunch ?? false,
-      order: 0,
-    });
-  }
-  companionApps.push(
-    ...additionalCompanions.map((entry, index) => ({
-      ...entry,
-      order: companionApps.length + index,
-    })),
-  );
+  const companionApps: CompanionAppEntry[] = state.companions
+    .filter((row) => row.path.trim())
+    .map((row, index) => ({
+      id: row.id || createStableId(),
+      path: row.path.trim(),
+      arguments: row.arguments.trim() || null,
+      openOnLaunch: row.openOnLaunch,
+      order: index,
+    }));
+  const primaryCompanion = companionApps[0];
 
   return normalizeWorkspace({
     ...initialWorkspace,
@@ -107,9 +102,9 @@ export function buildWorkspaceFromFormState(initialWorkspace: Workspace, state: 
     devServerUrl: state.devServerUrl?.trim() || null,
     openDevServerOnLaunch: state.openDevServerOnLaunch ?? false,
     repoUrl: state.repoUrl?.trim() || null,
-    openCompanionAppOnLaunch: state.openCompanionAppOnLaunch ?? false,
-    companionAppPath: primaryPath,
-    companionAppArguments: state.companionAppArguments?.trim() || null,
+    openCompanionAppOnLaunch: primaryCompanion?.openOnLaunch ?? false,
+    companionAppPath: primaryCompanion?.path ?? null,
+    companionAppArguments: primaryCompanion?.arguments ?? null,
   });
 }
 
@@ -137,6 +132,12 @@ export function workspaceFormStateFromWorkspace(workspace: Workspace): Workspace
       ];
 
   const primary = launches.find((launch) => launch.isEnabled) ?? launches[0];
+  const companions = normalizeCompanionApps(workspace).map((entry) => ({
+    id: entry.id,
+    path: entry.path,
+    arguments: entry.arguments ?? "",
+    openOnLaunch: entry.openOnLaunch,
+  }));
 
   return {
     name: workspace.name,
@@ -147,12 +148,10 @@ export function workspaceFormStateFromWorkspace(workspace: Workspace): Workspace
     isPinned: workspace.isPinned,
     runAsAdmin: workspace.runAsAdmin || launches.some((launch) => launch.runAsAdmin),
     launches,
+    companions,
     devServerUrl: workspace.devServerUrl ?? "",
     openDevServerOnLaunch: Boolean(workspace.openDevServerOnLaunch),
     repoUrl: workspace.repoUrl ?? "",
-    openCompanionAppOnLaunch: Boolean(workspace.openCompanionAppOnLaunch),
-    companionAppPath: workspace.companionAppPath ?? "",
-    companionAppArguments: workspace.companionAppArguments ?? "",
   };
 }
 

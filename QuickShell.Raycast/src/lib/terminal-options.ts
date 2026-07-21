@@ -54,5 +54,6 @@ export function settingsSummary(settings: QuickShellSettings): string {
     settings.terminalApplication;
   const profile = settings.defaultProfile === "__default__" ? "default profile" : settings.defaultProfile;
   const multiLaunch = settings.multiLaunchPresentation === "separateWindows" ? "separate windows" : "tabs";
-  return `${app} • ${profile} • ${multiLaunch}`;
+  const dirtyGate = settings.blockDirtyBranchSwitch ? "block dirty switch" : "allow dirty switch";
+  return `${app} • ${profile} • ${multiLaunch} • ${dirtyGate}`;
 }

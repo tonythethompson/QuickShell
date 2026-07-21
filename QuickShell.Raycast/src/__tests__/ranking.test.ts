@@ -66,6 +66,23 @@ describe("ranking", () => {
     expect(sections.favorites.map((item) => item.id)).toEqual(["1"]);
     expect(sections.recents.map((item) => item.id)).toEqual(["2"]);
     expect(sections.workspaces.map((item) => item.id)).toEqual(["3"]);
+    expect(sections.layoutSections).toHaveLength(1);
+    expect(sections.layoutSections[0].workspaces.map((item) => item.id)).toEqual(["3"]);
+  });
+
+  it("groups remaining workspaces by layout separators", () => {
+    const alpha = workspace({ id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", name: "Alpha" });
+    const beta = workspace({ id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", name: "Beta" });
+    const sections = buildBrowseSections([alpha, beta], 0, [
+      { type: "separator", id: "cccccccccccccccccccccccccccccccc", title: "Apps" },
+      { type: "workspace", workspaceId: alpha.id },
+      { type: "separator", id: "dddddddddddddddddddddddddddddddd", title: "Libs" },
+      { type: "workspace", workspaceId: beta.id },
+    ]);
+
+    expect(sections.layoutSections.map((section) => section.title)).toEqual(["Apps", "Libs"]);
+    expect(sections.layoutSections[0].workspaces.map((item) => item.id)).toEqual([alpha.id]);
+    expect(sections.layoutSections[1].workspaces.map((item) => item.id)).toEqual([beta.id]);
   });
 
   it("limits recents to eight non-pinned workspaces", () => {

@@ -47,6 +47,69 @@ describe("migration", () => {
     });
 
     expect(data.settings.multiLaunchPresentation).toBe("singleWindowTabs");
+    expect(data.settings.blockDirtyBranchSwitch).toBe(true);
+    expect(data.layoutEntries).toEqual([]);
+    expect(data.branchTargets).toEqual({});
+  });
+
+  it("synthesizes layout entries from workspace order when missing", () => {
+    const data = migrateStoredData({
+      version: 1,
+      settings: {
+        terminalApplication: "wt",
+        defaultProfile: "__default__",
+        recentWorkspaceCount: 8,
+      },
+      workspaces: [
+        {
+          id: "a1b2c3d4e5f6478990a1b2c3d4e5f678",
+          name: "Demo",
+          directory: "C:\\Projects\\Demo",
+        },
+        {
+          id: "b2c3d4e5f6478990a1b2c3d4e5f67890",
+          name: "Other",
+          directory: "C:\\Projects\\Other",
+        },
+      ],
+    });
+
+    expect(data.layoutEntries).toEqual([
+      { type: "workspace", workspaceId: "a1b2c3d4e5f6478990a1b2c3d4e5f678" },
+      { type: "workspace", workspaceId: "b2c3d4e5f6478990a1b2c3d4e5f67890" },
+    ]);
+  });
+
+  it("preserves blockDirtyBranchSwitch false and separators", () => {
+    const data = migrateStoredData({
+      version: 1,
+      settings: {
+        terminalApplication: "wt",
+        defaultProfile: "__default__",
+        recentWorkspaceCount: 8,
+        blockDirtyBranchSwitch: false,
+      },
+      workspaces: [
+        {
+          id: "a1b2c3d4e5f6478990a1b2c3d4e5f678",
+          name: "Demo",
+          directory: "C:\\Projects\\Demo",
+        },
+      ],
+      layoutEntries: [
+        { type: "separator", id: "c3d4e5f6478990a1b2c3d4e5f6789012", title: "Apps" },
+        { type: "workspace", workspaceId: "a1b2c3d4e5f6478990a1b2c3d4e5f678" },
+      ],
+      branchTargets: { "c:\\projects\\demo": "main" },
+    });
+
+    expect(data.settings.blockDirtyBranchSwitch).toBe(false);
+    expect(data.layoutEntries?.[0]).toEqual({
+      type: "separator",
+      id: "c3d4e5f6478990a1b2c3d4e5f6789012",
+      title: "Apps",
+    });
+    expect(data.branchTargets?.["c:\\projects\\demo"]).toBe("main");
   });
 
   it("preserves separateWindows multiLaunchPresentation", () => {

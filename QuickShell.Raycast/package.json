@@ -76,6 +76,15 @@
       "required": false,
       "default": true,
       "label": "Open multiple commands in one Windows Terminal window"
+    },
+    {
+      "name": "blockDirtyBranchSwitch",
+      "title": "Git Branch Gate",
+      "description": "Block launch when a target branch is set and the working tree has uncommitted changes.",
+      "type": "checkbox",
+      "required": false,
+      "default": true,
+      "label": "Block dirty branch switch"
     }
   ],
   "engines": {
