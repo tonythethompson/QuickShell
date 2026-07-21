@@ -10,6 +10,9 @@ namespace QuickShell.Services.WorkspaceEditor;
 
 internal sealed partial class WorkspaceEditor
 {
+    /// <summary>
+    /// Schedules a background scan for command suggestions when one is needed.
+    /// </summary>
     private void ScheduleSuggestionScan()
     {
         if (_suggestionScanComplete)
@@ -76,6 +79,9 @@ internal sealed partial class WorkspaceEditor
         }, token);
     }
 
+    /// <summary>
+    /// Cancels and disposes the current suggestion scan.
+    /// </summary>
     private void CancelScan()
     {
         Interlocked.Increment(ref _scanGeneration);
@@ -100,6 +106,9 @@ internal sealed partial class WorkspaceEditor
         }
     }
 
+    /// <summary>
+    /// Invalidates the current suggestion scan and schedules a new one.
+    /// </summary>
     private void InvalidateSuggestionScan()
     {
         _suggestionScanComplete = false;

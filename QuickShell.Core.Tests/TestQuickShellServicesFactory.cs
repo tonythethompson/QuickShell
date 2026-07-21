@@ -33,6 +33,11 @@ internal static class TestQuickShellServicesFactory
         return new TerminalCatalog(profiles);
     }
 
+    /// <summary>
+    /// Creates a fully configured <see cref="QuickShellServices"/> instance for testing.
+    /// </summary>
+    /// <param name="launch">Optional test service bundle to use when configuring the services.</param>
+    /// <returns>The configured QuickShellServices instance.</returns>
     public static QuickShellServices Create(IShortcutRepository repository, IDraftStore drafts, QuickShellSettingsManager settings, IProjectAnalysisService analysis, IQuickShellLifetime lifetime, LaunchTestBundle? launch = null)
     {
         var bundle = launch ?? LaunchTestServices.CreateBundle();
@@ -41,8 +46,9 @@ internal static class TestQuickShellServicesFactory
         var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
         var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        var editorFactory = new DeferredWorkspaceEditorFactory { Lifetime = lifetime };
-        var services = new QuickShellServices(
+        QuickShellServices? services = null;
+        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
+        services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
@@ -66,10 +72,15 @@ internal static class TestQuickShellServicesFactory
             prewarm,
             formViewBuilder,
             editorFactory);
-        editorFactory.Services = services;
         return services;
     }
 
+    /// <summary>
+    /// Creates a fully configured QuickShell services instance for tests.
+    /// </summary>
+    /// <param name="gitRepos">The Git repository index to use.</param>
+    /// <param name="launch">Optional test service bundle supplying launch-related dependencies.</param>
+    /// <returns>The configured QuickShell services instance.</returns>
     public static QuickShellServices Create(
         IShortcutRepository repository,
         IDraftStore drafts,
@@ -84,8 +95,9 @@ internal static class TestQuickShellServicesFactory
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
         var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        var editorFactory = new DeferredWorkspaceEditorFactory { Lifetime = lifetime };
-        var services = new QuickShellServices(
+        QuickShellServices? services = null;
+        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
+        services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
             drafts,
@@ -109,10 +121,15 @@ internal static class TestQuickShellServicesFactory
             prewarm,
             formViewBuilder,
             editorFactory);
-        editorFactory.Services = services;
         return services;
     }
 
+    /// <summary>
+    /// Creates a fully configured <see cref="QuickShellServices"/> instance using dependencies resolved from a service provider.
+    /// </summary>
+    /// <param name="provider">The service provider used to resolve required dependencies.</param>
+    /// <param name="gitRepos">An optional Git repository index; the provider's index is used when omitted.</param>
+    /// <returns>The configured QuickShell services.</returns>
     public static QuickShellServices CreateFromProvider(
         IServiceProvider provider,
         IShortcutRepository repository,
@@ -126,8 +143,9 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<ITerminalCatalog>(),
             analysis,
             provider.GetRequiredService<ICommandSuggestionService>());
-        var editorFactory = new DeferredWorkspaceEditorFactory { Lifetime = lifetime };
-        var services = new QuickShellServices(
+        QuickShellServices? services = null;
+        var editorFactory = new WorkspaceEditorFactory(() => services!, lifetime);
+        services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(
                 repository,
@@ -154,7 +172,6 @@ internal static class TestQuickShellServicesFactory
             provider.GetRequiredService<TerminalCatalogPrewarm>(),
             formViewBuilder,
             editorFactory);
-        editorFactory.Services = services;
         return services;
     }
 
@@ -172,18 +189,5 @@ internal static class TestQuickShellServicesFactory
         var listIcons = new TerminalListIconCache(bundle.Profiles, glyphs, appDataPaths);
         var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
         return (appDataPaths, glyphs, listIcons, prewarm);
-    }
-
-    private sealed class DeferredWorkspaceEditorFactory : IWorkspaceEditorFactory
-    {
-        public IQuickShellServices? Services { get; set; }
-
-        public required IQuickShellLifetime Lifetime { get; init; }
-
-        public IWorkspaceEditor Create(Action? onSaved = null) =>
-            new WorkspaceEditor(
-                Services ?? throw new InvalidOperationException("QuickShellServices was not assigned."),
-                Lifetime,
-                onSaved);
     }
 }

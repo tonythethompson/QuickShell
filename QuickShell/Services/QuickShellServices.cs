@@ -38,6 +38,13 @@ internal sealed class QuickShellServices : IQuickShellServices
     public IShortcutFormViewBuilder FormViewBuilder { get; }
     public IWorkspaceEditorFactory WorkspaceEditors { get; }
 
+    /// <summary>
+    /// Creates the QuickShell service container and initializes its service integrations.
+    /// </summary>
+    /// <param name="rowPresentation">The row presentation cache, or a default cache when <see langword="null"/>.</param>
+    /// <param name="rowPresentationDiagnostics">The row presentation diagnostics service, or a default instance when <see langword="null"/>.</param>
+    /// <param name="refreshScheduler">The settings form refresh scheduler, or a default scheduler when <see langword="null"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required service dependency is <see langword="null"/>.</exception>
     public QuickShellServices(
         IShortcutRepository shortcuts,
         IWorkspaceLaunchService workspaceLaunch,

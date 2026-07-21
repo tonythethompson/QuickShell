@@ -456,6 +456,9 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         }
     }
 
+    /// <summary>
+    /// Releases the editor's resources and persists any pending draft changes.
+    /// </summary>
     public void Dispose()
     {
         lock (_sync)
@@ -473,6 +476,10 @@ internal sealed partial class WorkspaceEditor(IQuickShellServices services, IQui
         }
     }
 
+    /// <summary>
+    /// Builds the current workspace editing state for presentation.
+    /// </summary>
+    /// <returns>The current form values, cloned rows, available command suggestions, scanning status, restored-draft note, and save error.</returns>
     private WorkspaceEditState BuildState()
     {
         var scanning = IsSuggestionScanning;

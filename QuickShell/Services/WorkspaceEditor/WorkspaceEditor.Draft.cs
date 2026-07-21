@@ -10,34 +10,17 @@ namespace QuickShell.Services.WorkspaceEditor;
 
 internal sealed partial class WorkspaceEditor
 {
+    /// <summary>
+    /// Initializes the editable draft from an existing shortcut or creation seed.
+    /// </summary>
+    /// <param name="existing">The shortcut being edited, when available.</param>
+    /// <param name="createSeed">The initial shortcut values to use when no existing shortcut is provided.</param>
     private void InitializeDraft(TerminalShortcut? existing, TerminalShortcut? createSeed)
     {
         _originalName = existing?.Name;
 
         var initial = existing ?? createSeed;
-        var launchTarget = TerminalCatalog.EncodeLaunchTargetId(initial ?? new TerminalShortcut());
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(initial, launchTarget);
-        var companions = CompanionAppFormEditor.FromShortcut(initial);
-        CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
-
-        _draft = new FormDraft
-        {
-            OriginalName = existing?.Name ?? string.Empty,
-            Name = initial?.Name ?? string.Empty,
-            Abbreviation = initial?.Abbreviation ?? string.Empty,
-            Directory = initial?.Directory ?? string.Empty,
-            DevServerUrl = initial?.DevServerUrl ?? string.Empty,
-            RepoUrl = initial?.RepoUrl ?? string.Empty,
-            OpenDevServerOnLaunch = initial?.OpenDevServerOnLaunch ?? false,
-            Companions = companions,
-            OpenCompanionAppOnLaunch = openCompanion,
-            CompanionAppPreset = companionPreset,
-            CompanionAppPath = companionPath,
-            CompanionAppArguments = companionArgs,
-            Commands = commands,
-            LaunchTarget = launchTarget,
-            RunAsAdmin = commands.Count > 0 && commands[0].RunAsAdmin,
-        };
+        _draft = BuildDraftFromShortcut(initial, existing?.Name ?? string.Empty);
 
         OnChanged();
 
@@ -63,6 +46,10 @@ internal sealed partial class WorkspaceEditor
         }
     }
 
+    /// <summary>
+    /// Resets the editor to the saved baseline when its associated draft is cleared.
+    /// </summary>
+    /// <param name="originalName">The name identifying the cleared draft.</param>
     private void OnDraftStoreCleared(string originalName)
     {
         lock (_sync)
@@ -78,6 +65,9 @@ internal sealed partial class WorkspaceEditor
         }
     }
 
+    /// <summary>
+    /// Resets the editor draft to the currently saved shortcut and clears draft-specific state.
+    /// </summary>
     private void ResetToSavedBaseline()
     {
         var saved = _services.Shortcuts.GetByName(_originalName!);
@@ -90,19 +80,34 @@ internal sealed partial class WorkspaceEditor
         _nameCustomized = false;
         _autoFilledName = null;
 
-        var launchTarget = TerminalCatalog.EncodeLaunchTargetId(saved);
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(saved, launchTarget);
-        var companions = CompanionAppFormEditor.FromShortcut(saved);
+        _draft = BuildDraftFromShortcut(saved, saved.Name);
+
+        _baselineDraft = CloneDraft(_draft);
+        OnChanged();
+    }
+
+    /// <summary>
+    /// Builds a form draft from a shortcut's saved values, or from defaults when no shortcut is given.
+    /// </summary>
+    /// <param name="source">The shortcut whose values seed the draft, when available.</param>
+    /// <param name="originalName">The original name to record on the draft.</param>
+    /// <returns>A new form draft populated from <paramref name="source"/>.</returns>
+    private static FormDraft BuildDraftFromShortcut(TerminalShortcut? source, string originalName)
+    {
+        var launchTarget = TerminalCatalog.EncodeLaunchTargetId(source ?? new TerminalShortcut());
+        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(source, launchTarget);
+        var companions = CompanionAppFormEditor.FromShortcut(source);
         CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
 
-        _draft = new FormDraft
+        return new FormDraft
         {
-            OriginalName = saved.Name,
-            Name = saved.Name,
-            Abbreviation = saved.Abbreviation ?? string.Empty,
-            Directory = saved.Directory,
-            DevServerUrl = saved.DevServerUrl ?? string.Empty,
-            RepoUrl = saved.RepoUrl ?? string.Empty,
+            OriginalName = originalName,
+            Name = source?.Name ?? string.Empty,
+            Abbreviation = source?.Abbreviation ?? string.Empty,
+            Directory = source?.Directory ?? string.Empty,
+            DevServerUrl = source?.DevServerUrl ?? string.Empty,
+            RepoUrl = source?.RepoUrl ?? string.Empty,
+            OpenDevServerOnLaunch = source?.OpenDevServerOnLaunch ?? false,
             Companions = companions,
             OpenCompanionAppOnLaunch = openCompanion,
             CompanionAppPreset = companionPreset,
@@ -112,11 +117,11 @@ internal sealed partial class WorkspaceEditor
             LaunchTarget = launchTarget,
             RunAsAdmin = commands.Count > 0 && commands[0].RunAsAdmin,
         };
-
-        _baselineDraft = CloneDraft(_draft);
-        OnChanged();
     }
 
+    /// <summary>
+    /// Removes the draft-cleared event handler when it is subscribed.
+    /// </summary>
     private void UnsubscribeFromDraftCleared()
     {
         if (!_subscribedToDraftCleared || _draftClearedHandler is null)
@@ -128,6 +133,9 @@ internal sealed partial class WorkspaceEditor
         _subscribedToDraftCleared = false;
     }
 
+    /// <summary>
+    /// Restores the persisted edit draft for the current shortcut, including its launch and companion settings.
+    /// </summary>
     private void TryRestoreEditDraft()
     {
         if (_originalName is null)
@@ -206,6 +214,10 @@ internal sealed partial class WorkspaceEditor
         OnChanged();
     }
 
+    /// <summary>
+    /// Applies the current draft and optionally persists it when a saved baseline is available.
+    /// </summary>
+    /// <param name="persist">Whether to persist the draft when changes are ready to be saved.</param>
     private void ApplyDraft(bool persist = true)
     {
         CompanionAppFormEditor.EnsureAtLeastOne(_draft.Companions);
@@ -218,6 +230,9 @@ internal sealed partial class WorkspaceEditor
         OnChanged();
     }
 
+    /// <summary>
+    /// Persists the current edit draft when it differs from the saved baseline.
+    /// </summary>
     private void PersistEditDraftIfNeeded()
     {
         if (_originalName is null)
@@ -233,6 +248,11 @@ internal sealed partial class WorkspaceEditor
             _autoFilledName);
     }
 
+    /// <summary>
+    /// Converts the form draft into its persisted draft-data representation.
+    /// </summary>
+    /// <param name="draft">The draft to convert.</param>
+    /// <returns>The persisted representation of the draft, including companion and launch entries.</returns>
     private static ShortcutFormDraftData ToDraftData(FormDraft draft)
     {
         var first = draft.Commands.FirstOrDefault();
@@ -272,6 +292,12 @@ internal sealed partial class WorkspaceEditor
         };
     }
 
+    /// <summary>
+    /// Merges JSON editor input into the current workspace draft.
+    /// </summary>
+    /// <param name="payload">The JSON payload containing draft field values.</param>
+    /// <param name="excludeDirectory">Whether to preserve the current directory value.</param>
+    /// <returns><c>true</c> if the payload is valid, including when it contains no fields; <c>false</c> otherwise.</returns>
     private bool MergeDraftFromInputs(string payload, bool excludeDirectory = false)
     {
         var data = JsonNode.Parse(payload)?.AsObject();
@@ -308,6 +334,7 @@ internal sealed partial class WorkspaceEditor
             OpenDevServerOnLaunch = ParseToggleBool(
                 data["OpenDevServerOnLaunch"]?.ToString(),
                 _draft.OpenDevServerOnLaunch),
+            ExpandSuggestionPills = _draft.ExpandSuggestionPills,
             Companions = mergedCompanions,
             OpenCompanionAppOnLaunch = _draft.OpenCompanionAppOnLaunch,
             CompanionAppPreset = _draft.CompanionAppPreset,
@@ -323,6 +350,12 @@ internal sealed partial class WorkspaceEditor
         return true;
     }
 
+    /// <summary>
+    /// Applies the selected preset state to companion rows whose presets have changed.
+    /// </summary>
+    /// <param name="previous">The companion rows before the update.</param>
+    /// <param name="current">The companion rows after the update.</param>
+    /// <returns><c>true</c> if any companion preset changed; <c>false</c> otherwise.</returns>
     private bool ApplyCompanionPresetChanges(
         List<CompanionAppFormRow> previous,
         List<CompanionAppFormRow> current)
@@ -343,6 +376,12 @@ internal sealed partial class WorkspaceEditor
         return changed;
     }
 
+    /// <summary>
+    /// Applies the specified companion application state to a draft row.
+    /// </summary>
+    /// <param name="index">The zero-based index of the companion row to update.</param>
+    /// <param name="state">The companion application state to apply.</param>
+    /// <param name="persist">Whether to persist the updated draft when the baseline is ready.</param>
     private void ApplyCompanionFormState(int index, CompanionAppCatalog.CompanionAppFormState state, bool persist = true)
     {
         CompanionAppFormEditor.EnsureAtLeastOne(_draft.Companions);
@@ -365,6 +404,9 @@ internal sealed partial class WorkspaceEditor
         }
     }
 
+    /// <summary>
+    /// Synchronizes the draft's legacy companion application fields with its companion rows.
+    /// </summary>
     private void SyncCompanionLegacyScalars()
     {
         CompanionAppFormEditor.SyncLegacyScalars(
@@ -380,6 +422,12 @@ internal sealed partial class WorkspaceEditor
         _draft.CompanionAppPreset = preset;
     }
 
+    /// <summary>
+    /// Merges companion application values from editor inputs with the existing rows.
+    /// </summary>
+    /// <param name="data">The input values for companion presets and arguments.</param>
+    /// <param name="existing">The current companion application rows.</param>
+    /// <returns>The merged companion application rows, containing at least one row.</returns>
     private static List<CompanionAppFormRow> MergeCompanionsFromInputs(
         JsonObject data,
         List<CompanionAppFormRow> existing)
@@ -414,6 +462,12 @@ internal sealed partial class WorkspaceEditor
         return merged;
     }
 
+    /// <summary>
+    /// Merges command row values from editor inputs into the existing launch rows.
+    /// </summary>
+    /// <param name="data">The input values keyed by launch row field and index.</param>
+    /// <param name="existing">The current launch rows used for unchanged values and row identity.</param>
+    /// <returns>The merged launch rows.</returns>
     private List<LaunchRowDraft> MergeCommandsFromInputs(
         JsonObject data,
         List<LaunchRowDraft> existing)
@@ -460,6 +514,10 @@ internal sealed partial class WorkspaceEditor
         return merged;
     }
 
+    /// <summary>
+    /// Determines the launch target to use for a new command row.
+    /// </summary>
+    /// <returns>The first command's launch target, the draft launch target, or <c>"default"</c>.</returns>
     private string GetDefaultRowLaunchTarget()
     {
         if (_draft.Commands.Count > 0 && !string.IsNullOrWhiteSpace(_draft.Commands[0].LaunchTarget))
@@ -470,6 +528,9 @@ internal sealed partial class WorkspaceEditor
         return string.IsNullOrWhiteSpace(_draft.LaunchTarget) ? "default" : _draft.LaunchTarget;
     }
 
+    /// <summary>
+    /// Synchronizes the draft launch target with the first command's launch target.
+    /// </summary>
     private void SyncDraftLaunchTargetFromCommands()
     {
         if (_draft.Commands.Count > 0)
@@ -478,11 +539,18 @@ internal sealed partial class WorkspaceEditor
         }
     }
 
+    /// <summary>
+    /// Synchronizes the draft's administrator execution setting with its first command.
+    /// </summary>
     private void SyncDraftRunAsAdminFromCommands()
     {
         _draft.RunAsAdmin = _draft.Commands.Count > 0 && _draft.Commands[0].RunAsAdmin;
     }
 
+    /// <summary>
+    /// Updates name customization tracking based on the merged name and current directory.
+    /// </summary>
+    /// <param name="mergedName">The name merged into the draft.</param>
     private void UpdateAutoFilledNameTracking(string mergedName)
     {
         if (string.IsNullOrWhiteSpace(mergedName))
