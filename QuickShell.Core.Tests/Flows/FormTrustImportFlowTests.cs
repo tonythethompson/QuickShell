@@ -323,7 +323,7 @@ public sealed class ImportConflictFlowTests : IDisposable
     [Fact]
     public void Cancel_clears_pending_without_importing()
     {
-        var importPath = Path.Combine(_temp.Path, "incoming.json");
+        var importPath = Path.Join(_temp.Path, "incoming.json");
         File.WriteAllText(importPath, """[{ "Name": "Only", "Directory": "C:\\Only" }]""");
         ImportConflictState.Set(ImportTransferKind.Projects, importPath, 1, 1, () => { });
 
