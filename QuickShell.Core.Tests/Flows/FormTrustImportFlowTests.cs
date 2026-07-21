@@ -179,11 +179,13 @@ public sealed class TrustLaunchFlowTests
             {
                 Directory.Delete(folder, recursive: true);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                Console.Error.WriteLine($"Failed to delete temp test directory '{folder}' due to IO error: {ex}");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                Console.Error.WriteLine($"Failed to delete temp test directory '{folder}' due to access error: {ex}");
             }
         }
     }
