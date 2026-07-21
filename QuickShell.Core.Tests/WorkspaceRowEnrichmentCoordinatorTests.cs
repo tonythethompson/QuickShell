@@ -17,7 +17,7 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests
             new TerminalListIconCache(
                 new WtProfilesService([]),
                 TestQuickShellServicesFactory.CreateGlyphs(),
-                new AppDataPaths(Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N")))),
+                new AppDataPaths(Path.Join(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N")))),
             _diagnostics,
             resolveIcon ?? (shortcut =>
             {
