@@ -244,20 +244,6 @@ export default function OpenWorkspaceCommand({
       launchWorkspace.directory = authorization.effectiveValues.directory;
     }
 
-    const gate = await evaluateGitLaunchGate(
-      launchWorkspace.directory,
-      data.settings.blockDirtyBranchSwitch,
-      (key) => data.branchTargets[key],
-    );
-    if (!gate.canProceed) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Git branch gate",
-        message: gate.message ?? "Launch blocked by branch target policy.",
-      });
-      return;
-    }
-
     const health = await assessWorkspaceHealthWithPortProbe(launchWorkspace, data.settings, {
       includeLaunchPlan: true,
       includeDirectoryExists: true,
@@ -271,6 +257,20 @@ export default function OpenWorkspaceCommand({
         command: launchWorkspace.command,
         elevation: options?.runAsAdmin ? "admin" : options?.runAsStandard ? "standard" : null,
         issues: health.issues.map((issue) => `${issue.code}: ${issue.message}`),
+      });
+      return;
+    }
+
+    const gate = await evaluateGitLaunchGate(
+      launchWorkspace.directory,
+      data.settings.blockDirtyBranchSwitch,
+      (key) => data.branchTargets[key],
+    );
+    if (!gate.canProceed) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Git branch gate",
+        message: gate.message ?? "Launch blocked by branch target policy.",
       });
       return;
     }
@@ -517,7 +517,17 @@ export default function OpenWorkspaceCommand({
 
   async function handleClearTargetBranch(workspace: Workspace) {
     try {
-      const worktreeKey = await resolveWorktreeKey(workspace.directory);
+      const stored = await storage.getStoredWorkspace(workspace.id);
+      const authorization = authorize(stored, { kind: "directory" });
+      if (!authorization.isAllowed || !authorization.effectiveValues.directory) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Clear target branch blocked",
+          message: "Trust this workspace and use a valid local folder.",
+        });
+        return;
+      }
+      const worktreeKey = await resolveWorktreeKey(authorization.effectiveValues.directory);
       if (!worktreeKey) {
         await showToast({
           style: Toast.Style.Failure,
@@ -649,27 +659,29 @@ export default function OpenWorkspaceCommand({
                 <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}
             </ActionPanel.Section>
-            <ActionPanel.Section title="Git">
-              <Action.Push
-                title="Set Target Branch…"
-                icon={Icon.Code}
-                target={
-                  <SetTargetBranchForm
-                    directory={workspace.directory}
-                    workspaceName={workspace.name}
-                    blockDirtyBranchSwitch={data.settings.blockDirtyBranchSwitch}
-                    onSaved={async () => {
-                      await revalidate();
-                    }}
-                  />
-                }
-              />
-              <Action
-                title="Clear Target Branch"
-                icon={Icon.XMarkCircle}
-                onAction={() => handleClearTargetBranch(workspace)}
-              />
-            </ActionPanel.Section>
+            {security.isTrusted ? (
+              <ActionPanel.Section title="Git">
+                <Action.Push
+                  title="Set Target Branch…"
+                  icon={Icon.Code}
+                  target={
+                    <SetTargetBranchForm
+                      directory={workspace.directory}
+                      workspaceName={workspace.name}
+                      blockDirtyBranchSwitch={data.settings.blockDirtyBranchSwitch}
+                      onSaved={async () => {
+                        await revalidate();
+                      }}
+                    />
+                  }
+                />
+                <Action
+                  title="Clear Target Branch"
+                  icon={Icon.XMarkCircle}
+                  onAction={() => handleClearTargetBranch(workspace)}
+                />
+              </ActionPanel.Section>
+            ) : null}
             <ActionPanel.Section title="Manage">
               <Action.Push
                 title="Edit Workspace"
@@ -705,7 +717,7 @@ export default function OpenWorkspaceCommand({
               {workspace.isPinned ? (
                 <>
                   <Action
-                    title="Move Favorite Up"
+                    title="Move Favorite up"
                     icon={Icon.ArrowUp}
                     shortcut={{ modifiers: ["cmd", "opt"], key: "arrowUp" }}
                     onAction={() => handleMoveFavorite(workspace, "up")}
@@ -842,7 +854,7 @@ export default function OpenWorkspaceCommand({
       ) : null}
 
       {sectionGroups.map((group, index) => (
-        <List.Section key={group.title ?? `section-${index}`} title={group.title}>
+        <List.Section key={`section-${index}`} title={group.title}>
           {group.rows.map((row) => renderRow(row))}
         </List.Section>
       ))}

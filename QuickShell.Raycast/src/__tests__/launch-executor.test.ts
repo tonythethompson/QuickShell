@@ -63,32 +63,35 @@ describe("launch-executor", () => {
       order.push("terminal");
     };
 
-    const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
-    const plan = buildWorkspaceLaunchPlan(workspace, settings);
-    const authorizedEffects = {
-      companions: [
-        {
-          companionId: "authorized",
-          executablePath: process.execPath,
-          arguments: null,
-          workingDirectory: workspace.directory,
-        },
-      ],
-      devServerUrl: "http://localhost:5173",
-    };
-    const result = await executeWorkspaceLaunch(plan, settings, execFn, { authorizedEffects });
+    try {
+      const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+      const plan = buildWorkspaceLaunchPlan(workspace, settings);
+      const authorizedEffects = {
+        companions: [
+          {
+            companionId: "authorized",
+            executablePath: process.execPath,
+            arguments: null,
+            workingDirectory: workspace.directory,
+          },
+        ],
+        devServerUrl: "http://localhost:5173",
+      };
+      const result = await executeWorkspaceLaunch(plan, settings, execFn, { authorizedEffects });
 
-    Object.defineProperty(process, "platform", { value: originalPlatform });
-    expect(result.ok).toBe(true);
-    expect(order).toEqual(["post:companions", "terminal", "post:devServer"]);
-    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
-      openUrl: undefined,
-      phase: "companions",
-    });
-    expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
-      openUrl: undefined,
-      phase: "devServer",
-    });
+      expect(result.ok).toBe(true);
+      expect(order).toEqual(["post:companions", "terminal", "post:devServer"]);
+      expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
+        openUrl: undefined,
+        phase: "companions",
+      });
+      expect(runPostLaunchActionsMock).toHaveBeenCalledWith(authorizedEffects, {
+        openUrl: undefined,
+        phase: "devServer",
+      });
+    } finally {
+      Object.defineProperty(process, "platform", { value: originalPlatform });
+    }
   });
 
   it("passes only the authorized effects plan to post-launch execution", async () => {

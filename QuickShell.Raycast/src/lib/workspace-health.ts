@@ -21,6 +21,11 @@ export type PortInUseProbe = (port: number) => boolean;
 /** Aligns with Core CommandPortRegex: localhost:, --port, -p, or =digits. */
 const COMMAND_PORT_REGEX = /(?:localhost:|--port\s+|-p\s+|=)(\d{2,5})/gi;
 
+/** Restricts filesystem probes to local drive paths; UNC/device paths (e.g. \\host\share) are never probed to avoid triggering outbound network lookups for untrusted, unauthorized paths. */
+function isLocalCompanionPath(path: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(path) && !path.startsWith("\\\\");
+}
+
 export function assessWorkspaceHealthForList(
   workspace: Workspace,
   settings: QuickShellSettings,
@@ -68,7 +73,9 @@ export function assessWorkspaceHealth(
     issues.push({ code: "directory_relative", message: "Directory must be an absolute path.", severity: "error" });
   }
 
-  if (directory.toLowerCase().startsWith("\\\\wsl$\\")) {
+  const lowerDirectory = directory.toLowerCase();
+  const isWslUnc = lowerDirectory.startsWith("\\\\wsl$\\") || lowerDirectory.startsWith("\\\\wsl.localhost\\");
+  if (isWslUnc) {
     issues.push({
       code: "wsl_directory",
       message: "WSL UNC directories can launch terminals but cannot be opened as Windows folders.",
@@ -80,7 +87,7 @@ export function assessWorkspaceHealth(
     includeDirectoryExists &&
     directory &&
     process.platform === "win32" &&
-    !directory.toLowerCase().startsWith("\\\\wsl$\\") &&
+    !isWslUnc &&
     !existsSync(directory)
   ) {
     issues.push({ code: "directory_missing", message: `Directory not found: ${directory}`, severity: "error" });
@@ -133,7 +140,7 @@ export function assessWorkspaceHealth(
     }
 
     for (const companionPath of openCompanionPaths) {
-      if (!existsSync(companionPath)) {
+      if (isLocalCompanionPath(companionPath) && !existsSync(companionPath)) {
         issues.push({
           code: "companion_missing",
           message: `Companion app not found: ${companionPath}`,

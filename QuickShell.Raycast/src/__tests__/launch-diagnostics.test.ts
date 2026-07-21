@@ -51,4 +51,33 @@ describe("workspace-health terminal checks", () => {
     });
     expect(report.issues.some((issue) => issue.code === "wsl_directory")).toBe(true);
   });
+
+  it("warns about wsl.localhost UNC directories", () => {
+    const workspace: Workspace = {
+      id: "1",
+      name: "WSL",
+      directory: "\\\\wsl.localhost\\Ubuntu\\home\\dev\\project",
+      terminal: "wt",
+      command: "echo hi",
+      runAsAdmin: false,
+      isPinned: false,
+      launches: [
+        {
+          id: "1a",
+          label: "Shell",
+          terminal: "wt",
+          command: "echo hi",
+          runAsAdmin: false,
+          isEnabled: true,
+          order: 0,
+        },
+      ],
+    };
+
+    const report = assessWorkspaceHealth(workspace, DEFAULT_SETTINGS, {
+      includeLaunchPlan: false,
+      includeDirectoryExists: false,
+    });
+    expect(report.issues.some((issue) => issue.code === "wsl_directory")).toBe(true);
+  });
 });

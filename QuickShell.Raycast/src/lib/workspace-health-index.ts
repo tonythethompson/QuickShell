@@ -52,17 +52,19 @@ export async function buildWorkspaceHealthIndexWithPorts(
   workspaces: Workspace[],
   settings: QuickShellSettings,
 ): Promise<WorkspaceHealthIndex> {
-  const index: WorkspaceHealthIndex = new Map();
-  for (const workspace of workspaces) {
-    index.set(
-      workspaceHealthFingerprint(workspace, settings),
-      await assessWorkspaceHealthWithPortProbe(workspace, settings, {
-        includeLaunchPlan: false,
-        includeDirectoryExists: true,
-      }),
-    );
-  }
-  return index;
+  const entries = await Promise.all(
+    workspaces.map(
+      async (workspace) =>
+        [
+          workspaceHealthFingerprint(workspace, settings),
+          await assessWorkspaceHealthWithPortProbe(workspace, settings, {
+            includeLaunchPlan: false,
+            includeDirectoryExists: true,
+          }),
+        ] as const,
+    ),
+  );
+  return new Map(entries);
 }
 
 export function lookupWorkspaceHealth(
