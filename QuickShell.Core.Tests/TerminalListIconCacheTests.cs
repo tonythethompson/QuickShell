@@ -17,9 +17,11 @@ public sealed class TerminalListIconCacheTests
     {
         var profiles = new WtProfilesService([]);
         var catalog = new TerminalCatalog(profiles);
+        var testRoot = Path.Combine(Path.GetTempPath(), "qs-test-appdata-" + Guid.NewGuid().ToString("N"));
+        var appDataPaths = new AppDataPaths(testRoot);
         var glyphs = new TerminalLaunchGlyphs(
             new TerminalProfileResolver(new QuickShellSettingsReader(appDataPaths: null, catalog), profiles, catalog));
-        _cache = new TerminalListIconCache(profiles, glyphs, new AppDataPaths());
+        _cache = new TerminalListIconCache(profiles, glyphs, appDataPaths);
     }
 
     [Fact]

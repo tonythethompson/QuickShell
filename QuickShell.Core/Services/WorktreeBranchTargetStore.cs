@@ -173,5 +173,5 @@ internal sealed class WorktreeBranchTargetStore : IWorktreeBranchTargetStore
     }
 
     private string ResolveFilePath() =>
-        Path.Combine(_appDataPaths.Root, "QuickShell", "worktree-branch-targets.json");
+        Path.Join(_appDataPaths.Root, "QuickShell", "worktree-branch-targets.json");
 }

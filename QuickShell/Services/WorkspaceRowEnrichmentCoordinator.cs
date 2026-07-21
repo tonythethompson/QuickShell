@@ -23,6 +23,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
     private readonly Func<TerminalShortcut, string?> _resolveIcon;
     private readonly Action<Action> _runInBackground;
     private readonly CancellationTokenSource _cts = new();
+    private readonly CancellationToken _cancellationToken;
     private readonly object _sync = new();
     private readonly Dictionary<string, EnrichmentWork> _workByWorkspaceId =
         new(StringComparer.OrdinalIgnoreCase);
@@ -68,7 +69,8 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
         _listIcons = listIcons ?? throw new ArgumentNullException(nameof(listIcons));
         _diagnostics = diagnostics ?? new RowPresentationDiagnostics();
         _resolveIcon = resolveIcon ?? ResolveUpgradedIcon;
-        _runInBackground = backgroundScheduler ?? (work => _ = Task.Run(work, _cts.Token));
+        _cancellationToken = _cts.Token;
+        _runInBackground = backgroundScheduler ?? (work => _ = Task.Run(work, _cancellationToken));
     }
 
     /// <summary>

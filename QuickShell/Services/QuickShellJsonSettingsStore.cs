@@ -15,5 +15,8 @@ internal sealed class QuickShellJsonSettingsStore : JsonSettingsManager
             ?? Path.Join(AppDataRoot.Current, "QuickShell");
         Directory.CreateDirectory(directory);
         FilePath = Path.Join(directory, "settings.json");
+        ConfigDirectory = directory;
     }
+
+    internal string ConfigDirectory { get; }
 }

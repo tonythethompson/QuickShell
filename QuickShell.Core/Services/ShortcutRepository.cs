@@ -94,7 +94,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
     public string ConfigDirectory =>
         _configDirectoryOverride
-        ?? Path.Combine(_appDataPaths.Root, "QuickShell");
+        ?? Path.Join(_appDataPaths.Root, "QuickShell");
 
     public string ConfigPath => Path.Combine(ConfigDirectory, "shortcuts.json");
 
@@ -1366,7 +1366,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     {
         yield return ConfigPath + ".bak";
 
-        yield return Path.Combine(_appDataPaths.Root, "TerminalShortcutsCmdPal", "shortcuts.json");
+        yield return Path.Join(_appDataPaths.Root, "TerminalShortcutsCmdPal", "shortcuts.json");
     }
 
     /// <summary>Matches the async loader's retry budget for transient sharing violations.</summary>

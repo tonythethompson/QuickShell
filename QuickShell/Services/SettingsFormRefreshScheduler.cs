@@ -53,7 +53,12 @@ internal sealed class SettingsFormRefreshScheduler : ISettingsFormRefreshSchedul
                 return;
             }
 
-            InvokeSafe(refresh);
+            if (_lifetime.CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _callbackQueue.Enqueue(() => InvokeSafe(refresh));
         }, _lifetime.CancellationToken);
     }
 
