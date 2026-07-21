@@ -1,7 +1,8 @@
 import type { QuickShellSettings, Workspace } from "./schema";
 import {
   assessWorkspaceHealthForList,
-  assessWorkspaceHealthWithPortProbe,
+  collectCandidatePorts,
+  probePortInUse,
   type PortInUseProbe,
   type WorkspaceHealthReport,
 } from "./workspace-health";
@@ -52,17 +53,29 @@ export async function buildWorkspaceHealthIndexWithPorts(
   workspaces: Workspace[],
   settings: QuickShellSettings,
 ): Promise<WorkspaceHealthIndex> {
-  const entries = await Promise.all(
-    workspaces.map(
-      async (workspace) =>
-        [
-          workspaceHealthFingerprint(workspace, settings),
-          await assessWorkspaceHealthWithPortProbe(workspace, settings, {
-            includeLaunchPlan: false,
-            includeDirectoryExists: true,
-          }),
-        ] as const,
-    ),
+  const candidatePorts = new Set<number>();
+  for (const workspace of workspaces) {
+    for (const port of collectCandidatePorts(workspace)) {
+      candidatePorts.add(port);
+    }
+  }
+
+  const portsInUse = new Set<number>();
+  await Promise.all(
+    [...candidatePorts].map(async (port) => {
+      if (await probePortInUse(port)) {
+        portsInUse.add(port);
+      }
+    }),
+  );
+  const isPortInUse: PortInUseProbe = (port) => portsInUse.has(port);
+
+  const entries = workspaces.map(
+    (workspace) =>
+      [
+        workspaceHealthFingerprint(workspace, settings),
+        assessWorkspaceHealthForList(workspace, settings, { isPortInUse }),
+      ] as const,
   );
   return new Map(entries);
 }
