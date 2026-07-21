@@ -165,11 +165,9 @@ internal sealed class WorkspaceEnvironmentProbe : IWorkspaceEnvironmentProbe
                 return [];
             }
 
-            return stdoutTask.Result
-                .Replace("\0", string.Empty, StringComparison.Ordinal)
-                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim())
-                .Where(line => line.Length > 0)
+            var output = stdoutTask.Result.Replace("\0", string.Empty, StringComparison.Ordinal);
+
+            return LineParsing.SplitTrimmedNonEmptyLines(output)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }

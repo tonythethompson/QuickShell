@@ -994,11 +994,9 @@ internal sealed class TerminalCatalog : ITerminalCatalog
                     return [];
                 }
 
-                return output
-                    .Replace("\0", string.Empty)
-                    .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                    .Select(line => line.Trim())
-                    .Where(line => line.Length > 0)
+                var cleanOutput = output.Replace("\0", string.Empty);
+
+                return LineParsing.SplitTrimmedNonEmptyLines(cleanOutput)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(line => line, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
