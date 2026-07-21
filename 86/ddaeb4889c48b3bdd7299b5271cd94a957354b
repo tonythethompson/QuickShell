@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/TerminalLauncherTests.cs
+  s_aecdb4cfe17926::t_2edbc0579fd16f 104-111,129-136,155-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "86ddaeb4889c48b3bdd7299b5271cd94a957354b",
+  "prompts": {},
+  "sessions": {
+    "s_aecdb4cfe17926": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e2941b8-e6bb-4487-839c-774807fed75c",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
