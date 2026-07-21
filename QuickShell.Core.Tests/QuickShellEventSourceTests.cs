@@ -24,7 +24,9 @@ public sealed class QuickShellEventSourceTests
     [Fact]
     public void QuickShellEventSource_WriteMethods_DoNotThrow()
     {
-        // ETW delivery is host/listener dependent; assert the provider API is callable.
+        using var listener = new TestEventListener();
+        listener.EnableEvents(QuickShellEventSource.Log, System.Diagnostics.Tracing.EventLevel.Informational);
+
         QuickShellEventSource.Log.WriteRowCache(RowPresentationDiagnostics.CacheHit);
         QuickShellEventSource.Log.WritePlanCache(nameof(LaunchDiagnosticKind.PlanCacheMiss));
         QuickShellEventSource.Log.WriteStartupSpan("test-span", 1.5);
@@ -32,7 +34,25 @@ public sealed class QuickShellEventSourceTests
         QuickShellEventSource.Log.WriteSupportEvent("test.event");
         QuickShellEventSource.Log.WriteSupportWriteFailure(nameof(IOException));
         QuickShellEventSource.Log.WriteGitDiscoveryComplete(3);
-        Assert.True(true);
+
+        // Verify all seven events were emitted with expected IDs.
+        Assert.Contains(listener.Events, e => e.EventId == 1 && e.EventName == "RowCache");
+        Assert.Contains(listener.Events, e => e.EventId == 2 && e.EventName == "PlanCache");
+        Assert.Contains(listener.Events, e => e.EventId == 3 && e.EventName == "StartupSpan");
+        Assert.Contains(listener.Events, e => e.EventId == 4 && e.EventName == "Repository");
+        Assert.Contains(listener.Events, e => e.EventId == 5 && e.EventName == "SupportEvent");
+        Assert.Contains(listener.Events, e => e.EventId == 6 && e.EventName == "SupportWriteFailure");
+        Assert.Contains(listener.Events, e => e.EventId == 7 && e.EventName == "GitDiscoveryComplete");
+
+        // Verify payload shapes for a sample event.
+        var rowCacheEvent = listener.Events.First(e => e.EventId == 1);
+        Assert.Single(rowCacheEvent.Payload);
+        Assert.Equal(RowPresentationDiagnostics.CacheHit, rowCacheEvent.Payload[0]);
+
+        var startupSpanEvent = listener.Events.First(e => e.EventId == 3);
+        Assert.Equal(2, startupSpanEvent.Payload.Count);
+        Assert.Equal("test-span", startupSpanEvent.Payload[0]);
+        Assert.Equal(1.5, startupSpanEvent.Payload[1]);
     }
 
     private sealed class RecordingQuickShellEventSource : IQuickShellEventSource
@@ -66,5 +86,17 @@ public sealed class QuickShellEventSourceTests
         public void WriteGitDiscoveryComplete(int repoCount)
         {
         }
+    }
+
+    private sealed class TestEventListener : System.Diagnostics.Tracing.EventListener
+    {
+        public List<EventData> Events { get; } = [];
+
+        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
+        {
+            Events.Add(new EventData(eventData.EventId, eventData.EventName ?? string.Empty, eventData.Payload?.ToList() ?? []));
+        }
+
+        public sealed record EventData(int EventId, string EventName, List<object?> Payload);
     }
 }

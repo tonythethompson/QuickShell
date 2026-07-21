@@ -19,21 +19,28 @@ internal sealed class QuickShellEventSource : EventSource, IQuickShellEventSourc
 
     bool IQuickShellEventSource.IsEnabled() => IsEnabled();
 
+    [NonEvent]
     public void WriteRowCache(string kind) => RowCache(kind ?? string.Empty);
 
+    [NonEvent]
     public void WritePlanCache(string kind) => PlanCache(kind ?? string.Empty);
 
+    [NonEvent]
     public void WriteStartupSpan(string name, double elapsedMs) =>
         StartupSpan(name ?? string.Empty, elapsedMs);
 
+    [NonEvent]
     public void WriteRepository(string location, string eventName, long? elapsedMs = null) =>
         Repository(location ?? string.Empty, eventName ?? string.Empty, elapsedMs ?? -1);
 
+    [NonEvent]
     public void WriteSupportEvent(string eventCode) => SupportEvent(eventCode ?? string.Empty);
 
+    [NonEvent]
     public void WriteSupportWriteFailure(string exceptionType) =>
         SupportWriteFailure(exceptionType ?? string.Empty);
 
+    [NonEvent]
     public void WriteGitDiscoveryComplete(int repoCount) => GitDiscoveryComplete(repoCount);
 
     // [Event] methods must be public instance methods that call WriteEvent for ETW to enable them.

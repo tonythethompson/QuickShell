@@ -58,7 +58,7 @@ public sealed class FormEditFlowTests : IDisposable
     }
 
     [Fact]
-    public void Form_local_undo_restores_companion_row_after_failed_path()
+    public void Form_local_undo_restores_original_count_after_adding_companion_row()
     {
         var editor = _services.WorkspaceEditors.Create();
         editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "UndoFlow" });
@@ -87,39 +87,9 @@ public sealed class FormEditFlowTests : IDisposable
 
     private static string JsonEscaped(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-
-    private sealed class TempDataDirectory : IDisposable
-    {
-        public TempDataDirectory()
-        {
-            Path = System.IO.Path.Join(
-                System.IO.Path.GetTempPath(),
-                "quickshell-form-flow-tests",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(Path);
-        }
-
-        public string Path { get; }
-
-        public void Dispose()
-        {
-            try
-            {
-                if (Directory.Exists(Path))
-                {
-                    Directory.Delete(Path, recursive: true);
-                }
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-        }
-    }
 }
 
+[Collection("ShortcutRepositoryMutex")]
 public sealed class TrustLaunchFlowTests
 {
     [Fact]
@@ -130,7 +100,7 @@ public sealed class TrustLaunchFlowTests
         Directory.CreateDirectory(folder);
         try
         {
-            repository.Upsert(CreateWorkspace(folder));
+            repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace(name: "TrustFlow", directory: folder));
             var workspace = repository.GetByName("TrustFlow")!;
             Assert.Equal(TrustTransitionStatus.Revoked, repository.RevokeTrust(workspace.Id).Status);
 
@@ -178,12 +148,12 @@ public sealed class TrustLaunchFlowTests
         Directory.CreateDirectory(folder);
         try
         {
-            repository.Upsert(CreateWorkspace(folder));
+            repository.Upsert(WorkspaceTestingHelpers.CreateWorkspace(name: "TrustFlow", directory: folder));
             var workspace = repository.GetByName("TrustFlow")!;
             Assert.Equal(TrustTransitionStatus.Revoked, repository.RevokeTrust(workspace.Id).Status);
 
-            var lifetime = new QuickShellLifetime();
-            var drafts = new ShortcutDraftStore(repository);
+            using var lifetime = new QuickShellLifetime();
+            using var drafts = new ShortcutDraftStore(repository);
             var services = TestQuickShellServicesFactory.Create(
                 repository,
                 drafts,
@@ -200,9 +170,6 @@ public sealed class TrustLaunchFlowTests
 
             new RevokeWorkspaceTrustCommand(workspace.Id, () => { }, services).Invoke();
             Assert.False(repository.GetStoredWorkspace(workspace.Id)!.Security.IsTrusted);
-
-            lifetime.Dispose();
-            drafts.Dispose();
         }
         finally
         {
@@ -224,25 +191,6 @@ public sealed class TrustLaunchFlowTests
         var directory = Path.Join(Path.GetTempPath(), "QuickShellTrustFlowTests", Guid.NewGuid().ToString("N"));
         return new ShortcutRepository(directory);
     }
-
-    private static TerminalShortcut CreateWorkspace(string directory) =>
-        new()
-        {
-            Name = "TrustFlow",
-            Directory = directory,
-            Command = "echo one",
-            Launches =
-            [
-                new WorkspaceEntry
-                {
-                    Id = "launch-1",
-                    Label = "Launch",
-                    Terminal = "default",
-                    Command = "echo one",
-                    IsEnabled = true,
-                },
-            ],
-        };
 
     private sealed class CapturingLaunchExecutor : IShortcutLaunchExecutor
     {
@@ -402,37 +350,6 @@ public sealed class ImportConflictFlowTests : IDisposable
             Name = name,
             Directory = directory,
         };
-
-    private sealed class TempDataDirectory : IDisposable
-    {
-        public TempDataDirectory()
-        {
-            Path = System.IO.Path.Join(
-                System.IO.Path.GetTempPath(),
-                "quickshell-import-flow-tests",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(Path);
-        }
-
-        public string Path { get; }
-
-        public void Dispose()
-        {
-            try
-            {
-                if (Directory.Exists(Path))
-                {
-                    Directory.Delete(Path, recursive: true);
-                }
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-        }
-    }
 }
 
 /// <summary>Serializes tests that mutate the process-wide <see cref="ImportConflictState"/>.</summary>

@@ -99,7 +99,12 @@ internal static partial class GitRepoDiscovery
         }
 
         var roots = BuildSearchRoots(extraRoots, includeDefaultSearchRoots, defaultRootCandidates);
-        if (roots.Count == 0 || cancellationToken.IsCancellationRequested)
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return [];
+        }
+
+        if (roots.Count == 0)
         {
             QuickShellEventSource.Log.WriteGitDiscoveryComplete(0);
             return [];

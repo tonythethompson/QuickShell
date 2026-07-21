@@ -4,7 +4,7 @@ Quick Shell emits two complementary diagnostic channels. Neither replaces the ot
 
 | Channel | Purpose | Redaction |
 |---------|---------|-----------|
-| **Support JSONL** (`SupportDiagnostics`) | User-copyable support bundle + bounded rotating log under `%LOCALAPPDATA%\QuickShell\logs\` | Free-text and structured payloads hashed; no raw paths/commands |
+| **Support JSONL** (`SupportDiagnostics`) | User-copyable support bundle + bounded rotating log under `%LOCALAPPDATA%\QuickShell\logs\` | Free-text hashed; structured payloads replaced with bounded presence marker; no raw paths/commands |
 | **ETW EventSource** (`QuickShell-Diagnostics`) | Machine-local timing and cache counters for PerfView / `dotnet-trace` | Stable event codes and counts only; no user content |
 
 See also [`performance.md`](performance.md) (critical-path contract and harness) and [`launch.md`](launch.md) (plan-cache diagnostic kinds).

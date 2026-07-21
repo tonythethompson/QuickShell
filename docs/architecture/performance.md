@@ -40,10 +40,10 @@ already published, applied through `IExtensionCallbackQueue`.
 > **Known gap, tracked separately:** every row's `MoreCommands` context menu is still built
 > eagerly during first list construction (`ShortcutContextCommands.Build`), reused across
 > refreshes only via `QuickShellPage`'s `_unpinnedItemCache`. Lazy per-row menu construction
-> and an immutable row-presentation cache are the subject of a follow-on PR; this harness
+> is the subject of a follow-on PR; the immutable row-presentation cache is deployed. This harness
 > measures `workspace-list` cold/warm construction cost today specifically so that change has
 > a baseline to compare against, and `CriticalPathContractTests` intentionally does not assert
-> "no menus built on first paint" until that lands.
+> "no menus built on first paint" until lazy menu construction lands.
 
 **Root-palette typing** (`QuickShellFallback.UpdateQuery`) must not:
 - reacquire multiple repository snapshots per query
@@ -75,8 +75,8 @@ See `CriticalPathContractTests.Launch_EvaluatesHealthAndGitEveryCall_NeverMemoiz
 | Repository snapshot | `ShortcutRepository.GetSnapshot()` | none (latest) | new snapshot on every call; `Version` increments on mutation | N/A (one snapshot object per call) | no (backed by `shortcuts.json`) | no — always current | n/a |
 | Root-palette query index | `QuickShellFallback._cachedSearchIndex` (`RootPaletteSearchIndex`) | implicit — one instance per `QuickShellFallback` | `snapshot.Version` mismatch rebuilds; per-query generation guard discards stale async results | 1 instance | memory-only | no | n/a |
 | Persistent Git index | `GitRepoIndex` (in-memory only today) | `rootKey` (sorted, newline-joined search roots) + `includeDefaultSearchRoots` flag | `Invalidate()` (repository change), 10-minute TTL (`CacheLifetime`), or `rootKey` mismatch | 1 cache entry (single most-recent root set) | **no** — memory only, lost on process restart | yes, up to 10 minutes (stale-while-revalidate: `Search`/`GetAll` return the cached set immediately and kick a background refresh) | n/a |
-| Launch-plan cache | `WorkspaceLaunchPlanCache` (owned by `ShortcutLaunchExecutor`) | `LaunchPlanCacheKey` (workspace id, repository version, terminal app, profile, launch entry, options fingerprint) | repository version bump evicts older keys; capacity trim (`MaxEntries = 50`) | 50 | memory-only | no — version-keyed | health, trust, and git gate results (always evaluated after cache lookup) |
-| Row presentation cache | `WorkspaceRowPresentationCache` | workspace id + repository version + presentation mode | newer repository version prunes older entries | `MaxShortcutCount * 3` | memory-only | no — version-keyed | icon extraction, git IO, directory-existence probes |
+| Launch-plan cache | `WorkspaceLaunchPlanCache` (owned by `ShortcutLaunchExecutor`) | `LaunchPlanCacheKey` (workspace id, repository version, terminal app, profile, launch entry, options fingerprint, terminal catalog fingerprint) | repository version bump evicts older keys; catalog changes invalidate plans; capacity trim (`MaxEntries = 50`) | 50 | memory-only | no — version-keyed | health, trust, and git gate results (always evaluated after cache lookup) |
+| Row presentation cache | `WorkspaceRowPresentationCache` (deployed) | workspace id + repository version + presentation mode | newer repository version prunes older entries | `MaxShortcutCount * 3` | memory-only | no — version-keyed | icon extraction, git IO, directory-existence probes |
 
 Security-sensitive values excluded from every cache above and from diagnostics logging:
 launch health results, process state, trust/authorization decisions, and directory-existence

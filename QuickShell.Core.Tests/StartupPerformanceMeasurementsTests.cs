@@ -118,7 +118,7 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         _output.WriteLine($"Provider ctor      : {ctorMs:0.###} ms");
         _output.WriteLine($"List reload (cold) : {listReloadMs.TotalMilliseconds:0.###} ms ({workspaceCount} workspaces)");
         _output.WriteLine($"List GetItems warm : {listGetItemsMs.TotalMilliseconds:0.###} ms");
-        WriteRealMachineWorkspaceCountArtifact(workspaceCount);
+        WriteRealMachineWorkspaceCountArtifact(originalWorkspaceCount);
         if (!string.IsNullOrWhiteSpace(ctorTrace))
         {
             _output.WriteLine("Provider ctor breakdown (QUICKSHELL_STARTUP_TRACE):");
@@ -201,7 +201,8 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
             analysis,
             lifetime);
 
-        workspaceCount = repository.GetShortcuts().Count;
+        var originalWorkspaceCount = repository.GetShortcuts().Count;
+        workspaceCount = originalWorkspaceCount;
         if (workspaceCount == 0)
         {
             // No real workspaces saved; fall back to a synthetic 50 so the reload path is exercised.
