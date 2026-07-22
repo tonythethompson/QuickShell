@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import type { StoredWorkspace, Workspace } from "./schema";
+import type { StoredWorkspace, Workspace, WorkspaceSecurityMetadata } from "./schema";
 import { isAbsoluteDirectory, normalizeCompanionApps, validateCommand, validateWorkspace } from "./validation";
 import { buildSelectedLaunchWorkspace, parseWslUncPath } from "./windows-launch";
 import trustFeatures from "./workspace-trust-features.json";
@@ -21,6 +21,15 @@ export function isWorkspaceTrustEnabled(): boolean {
 /** Test seam only. Pass null to clear the override. */
 export function setWorkspaceTrustEnabledForTests(enabled: boolean | null): void {
   workspaceTrustTestOverride = enabled;
+}
+
+/**
+ * Security metadata for imported / restored / otherwise external ingress.
+ * Trusted while enforcement is off so re-enabling later does not suddenly
+ * lock users out of workspaces they already used.
+ */
+export function createIngressSecurity(): WorkspaceSecurityMetadata {
+  return { isTrusted: !isWorkspaceTrustEnabled(), revision: 1 };
 }
 
 /** While enforcement is off, rewrite untrusted rows so re-enable does not revive stale denials. */
