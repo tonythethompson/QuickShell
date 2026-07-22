@@ -118,7 +118,8 @@ export default function SettingsCommand() {
     try {
       invalidateTerminalCatalogCache();
       const terminals = discoverWorkspaceTerminalChoices();
-      const profiles = getDefaultProfileChoices(preferences.terminalApplication);
+      const profileTerminal = preferences.terminalApplication === "system" ? "wt" : preferences.terminalApplication;
+      const profiles = getDefaultProfileChoices(profileTerminal);
       await showToast({
         style: Toast.Style.Success,
         title: "Terminal list refreshed",
