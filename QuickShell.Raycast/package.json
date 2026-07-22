@@ -158,7 +158,8 @@
     "dev": "ray develop",
     "lint": "ray lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "publish": "npx @raycast/api@latest publish"
   },
   "allowScripts": {
     "esbuild@0.28.1": true
