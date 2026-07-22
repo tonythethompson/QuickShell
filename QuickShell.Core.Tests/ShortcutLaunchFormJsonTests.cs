@@ -139,23 +139,36 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Equal("true", launchEnabled2.GetProperty("value").GetString());
     }
 
-    private static JsonElement FindElementById(JsonElement body, string id)
+    private static JsonElement FindElementById(JsonElement container, string id)
     {
-        foreach (var element in body.EnumerateArray())
+        foreach (var element in container.EnumerateArray())
         {
             if (element.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
             {
                 return element;
             }
-            if (element.TryGetProperty("body", out var nestedBody) && nestedBody.ValueKind == JsonValueKind.Array)
+
+            // Adaptive Cards nest inputs under items/columns (and sometimes body).
+            if (TryFindInChildArray(element, "items", id, out var found)
+                || TryFindInChildArray(element, "columns", id, out found)
+                || TryFindInChildArray(element, "body", id, out found))
             {
-                var found = FindElementById(nestedBody, id);
-                if (found.ValueKind != JsonValueKind.Undefined)
-                {
-                    return found;
-                }
+                return found;
             }
         }
+
         return default;
+    }
+
+    private static bool TryFindInChildArray(JsonElement element, string propertyName, string id, out JsonElement found)
+    {
+        found = default;
+        if (!element.TryGetProperty(propertyName, out var nested) || nested.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        found = FindElementById(nested, id);
+        return found.ValueKind != JsonValueKind.Undefined;
     }
 }
