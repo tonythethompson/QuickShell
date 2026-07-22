@@ -639,7 +639,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         ApplyLaunchTarget(entry, string.IsNullOrWhiteSpace(draft.LaunchTarget) ? "default" : draft.LaunchTarget);
 
-        AddLaunchRow(entry, order, draft.IsEditorPlaceholder);
+        AddLaunchRow(entry, order, draft.IsEditorPlaceholder, draft.Kind);
 
     }
 
@@ -661,7 +661,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    private void AddLaunchRow(WorkspaceEntry? launch, int order, bool isEditorPlaceholder)
+    private void AddLaunchRow(
+        WorkspaceEntry? launch,
+        int order,
+        bool isEditorPlaceholder,
+        LaunchRowKind? kind = null)
 
     {
 
@@ -670,6 +674,12 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             this,
 
             launch,
+
+            entryId: null,
+
+            kind ?? (launch is not null && string.IsNullOrWhiteSpace(launch.Command)
+                ? LaunchRowKind.OpenInTerminal
+                : LaunchRowKind.Command),
 
             launch?.Label ?? $"Launch {order + 1}",
 
@@ -767,7 +777,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var target = _launchRows.FirstOrDefault(row =>
 
-            row.IsEditorPlaceholder
+            row.Kind == LaunchRowKind.Command
 
             && string.IsNullOrWhiteSpace(row.CommandText));
 
@@ -901,6 +911,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             AddLaunchRow(
 
+                snapshot.Id,
+
+                snapshot.Kind,
+
                 snapshot.Label,
 
                 snapshot.Command,
@@ -925,6 +939,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private void AddLaunchRow(
 
+        string id,
+
+        LaunchRowKind kind,
+
         string label,
 
         string command,
@@ -948,6 +966,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             this,
 
             null,
+
+            id,
+
+            kind,
 
             label,
 
@@ -982,16 +1004,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             .Select(row => row.ToLaunchRowDraft())
 
             .ToList();
-
-        if (launchDrafts.Count == 0)
-
-        {
-
-            launchDrafts.Add(new LaunchRowDraft());
-
-        }
-
-
 
         var applied = _editor.TryApplyHostFields(new WorkspaceHostFieldUpdate
 
@@ -1428,6 +1440,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         private string _taskType;
 
+        private LaunchRowKind _kind;
+
         private bool _isEditorPlaceholder;
 
 
@@ -1437,6 +1451,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             ShortcutWorkspaceEditorWindow owner,
 
             WorkspaceEntry? launch,
+
+            string? entryId,
+
+            LaunchRowKind kind,
 
             string label,
 
@@ -1458,9 +1476,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             _owner = owner;
 
-            _entryId = launch?.Id ?? Guid.NewGuid().ToString("N");
+            _entryId = entryId ?? launch?.Id ?? Guid.NewGuid().ToString("N");
 
             _taskType = TaskTypeCatalog.Normalize(taskType);
+
+            _kind = kind;
 
             _isEditorPlaceholder = isEditorPlaceholder;
 
@@ -1508,7 +1528,16 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-            commandBox.TextChanged += (_, _) => _owner.RefreshSuggestionPanel();
+            commandBox.TextChanged += (_, _) =>
+            {
+                if (!string.IsNullOrWhiteSpace(commandBox.Text))
+                {
+                    _kind = LaunchRowKind.Command;
+                    _isEditorPlaceholder = false;
+                }
+
+                _owner.RefreshSuggestionPanel();
+            };
 
 
 
@@ -1591,12 +1620,27 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             clear.Click += (_, _) =>
 
             {
+                if (_kind != LaunchRowKind.OpenInTerminal
+                    && _owner._launchRows.Any(row =>
+                        !ReferenceEquals(row, this)
+                        && row.Kind == LaunchRowKind.OpenInTerminal))
+                {
+                    MessageBox.Show(
+                        _owner,
+                        "Only one Open in terminal launch can be added.",
+                        "Quick Shell",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
 
                 _owner.PushFormEditSnapshot();
 
                 commandBox.Text = string.Empty;
 
                 _taskType = TaskTypeCatalog.None;
+
+                _kind = LaunchRowKind.OpenInTerminal;
 
                 _isEditorPlaceholder = false;
 
@@ -1648,6 +1692,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         public string CommandText => CommandBox.Text;
 
+        public LaunchRowKind Kind => _kind;
+
 
 
         public void ApplyPill(CommandSuggestionPill pill)
@@ -1657,6 +1703,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             CommandBox.Text = pill.Command;
 
             _taskType = pill.TaskType;
+
+            _kind = LaunchRowKind.Command;
 
             _isEditorPlaceholder = false;
 
@@ -1671,6 +1719,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         public RunLaunchRowSnapshot CaptureSnapshot() =>
 
             new(
+
+                _entryId,
+
+                _kind,
 
                 LabelBox.Text,
 
@@ -1693,6 +1745,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             new()
 
             {
+
+                Kind = _kind,
 
                 Id = _entryId,
 

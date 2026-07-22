@@ -10,7 +10,7 @@ internal static class ShortcutFormLaunchSection
         List<LaunchRowDraft> commands;
         if (shortcut is null)
         {
-            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget, IsEditorPlaceholder = true }];
+            commands = [];
         }
         else
         {
@@ -22,6 +22,9 @@ internal static class ShortcutFormLaunchSection
                 [
                     new LaunchRowDraft
                     {
+                        Kind = string.IsNullOrWhiteSpace(shortcut.Command)
+                            ? LaunchRowKind.OpenInTerminal
+                            : LaunchRowKind.Command,
                         Label = shortcut.Name,
                         Command = shortcut.Command ?? string.Empty,
                         LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
@@ -36,7 +39,6 @@ internal static class ShortcutFormLaunchSection
             }
         }
 
-        LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, fallbackLaunchTarget);
         return commands;
     }
 
@@ -52,9 +54,11 @@ internal static class ShortcutFormLaunchSection
         {
             Id = row.Id,
             Label = string.IsNullOrWhiteSpace(row.Label)
-                ? index == 0 ? labelBase : $"Command {index + 1}"
+                ? row.Kind == LaunchRowKind.OpenInTerminal
+                    ? "Open in terminal"
+                    : index == 0 ? labelBase : $"Command {index + 1}"
                 : row.Label.Trim(),
-            Command = row.Command,
+            Command = row.Kind == LaunchRowKind.OpenInTerminal ? null : row.Command,
             LaunchTarget = string.IsNullOrWhiteSpace(row.LaunchTarget)
                 ? index == 0
                     ? fallbackLaunchTarget
@@ -69,9 +73,7 @@ internal static class ShortcutFormLaunchSection
     public static string BuildCommandRowsJson(
         IReadOnlyList<LaunchRowDraft> commands,
         string terminalChoices) =>
-        ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => (command.Label, command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin, command.IsEnabled)).ToList(),
-            terminalChoices);
+        ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(
         IProjectAnalysisService projectAnalysis,

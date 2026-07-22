@@ -23,7 +23,7 @@ ShortcutFormPage / ShortcutWorkspaceEditorWindow
         FormEditHistory lives on WorkspaceEditor (launch-row snapshots)
 ```
 
-`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` lives in `QuickShell.Core/Services/WorkspaceEditor/` behind `IWorkspaceEditor`. Launch rows: `ShortcutFormLaunchSection` / `LaunchRowListEditor` (minimum **3** empty rows for editor padding). Each command row is **Command + terminal profile + Admin** (`LaunchRunAsAdmin_{i}`). Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
+`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` lives in `QuickShell.Core/Services/WorkspaceEditor/` behind `IWorkspaceEditor`. Shared launch drafts have an explicit `LaunchRowKind`: `Command` or `OpenInTerminal`. CmdPal renders only real launches and supports a true zero-row state with `Add command` and `Open in terminal` actions; each row also has terminal profile, Admin, and remove controls. The Run host retains three visible WPF slots locally using nonpersistent `IsEditorPlaceholder` rows. Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
 
 Browse/Paste folder on the form fills name (if unset), repo URL, and Dev Server URL when empty. It does **not** auto-seed launch commands or companion apps. Suggestion pills add commands; companion presets stay user-chosen. Discover create seeds via `WorkspaceSeedFactory` (see [intelligence.md](./intelligence.md), [companions.md](./companions.md)).
 
@@ -85,7 +85,7 @@ SaveCurrentDraft
        onSaved()  // reload list
 ```
 
-Blank launch rows trimmed; at least one launch kept. Layout undo records the Upsert.
+Blank `Command` drafts and Run-only WPF placeholders are trimmed. An explicit `OpenInTerminal` row persists as a launch whose on-disk `Command` remains `null`; saving with no real launch stays in the editor with `Add at least one launch.` Layout undo records the Upsert.
 
 ## Cancel / discard
 

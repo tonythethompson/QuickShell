@@ -12,7 +12,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("", "npm start", TaskTypeCatalog.None, "default", false, true), ("", "dotnet watch", TaskTypeCatalog.Api, "default", true, true)],
+                [new() { Command = "npm start", LaunchTarget = "default" }, new() { Command = "dotnet watch", TaskType = TaskTypeCatalog.Api, LaunchTarget = "default", RunAsAdmin = true }],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
@@ -28,11 +28,13 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("${LaunchCommand_1}", text);
         Assert.Contains("${LaunchRunAsAdmin_0}", text);
         Assert.Contains("\"title\": \"Admin\"", text);
-        Assert.Contains("clearLaunch", text);
-        Assert.DoesNotContain("removeLaunch", text);
-        Assert.DoesNotContain("addLaunch", text);
-        Assert.DoesNotContain("+ Add command", text);
-        Assert.DoesNotContain("Command 1", text);
+        Assert.DoesNotContain("clearLaunch", text);
+        Assert.Contains("removeLaunch", text);
+        Assert.Contains("addCommandRow", text);
+        Assert.Contains("Add command", text);
+        Assert.Contains("LaunchKind_0", text);
+        Assert.Contains("LaunchLabel_0", text);
+        Assert.Contains("LaunchIsEnabled_0", text);
         Assert.DoesNotContain("\"title\": \"Remove command\"", text);
         Assert.DoesNotContain("Always run as administrator", text);
     }
@@ -42,7 +44,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("", "npm start", TaskTypeCatalog.Frontend, "default", false, true), ("", "dotnet watch", TaskTypeCatalog.Api, "default", false, true)],
+                [new() { Command = "npm start", TaskType = TaskTypeCatalog.Frontend, LaunchTarget = "default" }, new() { Command = "dotnet watch", TaskType = TaskTypeCatalog.Api, LaunchTarget = "default" }],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
@@ -53,6 +55,29 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.DoesNotContain("LaunchType_0", text);
         Assert.DoesNotContain("LaunchType_1", text);
         Assert.DoesNotContain("Task type", text);
+    }
+
+    [Fact]
+    public void BuildCommandRowsJson_OpenInTerminal_RendersLabelWithoutCommandInput()
+    {
+        var text = ShortcutLaunchFormJson.BuildCommandRowsJson(
+            [new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Open in terminal" }],
+            TerminalChoices);
+
+        Assert.Contains("Open in terminal", text);
+        Assert.Contains("removeLaunch", text);
+        Assert.DoesNotContain("LaunchCommand_0", text);
+    }
+
+    [Fact]
+    public void BuildCommandRowsJson_ZeroRows_RendersEmptyStateWithoutSyntheticCommand()
+    {
+        var text = ShortcutLaunchFormJson.BuildCommandRowsJson([], TerminalChoices);
+
+        Assert.Contains("No launches yet", text);
+        Assert.Contains("addCommandRow", text);
+        Assert.Contains("addOpenInTerminalRow", text);
+        Assert.DoesNotContain("LaunchCommand_0", text);
     }
 
     [Fact]
@@ -107,33 +132,5 @@ public sealed class ShortcutLaunchFormJsonTests
         JsonDocument.Parse(json);
         Assert.Contains("\\\"hi\\\"", json);
         Assert.Contains("echo \\\"test\\\"", json);
-    }
-
-    [Fact]
-    public void BuildLaunchRowsJson_VerifiesLaunchLabelAndEnabledFields()
-    {
-        var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
-            ShortcutLaunchFormJson.BuildLaunchRowsJson(
-                [
-                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Main", Command = "npm start", IsEnabled = true },
-                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Disabled Task", Command = "npm test", IsEnabled = false },
-                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "", Command = "dotnet run", IsEnabled = true }
-                ],
-                TerminalChoices));
-
-        using var document = JsonDocument.Parse(json);
-        var text = document.RootElement.GetRawText();
-
-        Assert.Contains("LaunchLabel_0", text);
-        Assert.Contains("LaunchLabel_1", text);
-        Assert.Contains("LaunchLabel_2", text);
-        Assert.Contains("LaunchEnabled_0", text);
-        Assert.Contains("LaunchEnabled_1", text);
-        Assert.Contains("LaunchEnabled_2", text);
-
-        Assert.Contains("\"value\": \"Main\"", text);
-        Assert.Contains("\"value\": \"Disabled Task\"", text);
-        Assert.Contains("\"value\": \"true\"", text);
-        Assert.Contains("\"value\": \"false\"", text);
     }
 }

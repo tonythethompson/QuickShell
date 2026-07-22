@@ -41,22 +41,12 @@ internal static partial class ShortcutLaunchFormJson
 
 
     public static string BuildCommandRowsJson(
-
-        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)> rows,
-
-        string terminalChoices)
+        IReadOnlyList<QuickShell.Services.LaunchRowDraft> rows,
+        string terminalChoices,
+        LaunchEditorText? text = null)
 
     {
-
-        if (rows.Count == 0)
-
-        {
-
-            rows = [(string.Empty, string.Empty, TaskTypeCatalog.None, "default", false, true)];
-
-        }
-
-
+        text ??= LaunchEditorText.English;
 
         var blocks = new List<string>();
 
@@ -64,6 +54,11 @@ internal static partial class ShortcutLaunchFormJson
 
         for (var i = 0; i < rows.Count; i++)
         {
+            var rowContent = rows[i].Kind == LaunchRowKind.OpenInTerminal
+                ? AdaptiveCardFormJson.InputWithTrailingActionsRow(
+                    $$"""{ "type": "TextBlock", "text": "{{Escape(text.OpenInTerminal)}}", "weight": "Bolder", "wrap": true }""",
+                    BuildRemoveLaunchAction(i, text.RemoveTooltip))
+                : BuildCommandInputWithClear(i, text.RemoveTooltip);
             blocks.Add($$"""
             {
               "type": "ColumnSet",
@@ -74,22 +69,10 @@ internal static partial class ShortcutLaunchFormJson
                   "width": "{{CommandColumnWidth}}",
                   "verticalContentAlignment": "Center",
                   "items": [
-                    {{BuildCommandInputWithClear(i)}},
-                    {
-                      "type": "Input.Text",
-                      "id": "LaunchLabel_{{i}}",
-                      "isVisible": false,
-                      "value": "${LaunchLabel_{{i}}}"
-                    },
-                    {
-                      "type": "Input.Toggle",
-                      "id": "LaunchEnabled_{{i}}",
-                      "title": "Enabled",
-                      "isVisible": false,
-                      "value": "${LaunchEnabled_{{i}}}",
-                      "valueOn": "true",
-                      "valueOff": "false"
-                    }
+                    { "type": "Input.Text", "id": "LaunchKind_{{i}}", "isVisible": false, "value": "${LaunchKind_{{i}}}" },
+                    { "type": "Input.Text", "id": "LaunchLabel_{{i}}", "isVisible": false, "value": "${LaunchLabel_{{i}}}" },
+                    { "type": "Input.Text", "id": "LaunchIsEnabled_{{i}}", "isVisible": false, "value": "${LaunchIsEnabled_{{i}}}" },
+                    {{rowContent}}
                   ]
                 },
                 {
@@ -128,6 +111,13 @@ internal static partial class ShortcutLaunchFormJson
             """);
         }
 
+        if (rows.Count == 0)
+        {
+            blocks.Add($$"""{ "type": "Container", "spacing": "Small", "items": [{ "type": "TextBlock", "text": "{{Escape(text.EmptyTitle)}}", "weight": "Bolder", "wrap": true }, { "type": "TextBlock", "text": "{{Escape(text.EmptyGuidance)}}", "isSubtle": true, "wrap": true }] }""");
+        }
+
+        blocks.Add($$"""{ "type": "ActionSet", "spacing": "Small", "actions": [{ "type": "Action.Submit", "title": "{{Escape(text.AddCommand)}}", "associatedInputs": "auto", "data": { "action": "addCommandRow" } }, { "type": "Action.Submit", "title": "{{Escape(text.OpenInTerminal)}}", "$when": "${ShowAddOpenInTerminal}", "associatedInputs": "auto", "data": { "action": "addOpenInTerminalRow" } }] }""");
+
         blocks.Add($$"""
         {
           "type": "ColumnSet",
@@ -163,7 +153,7 @@ internal static partial class ShortcutLaunchFormJson
 
 
     public const string CommandsSectionTooltip =
-        "Blank = folder only · Admin elevates that row.";
+        "Add a command or open the folder in a terminal.";
 
     public static string BuildCommandsSectionHeaderJson() =>
         $$"""
@@ -241,7 +231,7 @@ internal static partial class ShortcutLaunchFormJson
 
 
 
-            var commandInput = BuildCommandInputWithClear(i, escapedCommand);
+            var commandInput = BuildCommandInputWithClear(i, literalValue: escapedCommand);
 
 
 

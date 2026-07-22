@@ -23,7 +23,9 @@ internal static class WorkspaceFormActionParser
             "paste" => new WorkspaceFormAction(WorkspaceFormActionKind.Paste),
             "refreshterminals" => new WorkspaceFormAction(WorkspaceFormActionKind.RefreshTerminals),
             "addsuggestedcommand" => ParseAddSuggestedCommand(source),
-            "clearlaunch" => ParseClearLaunch(source),
+            "addcommandrow" => new WorkspaceFormAction(WorkspaceFormActionKind.AddCommandRow),
+            "addopeninterminalrow" => new WorkspaceFormAction(WorkspaceFormActionKind.AddOpenInTerminalRow),
+            "removelaunch" => ParseRemoveLaunch(source),
             "expandsuggestionpills" => new WorkspaceFormAction(WorkspaceFormActionKind.ExpandSuggestionPills),
             "collapsesuggestionpills" => new WorkspaceFormAction(WorkspaceFormActionKind.CollapseSuggestionPills),
             "addcompanionapp" => new WorkspaceFormAction(WorkspaceFormActionKind.AddCompanionApp),
@@ -74,7 +76,7 @@ internal static class WorkspaceFormActionParser
             PillIndex: pillIndex);
     }
 
-    private static WorkspaceFormAction ParseClearLaunch(string source)
+    private static WorkspaceFormAction ParseRemoveLaunch(string source)
     {
         var node = JsonNode.Parse(source)?.AsObject();
         if (node is null || !TryReadInt(node, "launchIndex", out var index))
@@ -82,7 +84,7 @@ internal static class WorkspaceFormActionParser
             return new WorkspaceFormAction(WorkspaceFormActionKind.None);
         }
 
-        return new WorkspaceFormAction(WorkspaceFormActionKind.ClearLaunch, LaunchIndex: index);
+        return new WorkspaceFormAction(WorkspaceFormActionKind.RemoveLaunch, LaunchIndex: index);
     }
 
     private static WorkspaceFormAction ParseRemoveCompanionApp(string source)

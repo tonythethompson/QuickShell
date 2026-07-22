@@ -10,6 +10,8 @@ using System.Windows.Threading;
 namespace QuickShell.Run;
 
 internal sealed record RunLaunchRowSnapshot(
+    string Id,
+    LaunchRowKind Kind,
     string Label,
     string Command,
     string TaskType,

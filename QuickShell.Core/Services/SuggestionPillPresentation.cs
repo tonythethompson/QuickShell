@@ -11,23 +11,6 @@ internal static class SuggestionPillPresentation
     // ShortcutLaunchFormJson.SuggestionPills.cs), so there's more horizontal room per pill.
     public const int DisplayTitleMaxLength = 60;
 
-    /// <summary>
-    /// Always-available pill that explicitly marks a launch row as folder-only (blank Command,
-    /// no task). Previously a row was only ever implicitly folder-only by having a blank
-    /// Command with no visible indication, which was indistinguishable from a still-empty
-    /// unused row — confusing given new shortcuts default to three blank rows and only one
-    /// intentionally-blank convention (not all three opening a shell). Appended after ranked
-    /// suggestions so it never displaces a real command match.
-    /// </summary>
-    public static readonly CommandSuggestionPill OpenToDirectoryPill = new(
-        Command: string.Empty,
-        TaskType: TaskTypeCatalog.None,
-        TypeTitle: "Folder",
-        DisplayTitle: "Open directory only",
-        Tooltip: "Open this folder without running a command.",
-        Score: 0,
-        Source: "folder-only");
-
     /// <summary>Pill button label: command text only (truncated).</summary>
     public static string FormatDisplayTitle(string command)
     {
@@ -97,10 +80,10 @@ internal static class SuggestionPillPresentation
             return fields;
         }
 
-        // Same ordered list the form uses when applying a pill click (including Open directory only).
+        // Same ordered real-command list the form uses when applying a pill click.
         var pills = BuildSelectablePills(directory, usedCommands, projectAnalysis, commandSuggestions);
 
-        fields["ShowSuggestionPills"] = "true";
+        fields["ShowSuggestionPills"] = pills.Count > 0 ? "true" : "false";
         fields["ShowMoreSuggestions"] = pills.Count > DefaultVisibleSlots && !expandSuggestionPills ? "true" : "false";
         fields["ShowFewerSuggestions"] = expandSuggestionPills && pills.Count > DefaultVisibleSlots ? "true" : "false";
 
@@ -117,11 +100,7 @@ internal static class SuggestionPillPresentation
         return fields;
     }
 
-    /// <summary>
-    /// Ranked suggestion pills plus the always-appended <see cref="OpenToDirectoryPill"/>, in the
-    /// same order rendered by <see cref="BuildDataFields"/>. Form apply must use this list so a
-    /// blank-command Open directory only click resolves the same way the template displayed it.
-    /// </summary>
+    /// <summary>Ranked real-command suggestions in the same order rendered by the form.</summary>
     public static IReadOnlyList<CommandSuggestionPill> BuildSelectablePills(
         string? directory,
         IEnumerable<string?> usedCommands,
@@ -132,7 +111,7 @@ internal static class SuggestionPillPresentation
 
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
-            return [OpenToDirectoryPill];
+            return [];
         }
 
         var ranked = commandSuggestions.GetPills(directory, usedCommands, projectAnalysis);
@@ -140,22 +119,6 @@ internal static class SuggestionPillPresentation
         // Loosely group same-type pills together for display (Agent, Test, Services, ...).
         // OrderBy is stable, so within each type group pills keep GetPills' original score
         // order -- this only reorders across groups, ranking within a group is untouched.
-        // Open directory only stays last so it is never sorted into the middle alphabetically.
-        var pills = new List<CommandSuggestionPill>(ranked.Count + 1);
-        pills.AddRange(ranked.OrderBy(pill => pill.TypeTitle, StringComparer.OrdinalIgnoreCase));
-        pills.Add(OpenToDirectoryPill);
-        return pills;
-    }
-
-    public static IReadOnlyDictionary<string, string> BuildClearLaunchFields(
-        IReadOnlyList<LaunchRowDraft> rows)
-    {
-        var fields = new Dictionary<string, string>(StringComparer.Ordinal);
-        for (var i = 0; i < rows.Count; i++)
-        {
-            fields[$"ShowClearLaunch_{i}"] = string.IsNullOrWhiteSpace(rows[i].Command) ? "false" : "true";
-        }
-
-        return fields;
+        return ranked.OrderBy(pill => pill.TypeTitle, StringComparer.OrdinalIgnoreCase).ToList();
     }
 }

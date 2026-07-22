@@ -72,9 +72,11 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
         string? command,
         string? taskType)
     {
-        // Blank command is a legitimate pill value (the "Open directory only" pill has no
-        // command by definition). Only taskType is normalized/optional; command matches
-        // as-is including blank-to-blank.
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return null;
+        }
+
         var normalizedTaskType = string.IsNullOrWhiteSpace(taskType)
             ? null
             : TaskTypeCatalog.Normalize(taskType);

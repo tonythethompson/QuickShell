@@ -136,6 +136,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             Launches = draft.Launches
                 .Select(launch => new PersistedShortcutLaunchDraft
                 {
+                    Kind = launch.Kind,
                     Id = launch.Id,
                     Label = launch.Label,
                     Command = launch.Command,
@@ -188,18 +189,31 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             return ShortcutSaveResult.Fail("No unsaved shortcut edit is pending.");
         }
 
-        var launches = pending.Launches is { Count: > 0 }
-            ? pending.Launches.Select(launch => new ShortcutFormLaunchInput
-            {
-                Id = launch.Id,
-                Label = launch.Label,
-                Command = launch.Command,
-                LaunchTarget = launch.LaunchTarget,
-                RunAsAdmin = launch.RunAsAdmin,
-                IsEnabled = launch.IsEnabled,
-                TaskType = launch.TaskType,
-            }).ToList()
-            : null;
+        List<ShortcutFormLaunchInput>? launches = null;
+        if (pending.Launches is { Count: > 0 })
+        {
+            var savedLaunches = _shortcuts.GetByName(pending.OriginalName)?.Launches ?? [];
+            launches = pending.Launches
+                .Select(launch => (Launch: launch, Kind: launch.Kind ?? InferLegacyKind(launch, savedLaunches)))
+                .Where(item => item.Kind == LaunchRowKind.OpenInTerminal || !string.IsNullOrWhiteSpace(item.Launch.Command))
+                .Select(item => new ShortcutFormLaunchInput
+                {
+                    Id = item.Launch.Id,
+                    Label = string.IsNullOrWhiteSpace(item.Launch.Label) && item.Kind == LaunchRowKind.OpenInTerminal
+                        ? "Open in terminal"
+                        : item.Launch.Label,
+                    Command = item.Kind == LaunchRowKind.OpenInTerminal ? null : item.Launch.Command,
+                    LaunchTarget = item.Launch.LaunchTarget,
+                    RunAsAdmin = item.Launch.RunAsAdmin,
+                    IsEnabled = item.Launch.IsEnabled,
+                    TaskType = item.Launch.TaskType,
+                })
+                .ToList();
+            var seenOpenInTerminal = false;
+            launches = launches
+                .Where(launch => launch.Command is not null || !seenOpenInTerminal && (seenOpenInTerminal = true))
+                .ToList();
+        }
 
         var companionApps = pending.Companions is { Count: > 0 }
             ? CompanionAppFormEditor.ToCompanionEntries(
@@ -213,18 +227,26 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 }).ToList())
             : null;
 
-        launches ??=
-        [
-            new ShortcutFormLaunchInput
-            {
-                Label = pending.Name,
-                Command = pending.Command,
-                LaunchTarget = pending.LaunchTarget,
-                RunAsAdmin = pending.RunAsAdmin,
-                IsEnabled = true,
-                TaskType = TaskTypeCatalog.None,
-            },
-        ];
+        if (launches is null && !string.IsNullOrWhiteSpace(pending.Command))
+        {
+            launches =
+            [
+                new ShortcutFormLaunchInput
+                {
+                    Label = pending.Name,
+                    Command = pending.Command,
+                    LaunchTarget = pending.LaunchTarget,
+                    RunAsAdmin = pending.RunAsAdmin,
+                    IsEnabled = true,
+                    TaskType = TaskTypeCatalog.None,
+                },
+            ];
+        }
+
+        if (launches is not { Count: > 0 })
+        {
+            return ShortcutSaveResult.Fail(LaunchEditorText.English.ValidationAtLeastOne);
+        }
 
         var result = ShortcutFormSave.TrySave(
             pending.OriginalName,
@@ -249,6 +271,16 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
 
         return result;
     }
+
+    private static LaunchRowKind InferLegacyKind(
+        PersistedShortcutLaunchDraft launch,
+        IReadOnlyList<WorkspaceEntry> savedLaunches) =>
+        string.IsNullOrWhiteSpace(launch.Command)
+        && savedLaunches.Any(saved =>
+            string.Equals(saved.Id, launch.Id, StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(saved.Command))
+            ? LaunchRowKind.OpenInTerminal
+            : LaunchRowKind.Command;
 
     private bool TryGetPendingLocked(out PersistedShortcutEditDraft? draft)
     {
@@ -521,6 +553,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             var a = left[i];
             var b = right[i];
             if (!string.Equals(Normalize(a.Label), Normalize(b.Label), StringComparison.Ordinal)
+                || a.Kind != b.Kind
                 || !string.Equals(Normalize(a.Command), Normalize(b.Command), StringComparison.Ordinal)
                 || !string.Equals(Normalize(a.LaunchTarget), Normalize(b.LaunchTarget), StringComparison.Ordinal)
                 || a.RunAsAdmin != b.RunAsAdmin
@@ -555,6 +588,12 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
             });
 
             if (!string.Equals(Normalize(draft.Label), Normalize(entry.Label), StringComparison.Ordinal)
+                || (draft.Kind ?? (string.IsNullOrWhiteSpace(draft.Command)
+                    ? LaunchRowKind.OpenInTerminal
+                    : LaunchRowKind.Command))
+                    != (string.IsNullOrWhiteSpace(entry.Command)
+                        ? LaunchRowKind.OpenInTerminal
+                        : LaunchRowKind.Command)
                 || !string.Equals(Normalize(draft.Command), Normalize(entry.Command), StringComparison.Ordinal)
                 || !string.Equals(Normalize(draft.LaunchTarget), Normalize(launchTarget), StringComparison.Ordinal)
                 || draft.RunAsAdmin != entry.RunAsAdmin

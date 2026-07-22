@@ -143,7 +143,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             var commands = update.Commands.Count > 0
                 ? [.. update.Commands.Select(row => row.Clone())]
                 : LaunchRowListEditor.CloneRows(_draft.Commands);
-            LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, GetDefaultRowLaunchTarget());
+            NormalizeLaunchRows(commands);
 
             var companionSource = update.Companions.Count > 0 ? update.Companions : _draft.Companions;
             var companions = companionSource.Select(row => row.Clone()).ToList();
@@ -197,8 +197,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         return Locked(() =>
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            // Must match BuildDataFields / BuildSelectablePills so Open directory only (blank command)
-            // and pillIndex slots resolve the same list the Adaptive Card rendered.
+            // Must match BuildDataFields / BuildSelectablePills so pillIndex slots resolve the
+            // same real-command list the Adaptive Card rendered.
             var pills = SuggestionPillPresentation.BuildSelectablePills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
@@ -216,17 +216,67 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                 return WorkspaceEditResult.StayOpen("That suggestion is no longer available.");
             }
 
+            if (LaunchRowListEditor.TrimForSave(_draft.Commands).Count >= ShortcutLaunchNormalization.MaxLaunchCount)
+            {
+                return WorkspaceEditResult.StayOpen($"At most {ShortcutLaunchNormalization.MaxLaunchCount} launch entries are supported.");
+            }
+
             PushEditSnapshot();
             _ = _commandSuggestions.ApplyPill(_draft.Commands, pill, GetDefaultRowLaunchTarget());
             ApplyDraft();
-            var toast = ReferenceEquals(pill, SuggestionPillPresentation.OpenToDirectoryPill)
-                ? "Added Open directory only."
-                : $"Added {pill.TypeTitle} command.";
-            return WorkspaceEditResult.StayOpen(toast);
+            return WorkspaceEditResult.StayOpen($"Added {pill.TypeTitle} command.");
         });
     }
 
-    public WorkspaceEditResult ClearLaunchRow(int index)
+    public WorkspaceEditResult AddCommandRow()
+    {
+        return Locked(() =>
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            PushEditSnapshot();
+            _draft.Commands.Add(new LaunchRowDraft
+            {
+                Kind = LaunchRowKind.Command,
+                Label = CreateUniqueLaunchLabel("Command"),
+                LaunchTarget = _draft.Commands.Count == 0
+                    ? GetDefaultRowLaunchTarget()
+                    : TerminalCatalog.SameAsPreviousLaunchTargetId,
+            });
+            ApplyDraft();
+            return WorkspaceEditResult.StayOpen();
+        });
+    }
+
+    public WorkspaceEditResult AddOpenInTerminalRow()
+    {
+        return Locked(() =>
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_draft.Commands.Any(row => row.Kind == LaunchRowKind.OpenInTerminal))
+            {
+                return WorkspaceEditResult.StayOpen();
+            }
+
+            if (LaunchRowListEditor.TrimForSave(_draft.Commands).Count >= ShortcutLaunchNormalization.MaxLaunchCount)
+            {
+                return WorkspaceEditResult.StayOpen($"At most {ShortcutLaunchNormalization.MaxLaunchCount} launch entries are supported.");
+            }
+
+            PushEditSnapshot();
+            _draft.Commands.Add(new LaunchRowDraft
+            {
+                Kind = LaunchRowKind.OpenInTerminal,
+                Label = CreateUniqueLaunchLabel("Open in terminal"),
+                LaunchTarget = _draft.Commands.Count == 0
+                    ? GetDefaultRowLaunchTarget()
+                    : TerminalCatalog.SameAsPreviousLaunchTargetId,
+            });
+            ApplyDraft();
+            return WorkspaceEditResult.StayOpen();
+        });
+    }
+
+    public WorkspaceEditResult RemoveLaunchRow(int index)
     {
         return Locked(() =>
         {
@@ -237,7 +287,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             }
 
             PushEditSnapshot();
-            LaunchRowListEditor.ClearRow(_draft.Commands, index, GetDefaultRowLaunchTarget());
+            LaunchRowListEditor.RemoveRow(_draft.Commands, index, GetDefaultRowLaunchTarget());
             ApplyDraft();
             return WorkspaceEditResult.StayOpen();
         });
@@ -384,6 +434,14 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             {
                 PersistEditDraftIfNeeded();
                 _saveError = "Name is required.";
+                OnChanged();
+                return WorkspaceEditResult.StayOpen(_saveError);
+            }
+
+            if (LaunchRowListEditor.TrimForSave(draft.Commands).Count == 0)
+            {
+                PersistEditDraftIfNeeded();
+                _saveError = LaunchEditorText.English.ValidationAtLeastOne;
                 OnChanged();
                 return WorkspaceEditResult.StayOpen(_saveError);
             }
@@ -553,7 +611,12 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
 
         var initial = existing ?? createSeed;
         var launchTarget = TerminalCatalog.EncodeLaunchTargetId(initial ?? new TerminalShortcut());
-        var commands = ShortcutFormLaunchSection.CommandsFromShortcut(initial, launchTarget);
+        var commands = existing is null
+            && (createSeed?.Launches.Count ?? 0) == 0
+            && string.IsNullOrWhiteSpace(createSeed?.Command)
+                ? []
+                : ShortcutFormLaunchSection.CommandsFromShortcut(initial, launchTarget);
+        NormalizeLaunchRows(commands);
         var companions = CompanionAppFormEditor.FromShortcut(initial);
         CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
 
@@ -629,6 +692,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
 
         var launchTarget = TerminalCatalog.EncodeLaunchTargetId(saved);
         var commands = ShortcutFormLaunchSection.CommandsFromShortcut(saved, launchTarget);
+        NormalizeLaunchRows(commands);
         var companions = CompanionAppFormEditor.FromShortcut(saved);
         CompanionAppFormEditor.SyncLegacyScalars(companions, out var openCompanion, out var companionPath, out var companionArgs, out var companionPreset);
 
@@ -746,6 +810,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         List<LaunchRowDraft> commands = restored.Launches.Count > 0
             ? [.. restored.Launches.Select(launch => new LaunchRowDraft
             {
+                Kind = launch.Kind ?? InferLegacyRestoredKind(launch),
                 Id = string.IsNullOrWhiteSpace(launch.Id) ? Guid.NewGuid().ToString("N") : launch.Id,
                 Label = launch.Label ?? string.Empty,
                 Command = launch.Command,
@@ -758,13 +823,19 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             })]
             : ShortcutFormLaunchSection.CommandsFromShortcut(null, restored.LaunchTarget);
 
-        LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, restored.LaunchTarget);
-
-        if (commands.Count > 0 && restored.Launches.Count == 0 && !string.IsNullOrWhiteSpace(restored.Command))
+        if (restored.Launches.Count == 0 && !string.IsNullOrWhiteSpace(restored.Command))
         {
-            commands[0].Command = restored.Command;
-            commands[0].RunAsAdmin = restored.RunAsAdmin;
+            commands.Add(new LaunchRowDraft
+            {
+                Kind = LaunchRowKind.Command,
+                Label = "Command",
+                Command = restored.Command,
+                LaunchTarget = restored.LaunchTarget,
+                RunAsAdmin = restored.RunAsAdmin,
+            });
         }
+
+        NormalizeLaunchRows(commands);
 
         List<CompanionAppFormRow> companions = restored.Companions.Count > 0
             ? [.. restored.Companions.Select(c => new CompanionAppFormRow
@@ -963,6 +1034,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             Launches = [.. draft.Commands.Select(command => new ShortcutFormLaunchDraftData
             {
                 Id = command.Id,
+                Kind = command.Kind,
                 Label = command.Label,
                 Command = command.Command,
                 LaunchTarget = command.LaunchTarget,
@@ -1116,6 +1188,32 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         return merged;
     }
 
+    private static void NormalizeLaunchRows(List<LaunchRowDraft> rows)
+    {
+        var hasOpenInTerminal = false;
+        foreach (var row in rows)
+        {
+            if (row.Kind == LaunchRowKind.OpenInTerminal && !hasOpenInTerminal)
+            {
+                hasOpenInTerminal = true;
+                row.Command = string.Empty;
+                row.IsEditorPlaceholder = false;
+                continue;
+            }
+
+            if (row.Kind == LaunchRowKind.OpenInTerminal)
+            {
+                row.Kind = LaunchRowKind.Command;
+                row.Command = string.Empty;
+                row.IsEditorPlaceholder = true;
+            }
+            else if (!string.IsNullOrWhiteSpace(row.Command))
+            {
+                row.IsEditorPlaceholder = false;
+            }
+        }
+    }
+
     private List<LaunchRowDraft> MergeCommandsFromInputs(
         JsonObject data,
         List<LaunchRowDraft> existing)
@@ -1123,7 +1221,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         var count = existing.Count;
         for (var probe = 0; probe < 64; probe++)
         {
-            if (!data.ContainsKey($"LaunchCommand_{probe}"))
+            if (!data.ContainsKey($"LaunchKind_{probe}")
+                && !data.ContainsKey($"LaunchCommand_{probe}"))
             {
                 count = probe;
                 break;
@@ -1148,6 +1247,9 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
 
             merged.Add(new LaunchRowDraft
             {
+                Kind = Enum.TryParse<LaunchRowKind>(data[$"LaunchKind_{i}"]?.ToString(), ignoreCase: true, out var kind)
+                    ? kind
+                    : prior.Kind,
                 Id = prior.Id,
                 Label = data[$"LaunchLabel_{i}"]?.ToString() ?? prior.Label,
                 Command = mergedCommand,
@@ -1156,11 +1258,14 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                     ?? prior.LaunchTarget
                     ?? fallbackLaunchTarget,
                 RunAsAdmin = ParseToggleBool(data[$"LaunchRunAsAdmin_{i}"]?.ToString(), prior.RunAsAdmin),
-                IsEnabled = ParseToggleBool(data[$"LaunchEnabled_{i}"]?.ToString(), prior.IsEnabled),
+                IsEnabled = ParseToggleBool(
+                    data[$"LaunchIsEnabled_{i}"]?.ToString() ?? data[$"LaunchEnabled_{i}"]?.ToString(),
+                    prior.IsEnabled),
                 IsEditorPlaceholder = becameBlankViaEdit || prior.IsEditorPlaceholder,
             });
         }
 
+        NormalizeLaunchRows(merged);
         return merged;
     }
 
@@ -1172,6 +1277,38 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         }
 
         return string.IsNullOrWhiteSpace(_draft.LaunchTarget) ? "default" : _draft.LaunchTarget;
+    }
+
+    private LaunchRowKind InferLegacyRestoredKind(ShortcutFormLaunchDraftData launch)
+    {
+        if (!string.IsNullOrWhiteSpace(launch.Command))
+        {
+            return LaunchRowKind.Command;
+        }
+
+        return _baselineDraft.Commands.Any(saved =>
+                string.Equals(saved.Id, launch.Id, StringComparison.OrdinalIgnoreCase)
+                && saved.Kind == LaunchRowKind.OpenInTerminal)
+            ? LaunchRowKind.OpenInTerminal
+            : LaunchRowKind.Command;
+    }
+
+    private string CreateUniqueLaunchLabel(string labelBase)
+    {
+        var labels = _draft.Commands.Select(row => row.Label).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!labels.Contains(labelBase))
+        {
+            return labelBase;
+        }
+
+        for (var suffix = 2; ; suffix++)
+        {
+            var candidate = $"{labelBase} {suffix}";
+            if (!labels.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
     }
 
     private void SyncDraftLaunchTargetFromCommands()
@@ -1406,7 +1543,9 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                 || !string.Equals(TaskTypeCatalog.Normalize(left.Commands[i].TaskType), TaskTypeCatalog.Normalize(right.Commands[i].TaskType), StringComparison.Ordinal)
                 || !string.Equals(Normalize(left.Commands[i].LaunchTarget), Normalize(right.Commands[i].LaunchTarget), StringComparison.Ordinal)
                 || left.Commands[i].RunAsAdmin != right.Commands[i].RunAsAdmin
-                || left.Commands[i].IsEnabled != right.Commands[i].IsEnabled)
+                || left.Commands[i].IsEnabled != right.Commands[i].IsEnabled
+                || left.Commands[i].Kind != right.Commands[i].Kind
+                || left.Commands[i].IsEditorPlaceholder != right.Commands[i].IsEditorPlaceholder)
             {
                 return false;
             }
@@ -1440,7 +1579,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         public string CompanionAppPreset { get; set; } = CompanionAppCatalog.PresetNone;
         public string CompanionAppPath { get; set; } = string.Empty;
         public string CompanionAppArguments { get; set; } = string.Empty;
-        public List<LaunchRowDraft> Commands { get; set; } = [new LaunchRowDraft()];
+        public List<LaunchRowDraft> Commands { get; set; } = [];
         public string LaunchTarget { get; set; } = "default";
         public bool RunAsAdmin { get; set; }
         public bool ExpandSuggestionPills { get; set; }

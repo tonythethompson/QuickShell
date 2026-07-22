@@ -178,6 +178,32 @@ public sealed class ShortcutDraftStoreTests : IDisposable
         Assert.False(saved.CompanionApps[1].OpenOnLaunch);
     }
 
+    [Fact]
+    public void TryCommitPending_DropsEmptyCommandDraftAndRetainsExplicitTerminalOnly()
+    {
+        var shortcut = CreateSavedShortcut();
+        shortcut.Directory = _configDirectory;
+        var repository = new FakeShortcutRepository([shortcut], _configDirectory);
+        using var store = new ShortcutDraftStore(repository);
+        var baseline = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        var dirty = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        dirty.Launches =
+        [
+            new() { Id = "terminal", Kind = LaunchRowKind.OpenInTerminal, Label = "Shell", Command = string.Empty },
+            new() { Id = "abandoned", Kind = LaunchRowKind.Command, Label = "Command 2", Command = string.Empty },
+        ];
+
+        store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        var result = store.TryCommitPending(onSaved: null);
+
+        Assert.True(result.Success, result.Message);
+        var saved = Assert.IsType<TerminalShortcut>(repository.GetByName(shortcut.Name));
+        var launch = Assert.Single(saved.Launches);
+        Assert.Null(launch.Command);
+        Assert.Equal("Shell", launch.Label);
+    }
+
     private static ShortcutFormDraftData CreateLaunchBaseline(TerminalShortcut shortcut, string taskType) => new()
     {
         OriginalName = shortcut.Name,
