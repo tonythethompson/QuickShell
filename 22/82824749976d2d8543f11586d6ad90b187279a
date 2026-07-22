@@ -1,0 +1,45 @@
+QuickShell.Core/Composition/QuickShellServiceCollectionExtensions.cs
+  s_ce658b422942f2::t_9e1d7d7012803d 8
+  s_ce658b422942f2::t_bbe450b1255807 154-164
+QuickShell.Core/Services/LaunchEditorText.cs
+  s_ce658b422942f2::t_949669f4484052 10-16
+  s_ce658b422942f2::t_2c8a6d3b9652ec 17-25
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_ce658b422942f2::t_2f1f845e504700 64,81
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_ce658b422942f2::t_cb33f633ba9534 11
+QuickShell.Core/Services/ShortcutFormCatalogPrewarm.cs
+  s_ce658b422942f2::t_ea4f6c1c2ac844 4,55
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_ce658b422942f2::t_183546207cf64f 54,56,70
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_ce658b422942f2::t_76ba3e9e2471a8 156,162,167,173
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_ce658b422942f2::t_24596349970428 150-153,254,270,282-283,826-828,1266
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceHostFieldUpdate.cs
+  s_ce658b422942f2::t_97e31b82f0aaaa 20
+QuickShell/Resources/Strings.cs
+  s_ce658b422942f2::t_124fa0f81afdc4 40
+QuickShell/Resources/Strings.resx
+  s_ce658b422942f2::t_02690801426973 633-635
+QuickShell/Services/ShortcutFormViewBuilder.cs
+  s_ce658b422942f2::t_0f913c0faf7972 69-72
+docs/architecture/forms.md
+  s_ce658b422942f2::t_d8e08f1de03dba 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2282824749976d2d8543f11586d6ad90b187279a",
+  "prompts": {},
+  "sessions": {
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
