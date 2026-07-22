@@ -116,16 +116,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(_working);
 
-        if (_working.Launches.Count == 0)
-
-        {
-
-            _working.Launches.Add(CreateLaunchEntry("Launch", string.Empty, "default", false, 0));
-
-        }
-
-
-
         _working.Name = state.Name;
 
         _working.Abbreviation = string.IsNullOrWhiteSpace(state.Abbreviation) ? null : state.Abbreviation;
@@ -572,6 +562,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var order = 0;
 
+        // New workspaces intentionally start with zero draft commands. Do not fall back to
+        // `_working.Launches`: EnsureLaunchesFromLegacy / empty seeds can look like blank
+        // OpenInTerminal rows and would persist past "Add at least one launch" validation.
         if (commands is { Count: > 0 })
 
         {
@@ -581,20 +574,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             {
 
                 AddLaunchRowFromDraft(command, order++);
-
-            }
-
-        }
-
-        else
-
-        {
-
-            foreach (var launch in _working.Launches.OrderBy(entry => entry.Order))
-
-            {
-
-                AddLaunchRow(launch, order++);
 
             }
 
@@ -653,12 +632,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
     private void AddLaunchRow(bool isEditorPlaceholder) =>
 
         AddLaunchRow(null, _launchRows.Count, isEditorPlaceholder);
-
-
-
-    private void AddLaunchRow(WorkspaceEntry? launch, int order) =>
-
-        AddLaunchRow(launch, order, isEditorPlaceholder: false);
 
 
 
@@ -1214,45 +1187,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    private static WorkspaceEntry CreateLaunchEntry(
 
-        string label,
-
-        string command,
-
-        string launchTarget,
-
-        bool runAsAdmin,
-
-        int order)
-
-    {
-
-        var entry = new WorkspaceEntry
-
-        {
-
-            Id = Guid.NewGuid().ToString("N"),
-
-            Label = label,
-
-            Command = command,
-
-            RunAsAdmin = runAsAdmin,
-
-            IsEnabled = true,
-
-            Order = order,
-
-            TaskType = TaskTypeCatalog.None,
-
-        };
-
-        ApplyLaunchTarget(entry, launchTarget);
-
-        return entry;
-
-    }
 
 
 
