@@ -13,7 +13,7 @@ public sealed class TerminalCatalogDiscoveryTests : IDisposable
     {
         _previous = PathExecutableLookup.TryResolveOverride;
         PathExecutableLookup.TryResolveOverride = null;
-        _tempRoot = Path.Combine(Path.GetTempPath(), "qs-term-discovery-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(Path.GetTempPath(), "qs-term-discovery-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
     }
 
