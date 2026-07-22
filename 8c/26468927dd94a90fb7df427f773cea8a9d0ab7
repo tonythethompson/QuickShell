@@ -1,0 +1,111 @@
+QuickShell.Raycast/src/__tests__/mac-launch.test.ts
+  s_c794253886b768::t_39989087a1fc14 1-51
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_c794253886b768::t_3558d9d6ee9c0d 40-41
+  s_c794253886b768::t_66438cd7def63b 53-58
+  s_c794253886b768::t_01419c5228054b 688-690
+  s_c794253886b768::t_4e6d00c482a5e1 785-786
+QuickShell.Raycast/src/__tests__/git-repo-search-roots-mac.test.ts
+  s_c794253886b768::t_b787785433923d 1-36
+QuickShell.Raycast/src/lib/terminal-catalog.ts
+  s_c794253886b768::t_4b9982dd433992 66-69,71,139-185
+  s_c794253886b768::t_711394ec29c58d 9-10
+  s_c794253886b768::t_b787785433923d 4-8
+QuickShell.Raycast/src/components/discover-git-repos-view.tsx
+  s_c794253886b768::t_9dac437cdd8fd0 15
+  s_c794253886b768::t_45c553eafb5019 5
+  s_c794253886b768::t_b828bb7f1277d1 197-198
+QuickShell.Raycast/src/lib/shortcuts.ts
+  s_c794253886b768::t_e739a5f721c8ef 1-27
+QuickShell.Raycast/src/lib/git-repo-search-roots.ts
+  s_c794253886b768::t_c1e111d7241d5a 6,10,22,36-37,40,42-47,50,65,70,80,84,89,93,96-106,128,157,159-163,169,171,173-176,181,186-190,197-199
+  s_c794253886b768::t_0563a7d7fa9b15 4
+  s_c794253886b768::t_b787785433923d 56
+  s_c794253886b768::t_1038e71dcc033a 41,48-49
+  s_c794253886b768::t_74401816e3e3c0 51
+QuickShell.Raycast/CHANGELOG.md
+  s_c794253886b768::t_3fe597c74d67d4 3-8
+QuickShell.Raycast/src/lib/windows-launch.ts
+  s_c794253886b768::t_fed6c8f9cbeff3 2-3
+  s_c794253886b768::t_64f588a836a8d8 113,115,123-124
+  s_c794253886b768::t_b787785433923d 114
+  s_c794253886b768::t_8bb49eaf440db8 125
+QuickShell.Raycast/src/__tests__/launch-executor.test.ts
+  s_c794253886b768::t_89c462421ffaec 139,141-196,203,206
+QuickShell.Raycast/src/__tests__/workspace-health.test.ts
+  s_c794253886b768::t_80e3b74bc88b0c 50,52,54,58-66
+  s_c794253886b768::t_532b164a9c72ad 67-68
+QuickShell.Raycast/README.md
+  s_c794253886b768::t_bfd4a4b4ce8300 3,9,17,19-20,76
+QuickShell.Raycast/src/open-workspace.tsx
+  s_c794253886b768::t_55dda3fe149e28 22
+  s_c794253886b768::t_613746727f88cd 849,855
+  s_c794253886b768::t_612ec4c117fa64 1088,1095,1101
+  s_c794253886b768::t_9076a10a005617 667-668
+  s_c794253886b768::t_f0fc5af8c4d740 56
+  s_c794253886b768::t_8f81d97cbb899e 1049,1057,1063
+  s_c794253886b768::t_5104fdd9a18dd0 960,968
+  s_c794253886b768::t_8ea2cdafe98f14 57
+QuickShell.Raycast/src/lib/preferences.ts
+  s_c794253886b768::t_ddadd0ac9cfb4e 3,5-9,21,31-35,39-45
+  s_c794253886b768::t_d26636302437f1 46
+QuickShell.Raycast/src/__tests__/post-launch-actions.test.ts
+  s_c794253886b768::t_eb006dc676e6da 18-23,25-30,32,34-40
+QuickShell.Raycast/src/components/unsupported-platform-view.tsx
+  s_c794253886b768::t_65c617fe10966f 3,6,8,10
+QuickShell.Raycast/src/lib/terminal-options.ts
+  s_c794253886b768::t_ce93130eb2a0c7 2,7-10,12-37,43,52-66,73-85,97-99,119,121-123,126-127
+QuickShell.Raycast/src/__tests__/extension-preferences.test.ts
+  s_c794253886b768::t_092213d4b0f3d8 1,5-10,12,28,37-38,45-46,53-68
+QuickShell.Raycast/src/lib/workspace-health.ts
+  s_c794253886b768::t_e863e949738c1e 92-98,108,141-157,160,178,181,190-206
+  s_c794253886b768::t_7897d8215a1220 4-5,26,28-32
+  s_c794253886b768::t_14aab1abf6ec7d 207-208
+QuickShell.Raycast/src/lib/launch-executor.ts
+  s_c794253886b768::t_042e235784b8f7 3-4,40-41,52-62
+QuickShell.Raycast/src/lib/workspace-transfer-files.ts
+  s_c794253886b768::t_ece1a0d864c27c 4,11-12,15-19,21-22,24,61-79,86-87
+  s_c794253886b768::t_817f591306269d 80-85
+  s_c794253886b768::t_8bf8bd028a7357 88
+QuickShell.Raycast/src/__tests__/mac-post-launch.test.ts
+  s_c794253886b768::t_b787785433923d 1-42
+QuickShell.Raycast/src/lib/mac-launch.ts
+  s_c794253886b768::t_16dcff352b4e58 1-134
+QuickShell.Raycast/src/lib/schema.ts
+  s_c794253886b768::t_42ff074055ddb4 5
+QuickShell.Raycast/src/lib/platform.ts
+  s_c794253886b768::t_f4704d4c18a204 4-12
+QuickShell.Raycast/src/lib/companion-catalog.ts
+  s_c794253886b768::t_382ece2ae7ef08 4,40,143-153,155-181,183-204,208,223-228,252,266-267,269,275-276,278,295-302
+  s_c794253886b768::t_b787785433923d 154,182,280-284
+QuickShell.Raycast/src/lib/git-repo-discovery.ts
+  s_c794253886b768::t_957489c05fb882 4
+  s_c794253886b768::t_a29b62705c0195 62,139
+QuickShell.Raycast/package.json
+  s_c794253886b768::t_a7d493c1296990 5,9-10,22,33,39,53-60
+  s_c794253886b768::t_8cdb64af074495 85
+QuickShell.Raycast/raycast-env.d.ts
+  s_c794253886b768::t_baaa46e0d5c5a2 11-12,17
+QuickShell.Raycast/src/lib/post-launch-actions.ts
+  s_c794253886b768::t_cf5afa03ac6b1a 2,22-24,28-48,121-122
+.github/workflows/ci.yml
+  s_c794253886b768::t_eaf5b0d7e773e2 40,76-98
+.github/workflows/release-extension.yml
+  s_c794253886b768::t_0eb2e759d113e1 143,145-146,148
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8c26468927dd94a90fb7df427f773cea8a9d0ab7",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
