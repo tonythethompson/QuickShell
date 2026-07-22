@@ -145,7 +145,6 @@ export default function WorkspaceForm({
   const initialValues = useMemo(
     () => valuesFromState(initialState, terminalChoices, draftValues),
     // terminalChoices intentionally omitted: useForm should keep the first selection id.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- enrich dropdown without resetting form values
     [draftValues, initialState],
   );
 

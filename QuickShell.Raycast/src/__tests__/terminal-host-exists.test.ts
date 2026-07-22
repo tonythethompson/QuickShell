@@ -15,10 +15,7 @@ vi.mock("node:fs", async () => {
   };
 });
 
-import {
-  invalidateTerminalCatalogCache,
-  terminalHostExecutableExists,
-} from "../lib/terminal-catalog";
+import { invalidateTerminalCatalogCache, terminalHostExecutableExists } from "../lib/terminal-catalog";
 
 describe("terminalHostExecutableExists", () => {
   const originalPlatform = process.platform;

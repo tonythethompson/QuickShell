@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildSearchRoots,
-  listDefaultRootCandidates,
-  searchRootsFromWorkspaces,
-} from "../lib/git-repo-search-roots";
+import { buildSearchRoots, listDefaultRootCandidates, searchRootsFromWorkspaces } from "../lib/git-repo-search-roots";
 
 describe("searchRootsFromWorkspaces", () => {
   it("includes each workspace directory and its parent, skipping drive-root parents", () => {
@@ -74,12 +70,7 @@ describe("listDefaultRootCandidates", () => {
 
 describe("buildSearchRoots", () => {
   it("puts extra roots first, includes defaults, and never adds the home profile root", () => {
-    const exists = new Set([
-      "d:\\dev",
-      "c:\\users\\tonyt\\projects",
-      "c:\\users\\tonyt",
-      "d:\\",
-    ]);
+    const exists = new Set(["d:\\dev", "c:\\users\\tonyt\\projects", "c:\\users\\tonyt", "d:\\"]);
 
     const roots = buildSearchRoots(["D:\\Dev"], {
       home: "C:\\Users\\tonyt",

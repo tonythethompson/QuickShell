@@ -37,11 +37,17 @@ jobs:
 
   raycast-check:
     name: Raycast lint, test, and build
-    runs-on: ubuntu-latest
+    # Windows-only extension (package.json platforms); keep Node checks on windows-latest.
+    runs-on: windows-latest
     defaults:
       run:
         working-directory: QuickShell.Raycast
+        shell: pwsh
     steps:
+      - name: Prefer LF checkouts for Prettier
+        working-directory: .
+        run: git config --global core.autocrlf false
+
       - name: Checkout code
         uses: actions/checkout@v4
 

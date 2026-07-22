@@ -2,7 +2,6 @@ import {
   Action,
   ActionPanel,
   Alert,
-  Clipboard,
   Color,
   Icon,
   LaunchProps,
@@ -10,6 +9,7 @@ import {
   confirmAlert,
   open,
   openExtensionPreferences,
+  showInFinder,
   showToast,
   Toast,
   updateCommandMetadata,
@@ -43,6 +43,11 @@ import { assessWorkspaceHealthWithPortProbe } from "./lib/workspace-health";
 import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
 import type { WorkspaceHealthIndex } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
+import {
+  pickWorkspaceTransferJsonPath,
+  readWorkspaceImportFile,
+  writeWorkspaceExportFile,
+} from "./lib/workspace-transfer-files";
 import {
   resolveOpenWorkspaceInitialMode,
   resolveOpenWorkspaceSearchSeed,
@@ -102,39 +107,41 @@ export default function OpenWorkspaceCommand({
     const fromArgs = commandArguments?.query?.trim();
     return fromArgs || resolveOpenWorkspaceSearchSeed(fallbackText, launchContext);
   });
-  const [selectedItemId, setSelectedItemId] = useState<string | undefined>(() =>
-    launchContext?.focusWorkspaceId?.trim() || undefined,
+  const [selectedItemId, setSelectedItemId] = useState<string | undefined>(
+    () => launchContext?.focusWorkspaceId?.trim() || undefined,
   );
   const [hubMode, setHubMode] = useState(() => resolveOpenWorkspaceInitialMode(launchContext));
   const storage = getQuickShellStorage();
   const preferences = getQuickShellSettingsFromPreferences();
   const [healthIndex, setHealthIndex] = useState<WorkspaceHealthIndex>(() => new Map());
 
-  const { data: storageData, isLoading, error, revalidate } = usePromise(
-    async (): Promise<Omit<LoadedData, "healthIndex">> => {
-      const [workspaces, settings, layoutEntries, branchTargets] = await Promise.all([
-        storage.getWorkspaces(),
-        storage.getSettings(),
-        storage.getLayoutEntries(),
-        storage.getBranchTargets(),
-      ]);
+  const {
+    data: storageData,
+    isLoading,
+    error,
+    revalidate,
+  } = usePromise(async (): Promise<Omit<LoadedData, "healthIndex">> => {
+    const [workspaces, settings, layoutEntries, branchTargets] = await Promise.all([
+      storage.getWorkspaces(),
+      storage.getSettings(),
+      storage.getLayoutEntries(),
+      storage.getBranchTargets(),
+    ]);
 
-      const securityById = isWorkspaceTrustEnabled()
-        ? await storage.getWorkspaceSecurityMap()
-        : Object.fromEntries(workspaces.map((workspace) => [workspace.id, { isTrusted: true, revision: 1 }]));
+    const securityById = isWorkspaceTrustEnabled()
+      ? await storage.getWorkspaceSecurityMap()
+      : Object.fromEntries(workspaces.map((workspace) => [workspace.id, { isTrusted: true, revision: 1 }]));
 
-      return {
-        workspaces,
-        settings,
-        layoutEntries,
-        branchTargets,
-        securityById,
-        canUndo: storage.canUndo(),
-        canRedo: storage.canRedo(),
-      };
-    },
-    [],
-  );
+    return {
+      workspaces,
+      settings,
+      layoutEntries,
+      branchTargets,
+      securityById,
+      canUndo: storage.canUndo(),
+      canRedo: storage.canRedo(),
+    };
+  }, []);
 
   useEffect(() => {
     if (!storageData || hubMode !== "list") {
@@ -235,7 +242,12 @@ export default function OpenWorkspaceCommand({
 
     const recent = getMostRecentlyUsedWorkspaces(data.workspaces, 3);
     const subtitle =
-      recent.length === 0 ? "No workspaces" : recent.map((workspace) => workspace.name.trim()).filter(Boolean).join(" · ");
+      recent.length === 0
+        ? "No workspaces"
+        : recent
+            .map((workspace) => workspace.name.trim())
+            .filter(Boolean)
+            .join(" · ");
 
     void updateCommandMetadata({ subtitle });
 
@@ -515,23 +527,40 @@ export default function OpenWorkspaceCommand({
 
   async function handleExport() {
     try {
+      const filePath = pickWorkspaceTransferJsonPath("save");
+      if (!filePath) {
+        return;
+      }
       const json = await storage.exportJson();
-      await Clipboard.copy(json);
-      await showToast({ style: Toast.Style.Success, title: "Workspaces copied", message: "JSON copied to clipboard." });
+      writeWorkspaceExportFile(filePath, json);
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Workspaces exported",
+        message: filePath,
+        primaryAction: {
+          title: "Show in Explorer",
+          onAction: () => {
+            void showInFinder(filePath);
+          },
+        },
+      });
     } catch (exportError) {
       await showStorageFailure("Export workspaces", exportError);
     }
   }
 
-  async function handleImportFromClipboard() {
+  async function handleImportFromFile() {
     try {
-      const text = await Clipboard.readText();
-      const trimmed = text?.trim() ?? "";
+      const filePath = pickWorkspaceTransferJsonPath("open");
+      if (!filePath) {
+        return;
+      }
+      const trimmed = readWorkspaceImportFile(filePath).trim();
       if (!trimmed) {
         await showToast({
           style: Toast.Style.Failure,
-          title: "Clipboard empty",
-          message: "Copy Quick Shell JSON first.",
+          title: "File empty",
+          message: "Choose a Quick Shell JSON export.",
         });
         return;
       }
@@ -728,8 +757,8 @@ export default function OpenWorkspaceCommand({
           </ActionPanel.Section>
         ) : null}
         <ActionPanel.Section title="Transfer">
-          <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
-          <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
+          <Action title="Export Workspaces…" icon={Icon.Upload} onAction={handleExport} />
+          <Action title="Import Workspaces…" icon={Icon.Download} onAction={handleImportFromFile} />
         </ActionPanel.Section>
       </>
     );

@@ -70,6 +70,6 @@ Run `npm run build` before submitting Store changes. Do not add a `version` fiel
 
 ## Scope
 
-Workspaces live in Raycast `LocalStorage` (`quickshell-data`), not shared `%LOCALAPPDATA%\QuickShell\` files. Import/export is the bridge to CmdPal/Run.
+Workspaces live in Raycast `LocalStorage` (`quickshell-data`), not shared `%LOCALAPPDATA%\QuickShell\` files. Use **Export Workspaces…** / **Import Workspaces…** (JSON files) to bridge with CmdPal/Run.
 
 Raycast-local parity includes: trust/import contracts, Suggest.exe pills with local fallback, multi-companion form + presets, terminal-host and port-in-use health warnings, copyable launch diagnostics, git launch gate (`branchTargets` + `blockDirtyBranchSwitch`), and layout section separators. Intentional gaps remain: shared LocalAppData stores / Core `worktree-branch-targets.json`, process-list health, ETW.

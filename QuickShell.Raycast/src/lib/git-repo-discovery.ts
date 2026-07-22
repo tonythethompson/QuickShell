@@ -50,12 +50,9 @@ export async function discoverGitReposCached(extraRoots: string[] = []): Promise
   return cachedDiscoverGitRepos(extraRoots);
 }
 
-const cachedDiscoverGitRepos = withCache(
-  async (extraRoots: string[] = []) => discoverGitReposAsync(extraRoots),
-  {
-    maxAge: 10 * 60 * 1000,
-  },
-);
+const cachedDiscoverGitRepos = withCache(async (extraRoots: string[] = []) => discoverGitReposAsync(extraRoots), {
+  maxAge: 10 * 60 * 1000,
+});
 
 export async function discoverGitReposAsync(
   extraRoots: string[] = [],

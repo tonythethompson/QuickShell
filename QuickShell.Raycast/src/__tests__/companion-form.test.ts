@@ -89,7 +89,10 @@ describe("multi companion form state", () => {
 
     const state = workspaceFormStateFromWorkspace(workspace);
     expect(state.companions).toHaveLength(2);
-    expect(state.companions[0].presetId).toBe("vscode");
+    // Basename inference is OS-agnostic; installed-preset mapping needs the app on disk.
+    expect(inferCompanionPresetFromPath("C:\\Apps\\Code.exe")).toBe("vscode");
+    expect(state.companions[0].presetId).toBe(resolveCompanionPreset("vscode") ? "vscode" : "custom");
+    expect(state.companions[0].path).toBe("C:\\Apps\\Code.exe");
     expect(state.companions[1].path).toBe("C:\\Apps\\Fork.exe");
     expect(createEmptyCompanionFormRow().presetId).toBe(COMPANION_PRESET_NONE);
 

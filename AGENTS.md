@@ -75,7 +75,7 @@ dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Pla
 
 In Visual Studio: **Build > Deploy** (not just Build), then run **Reload Command Palette Extension** in CmdPal. After any deploy: open CmdPal (`Win+Alt+Space`), run **Reload Command Palette Extension**, search **Quick Shell**.
 
-**Raycast extension (Node).** `QuickShell.Raycast/` requires **Node.js >= 22.14.0** (`engines` in `package.json`, pinned by `.nvmrc`). It is **not** part of the .NET solution; CI runs it under the `raycast-check` job (Ubuntu).
+**Raycast extension (Node).** `QuickShell.Raycast/` requires **Node.js >= 22.14.0** (`engines` in `package.json`, pinned by `.nvmrc`). It is **not** part of the .NET solution; CI runs it under the `raycast-check` job (`windows-latest`, matching `platforms: ["Windows"]`).
 
 ```bash
 cd QuickShell.Raycast
@@ -135,7 +135,7 @@ npm run dev     # ray develop
 - **InternalsVisibleTo:** `QuickShell.Core` exposes internals to `QuickShell`, `QuickShell.Run`, `QuickShell.Core.Tests`, and `QuickShell.Suggest` (see `QuickShell.Core.csproj`).
 - **Raycast:** Vitest (`vitest run`) under `QuickShell.Raycast/src/__tests__/windows-launch.test.ts` (arg escaping, target resolution, `wt` launch plan), kept in parity with Core behavior.
 - **What is covered:** `AgentCliSuggestionTests`, `TaskTypeCatalogTests`, `LaunchRowListEditorTests`, `TerminalProfileIconResolverTests`, `RunQueryScoringTests`, `ShortcutDisplayTests`, `ShortcutFormSaveRunEditorTests`, `ShortcutLaunchFormJsonTests`, `WorkspaceUtilityTests`, `ShortcutLaunchExecutorTests`, `TerminalLauncherArgsTests`.
-- **CI gates:** `.github/workflows/ci.yml` -> `windows-latest` runs `dotnet test --no-build`; `ubuntu-latest` runs the `raycast-check` job (`npm test`/`lint`/`build`). `.github/workflows/release-extension.yml` (on `v*` tag or dispatch) builds EXE/Run/Raycast installers, creates a GitHub Release, and opens WinGet manifest PRs. **No coverage threshold**; CI gates on pass/fail only.
+- **CI gates:** `.github/workflows/ci.yml` -> `windows-latest` runs `dotnet test --no-build` and the `raycast-check` job (`npm test`/`lint`/`build`). `.github/workflows/release-extension.yml` (on `v*` tag or dispatch) builds EXE/Run/Raycast installers, creates a GitHub Release, and opens WinGet manifest PRs. **No coverage threshold**; CI gates on pass/fail only.
 
 ## Conventions & Gotchas
 

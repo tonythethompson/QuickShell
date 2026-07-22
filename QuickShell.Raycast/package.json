@@ -110,8 +110,7 @@
         "create",
         "edit",
         "discover",
-        "git",
-        "settings"
+        "git"
       ],
       "mode": "view",
       "arguments": [

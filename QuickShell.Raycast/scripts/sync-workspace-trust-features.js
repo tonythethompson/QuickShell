@@ -14,11 +14,16 @@ if (!fs.existsSync(sharedPath)) {
   process.exit(1);
 }
 
-fs.mkdirSync(path.dirname(raycastPath), { recursive: true });
-fs.copyFileSync(sharedPath, raycastPath);
+function normalizeJsonText(text) {
+  const lf = text.replace(/\r\n/g, "\n").trimEnd();
+  return `${lf}\n`;
+}
 
-const shared = fs.readFileSync(sharedPath, "utf8").trim();
-const copied = fs.readFileSync(raycastPath, "utf8").trim();
+fs.mkdirSync(path.dirname(raycastPath), { recursive: true });
+const shared = normalizeJsonText(fs.readFileSync(sharedPath, "utf8"));
+fs.writeFileSync(raycastPath, shared, "utf8");
+
+const copied = normalizeJsonText(fs.readFileSync(raycastPath, "utf8"));
 if (shared !== copied) {
   console.error("workspace-trust-features.json copy failed to match shared source.");
   process.exit(1);

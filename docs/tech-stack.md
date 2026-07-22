@@ -42,7 +42,7 @@
 - **PowerToys CmdPal** — COM out-of-process extension hosted via `Shmuelie.WinRTServer`
 - **PowerToys Run** — WPF plugin loaded in-process by PowerToys
 - **Raycast for Windows** — standalone extension published via `@raycast/api`
-- **CI**: GitHub Actions (`windows-latest` for .NET, `ubuntu-latest` for Raycast)
+- **CI**: GitHub Actions (`windows-latest` for .NET and Raycast)
 - **Deploy**: `scripts/deploy.ps1` for local development loop; `release-extension.yml` / `release-run-plugin.yml` for packaging
 
 ---
