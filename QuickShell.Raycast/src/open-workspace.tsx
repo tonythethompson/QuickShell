@@ -328,8 +328,11 @@ export default function OpenWorkspaceCommand({
 
   async function handleMoveFavorite(workspace: Workspace, direction: "up" | "down" | "top" | "bottom") {
     try {
-      await storage.moveFavorite(workspace.id, direction);
+      const moved = await storage.moveFavorite(workspace.id, direction);
       await revalidate();
+      if (!moved) {
+        return;
+      }
       const message =
         direction === "up"
           ? "Moved up"

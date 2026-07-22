@@ -441,7 +441,8 @@ export class QuickShellStorage {
     return { ...workspace };
   }
 
-  async moveFavorite(workspaceId: string, direction: "up" | "down" | "top" | "bottom"): Promise<Workspace> {
+  /** Returns the moved workspace, or `null` when the move is a boundary no-op. */
+  async moveFavorite(workspaceId: string, direction: "up" | "down" | "top" | "bottom"): Promise<Workspace | null> {
     await this.flushRecentWrites();
     const data = await this.load();
     const workspace = data.workspaces.find((item) => item.id === workspaceId);
@@ -465,7 +466,7 @@ export class QuickShellStorage {
             ? 0
             : favorites.length - 1;
     if (targetIndex < 0 || targetIndex >= favorites.length || targetIndex === index) {
-      return { ...workspace };
+      return null;
     }
 
     if (direction === "up" || direction === "down") {

@@ -28,7 +28,7 @@ describe("extension-preferences", () => {
 
   it("falls back to wt for unknown terminalApplication values", () => {
     const settings = preferencesToSettings({
-      terminalApplication: "bogus" as ExtensionPreferences["terminalApplication"],
+      terminalApplication: "bogus" as unknown as ExtensionPreferences["terminalApplication"],
     });
     expect(settings.terminalApplication).toBe("wt");
   });

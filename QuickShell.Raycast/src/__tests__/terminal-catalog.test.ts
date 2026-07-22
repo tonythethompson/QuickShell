@@ -20,6 +20,7 @@ describe("terminal-catalog", () => {
     const first = discoverWorkspaceTerminalChoices();
     invalidateTerminalCatalogCache();
     const second = discoverWorkspaceTerminalChoices();
+    expect(second).not.toBe(first);
     expect(first.some((choice) => choice.id === "default")).toBe(true);
     expect(second.some((choice) => choice.id === "default")).toBe(true);
     expect(second).not.toBe(first);

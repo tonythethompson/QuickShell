@@ -118,6 +118,7 @@ export default function SettingsCommand() {
     try {
       invalidateTerminalCatalogCache();
       const terminals = discoverWorkspaceTerminalChoices();
+      // Match preferences.ts: profile discovery uses wt when host is "system".
       const profileTerminal = preferences.terminalApplication === "system" ? "wt" : preferences.terminalApplication;
       const profiles = getDefaultProfileChoices(profileTerminal);
       await showToast({
