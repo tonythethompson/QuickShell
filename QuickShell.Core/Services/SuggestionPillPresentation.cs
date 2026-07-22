@@ -7,9 +7,9 @@ internal static class SuggestionPillPresentation
 {
     public const int MaxSlots = 16;
     public const int DefaultVisibleSlots = 8;
-    // 60 not 42 -- pills render 2 per row instead of 3 (see PillsPerRow in
-    // ShortcutLaunchFormJson.SuggestionPills.cs), so there's more horizontal room per pill.
-    public const int DisplayTitleMaxLength = 60;
+    // Titles stay readable while the single flowing ActionSet wraps across the card;
+    // full command remains on the tooltip.
+    public const int DisplayTitleMaxLength = 48;
 
     /// <summary>Pill button label: command text only (truncated).</summary>
     public static string FormatDisplayTitle(string command)

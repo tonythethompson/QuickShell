@@ -85,4 +85,27 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         Assert.Equal(SuggestionPillPresentation.DisplayTitleMaxLength, title.Length);
         Assert.EndsWith("…", title, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void BuildSuggestionPillsBlock_UsesSingleFlowingActionSetForPills()
+    {
+        var json = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
+
+        // One ActionSet owns every pill slot; expand/collapse are separate ActionSets.
+        Assert.Equal(3, CountOccurrences(json, "\"type\": \"ActionSet\""));
+        Assert.Contains("\"pillIndex\": 0", json, StringComparison.Ordinal);
+        Assert.Contains($"\"pillIndex\": {SuggestionPillPresentation.MaxSlots - 1}", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("PillsPerRow", json, StringComparison.Ordinal);
+    }
+
+    private static int CountOccurrences(string haystack, string needle)
+    {
+        var count = 0;
+        for (var index = 0; (index = haystack.IndexOf(needle, index, StringComparison.Ordinal)) >= 0; index += needle.Length)
+        {
+            count++;
+        }
+
+        return count;
+    }
 }

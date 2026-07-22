@@ -2,41 +2,27 @@ namespace QuickShell.Services;
 
 internal static partial class ShortcutLaunchFormJson
 {
-    // 2 per row instead of 3 -- gives each pill more horizontal room for longer commands
-    // before DisplayTitleMaxLength truncates them.
-    private const int PillsPerRow = 2;
-
     public static string BuildSuggestionPillsBlock()
     {
-        var pillRows = new List<string>();
-        for (var rowStart = 0; rowStart < SuggestionPillPresentation.MaxSlots; rowStart += PillsPerRow)
+        // One ActionSet for every slot: CmdPal lays actions out across the card width
+        // (wrapping as needed). Hard row breaks of 2–3 pills left a narrow left stack and
+        // split same-type groups from BuildSelectablePills' TypeTitle sort.
+        var actions = new List<string>(SuggestionPillPresentation.MaxSlots);
+        for (var slot = 0; slot < SuggestionPillPresentation.MaxSlots; slot++)
         {
-            var actions = new List<string>();
-            for (var slot = rowStart; slot < rowStart + PillsPerRow && slot < SuggestionPillPresentation.MaxSlots; slot++)
+            actions.Add($$"""
             {
-                actions.Add($$"""
-                {
-                  "type": "Action.Submit",
-                  "title": "${PillTitle_{{slot}}}",
-                  "tooltip": "${PillTooltip_{{slot}}}",
-                  "$when": "${ShowPill_{{slot}}}",
-                  "associatedInputs": "auto",
-                  "data": {
-                    "action": "addSuggestedCommand",
-                    "pillCommand": "${PillCommand_{{slot}}}",
-                    "pillTaskType": "${PillTaskType_{{slot}}}"
-                  }
-                }
-                """);
-            }
-
-            pillRows.Add($$"""
-            {
-              "type": "ActionSet",
-              "spacing": "Small",
-              "actions": [
-                {{string.Join(",\n", actions)}}
-              ]
+              "type": "Action.Submit",
+              "title": "${PillTitle_{{slot}}}",
+              "tooltip": "${PillTooltip_{{slot}}}",
+              "$when": "${ShowPill_{{slot}}}",
+              "associatedInputs": "auto",
+              "data": {
+                "action": "addSuggestedCommand",
+                "pillCommand": "${PillCommand_{{slot}}}",
+                "pillTaskType": "${PillTaskType_{{slot}}}",
+                "pillIndex": {{slot}}
+              }
             }
             """);
         }
@@ -48,7 +34,13 @@ internal static partial class ShortcutLaunchFormJson
           "$when": "${ShowSuggestionPills}",
           "items": [
             {{AdaptiveCardFormJson.FieldLabel("Suggested commands", "Click a pill to add.", bold: false)}},
-            {{string.Join(",\n", pillRows)}},
+            {
+              "type": "ActionSet",
+              "spacing": "Small",
+              "actions": [
+                {{string.Join(",\n", actions)}}
+              ]
+            },
             {
               "type": "ActionSet",
               "spacing": "Small",

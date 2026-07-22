@@ -50,7 +50,8 @@ internal sealed class RunLaunchSuggestionPanel
 
         _scrollViewer = new ScrollViewer
         {
-            MaxHeight = 72,
+            // Enough height for a few wrapped chip rows so type groups can spread horizontally.
+            MaxHeight = 120,
             VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
             Content = _chips,
             Visibility = Visibility.Collapsed,
