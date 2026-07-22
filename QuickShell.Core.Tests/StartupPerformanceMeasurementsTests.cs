@@ -91,6 +91,31 @@ public sealed class StartupPerformanceMeasurementsTests : IDisposable
         Assert.True(listReloadMs.TotalMilliseconds >= 0);
     }
 
+    [Fact]
+    public void Measure_TerminalCatalog_ColdVsWarm_GetLaunchTargets()
+    {
+        var catalog = _provider.GetRequiredService<ITerminalCatalog>();
+        catalog.InvalidateCache();
+
+        var cold = TimeCold(() => _ = catalog.GetLaunchTargets());
+        var warm = TimeWarm(() => _ = catalog.GetLaunchTargets());
+
+        catalog.InvalidateCache();
+        var coldAfterInvalidate = TimeCold(() => _ = catalog.GetLaunchTargets());
+
+        _output.WriteLine("=== Terminal catalog discovery ===");
+        _output.WriteLine($"GetLaunchTargets cold            : {cold.TotalMilliseconds:0.###} ms");
+        _output.WriteLine($"GetLaunchTargets warm            : {warm.TotalMilliseconds:0.###} ms");
+        _output.WriteLine($"GetLaunchTargets cold (rebuild)  : {coldAfterInvalidate.TotalMilliseconds:0.###} ms");
+
+        Assert.True(cold.TotalMilliseconds >= 0);
+        Assert.True(warm.TotalMilliseconds >= 0);
+        Assert.True(coldAfterInvalidate.TotalMilliseconds >= 0);
+        Assert.True(
+            warm.TotalMilliseconds <= cold.TotalMilliseconds + 50,
+            $"Warm catalog read ({warm.TotalMilliseconds:0.###} ms) should not exceed cold ({cold.TotalMilliseconds:0.###} ms) by much.");
+    }
+
     /// <summary>
     /// Representative numbers for this machine: scans the real user profile / drives for git
     /// repos and loads the actual saved workspaces from a read-only copy of shortcuts.json.

@@ -120,6 +120,55 @@ public sealed class WorkspaceTrustFeaturesDisabledTests
     }
 
     [Fact]
+    public void Repository_load_keeps_coerced_layout_when_trust_persist_fails()
+    {
+        var folder = Path.Join(Path.GetTempPath(), "QuickShellTrustCoerceFail", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string configDirectory;
+            using (WorkspaceTrustFeatures.EnableForTests())
+            using (var seed = new ShortcutRepository(folder))
+            {
+                seed.Upsert(CreateWorkspace(folder));
+                var id = seed.GetByName("DisabledTrust")!.Id;
+                Assert.Equal(TrustTransitionStatus.Revoked, seed.RevokeTrust(id).Status);
+                configDirectory = seed.ConfigDirectory;
+            }
+
+            using (WorkspaceTrustFeatures.DisableForTests())
+            using (var reloaded = new ShortcutRepository(configDirectory, new ThrowingAtomicFileWriter()))
+            {
+                var named = reloaded.GetByName("DisabledTrust");
+                Assert.NotNull(named);
+                var stored = reloaded.GetStoredWorkspace(named.Id);
+                Assert.NotNull(stored);
+                Assert.True(stored.Security.IsTrusted);
+            }
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup.
+            }
+        }
+    }
+
+    private sealed class ThrowingAtomicFileWriter : IAtomicFileWriter
+    {
+        public void WriteAllBytesAtomic(string path, byte[] contents) =>
+            throw new IOException("Simulated trust-coerce persist failure.");
+
+        public void WriteAllTextAtomic(string path, string contents) =>
+            throw new IOException("Simulated trust-coerce persist failure.");
+    }
+
+    [Fact]
     public void Shared_json_default_matches_embedded_default()
     {
         var sharedPath = FindSharedTrustFeaturesPath();

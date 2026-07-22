@@ -87,6 +87,7 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
 
         MeasureRootPalette(report);
         MeasureGitDiscovery(report);
+        MeasureTerminalDiscovery(report);
         MeasureLaunch(report);
 
         DrainAllGitActivity();
@@ -300,6 +301,32 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
             "failed refresh (nonexistent root)",
             category,
             () => _ = GitRepoDiscovery.Discover(projectAnalysis, [failedRoot])));
+    }
+
+    // --- Terminal discovery ------------------------------------------------------------
+
+    private void MeasureTerminalDiscovery(BenchmarkReport report)
+    {
+        const string category = "terminal-discovery";
+        using var services = new ServiceCollection().AddQuickShellCore(Path.Join(_tempRoot, "term-discovery")).BuildServiceProvider();
+        var catalog = services.GetRequiredService<ITerminalCatalog>();
+        catalog.InvalidateCache();
+
+        report.Add(BenchmarkRunner.MeasureOnce(
+            "cold GetLaunchTargets (after InvalidateCache)",
+            category,
+            () => _ = catalog.GetLaunchTargets()));
+
+        report.Add(BenchmarkRunner.Measure(
+            "warm GetLaunchTargets (cached snapshot)",
+            category,
+            () => _ = catalog.GetLaunchTargets()));
+
+        catalog.InvalidateCache();
+        report.Add(BenchmarkRunner.MeasureOnce(
+            "cold GetLaunchTargets rebuild (second InvalidateCache)",
+            category,
+            () => _ = catalog.GetLaunchTargets()));
     }
 
     // --- Launch ------------------------------------------------------------------------

@@ -11,6 +11,7 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+[Collection("ShortcutRepositoryMutex")]
 public sealed class ShortcutListItemsTests
 {
     [Fact]
@@ -64,5 +65,58 @@ public sealed class ShortcutListItemsTests
         {
             Directory.Delete(configDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void CreateOpen_TrustDisabled_SkipsGetStoredWorkspaceAndOmitsUntrustedPrefix()
+    {
+        using var trustScope = WorkspaceTrustFeatures.DisableForTests();
+        var (context, repository, shortcut) = CreateListContextWithUntrustedWorkspace();
+
+        var item = ShortcutListItems.CreateOpen(context, shortcut);
+
+        Assert.Equal(0, repository.GetStoredWorkspaceCallCount);
+        Assert.DoesNotContain("Untrusted · ", item.Subtitle, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CreateOpen_TrustEnabled_Untrusted_PrefixesSubtitleAndLooksUpStoredWorkspace()
+    {
+        using var trustScope = WorkspaceTrustFeatures.EnableForTests();
+        var (context, repository, shortcut) = CreateListContextWithUntrustedWorkspace();
+
+        var item = ShortcutListItems.CreateOpen(context, shortcut);
+
+        Assert.True(repository.GetStoredWorkspaceCallCount >= 1);
+        Assert.StartsWith("Untrusted · ", item.Subtitle, StringComparison.Ordinal);
+    }
+
+    private static (QuickShellPageContext Context, FakeShortcutRepository Repository, TerminalShortcut Shortcut)
+        CreateListContextWithUntrustedWorkspace()
+    {
+        var root = Path.Join(Path.GetTempPath(), "qs-list-trust-" + Guid.NewGuid().ToString("N"));
+        var shortcut = new TerminalShortcut
+        {
+            Id = "ws-untrusted",
+            Name = "Untrusted",
+            Directory = root,
+            Command = "echo hi",
+        };
+        var repository = new FakeShortcutRepository([shortcut], root);
+        repository.SetSecurity(
+            shortcut.Id,
+            new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 });
+
+        var services = TestQuickShellServicesFactory.Create(
+            repository,
+            new ShortcutDraftStore(repository),
+            new QuickShellSettingsManager(),
+            new FakeProjectAnalysisService(),
+            new QuickShellLifetime());
+        var context = new QuickShellPageContext(
+            new QuickShellHostServices(services),
+            new CreateShortcutCommand(() => { }, services),
+            () => { });
+        return (context, repository, shortcut);
     }
 }

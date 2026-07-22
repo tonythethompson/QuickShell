@@ -21,7 +21,7 @@ import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from ".
 import {
   digest,
   coerceTrustedWhileDisabled,
-  isWorkspaceTrustEnabled,
+  createIngressSecurity,
   matchesReviewToken,
   type WorkspaceReviewToken,
 } from "./security";
@@ -156,10 +156,7 @@ export class QuickShellStorage {
       } else if (allowSubmittedSecurity && submitted) {
         normalized.workspaceSecurity![workspace.id] = { ...submitted };
       } else {
-        normalized.workspaceSecurity![workspace.id] = {
-          isTrusted: !isWorkspaceTrustEnabled(),
-          revision: 1,
-        };
+        normalized.workspaceSecurity![workspace.id] = createIngressSecurity();
       }
     }
 
@@ -617,7 +614,7 @@ export class QuickShellStorage {
       next.workspaces.map((workspace) => {
         const security = currentSecurity[workspace.id];
         if (!security) {
-          return [workspace.id, { isTrusted: !isWorkspaceTrustEnabled(), revision: 1 }];
+          return [workspace.id, createIngressSecurity()];
         }
 
         const currentWorkspace = current?.workspaces.find((candidate) => candidate.id === workspace.id);

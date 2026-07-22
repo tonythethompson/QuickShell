@@ -87,5 +87,47 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
         Assert.Contains("removeLaunch", json);
     }
 
+    [Fact]
+    public void BuildDataJson_WithPrecomputedPills_FillsPillCommandsWithoutDirectoryScan()
+    {
+        var pills = new[]
+        {
+            new CommandSuggestionPill(
+                Command: "npm test",
+                TaskType: TaskTypeCatalog.Test,
+                TypeTitle: "Test",
+                DisplayTitle: "npm test",
+                Tooltip: "Test · npm test",
+                Score: 90,
+                Source: "fixture"),
+            new CommandSuggestionPill(
+                Command: "docker compose up",
+                TaskType: TaskTypeCatalog.Services,
+                TypeTitle: "Services",
+                DisplayTitle: "docker compose up",
+                Tooltip: "Services · docker compose up",
+                Score: 80,
+                Source: "fixture"),
+        };
+
+        var json = ShortcutFormTemplateJson.BuildDataJson(
+            new ShortcutFormTemplateJson.DataPayload
+            {
+                Directory = Path.Join(Path.GetTempPath(), "qs-missing-dir-" + Guid.NewGuid().ToString("N")),
+                ExpandSuggestionPills = true,
+                SuggestionPills = pills,
+            },
+            _projectAnalysis,
+            _commandSuggestions);
+
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        Assert.True(root.GetProperty("ShowSuggestionPills").GetBoolean());
+        Assert.Equal("npm test", root.GetProperty("PillCommand_0").GetString());
+        Assert.Equal("docker compose up", root.GetProperty("PillCommand_1").GetString());
+        Assert.True(root.GetProperty("ShowPill_0").GetBoolean());
+        Assert.True(root.GetProperty("ShowPill_1").GetBoolean());
+    }
+
     public void Dispose() => _provider.Dispose();
 }

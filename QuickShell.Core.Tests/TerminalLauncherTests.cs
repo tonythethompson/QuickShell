@@ -102,7 +102,7 @@ public sealed class TerminalLauncherTests
         };
 
         // OpenResolved with a fixed Cmd target: Open(conhost, "cmd") can fall back to wt.exe
-        // when ExecutableAvailability.IsOnPath("cmd.exe") fails under CI load (where.exe timeout).
+        // when ExecutableAvailability misses cmd.exe (incomplete PATH / missing System32 probe).
         var startInfo = CaptureResolved(shortcut, new LaunchTarget
         {
             Id = "cmd",
@@ -127,7 +127,7 @@ public sealed class TerminalLauncherTests
         };
 
         // OpenResolved with a fixed PowerShell target: Open(conhost, "powershell") can fall back
-        // to wt.exe when ExecutableAvailability.IsOnPath("powershell.exe") fails under CI load.
+        // to wt.exe when ExecutableAvailability misses powershell.exe (incomplete PATH / System32).
         var startInfo = CaptureResolved(shortcut, new LaunchTarget
         {
             Id = "powershell",

@@ -2,7 +2,7 @@ import { createStableId } from "./ids";
 import { migrateStoredData } from "./migration";
 import type { LayoutEntry, StoredData, Workspace } from "./schema";
 import { createEmptyStoredData } from "./schema";
-import { isWorkspaceTrustEnabled } from "./security";
+import { createIngressSecurity } from "./security";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -161,7 +161,7 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
             workspace.id,
             existingSecurity && base.workspaces.some((candidate) => candidate.id === workspace.id)
               ? { ...existingSecurity }
-              : { isTrusted: !isWorkspaceTrustEnabled(), revision: 1 },
+              : createIngressSecurity(),
           ];
         }),
       ),
