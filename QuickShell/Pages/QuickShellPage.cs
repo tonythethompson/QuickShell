@@ -386,7 +386,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
                 // Cross-thread: wait so first paint cannot return the opening "Loading
                 // workspaces" placeholder while another builder is still running.
-                while (_refreshInProgress && !_disposed)
+                while (!_disposed)
                 {
                     Monitor.Wait(_refreshSync, 100);
                 }
