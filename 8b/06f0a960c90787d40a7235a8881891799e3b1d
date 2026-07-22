@@ -1,0 +1,26 @@
+QuickShell.Raycast/src/lib/security.ts
+  s_605af5d56ff20c::t_97dd00178a6b70 3
+  s_605af5d56ff20c::t_37033e99195912 26-34
+QuickShell.Core/Services/PathExecutableLookup.cs
+  s_605af5d56ff20c::t_413856af8cca1d 79-80,131
+QuickShell.Raycast/src/lib/import-export.ts
+  s_605af5d56ff20c::t_1ab6d9e93779f6 5,164
+QuickShell.Raycast/src/lib/storage.ts
+  s_605af5d56ff20c::t_30a7d3aae396af 24,159,617
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8b06f0a960c90787d40a7235a8881891799e3b1d",
+  "prompts": {},
+  "sessions": {
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
