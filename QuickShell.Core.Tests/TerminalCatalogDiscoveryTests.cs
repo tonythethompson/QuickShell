@@ -27,7 +27,11 @@ public sealed class TerminalCatalogDiscoveryTests : IDisposable
                 Directory.Delete(_tempRoot, recursive: true);
             }
         }
-        catch
+        catch (IOException)
+        {
+            // Best effort.
+        }
+        catch (UnauthorizedAccessException)
         {
             // Best effort.
         }
