@@ -176,7 +176,7 @@ public sealed class CriticalPathContractTests : IDisposable
         _ = workspaceRow.MoreCommands;
 
         Assert.True(workspaceRow.HasBuiltMoreCommands);
-        Assert.True(ShortcutContextCommands.BuildInvocationCount > 0);
+        Assert.Equal(1, ShortcutContextCommands.BuildInvocationCount);
     }
 
     // --- Root palette ---------------------------------------------------------------------

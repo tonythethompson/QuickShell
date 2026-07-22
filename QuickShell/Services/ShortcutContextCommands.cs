@@ -215,11 +215,11 @@ internal static class ShortcutContextCommands
         TerminalShortcut shortcut,
         Action onChanged)
     {
-        NoteBuildInvocation();
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(shortcut);
         ArgumentNullException.ThrowIfNull(onChanged);
 
+        NoteBuildInvocation();
         var items = new List<CommandContextItem>();
 
         AddStatusCommand(context, items, shortcut, onChanged);
