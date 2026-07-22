@@ -1,0 +1,186 @@
+QuickShell.Raycast/raycast-env.d.ts
+  s_911d943b6fabb8::t_a7951a62dd5675 18-20
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_911d943b6fabb8::t_260f6f82cdf6ed 12-19,22-25
+  s_911d943b6fabb8::t_72b10dc5fb11dd 27-32
+  s_911d943b6fabb8::t_586f65fee5cdc0 26
+  s_911d943b6fabb8::t_c3bfb5a33df54c 8-11
+  s_ce658b422942f2::t_e021bd69e4a682 33-35,114,117-121
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_9ec1680b094402::t_70cabca1c75c97 9
+  s_9ec1680b094402::t_32a247a66f7676 1,6-8,10,14
+  s_80b8b6ade46019::t_93d51e8cf08c37 11-13
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_911d943b6fabb8::t_0d099455390013 15,17,21,24-26,28-37,48,129
+  s_605af5d56ff20c::t_98febfbb426ee3 55-65,134
+  s_911d943b6fabb8::t_06be796b4d82f4 5-10,12-13,18-19,119,122
+  s_911d943b6fabb8::t_843af956ebb428 38-47
+  s_ce658b422942f2::t_7922fcb8e5db0a 120-121,123-128,130-133,135-137
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_9ec1680b094402::t_40bebe1fff6a28 18-21,23,351
+  s_9ec1680b094402::t_c1209c33a5a3fa 1
+  s_9ec1680b094402::t_e22ca08d0df02b 3-6,8-10,12-13
+  s_9ec1680b094402::t_82d02fec733e91 7,11
+  s_9ec1680b094402::t_95f945e213f55b 312-350
+QuickShell.Raycast/src/lib/security.ts
+  s_9ec1680b094402::t_bf3e1db73088a9 6,9,11-12,19,43,45
+  s_9ec1680b094402::t_23867954ed2a62 46-47
+  s_9ec1680b094402::t_01fdeb49b76a8c 7-8,10,13-18,20-42,44,50
+  s_9ec1680b094402::t_caa87b9edb7e32 48-49
+  s_9ec1680b094402::t_d562694681b1db 267,283
+QuickShell.Raycast/src/lib/workspace-trust-features.json
+  s_9ec1680b094402::t_ca28c64fa566f9 1-3
+QuickShell.Raycast/src/__tests__/trust-import-flow.test.ts
+  s_9ec1680b094402::t_d47123ed430fd4 4
+  s_80b8b6ade46019::t_51e6f670d3157b 12,16-19,21
+QuickShell.Raycast/scripts/sync-workspace-trust-features.js
+  s_9ec1680b094402::t_5a4ee014de0a49 1-25
+QuickShell.Core/Services/WorkspaceTrustFeatures.cs
+  s_9ec1680b094402::t_0d5e1bb647293a 1,8-9,13-15,18-23,25,29-35,49-86,89,91-107,111,113,115-128,130-136,138-146
+  s_9ec1680b094402::t_de3f9602d5ebb3 4-7,10-12,16-17,24,26-28,36-48,87-88,90,108-110,112,114,129,137,147-148
+  s_9ec1680b094402::t_eb607710b645c5 2-3
+QuickShell/Pages/QuickShellPage.cs
+  s_605af5d56ff20c::t_29a1bce643709a 41
+  s_fe880b37c24fa8::t_338e06dad89a81 374,376-392,410,426,509-523,562-575,592,594-600,602-603
+QuickShell.Core.Tests/WorkspaceTrustFeaturesDisabledTests.cs
+  s_9ec1680b094402::t_69b41f396412f7 8,14,16-27,29-31,33,36,38-44,48,50,52,54-55,61,63-83,123-128,131-147
+  s_9ec1680b094402::t_c215f3eceb5603 104-105
+  s_9ec1680b094402::t_73dc97c1b985e0 1-7,9-13,15,32,34-35,37,46,56-60,62,129-130,150-166
+  s_9ec1680b094402::t_ec5406ccf63f85 45,47,49,51,53,84-103,106-122
+  s_9ec1680b094402::t_65ddd8cfab98aa 28
+  s_9ec1680b094402::t_780df5448dcbfc 148-149
+shared/workspace-trust-features.json
+  s_9ec1680b094402::t_8848ac13d3cc51 1-3
+QuickShell.Core.Tests/Flows/FormTrustImportFlowTests.cs
+  s_b210e48caa21a0::t_9a990673e34a43 125,127-130
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_605af5d56ff20c::t_09aeb5f61b1035 170-201
+QuickShell.Core.Tests/ShortcutContextCommandsPreservationTests.cs
+  s_605af5d56ff20c::t_153393b7297884 110,114-116,118-119,121-155,162-167,416
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_605af5d56ff20c::t_7dcbb557afb8ad 46-47,70,78-79,84,97-114
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_ce658b422942f2::t_9896ce9ccdab3a 90,92-93,95-98,100-133
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_ce658b422942f2::t_5c56482430c8d8 316-361
+QuickShell.Core.Tests/WorkspaceSecurityPolicyTests.cs
+  s_9ec1680b094402::t_f1616b16fd3e62 7-8,10-13
+QuickShell.Core.Tests/WorkspaceTrustCommandTests.cs
+  s_b210e48caa21a0::t_1607d20f384c93 10,12-15
+QuickShell.Core/QuickShell.Core.csproj
+  s_b210e48caa21a0::t_3a006a5009a416 17-23
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_ce658b422942f2::t_18b2f358089c0e 56-57,67,101
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_ce658b422942f2::t_e2ecbabd34c245 59,121-122,149-154
+QuickShell.Core/Services/ShortcutRepository.cs
+  s_b210e48caa21a0::t_57981ee6a22b6a 668,739,1247,1250-1258,1361,1557,1899-1901
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_ce658b422942f2::t_f88d83d84e52be 1262-1276,1279
+QuickShell.Raycast/package.json
+  s_80b8b6ade46019::t_96d3835cc6522a 202-205
+QuickShell.Raycast/src/lib/import-export.ts
+  s_2b89eaf48e0bf9::t_16e91ac36ef325 5,164
+QuickShell.Run/Main.cs
+  s_ce658b422942f2::t_fcf3828fa82947 292,294-295,297,299-310,505-508
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_911d943b6fabb8::t_176f52ae42ff29 53-54
+QuickShell/Pages/ShortcutForm.cs
+  s_ce658b422942f2::t_e5fed94626b620 66-73,90-98,102-103,214-218,248-251,253,266-267
+QuickShell/Services/ShortcutContextCommands.cs
+  s_b210e48caa21a0::t_0fa22e34397f3e 173-174,181-182,191,193,445-449
+QuickShell/Services/ShortcutFormViewBuilder.cs
+  s_ce658b422942f2::t_4eb324b7235e38 49-60,62-63,86-87
+QuickShell/Services/ShortcutListItems.cs
+  s_b210e48caa21a0::t_c4496192db239d 60-64,93-94
+QuickShell.Raycast/src/lib/storage.ts
+  s_fe880b37c24fa8::t_0df243febcf52e 21,153-156,543-551,614
+QuickShell.Core.Tests/CompanionAppFormJsonTests.cs
+  s_9ec1680b094402::t_1577fbc37333a7 55-56,61
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_9ec1680b094402::t_5f7e381994bed0 103,105-112,115,117-118,121-123,131-132
+QuickShell.Core/Services/AdaptiveCardFormJson.cs
+  s_9ec1680b094402::t_34c8f7d70a9a88 377,388-389
+QuickShell.Core/Services/CompanionAppFormJson.cs
+  s_9ec1680b094402::t_9542910dc604e8 126-127,129,134,144-145,147-148,154,158
+QuickShell.Core/Services/WorkspaceSecurityPolicy.cs
+  s_9ec1680b094402::t_f473ad74f6d2e5 188,195
+QuickShell.Raycast/src/open-workspace.tsx
+  s_9ec1680b094402::t_f47521e30f272f 48,504-506,629,675,756-757,761-762
+QuickShell/Commands/MoveFavoriteShortcutCommand.cs
+  s_9ec1680b094402::t_3b27f8235c5b6b 38-41
+docs/performance-audit-2026-07-22.md
+  s_9ec1680b094402::t_c333230dff214b 1-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f4773b978a29cd85e517816f05035cd63ee19a89",
+  "prompts": {},
+  "sessions": {
+    "s_2b89eaf48e0bf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c938dcd-4797-4f21-84dc-089f6a387dca",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_80b8b6ade46019": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "47cfa36d-fc98-4355-b43f-2e91d13c1da1",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_911d943b6fabb8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0436738e-feec-4fcf-accd-54fe4a411a60",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_9ec1680b094402": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69b9ab76-4738-48ee-82f1-4b78b923820e",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_b210e48caa21a0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4f2dfd76-512d-42b4-84e4-07fe989c1736",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_fe880b37c24fa8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "019f897e-2ed0-7fd3-8a12-f481649d77e0",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
