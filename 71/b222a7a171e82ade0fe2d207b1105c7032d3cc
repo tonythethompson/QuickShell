@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/SearchDebouncerTests.cs
+  s_fc6a2712e00e7c::t_0a319e373ddbcb 23-32,37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "71b222a7a171e82ade0fe2d207b1105c7032d3cc",
+  "prompts": {},
+  "sessions": {
+    "s_fc6a2712e00e7c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "93224510-e007-4ccc-a366-b4c288b85b1d",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
