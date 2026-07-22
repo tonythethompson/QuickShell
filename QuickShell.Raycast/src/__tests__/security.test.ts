@@ -342,9 +342,9 @@ describe("workspace trust kill switch (disabled)", () => {
     const shared = JSON.parse(
       readFileSync(resolve(__dirname, "../../../shared/workspace-trust-features.json"), "utf8"),
     ) as { enabled: boolean };
-    const local = JSON.parse(
-      readFileSync(resolve(__dirname, "../lib/workspace-trust-features.json"), "utf8"),
-    ) as { enabled: boolean };
+    const local = JSON.parse(readFileSync(resolve(__dirname, "../lib/workspace-trust-features.json"), "utf8")) as {
+      enabled: boolean;
+    };
     expect(local.enabled).toBe(shared.enabled);
     expect(WORKSPACE_TRUST_DEFAULT_ENABLED).toBe(shared.enabled);
   });

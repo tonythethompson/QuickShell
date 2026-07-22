@@ -18,7 +18,13 @@ import {
 import { migrateStoredData, synthesizeLayoutEntries } from "./migration";
 import { getFavoriteWorkspaces } from "./ranking";
 import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
-import { digest, coerceTrustedWhileDisabled, isWorkspaceTrustEnabled, matchesReviewToken, type WorkspaceReviewToken } from "./security";
+import {
+  digest,
+  coerceTrustedWhileDisabled,
+  isWorkspaceTrustEnabled,
+  matchesReviewToken,
+  type WorkspaceReviewToken,
+} from "./security";
 import { isSafeGitBranchName } from "./git-launch-gate";
 
 export type StorageAdapter = {

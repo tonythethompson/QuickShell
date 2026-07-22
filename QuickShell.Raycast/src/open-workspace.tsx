@@ -45,7 +45,13 @@ import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from 
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildSelectedLaunchWorkspace, buildWorkspaceLaunchPlan } from "./lib/windows-launch";
-import { authorize, authorizePostLaunchEffects, createReviewToken, isWorkspaceTrustEnabled, matchesReviewToken } from "./lib/security";
+import {
+  authorize,
+  authorizePostLaunchEffects,
+  createReviewToken,
+  isWorkspaceTrustEnabled,
+  matchesReviewToken,
+} from "./lib/security";
 import { evaluateGitLaunchGate, resolveWorktreeKey } from "./lib/git-launch-gate";
 
 type LoadedData = {
@@ -753,13 +759,13 @@ export default function OpenWorkspaceCommand({
                   />
                 </>
               ) : null}
-            {isWorkspaceTrustEnabled() ? (
-              security.isTrusted ? (
-                <Action title="Revoke Workspace Trust" icon={Icon.Lock} onAction={() => handleRevoke(workspace)} />
-              ) : (
-                <Action title="Trust Workspace…" icon={Icon.Shield} onAction={() => handleTrust(workspace)} />
-              )
-            ) : null}
+              {isWorkspaceTrustEnabled() ? (
+                security.isTrusted ? (
+                  <Action title="Revoke Workspace Trust" icon={Icon.Lock} onAction={() => handleRevoke(workspace)} />
+                ) : (
+                  <Action title="Trust Workspace…" icon={Icon.Shield} onAction={() => handleTrust(workspace)} />
+                )
+              ) : null}
               <Action
                 title="Duplicate"
                 icon={Icon.Duplicate}
