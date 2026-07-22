@@ -1,4 +1,11 @@
 {
   "version": 1,
-  "hooks": {}
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/inject-pr-review-policy.py",
+        "timeout": 20
+      }
+    ]
+  }
 }
