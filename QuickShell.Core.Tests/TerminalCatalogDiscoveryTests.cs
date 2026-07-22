@@ -42,7 +42,7 @@ public sealed class TerminalCatalogDiscoveryTests : IDisposable
     {
         PathExecutableLookup.TryResolveOverride = name =>
             name.Equals("pwsh.exe", StringComparison.OrdinalIgnoreCase)
-                ? Path.Combine(_tempRoot, "pwsh.exe")
+                ? Path.Join(_tempRoot, "pwsh.exe")
                 : null;
 
         var catalog = new TerminalCatalog(new WtProfilesService(locations: []));
