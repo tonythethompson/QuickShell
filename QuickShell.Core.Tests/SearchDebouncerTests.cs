@@ -18,24 +18,19 @@ public sealed class SearchDebouncerTests
     }
 
     [Fact]
-    public void Schedule_AfterDebounce_InvokesLatestQuery()
+    public async Task Schedule_AfterDebounce_InvokesLatestQuery()
     {
         // Timer callbacks use the thread pool; CI load can delay them well past the debounce window.
-        using var applied = new ManualResetEventSlim(false);
-        string? value = null;
+        var tcs = new TaskCompletionSource<string>();
         using var debouncer = new SearchDebouncer(
-            query =>
-            {
-                value = query;
-                applied.Set();
-            },
+            query => tcs.SetResult(query),
             delayMilliseconds: 30);
 
         debouncer.Schedule("first");
-        debouncer.Schedule("second");
 
-        Assert.True(applied.Wait(TimeSpan.FromSeconds(10)), "Debounced callback did not run within 10s.");
-        Assert.Equal("second", value);
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.True(completed == tcs.Task, "Debounced callback did not run within 10s.");
+        Assert.Equal("first", await tcs.Task);
     }
 
     [Fact]
