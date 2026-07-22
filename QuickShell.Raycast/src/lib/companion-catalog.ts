@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { homedir } from "node:os";
 
 export type CompanionPreset = {
@@ -208,10 +208,10 @@ export function inferCompanionPresetFromPath(executablePath: string | null | und
     }
   }
 
-  const fileName = basename(trimmed).toLowerCase();
+  const fileName = windowsBasename(trimmed).toLowerCase();
   for (const preset of COMPANION_PRESETS) {
     for (const candidate of preset.candidatePaths) {
-      if (basename(candidate).toLowerCase() === fileName) {
+      if (windowsBasename(candidate).toLowerCase() === fileName) {
         // Explorer basename alone is too ambiguous off Windows\explorer.exe.
         if (preset.id === "explorer" && !normalized.includes("\\windows\\explorer.exe")) {
           continue;
@@ -222,6 +222,13 @@ export function inferCompanionPresetFromPath(executablePath: string | null | und
   }
 
   return COMPANION_PRESET_CUSTOM;
+}
+
+/** Basename that works for Windows paths even when tests run on Linux CI. */
+function windowsBasename(filePath: string): string {
+  const normalized = filePath.replace(/\//g, "\\");
+  const parts = normalized.split("\\").filter(Boolean);
+  return parts[parts.length - 1] ?? normalized;
 }
 
 /** After FilePicker browse: catalog preset if recognized, otherwise Custom. */

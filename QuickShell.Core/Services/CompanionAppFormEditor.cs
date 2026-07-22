@@ -99,8 +99,7 @@ internal static class CompanionAppFormEditor
                 row.Preset,
                 row.Path,
                 row.Arguments,
-                // A configured companion always opens with the workspace; forms no longer expose a toggle.
-                openOnLaunch: true);
+                openOnLaunch: row.OpenOnLaunch);
             if (string.IsNullOrWhiteSpace(state.Path))
             {
                 continue;

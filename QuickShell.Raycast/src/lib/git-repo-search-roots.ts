@@ -2,6 +2,9 @@ import path from "node:path";
 import os from "node:os";
 import { existsSync } from "node:fs";
 
+/** Always use win32 separators: discovery targets Windows paths even when tests run on Linux CI. */
+const win32 = path.win32;
+
 /** Folder names searched under the user profile and each drive root (parity with Core). */
 export const COMMON_ROOT_FOLDER_NAMES = [
   "Projects",
@@ -66,24 +69,22 @@ export function searchRootsFromWorkspaces(directories: string[]): string[] {
  */
 export function listDefaultRootCandidates(options: BuildSearchRootsOptions = {}): string[] {
   const home = options.home ?? os.homedir();
-  const systemRoot = normalizeDriveRoot(
-    options.systemRoot ?? path.parse(process.env.SystemRoot || process.env.windir || "C:\\Windows").root,
-  );
+  const systemRoot = normalizeDriveRoot(options.systemRoot ?? "C:\\");
   const drives = options.drives ?? listWindowsDriveRoots();
   const candidates: string[] = [];
 
   for (const name of COMMON_ROOT_FOLDER_NAMES) {
-    candidates.push(path.join(home, name));
+    candidates.push(win32.join(home, name));
   }
 
   for (const segments of COMMON_PROFILE_RELATIVE_NESTED_ROOTS) {
-    candidates.push(path.join(home, ...segments));
+    candidates.push(win32.join(home, ...segments));
   }
 
   for (const drive of drives) {
     const root = normalizeDriveRoot(drive);
     for (const name of COMMON_ROOT_FOLDER_NAMES) {
-      candidates.push(path.join(root, name));
+      candidates.push(win32.join(root, name));
     }
     if (root.toLowerCase() !== systemRoot.toLowerCase()) {
       candidates.push(root);
@@ -108,7 +109,10 @@ export function buildSearchRoots(extraRoots: string[] = [], options: BuildSearch
     if (!trimmed) {
       return;
     }
-    const normalized = path.normalize(trimmed);
+    const normalized = tryNormalizeDirectory(trimmed);
+    if (!normalized) {
+      return;
+    }
     const key = normalized.toLowerCase();
     if (seen.has(key)) {
       return;
@@ -136,7 +140,7 @@ export function buildSearchRoots(extraRoots: string[] = [], options: BuildSearch
 
 function tryNormalizeDirectory(directory: string): string | null {
   try {
-    return path.normalize(directory);
+    return win32.normalize(directory.replace(/\//g, "\\"));
   } catch {
     return null;
   }
@@ -145,28 +149,29 @@ function tryNormalizeDirectory(directory: string): string | null {
 function tryGetParentDirectory(directory: string): string | null {
   try {
     const trimmed = directory.trim().replace(/[\\/]+$/, "");
-    const parent = path.dirname(trimmed);
-    if (!parent || parent === trimmed) {
+    const normalized = win32.normalize(trimmed.replace(/\//g, "\\"));
+    const parent = win32.dirname(normalized);
+    if (!parent || parent === normalized) {
       return null;
     }
 
-    const driveRoot = path.parse(parent).root;
+    const driveRoot = win32.parse(parent).root;
     if (driveRoot && parent.toLowerCase() === driveRoot.toLowerCase()) {
       return null;
     }
 
-    return path.normalize(parent);
+    return parent;
   } catch {
     return null;
   }
 }
 
 function normalizeDriveRoot(drive: string): string {
-  const normalized = path.normalize(drive.trim());
+  const normalized = win32.normalize(drive.trim().replace(/\//g, "\\"));
   if (/^[a-zA-Z]:\\?$/.test(normalized)) {
     return `${normalized.replace(/\\$/, "")}\\`;
   }
-  return normalized.endsWith(path.sep) ? normalized : `${normalized}${path.sep}`;
+  return normalized.endsWith("\\") ? normalized : `${normalized}\\`;
 }
 
 function listWindowsDriveRoots(): string[] {
