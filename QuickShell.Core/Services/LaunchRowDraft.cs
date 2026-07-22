@@ -1,7 +1,11 @@
+using QuickShell.Core.Services;
+
 namespace QuickShell.Services;
 
 internal sealed class LaunchRowDraft
 {
+    public LaunchRowKind Kind { get; set; } = LaunchRowKind.Command;
+
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
     public string Label { get; set; } = string.Empty;
@@ -21,6 +25,7 @@ internal sealed class LaunchRowDraft
     public LaunchRowDraft Clone() =>
         new()
         {
+            Kind = Kind,
             Id = Id,
             Label = Label,
             Command = Command,

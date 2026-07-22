@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using QuickShell.Services;
 using QuickShell.Services.WorkspaceEditor;
@@ -273,6 +274,162 @@ public sealed class WorkspaceEditorTests : IDisposable
         Assert.True(editor.HasUnsavedChanges);
     }
 
+    [Fact]
+    public void LaunchRowOperations_ParticipateInUndoAndPreventDuplicateTerminalOnly()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+
+        editor.AddOpenInTerminalRow();
+        editor.AddOpenInTerminalRow();
+        Assert.Equal(LaunchRowKind.OpenInTerminal, Assert.Single(editor.GetState().Commands).Kind);
+        Assert.True(editor.TryApplyInputs("""{"LaunchKind_0":"OpenInTerminal","LaunchLabel_0":"Terminal","LaunchIsEnabled_0":"false","LaunchTarget_0":"wt:pwsh","LaunchRunAsAdmin_0":"true"}"""));
+
+        editor.RemoveLaunchRow(0);
+        Assert.Empty(editor.GetState().Commands);
+        Assert.True(editor.TryUndo());
+        var restored = Assert.Single(editor.GetState().Commands);
+        Assert.Equal(LaunchRowKind.OpenInTerminal, restored.Kind);
+        Assert.Equal("Terminal", restored.Label);
+        Assert.False(restored.IsEnabled);
+        Assert.Equal("wt:pwsh", restored.LaunchTarget);
+        Assert.True(restored.RunAsAdmin);
+    }
+
+    [Fact]
+    public void Save_WithoutRealLaunchesFailsWithActionableMessage()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+
+        var result = editor.Save();
+
+        Assert.Equal(WorkspaceEditResultKind.StayOpen, result.Kind);
+        Assert.Equal("Add at least one launch.", result.Message);
+    }
+
+    [Fact]
+    public void TryApplyInputs_PreservesKindLabelEnabledAndExpandSuggestionPills()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+        editor.AddOpenInTerminalRow();
+        editor.SetExpandSuggestionPills(true);
+
+        Assert.True(editor.TryApplyInputs("""{"LaunchCommand_0":"","LaunchKind_0":"OpenInTerminal","LaunchLabel_0":"Terminal","LaunchIsEnabled_0":"false"}"""));
+
+        var state = editor.GetState();
+        var row = Assert.Single(state.Commands);
+        Assert.Equal(LaunchRowKind.OpenInTerminal, row.Kind);
+        Assert.Equal("Terminal", row.Label);
+        Assert.False(row.IsEnabled);
+        Assert.True(state.ExpandSuggestionPills);
+    }
+
+    [Fact]
+    public void TryApplyHostFields_PreservesKindsAndDropsOnlyPlaceholderOnSave()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "RunProject" });
+
+        Assert.True(editor.TryApplyHostFields(new WorkspaceHostFieldUpdate
+        {
+            Name = "RunProject",
+            Directory = _temp.Path,
+            Commands =
+            [
+                new() { Id = "command", Kind = LaunchRowKind.Command, Label = "Dev", Command = "npm start", LaunchTarget = "wt:pwsh", IsEnabled = true },
+                new() { Id = "terminal", Kind = LaunchRowKind.OpenInTerminal, Label = "Shell", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, RunAsAdmin = true, IsEnabled = false },
+                new() { Id = "placeholder", Kind = LaunchRowKind.Command, Label = "Launch 3", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
+            ],
+            Companions = editor.GetState().Companions,
+        }));
+
+        var state = editor.GetState();
+        Assert.Equal([LaunchRowKind.Command, LaunchRowKind.OpenInTerminal, LaunchRowKind.Command], state.Commands.Select(row => row.Kind));
+        Assert.Equal("Shell", state.Commands[1].Label);
+        Assert.False(state.Commands[1].IsEnabled);
+
+        var result = editor.Save();
+
+        Assert.Equal(WorkspaceEditResultKind.Saved, result.Kind);
+        var saved = Assert.IsType<TerminalShortcut>(_repository.GetByName("RunProject"));
+        Assert.Equal(2, saved.Launches.Count);
+        Assert.Equal("npm start", saved.Launches[0].Command);
+        Assert.Null(saved.Launches[1].Command);
+        Assert.Equal("Shell", saved.Launches[1].Label);
+        Assert.False(saved.Launches[1].IsEnabled);
+    }
+
+    [Fact]
+    public void RestoreLegacyDraft_InfersOnlySavedBlankLaunchAsOpenInTerminal()
+    {
+        var existing = new TerminalShortcut
+        {
+            Id = "legacy-kind",
+            Name = "Legacy",
+            Directory = _temp.Path,
+            Launches =
+            [
+                new WorkspaceEntry { Id = "saved-terminal", Label = "Shell", Command = null, Order = 0 },
+            ],
+        };
+        _repository.Upsert(existing);
+        var baseline = new ShortcutFormDraftData
+        {
+            OriginalName = existing.Name,
+            Name = existing.Name,
+            Directory = existing.Directory,
+            Launches = [new() { Id = "saved-terminal", Label = "Shell", Command = string.Empty }],
+        };
+        var dirty = new ShortcutFormDraftData
+        {
+            OriginalName = existing.Name,
+            Name = "Legacy restored",
+            Directory = existing.Directory,
+            Launches =
+            [
+                new() { Id = "saved-terminal", Label = "Shell", Command = string.Empty },
+                new() { Id = "abandoned", Label = "Command 2", Command = string.Empty },
+            ],
+        };
+        _drafts.SaveIfDirty(existing.Name, dirty, baseline, nameCustomized: true, autoFilledName: null);
+
+        using var editor = CreateEditor();
+        editor.ResetForOpen(existing, null);
+
+        Assert.Equal(LaunchRowKind.OpenInTerminal, editor.GetState().Commands[0].Kind);
+        Assert.Equal(LaunchRowKind.Command, editor.GetState().Commands[1].Kind);
+    }
+
+    [Fact]
+    public void RestoreLegacyScalarCommand_CreatesCommandRowInZeroRowEditor()
+    {
+        var existing = new TerminalShortcut { Name = "Scalar", Directory = _temp.Path };
+        _repository.Upsert(existing);
+        var baseline = new ShortcutFormDraftData
+        {
+            OriginalName = existing.Name,
+            Name = existing.Name,
+            Directory = existing.Directory,
+        };
+        var dirty = new ShortcutFormDraftData
+        {
+            OriginalName = existing.Name,
+            Name = existing.Name,
+            Directory = existing.Directory,
+            Command = "npm start",
+        };
+        _drafts.SaveIfDirty(existing.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        using var editor = CreateEditor();
+        editor.ResetForOpen(existing, null);
+
+        var row = Assert.Single(editor.GetState().Commands);
+        Assert.Equal(LaunchRowKind.Command, row.Kind);
+        Assert.Equal("npm start", row.Command);
+    }
+
     private WorkspaceEditor CreateEditor(Action? onSaved = null) =>
         new WorkspaceEditor(
             _repository,
@@ -280,6 +437,8 @@ public sealed class WorkspaceEditorTests : IDisposable
             _analysis,
             _commandSuggestions,
             _lifetime,
+            "Add at least one launch.",
+            "Open in terminal",
             onSaved);
 
     private static string JsonEscaped(string value) =>

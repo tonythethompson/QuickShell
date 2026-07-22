@@ -46,7 +46,7 @@ internal static class TestQuickShellServicesFactory
         var gitRepos = new GitRepoIndex(analysis, lifetime, new SyncExtensionThreadScheduler());
         var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        var editorFactory = new WorkspaceEditorFactory(repository, drafts, analysis, commandSuggestions, lifetime);
+        var editorFactory = new WorkspaceEditorFactory(repository, drafts, analysis, commandSuggestions, lifetime, "Add at least one launch.", "Open in terminal");
         var services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),
@@ -94,7 +94,7 @@ internal static class TestQuickShellServicesFactory
         var commandSuggestions = new CommandSuggestionService(new ITaskSuggestionProvider[] { new WorkspaceSetupTaskSuggestionProvider(), new DockerComposeTaskSuggestionProvider(), new AgentCliSuggestionProvider() });
         var (_, glyphs, listIcons, prewarm) = BuildTerminalWiring(bundle);
         var formViewBuilder = new ShortcutFormViewBuilder(bundle.Catalog, analysis, commandSuggestions);
-        var editorFactory = new WorkspaceEditorFactory(repository, drafts, analysis, commandSuggestions, lifetime);
+        var editorFactory = new WorkspaceEditorFactory(repository, drafts, analysis, commandSuggestions, lifetime, "Add at least one launch.", "Open in terminal");
         var services = new QuickShellServices(
             repository,
             new WorkspaceLaunchService(repository, bundle.Executor, bundle.Companion),

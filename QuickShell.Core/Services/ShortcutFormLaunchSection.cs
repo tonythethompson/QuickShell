@@ -1,4 +1,5 @@
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -10,7 +11,7 @@ internal static class ShortcutFormLaunchSection
         List<LaunchRowDraft> commands;
         if (shortcut is null)
         {
-            commands = [new LaunchRowDraft { LaunchTarget = fallbackLaunchTarget, IsEditorPlaceholder = true }];
+            commands = [];
         }
         else
         {
@@ -22,6 +23,9 @@ internal static class ShortcutFormLaunchSection
                 [
                     new LaunchRowDraft
                     {
+                        Kind = string.IsNullOrWhiteSpace(shortcut.Command)
+                            ? LaunchRowKind.OpenInTerminal
+                            : LaunchRowKind.Command,
                         Label = shortcut.Name,
                         Command = shortcut.Command ?? string.Empty,
                         LaunchTarget = TerminalCatalog.EncodeLaunchTargetId(shortcut),
@@ -36,14 +40,14 @@ internal static class ShortcutFormLaunchSection
             }
         }
 
-        LaunchRowListEditor.EnsureMinimumRowsForEditor(commands, fallbackLaunchTarget);
         return commands;
     }
 
     public static List<ShortcutFormLaunchInput> ToLaunchInputs(
         IReadOnlyList<LaunchRowDraft> commands,
         string workspaceName,
-        string fallbackLaunchTarget)
+        string fallbackLaunchTarget,
+        string openInTerminalLabel)
     {
         var rows = LaunchRowListEditor.TrimForSave(commands);
 
@@ -52,9 +56,11 @@ internal static class ShortcutFormLaunchSection
         {
             Id = row.Id,
             Label = string.IsNullOrWhiteSpace(row.Label)
-                ? index == 0 ? labelBase : $"Command {index + 1}"
+                ? row.Kind == LaunchRowKind.OpenInTerminal
+                    ? openInTerminalLabel
+                    : index == 0 ? labelBase : $"Command {index + 1}"
                 : row.Label.Trim(),
-            Command = row.Command,
+            Command = row.Kind == LaunchRowKind.OpenInTerminal ? null : row.Command,
             LaunchTarget = string.IsNullOrWhiteSpace(row.LaunchTarget)
                 ? index == 0
                     ? fallbackLaunchTarget
@@ -68,10 +74,9 @@ internal static class ShortcutFormLaunchSection
 
     public static string BuildCommandRowsJson(
         IReadOnlyList<LaunchRowDraft> commands,
-        string terminalChoices) =>
-        ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => (command.Label, command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin, command.IsEnabled)).ToList(),
-            terminalChoices);
+        string terminalChoices,
+        LaunchEditorText text) =>
+        ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices, text);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(
         IProjectAnalysisService projectAnalysis,

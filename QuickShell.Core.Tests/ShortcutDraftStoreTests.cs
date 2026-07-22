@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -171,11 +172,67 @@ public sealed class ShortcutDraftStoreTests : IDisposable
 
         store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
 
-        var result = store.TryCommitPending(onSaved: null);
+        var result = store.TryCommitPending(onSaved: null, "Add at least one launch.", "Open in terminal");
         Assert.True(result.Success, result.Message);
         var saved = Assert.IsType<TerminalShortcut>(repository.GetByName(shortcut.Name));
         Assert.Equal(2, saved.CompanionApps.Count);
         Assert.False(saved.CompanionApps[1].OpenOnLaunch);
+    }
+
+    [Fact]
+    public void TryCommitPending_DropsEmptyCommandDraftAndRetainsExplicitTerminalOnly()
+    {
+        var shortcut = CreateSavedShortcut();
+        shortcut.Directory = _configDirectory;
+        var repository = new FakeShortcutRepository([shortcut], _configDirectory);
+        using var store = new ShortcutDraftStore(repository);
+        var baseline = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        var dirty = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        dirty.Launches =
+        [
+            new() { Id = "terminal", Kind = LaunchRowKind.OpenInTerminal, Label = "Shell", Command = string.Empty },
+            new() { Id = "abandoned", Kind = LaunchRowKind.Command, Label = "Command 2", Command = string.Empty },
+        ];
+
+        store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        var result = store.TryCommitPending(onSaved: null, "Add at least one launch.", "Open in terminal");
+
+        Assert.True(result.Success, result.Message);
+        var saved = Assert.IsType<TerminalShortcut>(repository.GetByName(shortcut.Name));
+        var launch = Assert.Single(saved.Launches);
+        Assert.Null(launch.Command);
+        Assert.Equal("Shell", launch.Label);
+    }
+
+    [Fact]
+    public void TryCommitPending_WithTwoOpenInTerminalRows_RetainsOnlyFirstTerminalRow()
+    {
+        var shortcut = CreateSavedShortcut();
+        shortcut.Directory = _configDirectory;
+        var repository = new FakeShortcutRepository([shortcut], _configDirectory);
+        using var store = new ShortcutDraftStore(repository);
+        var baseline = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        var dirty = CreateLaunchBaseline(shortcut, TaskTypeCatalog.None);
+        dirty.Launches =
+        [
+            new() { Id = "terminal1", Kind = LaunchRowKind.OpenInTerminal, Label = "First Terminal", Command = string.Empty },
+            new() { Id = "command", Kind = LaunchRowKind.Command, Label = "Build", Command = "npm run build" },
+            new() { Id = "terminal2", Kind = LaunchRowKind.OpenInTerminal, Label = "Second Terminal", Command = string.Empty },
+        ];
+
+        store.SaveIfDirty(shortcut.Name, dirty, baseline, nameCustomized: false, autoFilledName: null);
+
+        var result = store.TryCommitPending(onSaved: null, "Add at least one launch.", "Open in terminal");
+
+        Assert.True(result.Success, result.Message);
+        var saved = Assert.IsType<TerminalShortcut>(repository.GetByName(shortcut.Name));
+        Assert.Equal(2, saved.Launches.Count);
+        var orderedLaunches = saved.Launches.OrderBy(l => l.Order).ToList();
+        Assert.Null(orderedLaunches[0].Command);
+        Assert.Equal("First Terminal", orderedLaunches[0].Label);
+        Assert.Equal("npm run build", orderedLaunches[1].Command);
+        Assert.Equal("Build", orderedLaunches[1].Label);
     }
 
     private static ShortcutFormDraftData CreateLaunchBaseline(TerminalShortcut shortcut, string taskType) => new()

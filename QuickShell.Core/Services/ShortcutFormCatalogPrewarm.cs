@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using QuickShell.Abstractions;
+using QuickShell.Core.Services;
 
 namespace QuickShell.Services;
 
@@ -39,10 +40,10 @@ internal static class ShortcutFormCatalogPrewarm
             includeDefaultChoice: true,
             appId);
 
-        // Match ShortcutForm.RebuildTemplate schema key for the default 1x1 form.
-        const string schemaKey = "commands-admin-companions-v10-name-kw-widths-c1-cmd1";
+        // Match the zero-launch create form; launches are added explicitly.
+        const string schemaKey = "commands-admin-companions-v11-name-kw-widths-c1-cmd0";
         ShortcutFormTemplateCache.GetOrBuild(
-            commandCount: 1,
+            commandCount: 0,
             companionCount: 1,
             appId,
             companionChoicesJson,
@@ -50,7 +51,8 @@ internal static class ShortcutFormCatalogPrewarm
             () => ShortcutFormTemplateJson.BuildTemplate(
                 terminalChoicesJson,
                 companionChoicesJson,
-                [("", "", TaskTypeCatalog.None, "default", false, true)],
+                [],
+                LaunchEditorText.EnglishDefaults,
                 "Quick Shell",
                 companionCount: 1));
     }

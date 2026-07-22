@@ -5,6 +5,7 @@ using QuickShell.Classification;
 using QuickShell.Classification.Classifiers;
 using QuickShell.Classification.Detectors;
 using QuickShell.Classification.Suggestions;
+using QuickShell.Core.Services;
 using QuickShell.Services;
 using QuickShell.Services.WorkspaceEditor;
 
@@ -150,7 +151,17 @@ internal static class QuickShellServiceCollectionExtensions
         services.AddSingleton<ICommandSuggestionService, CommandSuggestionService>();
         services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
 
-        services.AddSingleton<IWorkspaceEditorFactory, WorkspaceEditorFactory>();
+        // Explicit factory: WorkspaceEditorFactory takes host label strings that DI cannot resolve as bare `string`.
+        // CmdPal replaces this registration with localized Strings via AddQuickShellHost.
+        services.AddSingleton<IWorkspaceEditorFactory>(sp =>
+            new WorkspaceEditorFactory(
+                sp.GetRequiredService<IShortcutRepository>(),
+                sp.GetRequiredService<IDraftStore>(),
+                sp.GetRequiredService<IProjectAnalysisService>(),
+                sp.GetRequiredService<ICommandSuggestionService>(),
+                sp.GetRequiredService<IQuickShellLifetime>(),
+                LaunchEditorText.EnglishDefaults.ValidationAtLeastOne,
+                LaunchEditorText.EnglishDefaults.OpenInTerminal));
 
         services.AddSingleton<ICompanionAppArgumentValidation, CompanionAppArgumentValidationInstance>();
         services.AddSingleton<ICompanionAppNormalization, CompanionAppNormalizationInstance>();

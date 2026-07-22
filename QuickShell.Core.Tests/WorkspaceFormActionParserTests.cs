@@ -58,11 +58,27 @@ public sealed class WorkspaceFormActionParserTests
     }
 
     [Fact]
-    public void Parse_ClearLaunch_PopulatesIndex()
+    public void Parse_AddCommandRow_ReturnsExpectedKind()
     {
-        var action = WorkspaceFormActionParser.Parse("{}", """{"action":"clearlaunch","launchIndex":"1"}""");
+        var action = WorkspaceFormActionParser.Parse("{}", """{"action":"addcommandrow"}""");
 
-        Assert.Equal(WorkspaceFormActionKind.ClearLaunch, action.Kind);
+        Assert.Equal(WorkspaceFormActionKind.AddCommandRow, action.Kind);
+    }
+
+    [Fact]
+    public void Parse_AddOpenInTerminalRow_ReturnsExpectedKind()
+    {
+        var action = WorkspaceFormActionParser.Parse("{}", """{"action":"addopeninterminalrow"}""");
+
+        Assert.Equal(WorkspaceFormActionKind.AddOpenInTerminalRow, action.Kind);
+    }
+
+    [Fact]
+    public void Parse_RemoveLaunch_PopulatesIndex()
+    {
+        var action = WorkspaceFormActionParser.Parse("{}", """{"action":"removelaunch","launchIndex":"1"}""");
+
+        Assert.Equal(WorkspaceFormActionKind.RemoveLaunch, action.Kind);
         Assert.Equal(1, action.LaunchIndex);
     }
 

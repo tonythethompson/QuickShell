@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using QuickShell.Services;
 using QuickShell.Services.WorkspaceEditor;
@@ -114,16 +115,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         _working = existing is null ? new TerminalShortcut() : CloneShortcut(existing);
 
         ShortcutLaunchNormalization.EnsureLaunchesFromLegacy(_working);
-
-        if (_working.Launches.Count == 0)
-
-        {
-
-            _working.Launches.Add(CreateLaunchEntry("Launch", string.Empty, "default", false, 0));
-
-        }
-
-
 
         _working.Name = state.Name;
 
@@ -571,6 +562,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var order = 0;
 
+        // New workspaces intentionally start with zero draft commands. Do not fall back to
+        // `_working.Launches`: EnsureLaunchesFromLegacy / empty seeds can look like blank
+        // OpenInTerminal rows and would persist past "Add at least one launch" validation.
         if (commands is { Count: > 0 })
 
         {
@@ -580,20 +574,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             {
 
                 AddLaunchRowFromDraft(command, order++);
-
-            }
-
-        }
-
-        else
-
-        {
-
-            foreach (var launch in _working.Launches.OrderBy(entry => entry.Order))
-
-            {
-
-                AddLaunchRow(launch, order++);
 
             }
 
@@ -639,7 +619,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         ApplyLaunchTarget(entry, string.IsNullOrWhiteSpace(draft.LaunchTarget) ? "default" : draft.LaunchTarget);
 
-        AddLaunchRow(entry, order, draft.IsEditorPlaceholder);
+        AddLaunchRow(entry, order, draft.IsEditorPlaceholder, draft.Kind);
 
     }
 
@@ -655,13 +635,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    private void AddLaunchRow(WorkspaceEntry? launch, int order) =>
-
-        AddLaunchRow(launch, order, isEditorPlaceholder: false);
-
-
-
-    private void AddLaunchRow(WorkspaceEntry? launch, int order, bool isEditorPlaceholder)
+    private void AddLaunchRow(
+        WorkspaceEntry? launch,
+        int order,
+        bool isEditorPlaceholder,
+        LaunchRowKind? kind = null)
 
     {
 
@@ -670,6 +648,12 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             this,
 
             launch,
+
+            entryId: null,
+
+            kind ?? (launch is not null && string.IsNullOrWhiteSpace(launch.Command)
+                ? LaunchRowKind.OpenInTerminal
+                : LaunchRowKind.Command),
 
             launch?.Label ?? $"Launch {order + 1}",
 
@@ -767,7 +751,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         var target = _launchRows.FirstOrDefault(row =>
 
-            row.IsEditorPlaceholder
+            row.Kind == LaunchRowKind.Command
 
             && string.IsNullOrWhiteSpace(row.CommandText));
 
@@ -901,6 +885,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             AddLaunchRow(
 
+                snapshot.Id,
+
+                snapshot.Kind,
+
                 snapshot.Label,
 
                 snapshot.Command,
@@ -925,6 +913,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
     private void AddLaunchRow(
 
+        string id,
+
+        LaunchRowKind kind,
+
         string label,
 
         string command,
@@ -948,6 +940,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             this,
 
             null,
+
+            id,
+
+            kind,
 
             label,
 
@@ -982,16 +978,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             .Select(row => row.ToLaunchRowDraft())
 
             .ToList();
-
-        if (launchDrafts.Count == 0)
-
-        {
-
-            launchDrafts.Add(new LaunchRowDraft());
-
-        }
-
-
 
         var applied = _editor.TryApplyHostFields(new WorkspaceHostFieldUpdate
 
@@ -1201,45 +1187,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-    private static WorkspaceEntry CreateLaunchEntry(
 
-        string label,
-
-        string command,
-
-        string launchTarget,
-
-        bool runAsAdmin,
-
-        int order)
-
-    {
-
-        var entry = new WorkspaceEntry
-
-        {
-
-            Id = Guid.NewGuid().ToString("N"),
-
-            Label = label,
-
-            Command = command,
-
-            RunAsAdmin = runAsAdmin,
-
-            IsEnabled = true,
-
-            Order = order,
-
-            TaskType = TaskTypeCatalog.None,
-
-        };
-
-        ApplyLaunchTarget(entry, launchTarget);
-
-        return entry;
-
-    }
 
 
 
@@ -1428,7 +1376,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         private string _taskType;
 
+        private LaunchRowKind _kind;
+
         private bool _isEditorPlaceholder;
+
+        private bool _suppressCommandTextChanged;
 
 
 
@@ -1437,6 +1389,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             ShortcutWorkspaceEditorWindow owner,
 
             WorkspaceEntry? launch,
+
+            string? entryId,
+
+            LaunchRowKind kind,
 
             string label,
 
@@ -1458,9 +1414,11 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             _owner = owner;
 
-            _entryId = launch?.Id ?? Guid.NewGuid().ToString("N");
+            _entryId = entryId ?? launch?.Id ?? Guid.NewGuid().ToString("N");
 
             _taskType = TaskTypeCatalog.Normalize(taskType);
+
+            _kind = kind;
 
             _isEditorPlaceholder = isEditorPlaceholder;
 
@@ -1508,7 +1466,25 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-            commandBox.TextChanged += (_, _) => _owner.RefreshSuggestionPanel();
+            commandBox.TextChanged += (_, _) =>
+            {
+                if (_suppressCommandTextChanged)
+                {
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(commandBox.Text))
+                {
+                    _kind = LaunchRowKind.Command;
+                    _isEditorPlaceholder = false;
+                }
+                else
+                {
+                    NormalizeEmptyCommandAsPlaceholder();
+                }
+
+                _owner.RefreshSuggestionPanel();
+            };
 
 
 
@@ -1591,14 +1567,29 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             clear.Click += (_, _) =>
 
             {
+                if (!TryConvertEmptyCommandToOpenInTerminal())
+                {
+                    MessageBox.Show(
+                        _owner,
+                        "Only one Open in terminal launch can be added.",
+                        "Quick Shell",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
 
                 _owner.PushFormEditSnapshot();
 
-                commandBox.Text = string.Empty;
-
-                _taskType = TaskTypeCatalog.None;
-
-                _isEditorPlaceholder = false;
+                _suppressCommandTextChanged = true;
+                try
+                {
+                    commandBox.Text = string.Empty;
+                    ApplyEmptyCommandAsOpenInTerminal();
+                }
+                finally
+                {
+                    _suppressCommandTextChanged = false;
+                }
 
                 _owner.RefreshSuggestionPanel();
 
@@ -1648,6 +1639,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         public string CommandText => CommandBox.Text;
 
+        public LaunchRowKind Kind => _kind;
+
 
 
         public void ApplyPill(CommandSuggestionPill pill)
@@ -1658,8 +1651,38 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             _taskType = pill.TaskType;
 
+            _kind = LaunchRowKind.Command;
+
             _isEditorPlaceholder = false;
 
+        }
+
+
+
+        private void NormalizeEmptyCommandAsPlaceholder()
+        {
+            _taskType = TaskTypeCatalog.None;
+            _kind = LaunchRowKind.Command;
+            _isEditorPlaceholder = true;
+        }
+
+        private bool TryConvertEmptyCommandToOpenInTerminal()
+        {
+            if (_kind == LaunchRowKind.OpenInTerminal)
+            {
+                return true;
+            }
+
+            return !_owner._launchRows.Any(row =>
+                !ReferenceEquals(row, this)
+                && row.Kind == LaunchRowKind.OpenInTerminal);
+        }
+
+        private void ApplyEmptyCommandAsOpenInTerminal()
+        {
+            _taskType = TaskTypeCatalog.None;
+            _kind = LaunchRowKind.OpenInTerminal;
+            _isEditorPlaceholder = false;
         }
 
 
@@ -1671,6 +1694,10 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         public RunLaunchRowSnapshot CaptureSnapshot() =>
 
             new(
+
+                _entryId,
+
+                _kind,
 
                 LabelBox.Text,
 
@@ -1693,6 +1720,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             new()
 
             {
+
+                Kind = _kind,
 
                 Id = _entryId,
 

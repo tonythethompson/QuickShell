@@ -108,8 +108,12 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
                 return HandleRefreshTerminals();
             case WorkspaceFormActionKind.AddSuggestedCommand:
                 return MapResult(_editor.TryAddSuggestedCommand(action.PillCommand, action.PillTaskType, action.PillIndex));
-            case WorkspaceFormActionKind.ClearLaunch:
-                return MapResult(_editor.ClearLaunchRow(action.LaunchIndex));
+            case WorkspaceFormActionKind.AddCommandRow:
+                return MapResult(_editor.AddCommandRow());
+            case WorkspaceFormActionKind.AddOpenInTerminalRow:
+                return MapResult(_editor.AddOpenInTerminalRow());
+            case WorkspaceFormActionKind.RemoveLaunch:
+                return MapResult(_editor.RemoveLaunchRow(action.LaunchIndex));
             case WorkspaceFormActionKind.ExpandSuggestionPills:
                 return MapResult(_editor.SetExpandSuggestionPills(true));
             case WorkspaceFormActionKind.CollapseSuggestionPills:
@@ -295,7 +299,7 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     {
         lock (_sync)
         {
-            var commandCount = Math.Max(1, state.Commands.Count);
+            var commandCount = state.Commands.Count;
             var companionCount = Math.Max(1, state.Companions.Count);
             var card = _services.FormViewBuilder.BuildMain(state, _services.Settings.TerminalApplicationId);
 

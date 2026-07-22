@@ -66,7 +66,7 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 - Sort score ↓; take max (**16** slots; ~**8** visible + show more)  
 - Caps: scripts 40, docker services 20, pre-dedupe candidates 32  
 
-`ApplyPill` → first empty editor placeholder row or append (`LaunchRowListEditor`). Clear row → empty command + `taskType: none` → pill can return.
+`ApplyPill` targets the first empty `Command` draft or appends a populated command row (`LaunchRowListEditor`). It never overwrites an `OpenInTerminal` row. Terminal-only launches are created by the dedicated `Open in terminal` editor action, not by a suggestion pill; the former `Open directory only` pill is no longer emitted.
 
 ## Hosts
 

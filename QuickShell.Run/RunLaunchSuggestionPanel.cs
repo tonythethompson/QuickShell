@@ -1,6 +1,7 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Services;
 using System.IO;
 using System.Windows;
@@ -10,6 +11,8 @@ using System.Windows.Threading;
 namespace QuickShell.Run;
 
 internal sealed record RunLaunchRowSnapshot(
+    string Id,
+    LaunchRowKind Kind,
     string Label,
     string Command,
     string TaskType,

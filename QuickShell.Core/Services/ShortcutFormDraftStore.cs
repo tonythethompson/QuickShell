@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using System.Text.Json.Serialization;
 
@@ -62,6 +63,7 @@ internal sealed class ShortcutFormDraftData
             data.Launches = draft.Launches
                 .Select(launch => new ShortcutFormLaunchDraftData
                 {
+                    Kind = launch.Kind,
                     Id = launch.Id,
                     Label = launch.Label,
                     Command = launch.Command,
@@ -106,6 +108,8 @@ internal sealed class ShortcutFormCompanionDraftData
 
 internal sealed class ShortcutFormLaunchDraftData
 {
+    public LaunchRowKind? Kind { get; set; }
+
     public string Id { get; set; } = string.Empty;
 
     public string Label { get; set; } = string.Empty;
@@ -175,6 +179,8 @@ internal sealed class PersistedShortcutCompanionDraft
 
 internal sealed class PersistedShortcutLaunchDraft
 {
+    public LaunchRowKind? Kind { get; set; }
+
     public string Id { get; set; } = string.Empty;
 
     public string Label { get; set; } = string.Empty;
@@ -626,7 +632,7 @@ internal sealed class ShortcutFormLaunchInput
 
     public string Label { get; set; } = string.Empty;
 
-    public string Command { get; set; } = string.Empty;
+    public string? Command { get; set; }
 
     public string LaunchTarget { get; set; } = "default";
 

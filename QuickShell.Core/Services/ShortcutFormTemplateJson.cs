@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 
 namespace QuickShell.Services;
 
@@ -49,11 +50,13 @@ internal static class ShortcutFormTemplateJson
     public static string BuildTemplate(
         string terminalChoices,
         string companionChoices,
-        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)> commands,
+        IReadOnlyList<LaunchRowDraft> commands,
+        LaunchEditorText launchText,
         string displayName = DisplayNameDefault,
         int companionCount = 1)
     {
-        var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices);
+        ArgumentNullException.ThrowIfNull(launchText);
+        var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices, launchText);
         var tipDirectory = Escape(WorkspaceFormTooltips.Directory);
         var tipName = Escape(WorkspaceFormTooltips.Name);
         var tipHomeKeyword = Escape(WorkspaceFormTooltips.HomeKeyword);
@@ -63,7 +66,8 @@ internal static class ShortcutFormTemplateJson
         var suggestionPillsBlock = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
         var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
             commandRows,
-            suggestionPillsBlock);
+            suggestionPillsBlock,
+            launchText);
         var companionRows = Enumerable.Range(0, Math.Max(1, companionCount))
             .Select(_ => CompanionAppFormRow.Empty())
             .ToList();
@@ -226,7 +230,7 @@ internal static class ShortcutFormTemplateJson
         DataPayload draft,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
-        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)>? commands = null)
+        IReadOnlyList<LaunchRowDraft>? commands = null)
     {
         ArgumentNullException.ThrowIfNull(commandSuggestions);
         commands ??= [];
@@ -235,11 +239,12 @@ internal static class ShortcutFormTemplateJson
             commands.SelectMany((row, index) => new[]
             {
                 $"\"LaunchCommand_{index}\": \"{Escape(row.Command)}\"",
+                $"\"LaunchKind_{index}\": \"{row.Kind}\"",
                 $"\"LaunchLabel_{index}\": \"{Escape(row.Label)}\"",
+                $"\"LaunchIsEnabled_{index}\": \"{(row.IsEnabled ? "true" : "false")}\"",
                 $"\"LaunchType_{index}\": \"{Escape(TaskTypeCatalog.Normalize(row.TaskType))}\"",
                 $"\"LaunchTarget_{index}\": \"{Escape(row.LaunchTarget)}\"",
                 $"\"LaunchRunAsAdmin_{index}\": \"{(row.RunAsAdmin ? "true" : "false")}\"",
-                $"\"LaunchEnabled_{index}\": \"{(row.IsEnabled ? "true" : "false")}\"",
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
@@ -271,6 +276,7 @@ internal static class ShortcutFormTemplateJson
           "RepoUrl": "{{Escape(draft.RepoUrl)}}",
           "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}},
           "ShowSaveError": {{(!string.IsNullOrWhiteSpace(draft.SaveError) ? "true" : "false")}},
+          "ShowAddOpenInTerminal": {{(!commands.Any(row => row.Kind == LaunchRowKind.OpenInTerminal) ? "true" : "false")}},
           "SaveError": "{{Escape(draft.SaveError)}}"{{companionSection}}{{commandSection}}{{pillSection}}
         }
         """;
@@ -278,19 +284,11 @@ internal static class ShortcutFormTemplateJson
 
     private static string BuildPillDataFields(
         DataPayload draft,
-        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)> commands,
+        IReadOnlyList<LaunchRowDraft> commands,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions)
     {
-        var launchRows = commands
-            .Select(row => new LaunchRowDraft
-            {
-                Command = row.Command,
-                TaskType = row.TaskType,
-                LaunchTarget = row.LaunchTarget,
-                RunAsAdmin = row.RunAsAdmin,
-            })
-            .ToList();
+        var launchRows = commands.ToList();
 
         var fields = new List<string>();
         foreach (var entry in SuggestionPillPresentation.BuildDataFields(
@@ -300,11 +298,6 @@ internal static class ShortcutFormTemplateJson
                      commandSuggestions,
                      draft.ExpandSuggestionPills,
                      isScanningSuggestions: draft.SuggestionScanning))
-        {
-            fields.Add(FormatPillDataField(entry.Key, entry.Value));
-        }
-
-        foreach (var entry in SuggestionPillPresentation.BuildClearLaunchFields(launchRows))
         {
             fields.Add(FormatPillDataField(entry.Key, entry.Value));
         }
@@ -323,8 +316,7 @@ internal static class ShortcutFormTemplateJson
             or "ExpandSuggestionPills"
             or "ShowMoreSuggestions"
             or "ShowFewerSuggestions"
-        || key.StartsWith("ShowPill_", StringComparison.Ordinal)
-        || key.StartsWith("ShowClearLaunch_", StringComparison.Ordinal);
+        || key.StartsWith("ShowPill_", StringComparison.Ordinal);
 
     public static string BuildDiscardPromptTemplate() =>
         """

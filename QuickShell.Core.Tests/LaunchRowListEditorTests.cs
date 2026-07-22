@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -5,7 +6,7 @@ namespace QuickShell.Core.Tests;
 public sealed class LaunchRowListEditorTests
 {
     [Fact]
-    public void ClearRow_RemovesRowAndCompactsLaterCommands()
+    public void RemoveRow_RemovesRowWithoutPadding()
     {
         var rows = new List<LaunchRowDraft>
         {
@@ -14,17 +15,15 @@ public sealed class LaunchRowListEditorTests
             new() { Command = "docker compose up", TaskType = TaskTypeCatalog.Services, LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
         };
 
-        LaunchRowListEditor.ClearRow(rows, 1, "default");
+        LaunchRowListEditor.RemoveRow(rows, 1, "default");
 
-        Assert.Equal(3, rows.Count);
+        Assert.Equal(2, rows.Count);
         Assert.Equal("npm run dev", rows[0].Command);
         Assert.Equal("docker compose up", rows[1].Command);
-        Assert.Equal(string.Empty, rows[2].Command);
-        Assert.True(rows[2].IsEditorPlaceholder);
     }
 
     [Fact]
-    public void ClearRow_FirstRow_ShiftsRemainingCommandsUp()
+    public void RemoveRow_FirstRow_ShiftsRemainingCommandsUp()
     {
         var rows = new List<LaunchRowDraft>
         {
@@ -33,15 +32,14 @@ public sealed class LaunchRowListEditorTests
             new() { Command = "three", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
         };
 
-        LaunchRowListEditor.ClearRow(rows, 0, "default");
+        LaunchRowListEditor.RemoveRow(rows, 0, "default");
 
         Assert.Equal("two", rows[0].Command);
         Assert.Equal("three", rows[1].Command);
-        Assert.Equal(string.Empty, rows[2].Command);
     }
 
     [Fact]
-    public void ClearRow_PreservesEffectiveTargetForSameAsPreviousSuccessor()
+    public void RemoveRow_PreservesEffectiveTargetForSameAsPreviousSuccessor()
     {
         var rows = new List<LaunchRowDraft>
         {
@@ -50,7 +48,7 @@ public sealed class LaunchRowListEditorTests
             new() { Command = "three", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
         };
 
-        LaunchRowListEditor.ClearRow(rows, 0, "default");
+        LaunchRowListEditor.RemoveRow(rows, 0, "default");
 
         Assert.Equal("wt:pwsh", rows[0].LaunchTarget);
         Assert.Equal(TerminalCatalog.SameAsPreviousLaunchTargetId, rows[1].LaunchTarget);
@@ -73,12 +71,12 @@ public sealed class LaunchRowListEditorTests
     }
 
     [Fact]
-    public void TrimForSave_PreservesIntentionalBlankLaunch()
+    public void TrimForSave_PreservesExplicitOpenInTerminalLaunch()
     {
         var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start" },
-            new() { LaunchTarget = "wt:pwsh" },
+            new() { Kind = LaunchRowKind.OpenInTerminal, LaunchTarget = "wt:pwsh" },
         };
 
         var trimmed = LaunchRowListEditor.TrimForSave(rows);
@@ -118,7 +116,7 @@ public sealed class LaunchRowListEditorTests
             10,
             "docker");
 
-        Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
+        Assert.True(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
         Assert.Equal(3, rows.Count);
         Assert.Equal("docker compose up", rows[1].Command);
         Assert.Equal("wt:pwsh", rows[1].LaunchTarget);
@@ -133,7 +131,7 @@ public sealed class LaunchRowListEditorTests
         var rows = new List<LaunchRowDraft>
         {
             new() { Command = "npm start", LaunchTarget = "default" },
-            new() { LaunchTarget = "wt:pwsh" },
+            new() { Kind = LaunchRowKind.OpenInTerminal, LaunchTarget = "wt:pwsh" },
             new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
         };
 
@@ -146,40 +144,11 @@ public sealed class LaunchRowListEditorTests
             10,
             "docker");
 
-        Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
+        Assert.True(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
         Assert.Equal(string.Empty, rows[1].Command);
         Assert.False(rows[1].IsEditorPlaceholder);
         Assert.Equal("docker compose up", rows[2].Command);
         Assert.False(rows[2].IsEditorPlaceholder);
-    }
-
-    [Fact]
-    public void ApplyPill_OpenToDirectoryPill_MarksRowIntentionallyBlankNotPlaceholder()
-    {
-        var rows = new List<LaunchRowDraft>
-        {
-            new() { LaunchTarget = "default", IsEditorPlaceholder = true },
-            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
-            new() { LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId, IsEditorPlaceholder = true },
-        };
-
-        Assert.False(LaunchRowListEditor.ApplyPill(rows, SuggestionPillPresentation.OpenToDirectoryPill, "default"));
-        Assert.Equal(string.Empty, rows[0].Command);
-        Assert.False(rows[0].IsEditorPlaceholder);
-
-        // A second pill click now correctly skips row 0 (intentionally blank) and fills row 1,
-        // instead of re-matching row 0 or failing — this was the "first slot misfires" bug.
-        var docker = new CommandSuggestionPill(
-            "docker compose up",
-            TaskTypeCatalog.Services,
-            "Services",
-            "docker compose up",
-            "Services · docker compose up",
-            10,
-            "docker");
-        Assert.False(LaunchRowListEditor.ApplyPill(rows, docker, "default"));
-        Assert.Equal(string.Empty, rows[0].Command);
-        Assert.Equal("docker compose up", rows[1].Command);
     }
 
     [Fact]
@@ -192,7 +161,7 @@ public sealed class LaunchRowListEditorTests
             new() { Command = "three", LaunchTarget = TerminalCatalog.SameAsPreviousLaunchTargetId },
         };
 
-        LaunchRowListEditor.ClearRow(rows, 1, "default");
+        LaunchRowListEditor.RemoveRow(rows, 1, "default");
 
         var pill = new CommandSuggestionPill(
             "four",
@@ -203,7 +172,7 @@ public sealed class LaunchRowListEditorTests
             1,
             "custom");
 
-        Assert.False(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
+        Assert.True(LaunchRowListEditor.ApplyPill(rows, pill, "default"));
         Assert.Equal(["one", "three", "four"], rows.Select(row => row.Command));
     }
 }

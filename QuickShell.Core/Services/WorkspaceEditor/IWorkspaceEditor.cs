@@ -30,7 +30,11 @@ internal interface IWorkspaceEditor : IDisposable
 
     WorkspaceEditResult TryAddSuggestedCommand(string? command, string? taskType, int pillIndex);
 
-    WorkspaceEditResult ClearLaunchRow(int index);
+    WorkspaceEditResult AddCommandRow();
+
+    WorkspaceEditResult AddOpenInTerminalRow();
+
+    WorkspaceEditResult RemoveLaunchRow(int index);
 
     WorkspaceEditResult SetExpandSuggestionPills(bool expand);
 

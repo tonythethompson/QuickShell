@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -11,6 +12,9 @@ internal static class LaunchRowListEditor
             .OrderBy(entry => entry.Order)
             .Select(entry => new LaunchRowDraft
             {
+                Kind = string.IsNullOrWhiteSpace(entry.Command)
+                    ? LaunchRowKind.OpenInTerminal
+                    : LaunchRowKind.Command,
                 Id = entry.Id,
                 Label = entry.Label ?? string.Empty,
                 Command = entry.Command ?? string.Empty,
@@ -40,6 +44,7 @@ internal static class LaunchRowListEditor
     public static LaunchRowDraft CreateEmptyRow(int index, string fallbackLaunchTarget) =>
         new()
         {
+            Kind = LaunchRowKind.Command,
             LaunchTarget = index == 0
                 ? fallbackLaunchTarget
                 : TerminalCatalog.SameAsPreviousLaunchTargetId,
@@ -47,10 +52,10 @@ internal static class LaunchRowListEditor
         };
 
     /// <summary>
-    /// Removes the launch row at <paramref name="index"/> and shifts later rows up,
-    /// then pads with empty editor placeholders back to <see cref="MinimumEditorRowCount"/>.
+    /// Removes the launch row at <paramref name="index"/> while preserving the effective
+    /// launch target of a following "same as previous" row.
     /// </summary>
-    public static void ClearRow(List<LaunchRowDraft> rows, int index, string fallbackLaunchTarget)
+    public static void RemoveRow(List<LaunchRowDraft> rows, int index, string fallbackLaunchTarget)
     {
         if (index < 0 || index >= rows.Count)
         {
@@ -64,7 +69,6 @@ internal static class LaunchRowListEditor
         }
 
         rows.RemoveAt(index);
-        EnsureMinimumRowsForEditor(rows, fallbackLaunchTarget);
     }
 
     public static bool ApplyPill(List<LaunchRowDraft> rows, CommandSuggestionPill pill, string fallbackLaunchTarget)
@@ -76,10 +80,16 @@ internal static class LaunchRowListEditor
             targetIndex = rows.Count - 1;
         }
 
+        rows[targetIndex].Kind = LaunchRowKind.Command;
         rows[targetIndex].Command = pill.Command;
         rows[targetIndex].TaskType = pill.TaskType;
         rows[targetIndex].IsEditorPlaceholder = false;
-        return targetIndex == rows.Count - 1 && rows.Count > MinimumEditorRowCount;
+        if (string.IsNullOrWhiteSpace(rows[targetIndex].Label))
+        {
+            rows[targetIndex].Label = CreateUniqueLabel(rows, targetIndex, "Command");
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -90,7 +100,8 @@ internal static class LaunchRowListEditor
     {
         for (var i = 0; i < rows.Count; i++)
         {
-            if (rows[i].IsEditorPlaceholder && string.IsNullOrWhiteSpace(rows[i].Command))
+            if (rows[i].Kind == LaunchRowKind.Command
+                && string.IsNullOrWhiteSpace(rows[i].Command))
             {
                 return i;
             }
@@ -102,14 +113,12 @@ internal static class LaunchRowListEditor
     public static List<LaunchRowDraft> TrimForSave(IReadOnlyList<LaunchRowDraft> commands)
     {
         var rows = commands.Select(row => row.Clone()).ToList();
-        rows.RemoveAll(row =>
-            row.IsEditorPlaceholder
-            && string.IsNullOrWhiteSpace(row.Command)
-            && string.Equals(TaskTypeCatalog.Normalize(row.TaskType), TaskTypeCatalog.None, StringComparison.Ordinal));
+        rows.RemoveAll(row => row.Kind == LaunchRowKind.Command && string.IsNullOrWhiteSpace(row.Command));
 
-        if (rows.Count == 0)
+        foreach (var row in rows.Where(row => row.Kind == LaunchRowKind.OpenInTerminal))
         {
-            rows.Add(new LaunchRowDraft());
+            row.Command = string.Empty;
+            row.IsEditorPlaceholder = false;
         }
 
         return rows;
@@ -134,5 +143,26 @@ internal static class LaunchRowListEditor
         }
 
         return fallbackLaunchTarget;
+    }
+
+    private static string CreateUniqueLabel(IReadOnlyList<LaunchRowDraft> rows, int targetIndex, string labelBase)
+    {
+        var labels = rows
+            .Where((_, index) => index != targetIndex)
+            .Select(row => row.Label)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!labels.Contains(labelBase))
+        {
+            return labelBase;
+        }
+
+        for (var suffix = 2; ; suffix++)
+        {
+            var candidate = $"{labelBase} {suffix}";
+            if (!labels.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
     }
 }

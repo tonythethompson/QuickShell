@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Services.WorkspaceEditor;
 
 namespace QuickShell.Services;
@@ -40,24 +41,33 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        var commandCount = Math.Max(1, state.Commands.Count);
+        var commandCount = state.Commands.Count;
         var companionCount = Math.Max(1, state.Companions.Count);
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
         var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(_projectAnalysis, state.Directory);
-        var commandTuples = state.Commands
-            .Select(c => (c.Label, c.Command, c.TaskType, c.LaunchTarget, c.RunAsAdmin, c.IsEnabled))
-            .ToList();
+        var commandRows = state.Commands.ToList();
+        var templateSchemaKey = taskTypeChoicesJson + "|launch-kinds="
+            + string.Join(',', commandRows.Select(row => row.Kind));
 
         var templateJson = ShortcutFormTemplateCache.GetOrBuild(
             commandCount,
             companionCount,
             terminalApplicationId,
             companionChoicesJson,
-            taskTypeChoicesJson,
+            templateSchemaKey,
             () => ShortcutFormTemplateJson.BuildTemplate(
                 _terminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, terminalApplicationId),
                 companionChoicesJson,
-                commandTuples,
+                commandRows,
+                new LaunchEditorText(
+                    Strings.LaunchEditor_AddCommand,
+                    Strings.LaunchEditor_OpenInTerminal,
+                    Strings.LaunchEditor_RemoveTooltip,
+                    Strings.LaunchEditor_EmptyTitle,
+                    Strings.LaunchEditor_EmptyGuidance,
+                    Strings.LaunchEditor_ValidationAtLeastOne,
+                    Strings.LaunchEditor_CommandsSectionTooltip,
+                    Strings.LaunchEditor_CommandsSectionTitle),
                 QuickShellBrand.DisplayName,
                 companionCount));
 
@@ -83,7 +93,7 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
             },
             _projectAnalysis,
             _commandSuggestions,
-            commandTuples);
+            commandRows);
 
         return new ShortcutFormCard(templateJson, dataJson);
     }

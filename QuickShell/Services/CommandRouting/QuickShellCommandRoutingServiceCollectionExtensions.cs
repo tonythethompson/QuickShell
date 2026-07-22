@@ -1,5 +1,6 @@
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
@@ -94,6 +95,16 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
             new CmdPalExtensionThreadScheduler(
                 extensionContext,
                 sp.GetRequiredService<IExtensionCallbackQueue>()));
+        // Override Core's WorkspaceEditorFactory with localized strings from WPF boundary.
+        services.Replace(ServiceDescriptor.Singleton<IWorkspaceEditorFactory>(sp =>
+            new WorkspaceEditorFactory(
+                sp.GetRequiredService<IShortcutRepository>(),
+                sp.GetRequiredService<IDraftStore>(),
+                sp.GetRequiredService<IProjectAnalysisService>(),
+                sp.GetRequiredService<ICommandSuggestionService>(),
+                sp.GetRequiredService<IQuickShellLifetime>(),
+                Strings.LaunchEditor_ValidationAtLeastOne,
+                Strings.LaunchEditor_OpenInTerminal)));
         services.AddQuickShellCommandRouting(settingsManager);
         return services;
     }
