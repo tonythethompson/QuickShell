@@ -185,14 +185,14 @@ internal static class WorkspaceSecurityPolicy
             risks.Add(new("dev-server", "This workspace opens a configured URL after launch."));
         }
 
-        if (!workspace.Security.IsTrusted && RequiresTrust(action))
+        if (WorkspaceTrustFeatures.Enabled && !workspace.Security.IsTrusted && RequiresTrust(action))
         {
             issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
         }
 
         if (action == WorkspaceAction.OpenDirectory)
         {
-            if (!workspace.Security.IsTrusted)
+            if (WorkspaceTrustFeatures.Enabled && !workspace.Security.IsTrusted)
             {
                 issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Untrusted workspaces cannot open directories."));
             }

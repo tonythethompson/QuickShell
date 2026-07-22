@@ -43,6 +43,8 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("LaunchIsEnabled_0", text);
         Assert.DoesNotContain("\"title\": \"Remove command\"", text);
         Assert.DoesNotContain("Always run as administrator", text);
+        Assert.DoesNotContain("refreshTerminals", text);
+        Assert.DoesNotContain(FormActionGlyphs.RefreshLabel, text);
     }
 
     [Fact]
@@ -65,7 +67,7 @@ public sealed class ShortcutLaunchFormJsonTests
     }
 
     [Fact]
-    public void BuildCommandRowsJson_OpenInTerminal_RendersSubtleLabelWithoutCommandInput()
+    public void BuildCommandRowsJson_OpenInTerminal_RendersNonEditableDisplayText()
     {
         var text = ShortcutLaunchFormJson.BuildCommandRowsJson(
             [new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Open in terminal" }],
@@ -73,11 +75,12 @@ public sealed class ShortcutLaunchFormJsonTests
             EditorText);
 
         Assert.Contains("Open in terminal", text);
-        Assert.Contains("\"isSubtle\": true", text);
+        Assert.Contains("\"type\": \"TextBlock\"", text);
+        Assert.DoesNotContain("LaunchOpenInTerminalDisplay_0", text);
+        Assert.DoesNotContain("LaunchCommand_0", text);
         Assert.Contains("Add terminal", text);
         Assert.Contains("addOpenInTerminalRow", text);
         Assert.Contains("removeLaunch", text);
-        Assert.DoesNotContain("LaunchCommand_0", text);
         Assert.DoesNotContain("ShowAddOpenInTerminal", text);
     }
 
@@ -90,6 +93,24 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("addCommandRow", text);
         Assert.Contains("addOpenInTerminalRow", text);
         Assert.DoesNotContain("LaunchCommand_0", text);
+        Assert.DoesNotContain("refreshTerminals", text);
+    }
+
+    [Fact]
+    public void BuildCommandsSectionJson_SeparatesSuggestionPillsFromCommandRows()
+    {
+        var section = ShortcutLaunchFormJson.BuildCommandsSectionJson(
+            """{ "type": "TextBlock", "text": "rows" }""",
+            """{ "type": "TextBlock", "text": "pills" }""",
+            EditorText);
+
+        Assert.Contains("\"separator\": true", section);
+        Assert.Contains("pills", section);
+        Assert.Contains("rows", section);
+        var pillsAt = section.IndexOf("pills", StringComparison.Ordinal);
+        var separatorAt = section.IndexOf("\"separator\": true", StringComparison.Ordinal);
+        var rowsAt = section.IndexOf("rows", StringComparison.Ordinal);
+        Assert.True(pillsAt >= 0 && separatorAt > pillsAt && rowsAt > separatorAt);
     }
 
     [Fact]

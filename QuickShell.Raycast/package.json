@@ -199,9 +199,10 @@
     "vitest": "^3.0.8"
   },
   "scripts": {
-    "predev": "node scripts/verify-raycast-cli.js",
-    "prebuild": "node scripts/verify-raycast-cli.js",
-    "prelint": "node scripts/verify-raycast-cli.js",
+    "predev": "node scripts/sync-workspace-trust-features.js && node scripts/verify-raycast-cli.js",
+    "prebuild": "node scripts/sync-workspace-trust-features.js && node scripts/verify-raycast-cli.js",
+    "prelint": "node scripts/sync-workspace-trust-features.js && node scripts/verify-raycast-cli.js",
+    "pretest": "node scripts/sync-workspace-trust-features.js",
     "build": "ray build",
     "dev": "ray develop",
     "lint": "ray lint",

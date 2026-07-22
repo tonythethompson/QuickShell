@@ -1,13 +1,26 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { authorize, authorizePostLaunchEffects, createReviewToken, matchesReviewToken } from "../lib/security";
+import { join, resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  authorize,
+  authorizePostLaunchEffects,
+  coerceTrustedWhileDisabled,
+  createReviewToken,
+  matchesReviewToken,
+  setWorkspaceTrustEnabledForTests,
+  WORKSPACE_TRUST_DEFAULT_ENABLED,
+} from "../lib/security";
 import type { StoredWorkspace, Workspace } from "../lib/schema";
 
 const tempDirs: string[] = [];
 
+beforeEach(() => {
+  setWorkspaceTrustEnabledForTests(true);
+});
+
 afterEach(() => {
+  setWorkspaceTrustEnabledForTests(null);
   while (tempDirs.length > 0) {
     const directory = tempDirs.pop();
     if (!directory) {
@@ -294,5 +307,55 @@ describe("workspace security policy", () => {
     expect(authorization.primaryIssueCode).toBe("InvalidCompanion");
     expect(effects.plan.companions).toEqual([]);
     expect(effects.warnings).toHaveLength(2);
+  });
+});
+
+describe("workspace trust kill switch (disabled)", () => {
+  beforeEach(() => {
+    setWorkspaceTrustEnabledForTests(false);
+  });
+
+  it("allows trust-gated actions for untrusted workspaces", () => {
+    const directory = createTempDirectory();
+    const value: StoredWorkspace = {
+      content: { ...workspace, directory, devServerUrl: "https://example.com" },
+      security: { isTrusted: false, revision: 3 },
+      revision: 3,
+    };
+    expect(authorize(value, { kind: "terminal" }).isAllowed).toBe(true);
+    expect(authorize(value, { kind: "launchEntry", launchId: "launch-1" }).isAllowed).toBe(true);
+    expect(authorize(value, { kind: "url", url: "https://example.com" }).isAllowed).toBe(true);
+
+    // Open-directory still requires an existing rooted Windows drive path (product is
+    // Windows-only). On Linux CI assert trust is not the blocker; on Windows assert allow.
+    const openDirectory = authorize(value, { kind: "directory" });
+    expect(openDirectory.issues.some((issue) => issue.code === "WorkspaceUntrusted")).toBe(false);
+    if (process.platform === "win32") {
+      expect(openDirectory.isAllowed).toBe(true);
+    } else {
+      expect(openDirectory.isAllowed).toBe(false);
+      expect(openDirectory.primaryIssueCode).toBe("DirectoryOpenNotAllowed");
+    }
+  });
+
+  it("matches the shared JSON default", () => {
+    const shared = JSON.parse(
+      readFileSync(resolve(__dirname, "../../../shared/workspace-trust-features.json"), "utf8"),
+    ) as { enabled: boolean };
+    const local = JSON.parse(readFileSync(resolve(__dirname, "../lib/workspace-trust-features.json"), "utf8")) as {
+      enabled: boolean;
+    };
+    expect(local.enabled).toBe(shared.enabled);
+    expect(WORKSPACE_TRUST_DEFAULT_ENABLED).toBe(shared.enabled);
+  });
+
+  it("coerceTrustedWhileDisabled rewrites untrusted rows", () => {
+    const { security, changed } = coerceTrustedWhileDisabled(
+      { a: { isTrusted: false, revision: 4 }, b: { isTrusted: true, revision: 1 } },
+      ["a", "b", "c"],
+    );
+    expect(changed).toBe(true);
+    expect(security.a).toEqual({ isTrusted: true, revision: 4 });
+    expect(security.b).toEqual({ isTrusted: true, revision: 1 });
   });
 });

@@ -4,8 +4,13 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
-public sealed class WorkspaceSecurityPolicyTests
+[Collection("ShortcutRepositoryMutex")]
+public sealed class WorkspaceSecurityPolicyTests : IDisposable
 {
+    private readonly IDisposable _trustScope = WorkspaceTrustFeatures.EnableForTests();
+
+    public void Dispose() => _trustScope.Dispose();
+
     [Fact]
     public void Untrusted_workspace_blocks_external_actions_but_allows_copy_path()
     {

@@ -45,7 +45,13 @@ import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from 
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { buildSelectedLaunchWorkspace, buildWorkspaceLaunchPlan } from "./lib/windows-launch";
-import { authorize, authorizePostLaunchEffects, createReviewToken, matchesReviewToken } from "./lib/security";
+import {
+  authorize,
+  authorizePostLaunchEffects,
+  createReviewToken,
+  isWorkspaceTrustEnabled,
+  matchesReviewToken,
+} from "./lib/security";
 import { evaluateGitLaunchGate, resolveWorktreeKey } from "./lib/git-launch-gate";
 
 type LoadedData = {
@@ -501,7 +507,9 @@ export default function OpenWorkspaceCommand({
       await showToast({
         style: Toast.Style.Success,
         title: "Import complete",
-        message: `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed. Imported workspaces are untrusted until reviewed.`,
+        message: isWorkspaceTrustEnabled()
+          ? `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed. Imported workspaces are untrusted until reviewed.`
+          : `${result.imported} imported, ${result.skipped} skipped, ${result.renamed} renamed.`,
       });
     } catch (importError) {
       await showStorageFailure("Import workspaces", importError);
@@ -624,7 +632,7 @@ export default function OpenWorkspaceCommand({
       });
     }
     const security = data.securityById[workspace.id] ?? { isTrusted: true, revision: 1 };
-    if (!security.isTrusted) {
+    if (isWorkspaceTrustEnabled() && !security.isTrusted) {
       accessories.push({ icon: { source: Icon.Lock, tintColor: Color.Orange }, tooltip: "Untrusted workspace" });
     }
     if (workspace.isPinned) {
@@ -670,7 +678,7 @@ export default function OpenWorkspaceCommand({
                 <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}
             </ActionPanel.Section>
-            {security.isTrusted ? (
+            {!isWorkspaceTrustEnabled() || security.isTrusted ? (
               <ActionPanel.Section title="Git">
                 <Action.Push
                   title="Set Target Branch…"
@@ -751,11 +759,13 @@ export default function OpenWorkspaceCommand({
                   />
                 </>
               ) : null}
-              {security.isTrusted ? (
-                <Action title="Revoke Workspace Trust" icon={Icon.Lock} onAction={() => handleRevoke(workspace)} />
-              ) : (
-                <Action title="Trust Workspace…" icon={Icon.Shield} onAction={() => handleTrust(workspace)} />
-              )}
+              {isWorkspaceTrustEnabled() ? (
+                security.isTrusted ? (
+                  <Action title="Revoke Workspace Trust" icon={Icon.Lock} onAction={() => handleRevoke(workspace)} />
+                ) : (
+                  <Action title="Trust Workspace…" icon={Icon.Shield} onAction={() => handleTrust(workspace)} />
+                )
+              ) : null}
               <Action
                 title="Duplicate"
                 icon={Icon.Duplicate}

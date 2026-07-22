@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { QuickShellStorage, createMemoryStorageAdapter } from "../lib/storage";
 import { createStableId } from "../lib/ids";
 import { normalizeWorkspace } from "../lib/validation";
 import { createEmptyStoredData } from "../lib/schema";
-import { createReviewToken, matchesReviewToken } from "../lib/security";
+import { createReviewToken, matchesReviewToken, setWorkspaceTrustEnabledForTests } from "../lib/security";
+
+beforeEach(() => {
+  setWorkspaceTrustEnabledForTests(true);
+});
+
+afterEach(() => {
+  setWorkspaceTrustEnabledForTests(null);
+});
 
 function createWorkspace(id: string, name: string) {
   return normalizeWorkspace({

@@ -46,8 +46,21 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
         var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(_projectAnalysis, state.Directory);
         var commandRows = state.Commands.ToList();
+        var usedCommands = commandRows.Select(row => row.Command);
+        var selectablePills = state.IsSuggestionScanning
+            ? Array.Empty<CommandSuggestionPill>()
+            : SuggestionPillPresentation.BuildSelectablePills(
+                state.Directory,
+                usedCommands,
+                _projectAnalysis,
+                _commandSuggestions);
+        var visiblePillCount = SuggestionPillPresentation.GetVisiblePillCount(
+            selectablePills.Count,
+            state.ExpandSuggestionPills,
+            state.IsSuggestionScanning);
         var templateSchemaKey = taskTypeChoicesJson + "|launch-kinds="
-            + string.Join(',', commandRows.Select(row => row.Kind));
+            + string.Join(',', commandRows.Select(row => row.Kind))
+            + $"|pills={visiblePillCount}";
 
         var templateJson = ShortcutFormTemplateCache.GetOrBuild(
             commandCount,
@@ -70,7 +83,8 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
                     Strings.LaunchEditor_CommandsSectionTooltip,
                     Strings.LaunchEditor_CommandsSectionTitle),
                 QuickShellBrand.DisplayName,
-                companionCount));
+                companionCount,
+                visiblePillCount));
 
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(
             new ShortcutFormTemplateJson.DataPayload

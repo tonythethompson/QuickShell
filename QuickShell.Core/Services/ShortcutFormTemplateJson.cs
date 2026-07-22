@@ -53,7 +53,8 @@ internal static class ShortcutFormTemplateJson
         IReadOnlyList<LaunchRowDraft> commands,
         LaunchEditorText launchText,
         string displayName = DisplayNameDefault,
-        int companionCount = 1)
+        int companionCount = 1,
+        int visibleSuggestionPillCount = 0)
     {
         ArgumentNullException.ThrowIfNull(launchText);
         var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices, launchText);
@@ -63,7 +64,7 @@ internal static class ShortcutFormTemplateJson
         var tipDevServerUrl = Escape(WorkspaceFormTooltips.DevServerUrl);
         var tipDevServerOnLaunch = Escape(WorkspaceFormTooltips.DevServerOnLaunch);
         var tipRepoUrl = Escape(WorkspaceFormTooltips.RepoUrl);
-        var suggestionPillsBlock = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
+        var suggestionPillsBlock = ShortcutLaunchFormJson.BuildSuggestionPillsBlock(visibleSuggestionPillCount);
         var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
             commandRows,
             suggestionPillsBlock,
@@ -97,7 +98,7 @@ internal static class ShortcutFormTemplateJson
               "type": "Container",
               "spacing": "Small",
               "style": "attention",
-              "$when": "${ShowSaveError}",
+              "isVisible": "${ShowSaveError}",
               "items": [
                 {
                   "type": "TextBlock",

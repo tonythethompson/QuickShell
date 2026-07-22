@@ -87,15 +87,50 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     }
 
     [Fact]
-    public void BuildSuggestionPillsBlock_UsesSingleFlowingActionSetForPills()
+    public void BuildSuggestionPillsBlock_EmitsExactVisibleActionsWithoutWhen()
     {
-        var json = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
+        const int visible = 10;
+        var json = ShortcutLaunchFormJson.BuildSuggestionPillsBlock(visible);
 
-        // One ActionSet owns every pill slot; expand/collapse are separate ActionSets.
-        Assert.Equal(3, CountOccurrences(json, "\"type\": \"ActionSet\""));
+        // 10 pills / 4 per row = 3 ActionSets + expand + collapse.
+        Assert.Equal(5, CountOccurrences(json, "\"type\": \"ActionSet\""));
+        Assert.Equal(visible, CountOccurrences(json, "\"pillIndex\":"));
+        Assert.DoesNotContain("ShowPill_", json, StringComparison.Ordinal);
         Assert.Contains("\"pillIndex\": 0", json, StringComparison.Ordinal);
-        Assert.Contains($"\"pillIndex\": {SuggestionPillPresentation.MaxSlots - 1}", json, StringComparison.Ordinal);
-        Assert.DoesNotContain("PillsPerRow", json, StringComparison.Ordinal);
+        Assert.Contains("\"pillIndex\": 9", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"pillIndex\": 10", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildSuggestionPillsBlock_EmptyWhenNoVisiblePills()
+    {
+        var json = ShortcutLaunchFormJson.BuildSuggestionPillsBlock(0);
+        Assert.DoesNotContain("pillIndex", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("Suggested commands", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GetVisiblePillCount_RespectsCollapseExpandAndCap()
+    {
+        Assert.Equal(0, SuggestionPillPresentation.GetVisiblePillCount(20, expandSuggestionPills: false, isScanningSuggestions: true));
+        Assert.Equal(
+            SuggestionPillPresentation.DefaultVisibleSlots,
+            SuggestionPillPresentation.GetVisiblePillCount(40, expandSuggestionPills: false, isScanningSuggestions: false));
+        Assert.Equal(
+            SuggestionPillPresentation.MaxSlots,
+            SuggestionPillPresentation.GetVisiblePillCount(40, expandSuggestionPills: true, isScanningSuggestions: false));
+        Assert.Equal(5, SuggestionPillPresentation.GetVisiblePillCount(5, expandSuggestionPills: false, isScanningSuggestions: false));
+    }
+
+    [Fact]
+    public void DefaultVisibleSlots_CoversThreeRows()
+    {
+        Assert.Equal(
+            SuggestionPillPresentation.PillsPerRow * SuggestionPillPresentation.DefaultVisibleRows,
+            SuggestionPillPresentation.DefaultVisibleSlots);
+        Assert.Equal(3, SuggestionPillPresentation.DefaultVisibleRows);
+        Assert.Equal(4, SuggestionPillPresentation.PillsPerRow);
+        Assert.True(SuggestionPillPresentation.MaxSlots > SuggestionPillPresentation.DefaultVisibleSlots);
     }
 
     private static int CountOccurrences(string haystack, string needle)

@@ -63,6 +63,14 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         }
 
         var action = WorkspaceFormActionParser.Parse(payload, data);
+
+        // Cancel / discard must not merge inputs or raise Changed: that remounts the main card
+        // and can overwrite the discard prompt or swallow GoBack.
+        if (action.Kind is WorkspaceFormActionKind.Cancel or WorkspaceFormActionKind.Discard)
+        {
+            return DispatchAction(action, payload);
+        }
+
         var excludeDirectory = action.Kind is WorkspaceFormActionKind.Browse or WorkspaceFormActionKind.Paste;
 
         if (!_editor.TryApplyInputs(payload, excludeDirectory))
@@ -79,11 +87,20 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
         switch (action.Kind)
         {
             case WorkspaceFormActionKind.Save:
-                return MapResult(_editor.Save());
+                var saveResult = _editor.Save();
+                if (saveResult.Kind == WorkspaceEditResultKind.StayOpen)
+                {
+                    // Return to the main form so SaveError banner + toast are visible.
+                    _showingDiscardPrompt = false;
+                    RebuildFromState(_editor.GetState());
+                }
+
+                return MapResult(saveResult);
             case WorkspaceFormActionKind.Discard:
                 return MapResult(_editor.Discard());
             default:
-                return StayOnFormWithError(Strings.FormValues_ReadError);
+                // Unknown submit on discard prompt: stay on the prompt, do not block leaving via Discard.
+                return CommandResult.KeepOpen();
         }
     }
 
@@ -194,6 +211,11 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
     /// <summary>
     /// Applies an editor result to the form and determines the next UI command.
     /// </summary>
+    /// <remarks>
+    /// Stay-open errors must use <see cref="QuickShellStatus.ShowToast"/> (<c>ToastStatusMessage</c>)
+    /// plus <see cref="CommandResult.KeepOpen"/>, not <see cref="CommandResult.ShowToast"/>.
+    /// CmdPal treats ShowToast as toast-then-dismiss; nested KeepOpen is flaky after Adaptive Card rebuilds.
+    /// </remarks>
     /// <param name="result">The editor result to process.</param>
     /// <returns>The command that updates the form or navigates away from it.</returns>
     private CommandResult MapResult(WorkspaceEditResult result)
@@ -223,18 +245,12 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
                 return CommandResult.KeepOpen();
             case WorkspaceEditResultKind.StayOpen:
             default:
-                if (!string.IsNullOrWhiteSpace(state.SaveError))
+                var stayOpenMessage = !string.IsNullOrWhiteSpace(result.Message)
+                    ? result.Message
+                    : state.SaveError;
+                if (!string.IsNullOrWhiteSpace(stayOpenMessage))
                 {
-                    return CommandResult.ShowToast(new ToastArgs
-                    {
-                        Message = state.SaveError,
-                        Result = CommandResult.KeepOpen(),
-                    });
-                }
-
-                if (!string.IsNullOrWhiteSpace(result.Message))
-                {
-                    QuickShellStatus.ShowToast(result.Message);
+                    QuickShellStatus.ShowToast(stayOpenMessage);
                 }
 
                 return CommandResult.KeepOpen();
@@ -247,11 +263,8 @@ internal sealed partial class ShortcutForm : FormContent, IDisposable
             ? "Could not save workspace. Fix the form and try again."
             : message.Trim();
 
-        return CommandResult.ShowToast(new ToastArgs
-        {
-            Message = error,
-            Result = CommandResult.KeepOpen(),
-        });
+        QuickShellStatus.ShowToast(error);
+        return CommandResult.KeepOpen();
     }
 
     private void OnEditorChanged(object? sender, WorkspaceEditChangedEventArgs e)

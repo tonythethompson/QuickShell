@@ -5,11 +5,33 @@ namespace QuickShell.Services;
 
 internal static class SuggestionPillPresentation
 {
-    public const int MaxSlots = 16;
-    public const int DefaultVisibleSlots = 8;
-    // Titles stay readable while the single flowing ActionSet wraps across the card;
-    // full command remains on the tooltip.
+    /// <summary>Actions per Adaptive Card ActionSet row.</summary>
+    public const int PillsPerRow = 4;
+
+    /// <summary>Collapsed form shows this many ActionSet rows before "Show more".</summary>
+    public const int DefaultVisibleRows = 3;
+
+    public const int DefaultVisibleSlots = PillsPerRow * DefaultVisibleRows;
+
+    /// <summary>Hard cap on ranked pills / Adaptive Card slots (5 rows when expanded).</summary>
+    public const int MaxSlots = PillsPerRow * 5;
+
+    // Readable titles at 4 per row; full command remains on the tooltip.
     public const int DisplayTitleMaxLength = 48;
+
+    /// <summary>How many pill actions the Adaptive Card template should emit for this state.</summary>
+    public static int GetVisiblePillCount(int totalPills, bool expandSuggestionPills, bool isScanningSuggestions)
+    {
+        if (isScanningSuggestions || totalPills <= 0)
+        {
+            return 0;
+        }
+
+        var capped = Math.Min(totalPills, MaxSlots);
+        return expandSuggestionPills
+            ? capped
+            : Math.Min(capped, DefaultVisibleSlots);
+    }
 
     /// <summary>Pill button label: command text only (truncated).</summary>
     public static string FormatDisplayTitle(string command)
@@ -89,8 +111,14 @@ internal static class SuggestionPillPresentation
 
         for (var i = 0; i < pills.Count && i < MaxSlots; i++)
         {
+            // Template only contains the currently visible slots (no per-action $when).
             var visible = i < DefaultVisibleSlots || expandSuggestionPills;
             fields[$"ShowPill_{i}"] = visible ? "true" : "false";
+            if (!visible)
+            {
+                continue;
+            }
+
             fields[$"PillTitle_{i}"] = pills[i].DisplayTitle;
             fields[$"PillCommand_{i}"] = pills[i].Command;
             fields[$"PillTaskType_{i}"] = pills[i].TaskType;

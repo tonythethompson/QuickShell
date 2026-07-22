@@ -168,6 +168,38 @@ public sealed class QuickShellPageSearchTests : IDisposable
     }
 
     [Fact]
+    public void Reload_SameThreadWhileRefreshInProgress_QueuesInsteadOfDeadlocking()
+    {
+        using var page = new QuickShellPage(_context);
+        _ = page.GetItems();
+
+        SetPrivateField(page, "_refreshInProgress", true);
+        SetPrivateField(page, "_refreshThreadId", Environment.CurrentManagedThreadId);
+
+        // Favorite/pin Reload can re-enter on the fetch thread via RaiseItemsChanged →
+        // GetItems → Drain. Waiting on _refreshInProgress here used to hang forever.
+        page.Reload();
+
+        Assert.True(GetPrivateField<bool>(page, "_refreshQueued"));
+        Assert.True(GetPrivateField<bool>(page, "_refreshInProgress"));
+
+        SetPrivateField(page, "_refreshInProgress", false);
+        SetPrivateField(page, "_refreshThreadId", 0);
+        SetPrivateField(page, "_refreshQueued", false);
+
+        _repository.TogglePinned("Alpha");
+        Assert.True(_repository.GetByName("Alpha")!.IsPinned);
+
+        page.Reload();
+
+        var items = page.GetItems();
+        Assert.Contains(items.OfType<ListItem>(), item => item.Title == "Alpha");
+        Assert.Contains(
+            items.OfType<Microsoft.CommandPalette.Extensions.Toolkit.Separator>(),
+            separator => string.Equals(separator.Title, Strings.Section_Favorites, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void FallbackSearch_RefreshesAfterGitDiscoveryCompletes()
     {
         var gitRepos = new RefreshingGitRepoIndex();
