@@ -23,7 +23,16 @@ internal sealed partial class LazyMoreCommandsListItem : ListItem
     /// <summary>
     /// True after the factory has run or an explicit value was assigned.
     /// </summary>
-    internal bool HasBuiltMoreCommands => _built is not null;
+    internal bool HasBuiltMoreCommands
+    {
+        get
+        {
+            lock (_moreCommandsGate)
+            {
+                return _built is not null;
+            }
+        }
+    }
 
     public override IContextItem[] MoreCommands
     {
@@ -38,22 +47,20 @@ internal sealed partial class LazyMoreCommandsListItem : ListItem
         set
         {
             var next = value ?? [];
-            if (ReferenceEquals(_built, next))
-            {
-                return;
-            }
-
+            var changed = false;
             lock (_moreCommandsGate)
             {
-                if (ReferenceEquals(_built, next))
+                if (!ReferenceEquals(_built, next))
                 {
-                    return;
+                    _built = next;
+                    changed = true;
                 }
-
-                _built = next;
             }
 
-            OnPropertyChanged();
+            if (changed)
+            {
+                OnPropertyChanged();
+            }
         }
     }
 }
