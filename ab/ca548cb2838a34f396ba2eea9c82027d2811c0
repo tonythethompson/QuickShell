@@ -1,0 +1,19 @@
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_ce658b422942f2::t_c32e9a4ead3156 1383-1384,1471-1475,1481-1484,1570,1583-1592,1662-1689
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "abca548cb2838a34f396ba2eea9c82027d2811c0",
+  "prompts": {},
+  "sessions": {
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
