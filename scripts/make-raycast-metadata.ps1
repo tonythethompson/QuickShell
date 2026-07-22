@@ -4,12 +4,11 @@ $srcDir = 'D:\Dev\QuickShell\QuickShell\Assets'
 $dstDir = 'D:\Dev\QuickShell\QuickShell.Raycast\metadata'
 New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
 
-# Prefer Raycast UI shots that match the current single-command extension.
-# Skip Screenshot_Raycast_2.png: root-search shows multiple commands that are no longer separate entries.
+# Order for Store carousel: list first, then create, then edit/companion fields.
 $map = @(
-  @{ Src = 'Screenshot_Raycast_4.png'; Dst = 'quickshell-1.png' },
-  @{ Src = 'Screenshot_Raycast_1.png'; Dst = 'quickshell-2.png' },
-  @{ Src = 'Screenshot_Raycast_3.png'; Dst = 'quickshell-3.png' }
+  @{ Src = 'Screenshot_Raycast_3.png'; Dst = 'quickshell-1.png' }, # Open Workspace list
+  @{ Src = 'Screenshot_Raycast_1.png'; Dst = 'quickshell-2.png' }, # Create Workspace
+  @{ Src = 'Screenshot_Raycast_2.png'; Dst = 'quickshell-3.png' }  # Edit / companion + URLs
 )
 
 $targetW = 2000
@@ -39,5 +38,3 @@ foreach ($item in $map) {
   $len = (Get-Item $dstPath).Length
   Write-Host ("{0} <- {1} ({2:N0} KB)" -f $item.Dst, $item.Src, ($len / 1KB))
 }
-
-Get-ChildItem $dstDir | Format-Table Name, Length
