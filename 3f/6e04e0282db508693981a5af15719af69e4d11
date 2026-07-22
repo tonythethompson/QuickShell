@@ -1,0 +1,42 @@
+QuickShell.Raycast/src/settings.tsx
+  s_07f7b19f38af22::t_cffedd61ec99ed 22-23
+  s_07f7b19f38af22::t_1bd52432f4745d 117-131,161-170
+QuickShell.Raycast/src/lib/terminal-options.ts
+  s_07f7b19f38af22::t_bb727d2eb87281 1,6-9
+  s_07f7b19f38af22::t_6d29af9b0b8ada 10-12
+  s_07f7b19f38af22::t_54495b6a51ded0 13
+QuickShell.Raycast/src/__tests__/terminal-catalog.test.ts
+  s_07f7b19f38af22::t_8c4679874c1457 5
+  s_07f7b19f38af22::t_7db7954aa8f8d9 18-27
+QuickShell.Raycast/src/__tests__/extension-preferences.test.ts
+  s_07f7b19f38af22::t_0a2bc31867e36c 2
+  s_07f7b19f38af22::t_b52870d4f37e95 29-35
+QuickShell.Raycast/src/__tests__/easy-gaps.test.ts
+  s_07f7b19f38af22::t_178af795db5477 105-145
+QuickShell.Raycast/src/lib/migration.ts
+  s_07f7b19f38af22::t_2d69c947ad51da 12
+QuickShell.Raycast/src/lib/preferences.ts
+  s_07f7b19f38af22::t_c03582e07fb2e6 4,15
+QuickShell.Raycast/src/lib/storage.ts
+  s_07f7b19f38af22::t_5c836191ccab1a 444,459-461,465-473,479
+QuickShell.Raycast/src/lib/terminal-catalog.ts
+  s_07f7b19f38af22::t_5b7e8c13ede9e5 106,110-114
+QuickShell.Raycast/src/open-workspace.tsx
+  s_07f7b19f38af22::t_dfa9eb1e57260c 329,333-341,739-748
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3f6e04e0282db508693981a5af15719af69e4d11",
+  "prompts": {},
+  "sessions": {
+    "s_07f7b19f38af22": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4fe3e176-360a-4bb2-8ae2-acf92ca9ebd0",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
