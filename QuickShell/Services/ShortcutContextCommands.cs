@@ -3,12 +3,28 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Models;
 using QuickShell.Pages;
+using System.Threading;
 using Windows.System;
 
 namespace QuickShell.Services;
 
 internal static class ShortcutContextCommands
 {
+    private static int _buildInvocationCount;
+
+    /// <summary>
+    /// Counts leaf <c>Build</c> / <c>BuildRepairOnly</c> constructions for critical-path
+    /// contract tests (nested wrappers such as <c>BuildForHomePin</c> do not double-count).
+    /// Reset only from tests that run under an exclusive collection.
+    /// </summary>
+    internal static int BuildInvocationCount => Volatile.Read(ref _buildInvocationCount);
+
+    internal static void ResetBuildInvocationCount() =>
+        Interlocked.Exchange(ref _buildInvocationCount, 0);
+
+    private static void NoteBuildInvocation() =>
+        Interlocked.Increment(ref _buildInvocationCount);
+
     private const int HoverOrderMoveToTop = -25;
     private const int HoverOrderMoveUp = -20;
     private const int HoverOrderMoveDown = -10;
@@ -64,6 +80,7 @@ internal static class ShortcutContextCommands
             return BuildRepairOnly(context, shortcut, onChanged);
         }
 
+        NoteBuildInvocation();
         var items = new List<CommandContextItem>();
 
         // Open
@@ -202,6 +219,7 @@ internal static class ShortcutContextCommands
         ArgumentNullException.ThrowIfNull(shortcut);
         ArgumentNullException.ThrowIfNull(onChanged);
 
+        NoteBuildInvocation();
         var items = new List<CommandContextItem>();
 
         AddStatusCommand(context, items, shortcut, onChanged);

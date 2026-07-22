@@ -155,6 +155,36 @@ public sealed class CriticalPathContractTests : IDisposable
         }
     }
 
+    [Fact]
+    public void FirstListConstruction_DoesNotBuildContextMenusEagerly()
+    {
+        ShortcutContextCommands.ResetBuildInvocationCount();
+
+        var repository = new FakeShortcutRepository(
+        [
+            BuildShortcut("ws-1", _tempRoot),
+            BuildShortcut("ws-2", _tempRoot),
+            BuildShortcut("ws-3", _tempRoot),
+        ]);
+        var context = BuildPageContext(repository, out _);
+        using var page = new QuickShellPage(context);
+
+        var items = page.GetItems();
+
+        Assert.True(items.Length >= 3);
+        Assert.Equal(0, ShortcutContextCommands.BuildInvocationCount);
+
+        // Selecting a workspace row (host SlowInitialize) materializes that row's menu only.
+        var workspaceRow = items.OfType<LazyMoreCommandsListItem>().FirstOrDefault();
+        Assert.NotNull(workspaceRow);
+        Assert.False(workspaceRow.HasBuiltMoreCommands);
+
+        _ = workspaceRow.MoreCommands;
+
+        Assert.True(workspaceRow.HasBuiltMoreCommands);
+        Assert.Equal(1, ShortcutContextCommands.BuildInvocationCount);
+    }
+
     // --- Root palette ---------------------------------------------------------------------
 
     [Fact]

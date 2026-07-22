@@ -35,15 +35,12 @@ Today, list construction reuses `ShortcutHealth.WouldNeedRepair(shortcut, requir
 throughout so directory reachability is never checked synchronously; git tags/status are
 read from `WorkspaceStatusService`'s cache only (`TryGetCached`, never `Capture`); and
 Windows Terminal profile icon upgrades run on a background `Task.Run` after the list is
-already published, applied through `IExtensionCallbackQueue`.
-
-> **Known gap, tracked separately:** every row's `MoreCommands` context menu is still built
-> eagerly during first list construction (`ShortcutContextCommands.Build`), reused across
-> refreshes only via `QuickShellPage`'s `_unpinnedItemCache`. Lazy per-row menu construction
-> is the subject of a follow-on PR; the immutable row-presentation cache is deployed. This harness
-> measures `workspace-list` cold/warm construction cost today specifically so that change has
-> a baseline to compare against, and `CriticalPathContractTests` intentionally does not assert
-> "no menus built on first paint" until lazy menu construction lands.
+already published, applied through `IExtensionCallbackQueue`. Per-row `MoreCommands` menus
+are deferred via `LazyMoreCommandsListItem`: `ShortcutContextCommands.Build*` runs on first
+property read (CmdPal selection-time SlowInitialize), not during first paint. Unpinned rows
+still reuse already-built `ListItem`s across favorite moves via `QuickShellPage`'s
+`_unpinnedItemCache`. `CriticalPathContractTests.FirstListConstruction_DoesNotBuildContextMenusEagerly`
+enforces the no-eager-menus rule.
 
 **Root-palette typing** (`QuickShellFallback.UpdateQuery`) must not:
 - reacquire multiple repository snapshots per query

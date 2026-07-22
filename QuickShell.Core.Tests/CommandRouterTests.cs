@@ -155,7 +155,7 @@ public sealed class CommandRouterTests : IDisposable
             router.TryHandle(commandId, context, out var item),
             $"Router should handle {commandId}");
         Assert.NotNull(item);
-        var listItem = Assert.IsType<ListItem>(item);
+        var listItem = Assert.IsAssignableFrom<ListItem>(item);
         Assert.IsType<TCommand>(listItem.Command);
     }
 

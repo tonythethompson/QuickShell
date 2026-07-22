@@ -308,32 +308,25 @@ public sealed class PerformanceRegressionHarnessTests : IDisposable
     private void MeasureTerminalDiscovery(BenchmarkReport report)
     {
         const string category = "terminal-discovery";
-        var services = new ServiceCollection().AddQuickShellCore(Path.Join(_tempRoot, "term-discovery")).BuildServiceProvider();
-        try
-        {
-            var catalog = services.GetRequiredService<ITerminalCatalog>();
-            catalog.InvalidateCache();
+        using var services = new ServiceCollection().AddQuickShellCore(Path.Join(_tempRoot, "term-discovery")).BuildServiceProvider();
+        var catalog = services.GetRequiredService<ITerminalCatalog>();
+        catalog.InvalidateCache();
 
-            report.Add(BenchmarkRunner.MeasureOnce(
-                "cold GetLaunchTargets (after InvalidateCache)",
-                category,
-                () => _ = catalog.GetLaunchTargets()));
+        report.Add(BenchmarkRunner.MeasureOnce(
+            "cold GetLaunchTargets (after InvalidateCache)",
+            category,
+            () => _ = catalog.GetLaunchTargets()));
 
-            report.Add(BenchmarkRunner.Measure(
-                "warm GetLaunchTargets (cached snapshot)",
-                category,
-                () => _ = catalog.GetLaunchTargets()));
+        report.Add(BenchmarkRunner.Measure(
+            "warm GetLaunchTargets (cached snapshot)",
+            category,
+            () => _ = catalog.GetLaunchTargets()));
 
-            catalog.InvalidateCache();
-            report.Add(BenchmarkRunner.MeasureOnce(
-                "cold GetLaunchTargets rebuild (second InvalidateCache)",
-                category,
-                () => _ = catalog.GetLaunchTargets()));
-        }
-        finally
-        {
-            services.Dispose();
-        }
+        catalog.InvalidateCache();
+        report.Add(BenchmarkRunner.MeasureOnce(
+            "cold GetLaunchTargets rebuild (second InvalidateCache)",
+            category,
+            () => _ = catalog.GetLaunchTargets()));
     }
 
     // --- Launch ------------------------------------------------------------------------

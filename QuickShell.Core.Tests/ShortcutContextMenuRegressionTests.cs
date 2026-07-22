@@ -141,7 +141,11 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
             shortcut,
             onChanged: () => { });
 
+        var lazy = Assert.IsType<LazyMoreCommandsListItem>(item);
+        Assert.False(lazy.HasBuiltMoreCommands);
+
         Assert.NotNull(item.MoreCommands);
+        Assert.True(lazy.HasBuiltMoreCommands);
         var titles = GetTitles(item.MoreCommands!);
 
         AssertContainsAll(
