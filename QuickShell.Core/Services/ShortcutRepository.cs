@@ -1250,10 +1250,21 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
         if (coercedTrust)
         {
             // Persist so a later re-enable does not revive pre-kill-switch denials.
-            WriteLayoutAtomic(_layout);
-            _lastWriteTimeUtc = File.Exists(ConfigPath)
-                ? File.GetLastWriteTimeUtc(ConfigPath)
-                : DateTime.MinValue;
+            // Best-effort: a mutex timeout or I/O failure must not undo the already-loaded
+            // layout via EnsureLoaded's catch → RestoreLastGoodLayout().
+            try
+            {
+                WriteLayoutAtomic(_layout);
+                _lastWriteTimeUtc = File.Exists(ConfigPath)
+                    ? File.GetLastWriteTimeUtc(ConfigPath)
+                    : DateTime.MinValue;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                RepositoryDiagnostics.Report(
+                    "ShortcutRepository.ApplyLoadedLayout",
+                    "trust-coerce-persist-failed");
+            }
         }
 
         TryMigrateLegacyWorkspacesLocked();
