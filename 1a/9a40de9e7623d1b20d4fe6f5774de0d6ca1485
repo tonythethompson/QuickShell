@@ -1,0 +1,36 @@
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_911d943b6fabb8::t_843af956ebb428 7-11,13,15-24
+  s_ce658b422942f2::t_5312c2c92d0c39 25,37-43
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_ce658b422942f2::t_de7661fcf0bf77 88-110
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_ce658b422942f2::t_0f449b651c6cb5 10-12
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_ce658b422942f2::t_7ff4a8d12c63d6 53-54
+docs/architecture/intelligence.md
+  s_911d943b6fabb8::t_1f9808062ad7c4 75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1a9a40de9e7623d1b20d4fe6f5774de0d6ca1485",
+  "prompts": {},
+  "sessions": {
+    "s_911d943b6fabb8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0436738e-feec-4fcf-accd-54fe4a411a60",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
