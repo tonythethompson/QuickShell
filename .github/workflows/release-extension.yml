@@ -171,6 +171,9 @@ jobs:
       WINGET_RELEASE_NOTES: ${{ github.event.inputs.release_notes || 'Quick Shell release for PowerToys Command Palette and Run.' }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install WingetCreate
         run: |
           winget install --id Microsoft.WingetCreate -e --source winget `
