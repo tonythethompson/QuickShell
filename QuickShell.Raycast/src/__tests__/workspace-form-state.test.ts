@@ -5,6 +5,7 @@ import {
   buildWorkspaceFromFormState,
   filterWorkspacesForEdit,
   launchRowsFromSuggestions,
+  terminalForAddedLaunch,
   workspaceFormStateFromWorkspace,
 } from "../lib/workspace-form-state";
 
@@ -47,7 +48,13 @@ const multiLaunchWorkspace: Workspace = {
 };
 
 const defaultExtras = {
-  companions: [] as Array<{ id: string; path: string; arguments: string; openOnLaunch: boolean }>,
+  companions: [] as Array<{
+    id: string;
+    presetId: string;
+    path: string;
+    arguments: string;
+    openOnLaunch: boolean;
+  }>,
   devServerUrl: "",
   openDevServerOnLaunch: false,
   repoUrl: "",
@@ -223,8 +230,21 @@ describe("workspace-form-state", () => {
 
     expect(rows).toHaveLength(2);
     expect(rows[0].command).toBe("npm run dev");
+    expect(rows[0].terminal).toBe("wt");
     expect(rows[1].label).toBe("Tests");
-    expect(rows.every((row) => row.terminal === "wt")).toBe(true);
+    expect(rows[1].terminal).toBe("same-as-previous");
+  });
+
+  it("defaults added launch terminal like CmdPal (default then same-as-previous)", () => {
+    expect(terminalForAddedLaunch([], "default")).toEqual({ terminal: "default", wtProfile: null });
+    expect(terminalForAddedLaunch([{ command: "" }], "default")).toEqual({
+      terminal: "default",
+      wtProfile: null,
+    });
+    expect(terminalForAddedLaunch([{ command: "npm start" }], "default")).toEqual({
+      terminal: "same-as-previous",
+      wtProfile: null,
+    });
   });
 
   it("filters workspaces for edit by name and launch text", () => {

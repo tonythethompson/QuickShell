@@ -46,6 +46,17 @@ internal static class SuggestionPillPresentation
     }
 
     /// <summary>
+    /// CmdPal Adaptive Card title: optional type-color emoji + truncated command.
+    /// Run/Raycast keep <see cref="FormatDisplayTitle"/> and paint color in chrome instead.
+    /// </summary>
+    public static string FormatCardTitle(string? taskType, string command)
+    {
+        var body = FormatDisplayTitle(command);
+        var marker = TaskTypeCatalog.GetMarkerEmoji(taskType);
+        return string.IsNullOrEmpty(marker) ? body : $"{marker} {body}";
+    }
+
+    /// <summary>
     /// Hover text: category and optional product/friendly name, plus the command.
     /// Examples: <c>Test · npm test</c>, <c>Agent · Claude Code — … Adds `claude`.</c>
     /// </summary>
@@ -115,6 +126,7 @@ internal static class SuggestionPillPresentation
             fields[$"PillTitle_{i}"] = string.Empty;
             fields[$"PillCommand_{i}"] = string.Empty;
             fields[$"PillTaskType_{i}"] = TaskTypeCatalog.None;
+            fields[$"PillStyle_{i}"] = "default";
             fields[$"PillTooltip_{i}"] = string.Empty;
         }
 
@@ -137,9 +149,10 @@ internal static class SuggestionPillPresentation
                 continue;
             }
 
-            fields[$"PillTitle_{i}"] = pills[i].DisplayTitle;
+            fields[$"PillTitle_{i}"] = FormatCardTitle(pills[i].TaskType, pills[i].Command);
             fields[$"PillCommand_{i}"] = pills[i].Command;
             fields[$"PillTaskType_{i}"] = pills[i].TaskType;
+            fields[$"PillStyle_{i}"] = TaskTypeCatalog.GetAdaptiveCardActionStyle(pills[i].TaskType);
             fields[$"PillTooltip_{i}"] = pills[i].Tooltip;
         }
 
@@ -163,8 +176,13 @@ internal static class SuggestionPillPresentation
         var ranked = commandSuggestions.GetPills(directory, usedCommands, projectAnalysis);
 
         // Loosely group same-type pills together for display (Agent, Test, Services, ...).
-        // OrderBy is stable, so within each type group pills keep GetPills' original score
-        // order -- this only reorders across groups, ranking within a group is untouched.
-        return ranked.OrderBy(pill => pill.TypeTitle, StringComparer.OrdinalIgnoreCase).ToList();
+        // Group order follows each type's best score so lower-scored agents sink below
+        // Build/API/Test. Within a group, GetPills' score order is preserved (GroupBy is stable).
+        return ranked
+            .GroupBy(pill => pill.TypeTitle, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(group => group.Max(pill => pill.Score))
+            .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(group => group)
+            .ToList();
     }
 }

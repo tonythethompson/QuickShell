@@ -53,9 +53,14 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         for (var i = 0; i < pills.Count && i < SuggestionPillPresentation.MaxSlots; i++)
         {
             Assert.Equal("true", fields[$"ShowPill_{i}"]);
-            Assert.Equal(pills[i].DisplayTitle, fields[$"PillTitle_{i}"]);
+            Assert.Equal(
+                SuggestionPillPresentation.FormatCardTitle(pills[i].TaskType, pills[i].Command),
+                fields[$"PillTitle_{i}"]);
             Assert.Equal(pills[i].Command, fields[$"PillCommand_{i}"]);
             Assert.Equal(pills[i].TaskType, fields[$"PillTaskType_{i}"]);
+            Assert.Equal(
+                TaskTypeCatalog.GetAdaptiveCardActionStyle(pills[i].TaskType),
+                fields[$"PillStyle_{i}"]);
         }
     }
 
@@ -141,6 +146,14 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     }
 
     [Fact]
+    public void FormatCardTitle_PrefixesKnownTypesWithMarkerEmoji()
+    {
+        Assert.Equal("🟡 npm test", SuggestionPillPresentation.FormatCardTitle(TaskTypeCatalog.Test, "npm test"));
+        Assert.Equal("🟣 claude", SuggestionPillPresentation.FormatCardTitle(TaskTypeCatalog.Agent, "claude"));
+        Assert.Equal("npm test", SuggestionPillPresentation.FormatCardTitle(TaskTypeCatalog.None, "npm test"));
+    }
+
+    [Fact]
     public void BuildSuggestionPillsBlock_EmitsExactVisibleActionsWithoutWhen()
     {
         const int visible = 10;
@@ -153,6 +166,7 @@ public sealed class SuggestionPillPresentationTests : IDisposable
         Assert.Contains("\"pillIndex\": 0", json, StringComparison.Ordinal);
         Assert.Contains("\"pillIndex\": 9", json, StringComparison.Ordinal);
         Assert.DoesNotContain("\"pillIndex\": 10", json, StringComparison.Ordinal);
+        Assert.Contains("\"style\": \"${PillStyle_0}\"", json, StringComparison.Ordinal);
     }
 
     [Fact]

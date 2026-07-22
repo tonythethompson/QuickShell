@@ -11,7 +11,7 @@ export type LaunchDiagnosticsReport = {
 };
 
 export function formatLaunchDiagnostics(report: LaunchDiagnosticsReport): string {
-  const lines = [`QuickShell launch diagnostics`, `Title: ${report.title}`];
+  const lines = [`Quick Shell launch diagnostics`, `Title: ${report.title}`];
   if (report.workspaceName) {
     lines.push(`Workspace: ${report.workspaceName}`);
   }

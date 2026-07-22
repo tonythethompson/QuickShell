@@ -9,19 +9,21 @@ import {
   List,
   confirmAlert,
   open,
+  openExtensionPreferences,
   showToast,
   Toast,
   updateCommandMetadata,
   Keyboard,
 } from "@raycast/api";
-import { usePromise } from "@raycast/utils";
+import { createDeeplink, usePromise } from "@raycast/utils";
 import { useEffect, useMemo, useState } from "react";
+import DiscoverGitReposView from "./components/discover-git-repos-view";
 import EditWorkspaceView from "./components/edit-workspace-view";
 import WindowsRequiredView from "./components/windows-required-view";
 import WorkspaceForm from "./components/workspace-form";
 import SetTargetBranchForm from "./components/set-target-branch-form";
 import AddSeparatorForm from "./components/add-separator-form";
-import { createBlankWorkspace } from "./lib/create-workspace-initial";
+import { createBlankWorkspace, createWorkspaceFromDirectory } from "./lib/create-workspace-initial";
 import {
   showAuthorizationFailure,
   showHealthFailure,
@@ -32,18 +34,25 @@ import {
 import { executeWorkspaceLaunch } from "./lib/launch-executor";
 import type { LaunchDiagnosticsReport } from "./lib/launch-diagnostics";
 import { raycastExec } from "./lib/raycast-exec";
-import { buildBrowseSections, buildSearchResults } from "./lib/ranking";
+import { buildBrowseSections, buildSearchResults, getMostRecentlyUsedWorkspaces } from "./lib/ranking";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
 import { hasAbbreviationMatch, searchTaskActions, searchWorkspaces } from "./lib/search";
 import { isRecentSectionEnabled, RECENT_SECTION_TITLE } from "./lib/settings";
 import type { LaunchEntry, LayoutEntry, QuickShellSettings, Workspace } from "./lib/schema";
 import { assessWorkspaceHealthWithPortProbe } from "./lib/workspace-health";
-import { buildWorkspaceHealthIndexWithPorts, lookupWorkspaceHealth } from "./lib/workspace-health-index";
+import { buildWorkspaceHealthIndex, lookupWorkspaceHealth } from "./lib/workspace-health-index";
 import type { WorkspaceHealthIndex } from "./lib/workspace-health-index";
 import { WORKSPACE_LIST_ICON } from "./lib/extension-assets";
-import { resolveOpenWorkspaceSearchSeed, type OpenWorkspaceLaunchContext } from "./lib/launch-context";
+import {
+  resolveOpenWorkspaceInitialMode,
+  resolveOpenWorkspaceSearchSeed,
+  type OpenWorkspaceLaunchContext,
+} from "./lib/launch-context";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
+import { discoverWorkspaceTerminalChoices, invalidateTerminalCatalogCache } from "./lib/terminal-catalog";
+import { getDefaultProfileChoices } from "./lib/terminal-options";
+import { getQuickShellSettingsFromPreferences } from "./lib/extension-preferences";
 import { buildSelectedLaunchWorkspace, buildWorkspaceLaunchPlan } from "./lib/windows-launch";
 import {
   authorize,
@@ -84,34 +93,62 @@ type SectionGroup = {
 export default function OpenWorkspaceCommand({
   fallbackText,
   launchContext,
-}: LaunchProps<{ launchContext?: OpenWorkspaceLaunchContext }>) {
-  const [searchText, setSearchText] = useState(() => resolveOpenWorkspaceSearchSeed(fallbackText, launchContext));
+  arguments: commandArguments,
+}: LaunchProps<{
+  launchContext?: OpenWorkspaceLaunchContext;
+  arguments?: { query?: string };
+}>) {
+  const [searchText, setSearchText] = useState(() => {
+    const fromArgs = commandArguments?.query?.trim();
+    return fromArgs || resolveOpenWorkspaceSearchSeed(fallbackText, launchContext);
+  });
+  const [selectedItemId, setSelectedItemId] = useState<string | undefined>(() =>
+    launchContext?.focusWorkspaceId?.trim() || undefined,
+  );
+  const [hubMode, setHubMode] = useState(() => resolveOpenWorkspaceInitialMode(launchContext));
   const storage = getQuickShellStorage();
+  const preferences = getQuickShellSettingsFromPreferences();
+  const [healthIndex, setHealthIndex] = useState<WorkspaceHealthIndex>(() => new Map());
 
-  const { data, isLoading, error, revalidate } = usePromise(async (): Promise<LoadedData> => {
-    const [workspaces, settings, layoutEntries, branchTargets] = await Promise.all([
-      storage.getWorkspaces(),
-      storage.getSettings(),
-      storage.getLayoutEntries(),
-      storage.getBranchTargets(),
-    ]);
-    const securityEntries = await Promise.all(
-      workspaces.map(async (workspace) => [workspace.id, await storage.getWorkspaceSecurity(workspace.id)] as const),
-    );
-    const healthIndex = await buildWorkspaceHealthIndexWithPorts(workspaces, settings);
-    return {
-      workspaces,
-      settings,
-      layoutEntries,
-      branchTargets,
-      healthIndex,
-      securityById: Object.fromEntries(
-        securityEntries.map(([id, security]) => [id, security ?? { isTrusted: true, revision: 1 }]),
-      ),
-      canUndo: storage.canUndo(),
-      canRedo: storage.canRedo(),
-    };
-  }, []);
+  const { data: storageData, isLoading, error, revalidate } = usePromise(
+    async (): Promise<Omit<LoadedData, "healthIndex">> => {
+      const [workspaces, settings, layoutEntries, branchTargets] = await Promise.all([
+        storage.getWorkspaces(),
+        storage.getSettings(),
+        storage.getLayoutEntries(),
+        storage.getBranchTargets(),
+      ]);
+
+      const securityById = isWorkspaceTrustEnabled()
+        ? await storage.getWorkspaceSecurityMap()
+        : Object.fromEntries(workspaces.map((workspace) => [workspace.id, { isTrusted: true, revision: 1 }]));
+
+      return {
+        workspaces,
+        settings,
+        layoutEntries,
+        branchTargets,
+        securityById,
+        canUndo: storage.canUndo(),
+        canRedo: storage.canRedo(),
+      };
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!storageData || hubMode !== "list") {
+      return;
+    }
+    setHealthIndex(buildWorkspaceHealthIndex(storageData.workspaces, storageData.settings));
+  }, [storageData, hubMode]);
+
+  const data: LoadedData | undefined = storageData
+    ? {
+        ...storageData,
+        healthIndex,
+      }
+    : undefined;
 
   useLoadErrorToast(error, "Failed to load workspaces");
 
@@ -196,15 +233,23 @@ export default function OpenWorkspaceCommand({
       return;
     }
 
-    const count = data.workspaces.length;
-    void updateCommandMetadata({
-      subtitle: count === 0 ? "No workspaces" : count === 1 ? "1 workspace" : `${count} workspaces`,
-    });
+    const recent = getMostRecentlyUsedWorkspaces(data.workspaces, 3);
+    const subtitle =
+      recent.length === 0 ? "No workspaces" : recent.map((workspace) => workspace.name.trim()).filter(Boolean).join(" · ");
+
+    void updateCommandMetadata({ subtitle });
 
     return () => {
       void updateCommandMetadata({ subtitle: null });
     };
-  }, [data?.workspaces.length]);
+  }, [data?.workspaces]);
+
+  async function surfaceCreatedWorkspace(workspace: Workspace) {
+    setHubMode("list");
+    setSearchText("");
+    setSelectedItemId(workspace.id);
+    await revalidate();
+  }
 
   async function handleOpen(
     workspace: Workspace,
@@ -486,7 +531,7 @@ export default function OpenWorkspaceCommand({
         await showToast({
           style: Toast.Style.Failure,
           title: "Clipboard empty",
-          message: "Copy QuickShell JSON first.",
+          message: "Copy Quick Shell JSON first.",
         });
         return;
       }
@@ -534,6 +579,22 @@ export default function OpenWorkspaceCommand({
     await showToast({ style: Toast.Style.Success, title: "Redo", message: "Restored the last undone change." });
   }
 
+  async function handleRefreshTerminals() {
+    try {
+      invalidateTerminalCatalogCache();
+      const terminals = discoverWorkspaceTerminalChoices({ includeSlowProbes: true });
+      const profileTerminal = preferences.terminalApplication === "system" ? "wt" : preferences.terminalApplication;
+      const profiles = getDefaultProfileChoices(profileTerminal);
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Terminal list refreshed",
+        message: `${terminals.length} terminals, ${profiles.length} profiles`,
+      });
+    } catch (refreshError) {
+      await showStorageFailure("Refresh terminal list", refreshError);
+    }
+  }
+
   async function handleClearTargetBranch(workspace: Workspace) {
     try {
       const stored = await storage.getStoredWorkspace(workspace.id);
@@ -577,6 +638,206 @@ export default function OpenWorkspaceCommand({
     return <WindowsRequiredView />;
   }
 
+  if (hubMode === "discover") {
+    return (
+      <DiscoverGitReposView
+        popOnAdd={false}
+        onWorkspaceAdded={async (workspace) => {
+          await surfaceCreatedWorkspace(workspace);
+        }}
+      />
+    );
+  }
+
+  if (hubMode === "create") {
+    return (
+      <WorkspaceForm
+        mode="create"
+        initialWorkspace={createWorkspaceFromDirectory(launchContext?.createDirectory)}
+        enableDrafts={!launchContext?.createDirectory}
+        popOnSave={false}
+        onCreated={async (workspace) => {
+          await surfaceCreatedWorkspace(workspace);
+        }}
+      />
+    );
+  }
+
+  if (hubMode === "edit") {
+    const editId = launchContext?.editWorkspaceId?.trim();
+    if (!editId) {
+      return (
+        <List>
+          <List.EmptyView
+            icon={Icon.ExclamationMark}
+            title="Workspace not found"
+            description="No workspace id was provided."
+          />
+        </List>
+      );
+    }
+    return (
+      <EditWorkspaceView
+        workspaceId={editId}
+        popOnSave={false}
+        onSaved={async () => {
+          await revalidate();
+          setHubMode("list");
+        }}
+      />
+    );
+  }
+
+  function createWorkspaceTarget() {
+    return (
+      <WorkspaceForm
+        mode="create"
+        initialWorkspace={createBlankWorkspace()}
+        enableDrafts
+        onCreated={async (workspace) => {
+          await surfaceCreatedWorkspace(workspace);
+        }}
+      />
+    );
+  }
+
+  function discoverReposTarget() {
+    return (
+      <DiscoverGitReposView
+        onWorkspaceAdded={async (workspace) => {
+          await surfaceCreatedWorkspace(workspace);
+        }}
+      />
+    );
+  }
+
+  function renderRecentAndTransferActions() {
+    const recent = data ? getMostRecentlyUsedWorkspaces(data.workspaces, 3) : [];
+    return (
+      <>
+        {recent.length > 0 ? (
+          <ActionPanel.Section title="Recent">
+            {recent.map((workspace) => (
+              <Action
+                key={`recent:${workspace.id}`}
+                title={workspace.name}
+                icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
+                onAction={() => handleOpen(workspace)}
+              />
+            ))}
+          </ActionPanel.Section>
+        ) : null}
+        <ActionPanel.Section title="Transfer">
+          <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
+          <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
+        </ActionPanel.Section>
+      </>
+    );
+  }
+
+  function renderAddWorkspaceSection() {
+    return (
+      <ActionPanel.Section title="Add">
+        <Action.Push
+          title="Create Workspace"
+          icon={Icon.Plus}
+          shortcut={Keyboard.Shortcut.Common.New}
+          target={createWorkspaceTarget()}
+        />
+        <Action.Push title="Discover Git Repos" icon={Icon.MagnifyingGlass} target={discoverReposTarget()} />
+      </ActionPanel.Section>
+    );
+  }
+
+  function renderHubEntryItems() {
+    return (
+      <>
+        <List.Item
+          title="Create workspace"
+          subtitle="Add a folder as a workspace"
+          icon={Icon.Plus}
+          keywords={["create", "new", "add", "workspace"]}
+          actions={
+            <ActionPanel>
+              <Action.Push
+                title="Create Workspace"
+                icon={Icon.Plus}
+                shortcut={Keyboard.Shortcut.Common.New}
+                target={createWorkspaceTarget()}
+              />
+              {renderRecentAndTransferActions()}
+              <Action.Push title="Discover Git Repos" icon={Icon.MagnifyingGlass} target={discoverReposTarget()} />
+              <Action title="Extension Preferences" icon={Icon.Gear} onAction={() => openExtensionPreferences()} />
+            </ActionPanel>
+          }
+        />
+        <List.Item
+          title="Discover git repos"
+          subtitle="Scan local folders and add as workspaces"
+          icon={Icon.MagnifyingGlass}
+          keywords={["discover", "git", "scan", "repos"]}
+          actions={
+            <ActionPanel>
+              <Action.Push title="Discover Git Repos" icon={Icon.MagnifyingGlass} target={discoverReposTarget()} />
+              {renderRecentAndTransferActions()}
+              <Action.Push
+                title="Create Workspace"
+                icon={Icon.Plus}
+                shortcut={Keyboard.Shortcut.Common.New}
+                target={createWorkspaceTarget()}
+              />
+              <Action title="Extension Preferences" icon={Icon.Gear} onAction={() => openExtensionPreferences()} />
+            </ActionPanel>
+          }
+        />
+      </>
+    );
+  }
+
+  function renderHubActions() {
+    return (
+      <ActionPanel>
+        {renderRecentAndTransferActions()}
+        {renderAddWorkspaceSection()}
+        <ActionPanel.Section title="Layout">
+          <Action.Push
+            title="Add Section Separator"
+            icon={Icon.Minus}
+            target={
+              <AddSeparatorForm
+                onSaved={async () => {
+                  await revalidate();
+                }}
+              />
+            }
+          />
+        </ActionPanel.Section>
+        <ActionPanel.Section title="History">
+          <Action
+            title="Undo"
+            icon={Icon.ArrowCounterClockwise}
+            shortcut={{ modifiers: ["cmd"], key: "z" }}
+            onAction={handleUndo}
+          />
+          <Action
+            title="Redo"
+            icon={Icon.ArrowClockwise}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "z" }}
+            onAction={handleRedo}
+          />
+        </ActionPanel.Section>
+        <ActionPanel.Section title="Settings">
+          <Action title="Extension Preferences" icon={Icon.Gear} onAction={() => openExtensionPreferences()} />
+          <Action
+            title="Refresh Terminal / Profile List"
+            icon={Icon.ArrowClockwise}
+            onAction={handleRefreshTerminals}
+          />
+        </ActionPanel.Section>
+      </ActionPanel>
+    );
+  }
+
   function renderSeparatorItem(row: SeparatorRow) {
     return (
       <List.Item
@@ -603,6 +864,8 @@ export default function OpenWorkspaceCommand({
                 />
               }
             />
+            {renderRecentAndTransferActions()}
+            {renderAddWorkspaceSection()}
           </ActionPanel>
         }
       />
@@ -643,10 +906,18 @@ export default function OpenWorkspaceCommand({
 
     return (
       <List.Item
+        id={launch ? `${workspace.id}:${launch.id}` : workspace.id}
         key={launch ? `${workspace.id}:${launch.id}` : workspace.id}
         title={title}
         subtitle={health.ok ? workspaceSubtitle(workspace, launch) : health.issues[0]?.message}
         icon={workspace.isPinned ? Icon.Star : WORKSPACE_LIST_ICON}
+        keywords={[
+          workspace.name,
+          workspace.abbreviation ?? "",
+          workspace.directory,
+          launch?.label ?? "",
+          launch?.command ?? "",
+        ].filter(Boolean)}
         accessories={accessories}
         actions={
           <ActionPanel>
@@ -677,7 +948,22 @@ export default function OpenWorkspaceCommand({
               {workspace.repoUrl ? (
                 <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}
+              <Action.CreateQuicklink
+                title="Add to Root Search"
+                icon={Icon.Link}
+                quicklink={{
+                  name: workspace.name,
+                  link: createDeeplink({
+                    command: "open-workspace",
+                    context: {
+                      focusWorkspaceId: workspace.id,
+                      focusWorkspaceName: workspace.name,
+                    } satisfies OpenWorkspaceLaunchContext,
+                  }),
+                }}
+              />
             </ActionPanel.Section>
+            {renderRecentAndTransferActions()}
             {!isWorkspaceTrustEnabled() || security.isTrusted ? (
               <ActionPanel.Section title="Git">
                 <Action.Push
@@ -785,6 +1071,7 @@ export default function OpenWorkspaceCommand({
                 shortcut={{ modifiers: ["cmd"], key: "c" }}
               />
             </ActionPanel.Section>
+            {renderAddWorkspaceSection()}
           </ActionPanel>
         }
       />
@@ -795,90 +1082,39 @@ export default function OpenWorkspaceCommand({
     if ("kind" in row && row.kind === "separator") {
       return renderSeparatorItem(row);
     }
-    return renderWorkspaceItem(row);
+    return renderWorkspaceItem(row as WorkspaceRow);
   }
 
   return (
     <List
       isLoading={isLoading}
       searchText={searchText}
-      onSearchTextChange={setSearchText}
+      onSearchTextChange={(text) => {
+        setSearchText(text);
+        setSelectedItemId(undefined);
+      }}
+      selectedItemId={selectedItemId}
       searchBarPlaceholder="Search workspaces (qs, home keyword, name, launch...)"
+      filtering={false}
       throttle
-      actions={
-        <ActionPanel>
-          <ActionPanel.Section title="Workspaces">
-            <Action.Push
-              title="Create Workspace"
-              icon={Icon.Plus}
-              target={
-                <WorkspaceForm
-                  mode="create"
-                  initialWorkspace={createBlankWorkspace()}
-                  onSaved={async () => {
-                    await revalidate();
-                  }}
-                />
-              }
-            />
-            <Action title="Export to Clipboard" icon={Icon.Upload} onAction={handleExport} />
-            <Action title="Import from Clipboard" icon={Icon.Download} onAction={handleImportFromClipboard} />
-            <Action.Push
-              title="Add Section Separator"
-              icon={Icon.Minus}
-              target={
-                <AddSeparatorForm
-                  onSaved={async () => {
-                    await revalidate();
-                  }}
-                />
-              }
-            />
-          </ActionPanel.Section>
-          <ActionPanel.Section title="History">
-            <Action
-              title="Undo"
-              icon={Icon.ArrowCounterClockwise}
-              shortcut={{ modifiers: ["cmd"], key: "z" }}
-              onAction={handleUndo}
-            />
-            <Action
-              title="Redo"
-              icon={Icon.ArrowClockwise}
-              shortcut={{ modifiers: ["cmd", "shift"], key: "z" }}
-              onAction={handleRedo}
-            />
-          </ActionPanel.Section>
-        </ActionPanel>
-      }
+      actions={renderHubActions()}
     >
       {error ? (
         <List.EmptyView icon={Icon.ExclamationMark} title="Failed to load workspaces" description={error.message} />
       ) : null}
 
-      {!error && isEmpty ? (
-        <List.EmptyView
-          title={searchText.trim() ? "No matching workspaces" : "No workspaces yet"}
-          description={
-            searchText.trim()
-              ? "Try searching by home keyword, name, directory, or launch command."
-              : "Create a workspace to get started."
-          }
+      {!error ? renderHubEntryItems() : null}
+
+      {!error && isEmpty && searchText.trim() ? (
+        <List.Item
+          title="No matching workspaces"
+          subtitle="Try searching by home keyword, name, directory, or launch command."
+          icon={Icon.ExclamationMark}
           actions={
             <ActionPanel>
-              <Action.Push
-                title="Create Workspace"
-                icon={Icon.Plus}
-                target={
-                  <WorkspaceForm
-                    mode="create"
-                    initialWorkspace={createBlankWorkspace()}
-                    onSaved={async () => {
-                      await revalidate();
-                    }}
-                  />
-                }
-              />
+              {renderRecentAndTransferActions()}
+              {renderAddWorkspaceSection()}
+              <Action title="Extension Preferences" icon={Icon.Gear} onAction={() => openExtensionPreferences()} />
             </ActionPanel>
           }
         />

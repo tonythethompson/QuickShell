@@ -6,8 +6,10 @@ namespace QuickShell.Services;
 /// </summary>
 internal static class AgentCliCatalog
 {
-    public const int PathDetectedScore = 94;
-    public const int MarkerFallbackScore = 72;
+    // Keep below typical Build/API/Test/Frontend scores (~50–68) so agents
+    // fill leftover slots instead of crowding out project command pills.
+    public const int PathDetectedScore = 42;
+    public const int MarkerFallbackScore = 28;
 
     /// <summary>
     /// Test hook. When set, replaces PATH probing (command name without extension).

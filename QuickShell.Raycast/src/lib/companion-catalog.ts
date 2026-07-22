@@ -1,12 +1,23 @@
 import { existsSync } from "node:fs";
+import { basename, join } from "node:path";
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 export type CompanionPreset = {
   id: string;
   title: string;
   defaultArguments: string;
   candidatePaths: string[];
+};
+
+/** Mirrors Core CompanionAppCatalog.PresetNone / PresetCustom. */
+export const COMPANION_PRESET_NONE = "none";
+export const COMPANION_PRESET_CUSTOM = "custom";
+export const COMPANION_CHOICE_TITLE_NONE = "No companion app";
+export const COMPANION_CHOICE_TITLE_CUSTOM = "Custom app";
+
+export type CompanionFormChoice = {
+  id: string;
+  title: string;
 };
 
 function localAppData(): string {
@@ -129,6 +140,8 @@ export const COMPANION_PRESETS: CompanionPreset[] = [
   },
 ];
 
+let cachedCompanionChoices: CompanionFormChoice[] | null = null;
+
 export function resolveCompanionPreset(presetId: string): { path: string; arguments: string } | null {
   const preset = COMPANION_PRESETS.find((entry) => entry.id === presetId);
   if (!preset) {
@@ -149,4 +162,88 @@ export function listInstalledCompanionPresets(): Array<{ id: string; title: stri
     id: preset.id,
     title: preset.title,
   }));
+}
+
+/** CmdPal-style dropdown: None → installed apps → Custom. */
+export function listCompanionFormChoices(): CompanionFormChoice[] {
+  if (cachedCompanionChoices) {
+    return cachedCompanionChoices;
+  }
+  cachedCompanionChoices = [
+    { id: COMPANION_PRESET_NONE, title: COMPANION_CHOICE_TITLE_NONE },
+    ...listInstalledCompanionPresets(),
+    { id: COMPANION_PRESET_CUSTOM, title: COMPANION_CHOICE_TITLE_CUSTOM },
+  ];
+  return cachedCompanionChoices;
+}
+
+export function invalidateCompanionCatalogCache(): void {
+  cachedCompanionChoices = null;
+}
+
+export function getCompanionPresetDefaultArguments(presetId: string): string {
+  if (presetId === COMPANION_PRESET_NONE) {
+    return "";
+  }
+  const preset = COMPANION_PRESETS.find((entry) => entry.id === presetId);
+  return preset?.defaultArguments ?? "{folder}";
+}
+
+/**
+ * Infer a catalog preset from an executable path (exact candidate match, then basename).
+ * Returns none / custom when no catalog match.
+ */
+export function inferCompanionPresetFromPath(executablePath: string | null | undefined): string {
+  const trimmed = executablePath?.trim() ?? "";
+  if (!trimmed) {
+    return COMPANION_PRESET_NONE;
+  }
+
+  const normalized = trimmed.replace(/\//g, "\\").toLowerCase();
+  for (const preset of COMPANION_PRESETS) {
+    for (const candidate of preset.candidatePaths) {
+      if (candidate.replace(/\//g, "\\").toLowerCase() === normalized) {
+        return preset.id;
+      }
+    }
+  }
+
+  const fileName = basename(trimmed).toLowerCase();
+  for (const preset of COMPANION_PRESETS) {
+    for (const candidate of preset.candidatePaths) {
+      if (basename(candidate).toLowerCase() === fileName) {
+        // Explorer basename alone is too ambiguous off Windows\explorer.exe.
+        if (preset.id === "explorer" && !normalized.includes("\\windows\\explorer.exe")) {
+          continue;
+        }
+        return preset.id;
+      }
+    }
+  }
+
+  return COMPANION_PRESET_CUSTOM;
+}
+
+/** After FilePicker browse: catalog preset if recognized, otherwise Custom. */
+export function resolveCompanionPresetAfterBrowse(selectedPath: string): string {
+  const inferred = inferCompanionPresetFromPath(selectedPath);
+  if (inferred === COMPANION_PRESET_NONE || inferred === COMPANION_PRESET_CUSTOM) {
+    return COMPANION_PRESET_CUSTOM;
+  }
+  return inferred;
+}
+
+/**
+ * Map a stored path to a dropdown value when the app may no longer be installed.
+ */
+export function normalizeCompanionPresetForForm(presetId: string | null | undefined, executablePath: string): string {
+  const trimmedPath = executablePath.trim();
+  const inferred = presetId?.trim() || inferCompanionPresetFromPath(trimmedPath);
+  if (inferred === COMPANION_PRESET_NONE || inferred === COMPANION_PRESET_CUSTOM) {
+    return trimmedPath ? COMPANION_PRESET_CUSTOM : COMPANION_PRESET_NONE;
+  }
+  if (resolveCompanionPreset(inferred)) {
+    return inferred;
+  }
+  return trimmedPath ? COMPANION_PRESET_CUSTOM : COMPANION_PRESET_NONE;
 }

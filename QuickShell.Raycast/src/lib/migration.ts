@@ -24,7 +24,7 @@ export function migrateStoredData(raw: unknown): StoredData {
   const version = typeof record.version === "number" ? record.version : 0;
 
   if (version > SCHEMA_VERSION) {
-    throw new Error(`Unsupported QuickShell data version: ${version}`);
+    throw new Error(`Unsupported Quick Shell data version: ${version}`);
   }
 
   const workspaces = Array.isArray(record.workspaces)

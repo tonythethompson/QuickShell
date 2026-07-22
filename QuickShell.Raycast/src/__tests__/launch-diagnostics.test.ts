@@ -16,7 +16,7 @@ describe("launch-diagnostics", () => {
       issues: ["WorkspaceUntrusted: Trust this workspace first."],
     });
 
-    expect(text).toContain("QuickShell launch diagnostics");
+    expect(text).toContain("Quick Shell launch diagnostics");
     expect(text).toContain("Denial: WorkspaceUntrusted");
     expect(text).toContain("Elevation: admin");
   });

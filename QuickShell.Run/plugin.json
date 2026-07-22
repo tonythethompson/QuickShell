@@ -9,5 +9,6 @@
   "Website": "https://github.com/tonythethompson/QuickShell",
   "ExecuteFileName": "QuickShell.Run.dll",
   "IcoPathDark": "Images\\quickshell.dark.png",
-  "IcoPathLight": "Images\\quickshell.light.png"
+  "IcoPathLight": "Images\\quickshell.light.png",
+  "DynamicLoading": true
 }

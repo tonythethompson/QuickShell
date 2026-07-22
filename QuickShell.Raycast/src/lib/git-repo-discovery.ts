@@ -1,7 +1,15 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync, promises as fs } from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import { withCache } from "@raycast/utils";
+import { buildSearchRoots, searchRootsFromWorkspaces } from "./git-repo-search-roots";
+
+export { tryGetGitRemoteUrl } from "./git-remote-url";
+export {
+  buildSearchRoots,
+  listDefaultRootCandidates,
+  searchRootsFromWorkspaces,
+  COMMON_ROOT_FOLDER_NAMES,
+} from "./git-repo-search-roots";
 
 export type GitRepoCandidate = {
   directory: string;
@@ -9,29 +17,30 @@ export type GitRepoCandidate = {
   remoteUrl?: string | null;
 };
 
-const SKIP_DIRS = new Set([
-  ".git",
-  "node_modules",
-  "bin",
-  "obj",
-  "dist",
-  "build",
-  "out",
-  "target",
-  "AppData",
-  "Program Files",
-  "Program Files (x86)",
-  "Windows",
-  ".nuget",
-  ".vscode",
-  ".cursor",
-]);
-
-const COMMON_ROOTS = ["Projects", "projects", "dev", "Development", "code", "repos", "source", "src"];
+const SKIP_DIRS = new Set(
+  [
+    ".git",
+    "node_modules",
+    "bin",
+    "obj",
+    "dist",
+    "build",
+    "out",
+    "target",
+    "AppData",
+    "Program Files",
+    "Program Files (x86)",
+    "Windows",
+    ".nuget",
+    ".vscode",
+    ".cursor",
+  ].map((name) => name.toLowerCase()),
+);
 
 const MAX_REPOS = 50;
 const MAX_SCANNED = 2000;
 const MAX_DEPTH = 5;
+const DEFAULT_CONCURRENCY = 4;
 
 export function discoverGitRepos(extraRoots: string[] = []): GitRepoCandidate[] {
   return discoverGitReposSync(extraRoots);
@@ -41,9 +50,92 @@ export async function discoverGitReposCached(extraRoots: string[] = []): Promise
   return cachedDiscoverGitRepos(extraRoots);
 }
 
-const cachedDiscoverGitRepos = withCache(async (extraRoots: string[] = []) => discoverGitReposSync(extraRoots), {
-  maxAge: 5 * 60 * 1000,
-});
+const cachedDiscoverGitRepos = withCache(
+  async (extraRoots: string[] = []) => discoverGitReposAsync(extraRoots),
+  {
+    maxAge: 10 * 60 * 1000,
+  },
+);
+
+export async function discoverGitReposAsync(
+  extraRoots: string[] = [],
+  options?: { concurrency?: number },
+): Promise<GitRepoCandidate[]> {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const roots = buildSearchRoots(extraRoots);
+  if (roots.length === 0) {
+    return [];
+  }
+
+  const results: GitRepoCandidate[] = [];
+  const seen = new Set<string>();
+  let scanned = 0;
+  const queue: Array<{ directory: string; depth: number }> = roots.map((directory) => ({
+    directory,
+    depth: 0,
+  }));
+  const concurrency = Math.max(1, options?.concurrency ?? DEFAULT_CONCURRENCY);
+
+  async function worker(): Promise<void> {
+    while (results.length < MAX_REPOS && scanned < MAX_SCANNED) {
+      const work = queue.shift();
+      if (!work) {
+        return;
+      }
+      if (work.depth > MAX_DEPTH) {
+        continue;
+      }
+
+      let isDirectory = false;
+      try {
+        isDirectory = (await fs.stat(work.directory)).isDirectory();
+      } catch {
+        continue;
+      }
+      if (!isDirectory) {
+        continue;
+      }
+
+      if (existsSync(path.join(work.directory, ".git"))) {
+        addRepo(work.directory, results, seen);
+        continue;
+      }
+
+      // Match Core: only non-repo directories consume the scan budget.
+      scanned += 1;
+      if (scanned >= MAX_SCANNED || results.length >= MAX_REPOS) {
+        return;
+      }
+
+      let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
+      try {
+        entries = await fs.readdir(work.directory, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+
+      for (const entry of entries) {
+        if (!entry.isDirectory() || SKIP_DIRS.has(entry.name.toLowerCase())) {
+          continue;
+        }
+        queue.push({
+          directory: path.join(work.directory, entry.name),
+          depth: work.depth + 1,
+        });
+      }
+    }
+  }
+
+  while (queue.length > 0 && results.length < MAX_REPOS && scanned < MAX_SCANNED) {
+    const waveSize = Math.min(concurrency, queue.length);
+    await Promise.all(Array.from({ length: waveSize }, () => worker()));
+  }
+
+  return sortCandidates(results);
+}
 
 function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
   if (process.platform !== "win32") {
@@ -54,123 +146,80 @@ function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
   const results: GitRepoCandidate[] = [];
   const seen = new Set<string>();
   let scanned = 0;
+  const queue: Array<{ directory: string; depth: number }> = roots.map((directory) => ({
+    directory,
+    depth: 0,
+  }));
 
-  for (const root of roots) {
-    scanDirectory(root, 0);
-    if (results.length >= MAX_REPOS || scanned >= MAX_SCANNED) {
-      break;
+  while (queue.length > 0 && results.length < MAX_REPOS && scanned < MAX_SCANNED) {
+    const work = queue.shift();
+    if (!work || work.depth > MAX_DEPTH) {
+      continue;
     }
-  }
 
-  return results.sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }));
-
-  function scanDirectory(directory: string, depth: number): void {
-    if (results.length >= MAX_REPOS || scanned >= MAX_SCANNED || depth > MAX_DEPTH) {
-      return;
+    let isDirectory = false;
+    try {
+      isDirectory = statSync(work.directory).isDirectory();
+    } catch {
+      continue;
     }
-    if (!existsSync(directory)) {
-      return;
+    if (!isDirectory) {
+      continue;
+    }
+
+    if (existsSync(path.join(work.directory, ".git"))) {
+      addRepo(work.directory, results, seen);
+      continue;
     }
 
     scanned += 1;
-    const gitDir = path.join(directory, ".git");
-    if (existsSync(gitDir)) {
-      const normalized = path.normalize(directory);
-      if (!seen.has(normalized.toLowerCase())) {
-        seen.add(normalized.toLowerCase());
-        results.push({
-          directory: normalized,
-          name: path.basename(normalized),
-          remoteUrl: readRemoteUrl(normalized),
-        });
-      }
-      return;
+    if (scanned >= MAX_SCANNED) {
+      break;
     }
 
-    let entries: string[] = [];
+    let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
     try {
-      entries = readdirSync(directory);
+      entries = readdirSync(work.directory, { withFileTypes: true });
     } catch {
-      return;
+      continue;
     }
 
     for (const entry of entries) {
-      if (SKIP_DIRS.has(entry)) {
+      if (!entry.isDirectory() || SKIP_DIRS.has(entry.name.toLowerCase())) {
         continue;
       }
-      const fullPath = path.join(directory, entry);
-      let isDirectory = false;
-      try {
-        isDirectory = statSync(fullPath).isDirectory();
-      } catch {
-        continue;
-      }
-      if (isDirectory) {
-        scanDirectory(fullPath, depth + 1);
-      }
-      if (results.length >= MAX_REPOS || scanned >= MAX_SCANNED) {
-        return;
-      }
+      queue.push({
+        directory: path.join(work.directory, entry.name),
+        depth: work.depth + 1,
+      });
     }
   }
+
+  return sortCandidates(results);
 }
 
-export function buildSearchRoots(extraRoots: string[] = []): string[] {
-  const roots = new Set<string>();
-  const home = os.homedir();
-
-  for (const name of COMMON_ROOTS) {
-    roots.add(path.join(home, name));
+function addRepo(directory: string, results: GitRepoCandidate[], seen: Set<string>): void {
+  if (results.length >= MAX_REPOS) {
+    return;
   }
-  roots.add(path.join(home, "Documents"));
-  roots.add(home);
-
-  for (const root of extraRoots) {
-    if (root.trim()) {
-      roots.add(path.normalize(root.trim()));
-    }
+  const normalized = path.normalize(directory);
+  const key = normalized.toLowerCase();
+  if (seen.has(key)) {
+    return;
   }
-
-  return [...roots].filter((root) => existsSync(root));
+  seen.add(key);
+  results.push({
+    directory: normalized,
+    name: path.basename(normalized),
+    remoteUrl: null,
+  });
 }
 
-function readRemoteUrl(directory: string): string | null {
-  const configPath = path.join(directory, ".git", "config");
-  if (!existsSync(configPath)) {
-    return null;
-  }
-
-  try {
-    const content = readFileSync(configPath, "utf8");
-    const originSection = content.match(/\[remote\s+"origin"\][\s\S]*?(?=\[|$)/);
-    if (!originSection) {
-      return null;
-    }
-
-    const urlMatch = originSection[0].match(/^\s*url\s*=\s*(.+)$/m);
-    if (!urlMatch) {
-      return null;
-    }
-
-    return normalizeRemoteUrl(urlMatch[1].trim());
-  } catch {
-    return null;
-  }
+function sortCandidates(results: GitRepoCandidate[]): GitRepoCandidate[] {
+  return results.sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }));
 }
 
-function normalizeRemoteUrl(url: string): string | null {
-  if (!url) {
-    return null;
-  }
-
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url.replace(/\.git$/, "");
-  }
-
-  const sshMatch = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
-  if (sshMatch) {
-    return `https://${sshMatch[1]}/${sshMatch[2]}`;
-  }
-
-  return url;
+/** Build extra roots from saved workspace directories (dir + parent). */
+export function extraRootsFromWorkspaceDirectories(directories: string[]): string[] {
+  return searchRootsFromWorkspaces(directories);
 }

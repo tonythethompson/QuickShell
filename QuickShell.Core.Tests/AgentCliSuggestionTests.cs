@@ -62,6 +62,25 @@ public sealed class AgentCliSuggestionTests : IDisposable
             SuggestionPillPresentation.GetVisiblePillCount(pills.Count, expandSuggestionPills: false, isScanningSuggestions: false));
     }
 
+    [Fact]
+    public void BuildSelectablePills_ProjectCommands_AppearBeforeAgentsWhenBothPresent()
+    {
+        AgentCliCatalog.IsCommandOnPathOverride = _ => true;
+        File.WriteAllText(
+            Path.Join(_root, "package.json"),
+            """{"scripts":{"dev":"vite","build":"tsc -b","test":"vitest run","start":"node server.js"}}""");
+        _suggestions.ResetForTests();
+
+        var pills = SuggestionPillPresentation.BuildSelectablePills(_root, [], _projectAnalysis, _suggestions);
+        var visible = pills.Take(SuggestionPillPresentation.DefaultVisibleSlots).ToList();
+
+        Assert.Contains(visible, p => p.TaskType is not TaskTypeCatalog.Agent);
+        Assert.Contains(visible, p => p.TaskType == TaskTypeCatalog.Test || p.TaskType == TaskTypeCatalog.Build || p.TaskType == TaskTypeCatalog.Frontend || p.TaskType == TaskTypeCatalog.Api);
+        Assert.True(
+            visible.First(p => p.TaskType != TaskTypeCatalog.Agent).Score
+            > AgentCliCatalog.PathDetectedScore);
+    }
+
     [Fact] public void GetPills_ExcludesUsedCommands() { AgentCliCatalog.IsCommandOnPathOverride = n => n.Equals("claude", StringComparison.OrdinalIgnoreCase); var p = _suggestions.GetPills(_root, ["claude"], _projectAnalysis); Assert.DoesNotContain(p, x => x.Command == "claude"); }
     [Fact] public void GetPills_MarkerOnly_ReturnsAgent() { File.WriteAllText(Path.Join(_root, "CLAUDE.md"), "# Claude"); var p = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.Contains(p, x => x.Command == "claude" && x.TaskType == TaskTypeCatalog.Agent); }
     public void Dispose()

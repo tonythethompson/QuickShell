@@ -1,18 +1,16 @@
-# QuickShell Raycast
+# Quick Shell Raycast
 
-Raycast-native workspace launcher for QuickShell on **Windows**.
+Raycast-native workspace launcher for Quick Shell on **Windows**.
 
 ## Commands
 
-- **Open Workspace** — search, launch, favorite, duplicate, edit, import/export, undo/redo
-- **Create Workspace** — directory-first form with auto-fill; drafts enabled; opens Open Workspace after save
-- **Edit Workspace** — searchable picker with inline form; optional `workspaceId` argument
-- **Discover Git Repos** — scan common project folders and add repositories as workspaces
-- **Manage Workspaces** — import/export, undo/redo, open Raycast extension preferences
+- **Quick Shell** — search, launch, create, discover git repos, edit, favorite, duplicate, import/export, undo/redo, preferences
 
-**Extension preferences** (Raycast → Extensions → QuickShell): default terminal app, default profile, show recents, multi-command tabs, block dirty branch switch.
+**Extension preferences** (Raycast → Extensions → Quick Shell): default terminal app, default profile, show recents, multi-command tabs, block dirty branch switch.
 
-Root search: type `qs`, `quickshell`, or a workspace home keyword. Register **Open Workspace** as a fallback command to honor root-search text via `fallbackText`.
+Root search: the command is titled **Quick Shell**; its subtitle shows your 3 most recent workspaces. Register it as a fallback command so root-search text seeds the list via `fallbackText`. Open the command and use Actions (Ctrl+K) for Recent / Import / Export. Use **Add to Root Search** on a workspace to create a Quicklink.
+
+Create, Discover, and Edit are Actions / pushed views inside Quick Shell (not separate root commands).
 
 ## Requirements
 
@@ -39,14 +37,15 @@ QuickShell.Raycast/
 
 ```
 raycast://extensions/tonythethompson/quickshell/open-workspace
-raycast://extensions/tonythethompson/quickshell/create-workspace?arguments=%7B%22directory%22%3A%22C%3A%5CProjects%5Cfoo%22%7D
-raycast://extensions/tonythethompson/quickshell/edit-workspace?arguments=%7B%22workspaceId%22%3A%22<id>%22%7D
 ```
 
-Open Workspace with launch context (after create):
+Launch context examples (after create, or to open a nested flow):
 
 ```
 raycast://extensions/tonythethompson/quickshell/open-workspace?context=%7B%22focusWorkspaceName%22%3A%22QuickShell%22%7D
+raycast://extensions/tonythethompson/quickshell/open-workspace?context=%7B%22mode%22%3A%22create%22%2C%22createDirectory%22%3A%22C%3A%5C%5CProjects%5C%5Cfoo%22%7D
+raycast://extensions/tonythethompson/quickshell/open-workspace?context=%7B%22mode%22%3A%22edit%22%2C%22editWorkspaceId%22%3A%22%3Cid%3E%22%7D
+raycast://extensions/tonythethompson/quickshell/open-workspace?context=%7B%22mode%22%3A%22discover%22%7D
 ```
 
 ## Development

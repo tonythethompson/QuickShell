@@ -1,6 +1,4 @@
 using System.IO;
-using System.Reflection;
-using System.Runtime.Loader;
 using System.Windows.Controls;
 using System.Windows;
 using ManagedCommon;
@@ -25,19 +23,8 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     static Main()
     {
-        var pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        if (string.IsNullOrEmpty(pluginDir))
-        {
-            return;
-        }
-
-        AssemblyLoadContext.Default.Resolving += (_, assemblyName) =>
-        {
-            var candidate = Path.Combine(pluginDir, $"{assemblyName.Name}.dll");
-            return File.Exists(candidate)
-                ? AssemblyLoadContext.Default.LoadFromAssemblyPath(candidate)
-                : null;
-        };
+        // Prefer ModuleInitializer; keep as belt-and-suspenders for hosts that skip it.
+        PluginDependencyResolver.EnsureRegistered();
     }
 
     private PluginInitContext? _context;

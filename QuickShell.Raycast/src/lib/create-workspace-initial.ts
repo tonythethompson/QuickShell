@@ -1,9 +1,9 @@
-import { deriveAbbreviationFromName, deriveNameFromDirectory } from "./directory-helpers";
+import { deriveNameFromDirectory } from "./directory-helpers";
+import { detectDevServerUrl } from "./detect-dev-server-url";
+import { tryGetGitRemoteUrl } from "./git-remote-url";
 import { createStableId } from "./ids";
-import { buildProjectSetupSuggestions } from "./project-setup-suggestion";
 import type { Workspace } from "./schema";
 import { normalizeWorkspace } from "./validation";
-import { launchRowsFromSuggestions } from "./workspace-form-state";
 
 export function createBlankWorkspace(): Workspace {
   const id = createStableId();
@@ -35,6 +35,10 @@ export function createBlankWorkspace(): Workspace {
   });
 }
 
+/**
+ * Manual create seed: name + optional git remote + optional detected dev-server URL.
+ * Does not seed launches, companions, or abbreviation (Discover Git Repos owns full heuristics).
+ */
 export function createWorkspaceFromDirectory(directory: string | undefined): Workspace {
   const trimmed = directory?.trim();
   if (!trimmed) {
@@ -42,30 +46,11 @@ export function createWorkspaceFromDirectory(directory: string | undefined): Wor
   }
 
   const name = deriveNameFromDirectory(trimmed);
-  const abbreviation = name ? deriveAbbreviationFromName(name) : null;
-  const suggestions = buildProjectSetupSuggestions(trimmed);
-  const rows = launchRowsFromSuggestions(suggestions);
-
-  const launches =
-    rows.length > 0
-      ? rows.map((row, index) => ({
-          id: row.id,
-          label: row.label,
-          terminal: row.terminal,
-          wtProfile: row.wtProfile ?? null,
-          command: row.command.trim() || null,
-          runAsAdmin: row.runAsAdmin,
-          isEnabled: true,
-          order: index,
-          taskType: "none" as const,
-        }))
-      : createBlankWorkspace().launches;
-
   return normalizeWorkspace({
     ...createBlankWorkspace(),
     name,
-    abbreviation,
     directory: trimmed,
-    launches,
+    repoUrl: tryGetGitRemoteUrl(trimmed),
+    devServerUrl: detectDevServerUrl(trimmed),
   });
 }

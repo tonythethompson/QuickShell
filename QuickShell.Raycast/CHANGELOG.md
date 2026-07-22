@@ -1,4 +1,4 @@
-# QuickShell Changelog
+# Quick Shell Changelog
 
 ## [Preferences, useForm, and navigation] - 2026-07-06
 

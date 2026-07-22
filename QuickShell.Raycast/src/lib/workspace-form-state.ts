@@ -1,6 +1,12 @@
+import {
+  COMPANION_PRESET_NONE,
+  getCompanionPresetDefaultArguments,
+  normalizeCompanionPresetForForm,
+} from "./companion-catalog";
 import { createStableId } from "./ids";
 import { suggestionLabelForCommand } from "./project-setup-suggestion";
 import type { CompanionAppEntry, LaunchEntry, Workspace } from "./schema";
+import { SAME_AS_PREVIOUS_TERMINAL_ID } from "./terminal-catalog";
 import { normalizeCompanionApps, normalizeWorkspace } from "./validation";
 
 export type LaunchFormRow = {
@@ -15,10 +21,22 @@ export type LaunchFormRow = {
 
 export type CompanionFormRow = {
   id: string;
+  /** Dropdown value: none | custom | installed catalog id. */
+  presetId: string;
   path: string;
   arguments: string;
   openOnLaunch: boolean;
 };
+
+export function createEmptyCompanionFormRow(): CompanionFormRow {
+  return {
+    id: createStableId(),
+    presetId: COMPANION_PRESET_NONE,
+    path: "",
+    arguments: "",
+    openOnLaunch: false,
+  };
+}
 
 export type WorkspaceFormState = {
   name: string;
@@ -132,12 +150,17 @@ export function workspaceFormStateFromWorkspace(workspace: Workspace): Workspace
       ];
 
   const primary = launches.find((launch) => launch.isEnabled) ?? launches[0];
-  const companions = normalizeCompanionApps(workspace).map((entry) => ({
-    id: entry.id,
-    path: entry.path,
-    arguments: entry.arguments ?? "",
-    openOnLaunch: entry.openOnLaunch,
-  }));
+  const companions = normalizeCompanionApps(workspace).map((entry) => {
+    const path = entry.path;
+    const presetId = normalizeCompanionPresetForForm(null, path);
+    return {
+      id: entry.id,
+      presetId,
+      path,
+      arguments: entry.arguments ?? getCompanionPresetDefaultArguments(presetId),
+      openOnLaunch: entry.openOnLaunch,
+    };
+  });
 
   return {
     name: workspace.name,
@@ -159,15 +182,31 @@ export function launchRowsFromSuggestions(
   suggestions: Array<{ label: string; command: string }>,
   terminal = "default",
 ): LaunchFormRow[] {
-  return suggestions.map((suggestion) => ({
+  return suggestions.map((suggestion, index) => ({
     id: createStableId(),
     command: suggestion.command,
-    terminal,
+    // Match CmdPal/Run: first real launch uses the seed target; later rows inherit.
+    terminal: index === 0 ? terminal : SAME_AS_PREVIOUS_TERMINAL_ID,
     wtProfile: null,
     runAsAdmin: false,
     isEnabled: true,
     label: suggestion.label,
   }));
+}
+
+/**
+ * Default terminal for Add command / suggestion-pill append.
+ * First real launch → default (or caller fallback); later → same-as-previous.
+ */
+export function terminalForAddedLaunch(
+  existingRows: Array<{ command: string }>,
+  firstLaunchTerminal = "default",
+): { terminal: string; wtProfile: null } {
+  const hasRealLaunch = existingRows.some((row) => row.command.trim());
+  return {
+    terminal: hasRealLaunch ? SAME_AS_PREVIOUS_TERMINAL_ID : firstLaunchTerminal,
+    wtProfile: null,
+  };
 }
 
 export function filterWorkspacesForEdit(workspaces: Workspace[], query: string): Workspace[] {

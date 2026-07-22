@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildBrowseSections, computeBrowseScore, getRecentWorkspaces, sortWorkspacesForSearch } from "../lib/ranking";
+import {
+  buildBrowseSections,
+  computeBrowseScore,
+  getMostRecentlyUsedWorkspaces,
+  getRecentWorkspaces,
+  sortWorkspacesForSearch,
+} from "../lib/ranking";
 import type { Workspace } from "../lib/schema";
 
 function workspace(partial: Partial<Workspace> & Pick<Workspace, "id" | "name">): Workspace {
@@ -108,5 +114,31 @@ describe("ranking", () => {
 
     const ranked = sortWorkspacesForSearch([exact, other], "api");
     expect(ranked[0].id).toBe("1");
+  });
+
+  it("returns the most recently used workspaces including favorites", () => {
+    const favorite = workspace({
+      id: "1",
+      name: "Favorite",
+      isPinned: true,
+      lastUsedUtc: "2026-07-06T14:00:00.000Z",
+    });
+    const recent = workspace({
+      id: "2",
+      name: "Recent",
+      lastUsedUtc: "2026-07-06T13:00:00.000Z",
+    });
+    const older = workspace({
+      id: "3",
+      name: "Older",
+      lastUsedUtc: "2026-07-06T12:00:00.000Z",
+    });
+    const unused = workspace({ id: "4", name: "Unused" });
+
+    expect(getMostRecentlyUsedWorkspaces([unused, older, recent, favorite], 3).map((item) => item.id)).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
   });
 });

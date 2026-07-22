@@ -56,6 +56,15 @@ internal static partial class GitRepoDiscovery
         "Documents",
     ];
 
+    /// <summary>
+    /// Nested paths under the user profile only (not every drive).
+    /// Includes GitHub Desktop's default clone folder: %USERPROFILE%\Documents\GitHub.
+    /// </summary>
+    private static readonly string[][] CommonProfileRelativeNestedRoots =
+    [
+        ["Documents", "GitHub"],
+    ];
+
     private static readonly AsyncLocal<Scope?> CurrentScope = new();
 
     private sealed record Scope(bool IncludeDefaultSearchRoots, IReadOnlyList<string>? DefaultRootCandidates);
@@ -324,6 +333,11 @@ internal static partial class GitRepoDiscovery
             foreach (var child in CommonRootFolderNames)
             {
                 AddRoot(Path.Combine(userProfile, child));
+            }
+
+            foreach (var segments in CommonProfileRelativeNestedRoots)
+            {
+                AddRoot(Path.Combine([userProfile, .. segments]));
             }
         }
 

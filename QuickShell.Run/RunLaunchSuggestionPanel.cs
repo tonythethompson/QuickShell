@@ -6,6 +6,7 @@ using QuickShell.Services;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace QuickShell.Run;
@@ -136,6 +137,7 @@ internal sealed class RunLaunchSuggestionPanel
         for (var i = 0; i < visibleCount; i++)
         {
             var pill = _pills[i];
+            var accent = ArgbToColor(TaskTypeCatalog.GetAccentArgb(pill.TaskType));
             var button = new Button
             {
                 Content = pill.DisplayTitle,
@@ -143,6 +145,9 @@ internal sealed class RunLaunchSuggestionPanel
                 Margin = new Thickness(0, 0, 6, 6),
                 Padding = new Thickness(8, 4, 8, 4),
                 IsEnabled = !_isLoading,
+                BorderBrush = new SolidColorBrush(accent),
+                BorderThickness = new Thickness(1.5),
+                Background = new SolidColorBrush(Color.FromArgb(48, accent.R, accent.G, accent.B)),
             };
             button.Click += (_, _) => PillClicked?.Invoke(pill);
             _chips.Children.Add(button);
@@ -159,6 +164,13 @@ internal sealed class RunLaunchSuggestionPanel
             _toggleButton.Visibility = Visibility.Collapsed;
         }
     }
+
+    private static Color ArgbToColor(uint argb) =>
+        Color.FromArgb(
+            (byte)((argb >> 24) & 0xFF),
+            (byte)((argb >> 16) & 0xFF),
+            (byte)((argb >> 8) & 0xFF),
+            (byte)(argb & 0xFF));
 }
 
 internal sealed class RunDirectorySuggestionLoader : IDisposable

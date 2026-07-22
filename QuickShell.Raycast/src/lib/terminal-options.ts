@@ -12,7 +12,7 @@ export function parseTerminalApplication(value: unknown): TerminalApplication {
 }
 
 export const WORKSPACE_TERMINAL_CHOICES: TerminalChoice[] = [
-  { id: "default", title: "Use QuickShell default" },
+  { id: "default", title: "Use Quick Shell default" },
   { id: "wt", title: "Windows Terminal" },
   { id: "powershell", title: "Windows PowerShell" },
   { id: "pwsh", title: "PowerShell 7" },

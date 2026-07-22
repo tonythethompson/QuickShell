@@ -7,9 +7,10 @@ import { Form } from "@raycast/api";
 type EditWorkspaceViewProps = {
   workspaceId: string;
   onSaved?: () => Promise<void> | void;
+  popOnSave?: boolean;
 };
 
-export default function EditWorkspaceView({ workspaceId, onSaved }: EditWorkspaceViewProps) {
+export default function EditWorkspaceView({ workspaceId, onSaved, popOnSave }: EditWorkspaceViewProps) {
   const storage = getQuickShellStorage();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,5 +47,5 @@ export default function EditWorkspaceView({ workspaceId, onSaved }: EditWorkspac
     );
   }
 
-  return <WorkspaceForm mode="edit" initialWorkspace={workspace} onSaved={onSaved} />;
+  return <WorkspaceForm mode="edit" initialWorkspace={workspace} onSaved={onSaved} popOnSave={popOnSave} />;
 }

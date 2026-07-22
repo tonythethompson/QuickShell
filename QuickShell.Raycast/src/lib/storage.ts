@@ -204,6 +204,18 @@ export class QuickShellStorage {
     return stored ? { ...stored.security } : null;
   }
 
+  /** One-shot security map without cloning each workspace (list load). */
+  async getWorkspaceSecurityMap(): Promise<Record<string, WorkspaceSecurityMetadata>> {
+    await this.ensureLoaded();
+    const result: Record<string, WorkspaceSecurityMetadata> = {};
+    const stored = this.cache!.workspaceSecurity ?? {};
+    for (const workspace of this.cache!.workspaces) {
+      const security = stored[workspace.id] ?? { isTrusted: true, revision: 1 };
+      result[workspace.id] = { ...security };
+    }
+    return result;
+  }
+
   async grantTrust(
     workspaceId: string,
     reviewToken: WorkspaceReviewToken,

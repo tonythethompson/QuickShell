@@ -81,6 +81,24 @@ export function getRecentWorkspaces(workspaces: Workspace[], recentWorkspaceCoun
     .slice(0, limit);
 }
 
+/** Most recently used workspaces (includes favorites), for root/action shortcuts. */
+export function getMostRecentlyUsedWorkspaces(workspaces: Workspace[], limit: number): Workspace[] {
+  if (limit <= 0 || workspaces.length === 0) {
+    return [];
+  }
+
+  return [...workspaces]
+    .sort((left, right) => {
+      const leftTime = left.lastUsedUtc ? new Date(left.lastUsedUtc).getTime() : 0;
+      const rightTime = right.lastUsedUtc ? new Date(right.lastUsedUtc).getTime() : 0;
+      if (rightTime !== leftTime) {
+        return rightTime - leftTime;
+      }
+      return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+    })
+    .slice(0, limit);
+}
+
 export function sortWorkspacesForBrowse(workspaces: Workspace[], utcNow = new Date()): Workspace[] {
   return [...workspaces].sort((left, right) => {
     const scoreDelta = computeBrowseScore(right, utcNow) - computeBrowseScore(left, utcNow);

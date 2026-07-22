@@ -34,6 +34,7 @@ internal static partial class ShortcutLaunchFormJson
                   "type": "Action.Submit",
                   "title": "${PillTitle_{{slot}}}",
                   "tooltip": "${PillTooltip_{{slot}}}",
+                  "style": "${PillStyle_{{slot}}}",
                   "associatedInputs": "auto",
                   "data": {
                     "action": "addSuggestedCommand",

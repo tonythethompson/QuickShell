@@ -24,4 +24,40 @@ internal static class TaskTypeCatalog
     public static string Normalize(string? id) => (id ?? string.Empty).Trim().ToLowerInvariant() switch { Api => Api, Frontend => Frontend, Services or "database" => Services, Logs => Logs, Test or "tests" => Test, Build => Build, Agent or "ai" or "agents" => Agent, _ => None };
     public static string GetTitle(string? id) => Normalize(id) switch { Api => "API", Frontend => "Frontend", Services => "Services", Logs => "Logs", Test => "Test", Build => "Build", Agent => "Agent", _ => string.Empty };
     public static string? GetGlyph(string? id) => Normalize(id) switch { Api => ShortcutGlyphs.TaskApi, Frontend => ShortcutGlyphs.TaskFrontend, Services => ShortcutGlyphs.TaskServices, Logs => ShortcutGlyphs.TaskLogs, Test => ShortcutGlyphs.TaskTest, Build => ShortcutGlyphs.TaskBuild, Agent => ShortcutGlyphs.TaskAgent, _ => null };
+
+    /// <summary>Colored circle emoji for CmdPal Adaptive Card pill titles (Action.Submit cannot use arbitrary colors).</summary>
+    public static string? GetMarkerEmoji(string? id) => Normalize(id) switch
+    {
+        Api => "🔵",
+        Frontend => "🟢",
+        Services => "⚪",
+        Logs => "🟤",
+        Test => "🟡",
+        Build => "🟠",
+        Agent => "🟣",
+        _ => null,
+    };
+
+    /// <summary>
+    /// Adaptive Cards Action.Submit <c>style</c>. Always <c>default</c> so type color comes only from
+    /// <see cref="GetMarkerEmoji"/> (positive/destructive paint the whole button the same accent).
+    /// </summary>
+    public static string GetAdaptiveCardActionStyle(string? id)
+    {
+        _ = id;
+        return "default";
+    }
+
+    /// <summary>Opaque ARGB accent for WPF / other hosts that can paint real colors.</summary>
+    public static uint GetAccentArgb(string? id) => Normalize(id) switch
+    {
+        Api => 0xFF3498DB,
+        Frontend => 0xFF1ABC9C,
+        Services => 0xFF95A5A6,
+        Logs => 0xFFA0522D,
+        Test => 0xFF27AE60,
+        Build => 0xFFE67E22,
+        Agent => 0xFF9B59B6,
+        _ => 0xFF808080,
+    };
 }

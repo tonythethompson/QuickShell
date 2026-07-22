@@ -1,27 +1,32 @@
-import { Action, ActionPanel, Icon, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
-import WorkspaceForm from "./components/workspace-form";
-import WindowsRequiredView from "./components/windows-required-view";
-import { buildProjectSetupSuggestions } from "./lib/project-setup-suggestion";
-import { discoverGitReposCached } from "./lib/git-repo-discovery";
-import { deriveAbbreviationFromName, deriveNameFromDirectory } from "./lib/directory-helpers";
-import { getQuickShellStorage } from "./lib/raycast-storage";
-import { showStorageFailure } from "./lib/failure-feedback";
-import { isWindowsPlatform } from "./lib/platform";
-import { useLoadErrorToast } from "./lib/use-load-error-toast";
-import { launchRowsFromSuggestions } from "./lib/workspace-form-state";
-import { normalizeWorkspace } from "./lib/validation";
-import { createStableId } from "./lib/ids";
-import type { Workspace } from "./lib/schema";
+import WorkspaceForm from "./workspace-form";
+import WindowsRequiredView from "./windows-required-view";
+import { detectCompanionSeed } from "../lib/companion-detection";
+import { detectDevServerUrl } from "../lib/detect-dev-server-url";
+import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
+import { discoverGitReposCached } from "../lib/git-repo-discovery";
+import { searchRootsFromWorkspaces } from "../lib/git-repo-search-roots";
+import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/directory-helpers";
+import { tryGetGitRemoteUrl } from "../lib/git-remote-url";
+import { getQuickShellStorage } from "../lib/raycast-storage";
+import { showStorageFailure } from "../lib/failure-feedback";
+import { isWindowsPlatform } from "../lib/platform";
+import { useLoadErrorToast } from "../lib/use-load-error-toast";
+import { launchRowsFromSuggestions } from "../lib/workspace-form-state";
+import { normalizeWorkspace } from "../lib/validation";
+import { createStableId } from "../lib/ids";
+import type { Workspace } from "../lib/schema";
 
 type ReviewWorkspaceFormProps = {
   directory: string;
   name: string;
   remoteUrl?: string | null;
-  onSaved: () => Promise<void>;
+  onCreated: (workspace: Workspace) => Promise<void>;
 };
 
+/** Full seed for Review: launches, companions, remotes, project suggestions. */
 function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Workspace {
   const suggestions = buildProjectSetupSuggestions(directory);
   const rows = launchRowsFromSuggestions(suggestions);
@@ -52,6 +57,8 @@ function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: str
           },
         ];
   const derivedName = name || deriveNameFromDirectory(directory);
+  const companionSeed = detectCompanionSeed(directory);
+  const resolvedRemote = remoteUrl ?? tryGetGitRemoteUrl(directory);
   return normalizeWorkspace({
     id: createStableId(),
     name: derivedName,
@@ -64,26 +71,84 @@ function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: str
     wtProfile: null,
     command: null,
     runAsAdmin: false,
-    repoUrl: remoteUrl ?? null,
+    repoUrl: resolvedRemote,
+    devServerUrl: detectDevServerUrl(directory),
     launches: launchEntries,
+    companionApps: companionSeed
+      ? [
+          {
+            id: createStableId(),
+            path: companionSeed.path,
+            arguments: companionSeed.arguments || null,
+            openOnLaunch: true,
+            order: 0,
+          },
+        ]
+      : [],
   });
 }
 
-function ReviewWorkspaceForm({ directory, name, remoteUrl, onSaved }: ReviewWorkspaceFormProps) {
+/** One-click Quick Add: blank launch row only, no deep project/companion walk. */
+function buildLightWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Workspace {
+  const derivedName = name || deriveNameFromDirectory(directory);
+  const resolvedRemote = remoteUrl ?? tryGetGitRemoteUrl(directory);
+  return normalizeWorkspace({
+    id: createStableId(),
+    name: derivedName,
+    abbreviation: deriveAbbreviationFromName(derivedName),
+    directory,
+    isPinned: false,
+    pinOrder: null,
+    lastUsedUtc: null,
+    terminal: "default",
+    wtProfile: null,
+    command: null,
+    runAsAdmin: false,
+    repoUrl: resolvedRemote,
+    devServerUrl: null,
+    launches: [
+      {
+        id: createStableId(),
+        label: "Launch",
+        terminal: "default",
+        wtProfile: null,
+        command: null,
+        runAsAdmin: false,
+        isEnabled: true,
+        order: 0,
+        taskType: "none",
+      },
+    ],
+    companionApps: [],
+  });
+}
+
+function ReviewWorkspaceForm({ directory, name, remoteUrl, onCreated }: ReviewWorkspaceFormProps) {
   const initialWorkspace = useMemo(
     () => buildWorkspaceFromRepo(directory, name, remoteUrl),
     [directory, name, remoteUrl],
   );
 
-  return <WorkspaceForm mode="create" initialWorkspace={initialWorkspace} onSaved={onSaved} />;
+  return (
+    <WorkspaceForm mode="create" initialWorkspace={initialWorkspace} directorySeedMode="full" onCreated={onCreated} />
+  );
 }
 
-export default function DiscoverGitReposCommand() {
+type DiscoverGitReposViewProps = {
+  onWorkspaceAdded?: (workspace: Workspace) => Promise<void> | void;
+  /** When false, stay mounted after add (hub root discover). Default true for Action.Push. */
+  popOnAdd?: boolean;
+};
+
+export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true }: DiscoverGitReposViewProps) {
   const [searchText, setSearchText] = useState("");
+  const { pop } = useNavigation();
   const storage = getQuickShellStorage();
 
   const { data, isLoading, error, revalidate } = usePromise(async () => {
-    const [repos, existing] = await Promise.all([discoverGitReposCached(), storage.getWorkspaces()]);
+    const existing = await storage.getWorkspaces();
+    const extraRoots = searchRootsFromWorkspaces(existing.map((workspace) => workspace.directory));
+    const repos = await discoverGitReposCached(extraRoots);
     const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
     return repos.filter((repo) => !existingDirs.has(repo.directory.toLowerCase()));
   }, []);
@@ -106,16 +171,24 @@ export default function DiscoverGitReposCommand() {
     );
   }, [data, searchText]);
 
+  async function finishAdd(workspace: Workspace) {
+    await revalidate();
+    await onWorkspaceAdded?.(workspace);
+    if (popOnAdd) {
+      pop();
+    }
+  }
+
   async function handleQuickAdd(directory: string, name: string, remoteUrl?: string | null) {
     try {
-      const workspace = buildWorkspaceFromRepo(directory, name, remoteUrl);
+      const workspace = buildLightWorkspaceFromRepo(directory, name, remoteUrl);
       await storage.upsertWorkspace(workspace);
-      await revalidate();
       await showToast({
         style: Toast.Style.Success,
         title: "Workspace added",
         message: workspace.name,
       });
+      await finishAdd(workspace);
     } catch (addError) {
       await showStorageFailure("Add workspace", addError);
     }
@@ -140,7 +213,7 @@ export default function DiscoverGitReposCommand() {
       {!error && filtered.length === 0 ? (
         <List.EmptyView
           title={isLoading ? "Scanning folders..." : "No repositories found"}
-          description="QuickShell scans common project folders under your profile."
+          description="Quick Shell scans common project folders on each drive, plus folders near your saved workspaces."
         />
       ) : null}
 
@@ -165,9 +238,7 @@ export default function DiscoverGitReposCommand() {
                     directory={repo.directory}
                     name={repo.name}
                     remoteUrl={repo.remoteUrl}
-                    onSaved={async () => {
-                      await revalidate();
-                    }}
+                    onCreated={finishAdd}
                   />
                 }
               />

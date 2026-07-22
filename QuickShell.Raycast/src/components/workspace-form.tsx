@@ -11,22 +11,38 @@ import {
   type Form as FormTypes,
 } from "@raycast/api";
 import { FormValidation, useForm } from "@raycast/utils";
-import { useMemo, useRef, useState } from "react";
-import { getQuickShellStorage } from "../lib/raycast-storage";
-import { listInstalledCompanionPresets, resolveCompanionPreset } from "../lib/companion-catalog";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  COMPANION_PRESET_CUSTOM,
+  COMPANION_PRESET_NONE,
+  getCompanionPresetDefaultArguments,
+  listCompanionFormChoices,
+  resolveCompanionPreset,
+  resolveCompanionPresetAfterBrowse,
+} from "../lib/companion-catalog";
 import { detectCompanionSeed } from "../lib/companion-detection";
-import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/directory-helpers";
+import { detectDevServerUrl } from "../lib/detect-dev-server-url";
+import {
+  deriveAbbreviationFromName,
+  deriveNameFromDirectory,
+  normalizeDirectoryFormValue,
+} from "../lib/directory-helpers";
 import { showStorageFailure, showWorkspaceValidationFailure } from "../lib/failure-feedback";
+import { tryGetGitRemoteUrl } from "../lib/git-remote-url";
 import { createStableId } from "../lib/ids";
 import type { OpenWorkspaceLaunchContext } from "../lib/launch-context";
 import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
 import { resolveWorkspaceSetupSuggestions, type SuggestionPill } from "../lib/suggest-commands";
+import { getQuickShellStorage } from "../lib/raycast-storage";
 import type { Workspace } from "../lib/schema";
+import { suggestionPillIcon } from "../lib/task-type-accent";
 import { choiceForTerminalState, discoverWorkspaceTerminalChoices } from "../lib/terminal-catalog";
 import { TERMINAL_APPLICATION_CHOICES } from "../lib/terminal-options";
 import {
   buildWorkspaceFromFormState,
+  createEmptyCompanionFormRow,
   launchRowsFromSuggestions,
+  terminalForAddedLaunch,
   type CompanionFormRow,
   type LaunchFormRow,
   workspaceFormStateFromWorkspace,
@@ -50,19 +66,17 @@ export type WorkspaceFormProps = {
   initialWorkspace: Workspace;
   draftValues?: FormTypes.Values;
   enableDrafts?: boolean;
+  /**
+   * How directory changes seed the form.
+   * - minimal (default): Name, Repository URL, Dev Server URL only (manual Add Workspace).
+   * - full: also launches, companions, and suggestion pills (Discover Git Repos).
+   */
+  directorySeedMode?: "minimal" | "full";
   onSaved?: () => Promise<void> | void;
   onCreated?: (workspace: Workspace) => Promise<void> | void;
+  /** When false, save does not call navigation pop (hub root flows). Default true. */
+  popOnSave?: boolean;
 };
-
-function directoryFromDraftValue(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    return value;
-  }
-  if (Array.isArray(value) && typeof value[0] === "string") {
-    return value[0];
-  }
-  return undefined;
-}
 
 function valuesFromState(
   state: ReturnType<typeof workspaceFormStateFromWorkspace>,
@@ -85,11 +99,12 @@ function valuesFromState(
     return base;
   }
 
+  const draftDirectory = normalizeDirectoryFormValue(draftValues.directory);
   return {
     ...base,
     name: typeof draftValues.name === "string" ? draftValues.name : base.name,
     abbreviation: typeof draftValues.abbreviation === "string" ? draftValues.abbreviation : base.abbreviation,
-    directory: directoryFromDraftValue(draftValues.directory) ?? base.directory,
+    directory: draftDirectory || base.directory,
     terminalChoiceId:
       typeof draftValues.terminalChoiceId === "string" ? draftValues.terminalChoiceId : base.terminalChoiceId,
     isPinned: typeof draftValues.isPinned === "boolean" ? draftValues.isPinned : base.isPinned,
@@ -108,20 +123,36 @@ export default function WorkspaceForm({
   initialWorkspace,
   draftValues,
   enableDrafts = mode === "create",
+  directorySeedMode = "minimal",
   onSaved,
   onCreated,
+  popOnSave,
 }: WorkspaceFormProps) {
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
+  const shouldPopOnSave = popOnSave ?? true;
   const initialState = workspaceFormStateFromWorkspace(initialWorkspace);
-  const terminalChoices = useMemo(() => discoverWorkspaceTerminalChoices(), []);
+  const [terminalChoices, setTerminalChoices] = useState(() =>
+    discoverWorkspaceTerminalChoices({ includeSlowProbes: mode === "edit" }),
+  );
+  useEffect(() => {
+    if (mode === "edit") {
+      return;
+    }
+    const enriched = discoverWorkspaceTerminalChoices({ includeSlowProbes: true });
+    setTerminalChoices(enriched);
+  }, [mode]);
   const initialValues = useMemo(
     () => valuesFromState(initialState, terminalChoices, draftValues),
-    [draftValues, initialState, terminalChoices],
+    // terminalChoices intentionally omitted: useForm should keep the first selection id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- enrich dropdown without resetting form values
+    [draftValues, initialState],
   );
 
   const [launches, setLaunches] = useState<LaunchFormRow[]>(initialState.launches);
-  const [companions, setCompanions] = useState<CompanionFormRow[]>(initialState.companions);
+  const [companions, setCompanions] = useState<CompanionFormRow[]>(
+    initialState.companions.length > 0 ? initialState.companions : [createEmptyCompanionFormRow()],
+  );
   const [suggestionPills, setSuggestionPills] = useState<SuggestionPill[]>([]);
   const [suggestionSource, setSuggestionSource] = useState<"suggest" | "local" | null>(null);
   const nameCustomizedRef = useRef(mode === "edit" && Boolean(initialState.name));
@@ -129,9 +160,13 @@ export default function WorkspaceForm({
   const commandsCustomizedRef = useRef(
     mode === "edit" && initialState.launches.some((launch) => launch.command.trim()),
   );
-  const companionsCustomizedRef = useRef(mode === "edit" && initialState.companions.length > 0);
+  const companionsCustomizedRef = useRef(
+    mode === "edit" && initialState.companions.some((companion) => companion.presetId !== COMPANION_PRESET_NONE),
+  );
+  const repoUrlCustomizedRef = useRef(mode === "edit" && Boolean(initialState.repoUrl.trim()));
+  const devServerUrlCustomizedRef = useRef(mode === "edit" && Boolean(initialState.devServerUrl.trim()));
   const suggestionGenerationRef = useRef(0);
-  const companionPresets = useMemo(() => listInstalledCompanionPresets(), []);
+  const companionChoices = useMemo(() => listCompanionFormChoices(), []);
   const unusedSuggestionPills = useMemo(() => {
     const used = new Set(launches.map((launch) => launch.command.trim().toLowerCase()).filter(Boolean));
     return suggestionPills.filter((pill) => !used.has(pill.command.trim().toLowerCase()));
@@ -150,13 +185,15 @@ export default function WorkspaceForm({
         }
       },
       directory: (value) => {
-        if (!value?.trim()) {
+        // FilePicker submits string[]; controlled setValue may store a string.
+        const directory = normalizeDirectoryFormValue(value).trim();
+        if (!directory) {
           return "Workspace directory is required.";
         }
-        if (value.trim().length > VALIDATION_LIMITS.MAX_DIRECTORY_LENGTH) {
+        if (directory.length > VALIDATION_LIMITS.MAX_DIRECTORY_LENGTH) {
           return `Directory must be ${VALIDATION_LIMITS.MAX_DIRECTORY_LENGTH} characters or fewer.`;
         }
-        if (!isAbsoluteDirectory(value.trim())) {
+        if (!isAbsoluteDirectory(directory)) {
           return "Directory must be an absolute path.";
         }
       },
@@ -168,17 +205,41 @@ export default function WorkspaceForm({
 
   async function applyDirectorySuggestions(nextDirectory: string) {
     if (!nameCustomizedRef.current && nextDirectory.trim()) {
-      const derivedName = deriveNameFromDirectory(nextDirectory);
-      setValue("name", derivedName);
-      if (!abbreviationCustomizedRef.current && derivedName) {
-        setValue("abbreviation", deriveAbbreviationFromName(derivedName));
-      }
+      setValue("name", deriveNameFromDirectory(nextDirectory));
     }
 
     if (!nextDirectory.trim()) {
       setSuggestionPills([]);
       setSuggestionSource(null);
       return;
+    }
+
+    if (!repoUrlCustomizedRef.current) {
+      const remote = tryGetGitRemoteUrl(nextDirectory);
+      if (remote) {
+        setValue("repoUrl", remote);
+      }
+    }
+
+    if (!devServerUrlCustomizedRef.current) {
+      const detected = detectDevServerUrl(nextDirectory);
+      if (detected) {
+        setValue("devServerUrl", detected);
+      }
+    }
+
+    // Manual Add Workspace: stop after name / repo / dev-server.
+    if (directorySeedMode !== "full") {
+      setSuggestionPills([]);
+      setSuggestionSource(null);
+      return;
+    }
+
+    if (!abbreviationCustomizedRef.current) {
+      const derivedName = deriveNameFromDirectory(nextDirectory);
+      if (derivedName) {
+        setValue("abbreviation", deriveAbbreviationFromName(derivedName));
+      }
     }
 
     const generation = ++suggestionGenerationRef.current;
@@ -227,12 +288,13 @@ export default function WorkspaceForm({
           ? [
               {
                 id: createStableId(),
+                presetId: seed.presetId,
                 path: seed.path,
                 arguments: seed.arguments,
                 openOnLaunch: true,
               },
             ]
-          : [],
+          : [createEmptyCompanionFormRow()],
       );
     }
   }
@@ -255,13 +317,14 @@ export default function WorkspaceForm({
           },
         ];
       }
+      const terminal = terminalForAddedLaunch(current, "default");
       return [
         ...current,
         {
           id: createStableId(),
           command: pill.command,
-          terminal: selectedTerminal?.terminal ?? "default",
-          wtProfile: selectedTerminal?.wtProfile ?? null,
+          terminal: terminal.terminal,
+          wtProfile: terminal.wtProfile,
           runAsAdmin: values.runAsAdmin,
           isEnabled: true,
           label: pill.displayTitle || pill.typeTitle || pill.command,
@@ -280,18 +343,21 @@ export default function WorkspaceForm({
 
   function addLaunchRow() {
     commandsCustomizedRef.current = true;
-    setLaunches((current) => [
-      ...current,
-      {
-        id: createStableId(),
-        command: "",
-        terminal: selectedTerminal?.terminal ?? "default",
-        wtProfile: selectedTerminal?.wtProfile ?? null,
-        runAsAdmin: values.runAsAdmin,
-        isEnabled: true,
-        label: `Launch ${current.length + 1}`,
-      },
-    ]);
+    setLaunches((current) => {
+      const terminal = terminalForAddedLaunch(current, "default");
+      return [
+        ...current,
+        {
+          id: createStableId(),
+          command: "",
+          terminal: terminal.terminal,
+          wtProfile: terminal.wtProfile,
+          runAsAdmin: values.runAsAdmin,
+          isEnabled: true,
+          label: `Launch ${current.length + 1}`,
+        },
+      ];
+    });
   }
 
   function removeLaunchRow(index: number) {
@@ -320,7 +386,70 @@ export default function WorkspaceForm({
     setCompanions((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   }
 
-  function addCompanionRow(presetId?: string) {
+  function applyCompanionPresetChoice(index: number, presetId: string) {
+    companionsCustomizedRef.current = true;
+    if (presetId === COMPANION_PRESET_NONE) {
+      updateCompanion(index, {
+        presetId: COMPANION_PRESET_NONE,
+        path: "",
+        arguments: "",
+        openOnLaunch: false,
+      });
+      return;
+    }
+
+    if (presetId === COMPANION_PRESET_CUSTOM) {
+      updateCompanion(index, {
+        presetId: COMPANION_PRESET_CUSTOM,
+        path: "",
+        arguments: getCompanionPresetDefaultArguments(COMPANION_PRESET_CUSTOM),
+        openOnLaunch: false,
+      });
+      return;
+    }
+
+    const resolved = resolveCompanionPreset(presetId);
+    if (!resolved) {
+      void showToast({
+        style: Toast.Style.Failure,
+        title: "Preset not installed",
+        message: "That companion app was not found on this machine.",
+      });
+      return;
+    }
+
+    updateCompanion(index, {
+      presetId,
+      path: resolved.path,
+      arguments: resolved.arguments,
+      openOnLaunch: true,
+    });
+  }
+
+  function handleCompanionExecutableChange(index: number, paths: string[]) {
+    companionsCustomizedRef.current = true;
+    const selectedPath = paths[0]?.trim() ?? "";
+    if (!selectedPath) {
+      updateCompanion(index, {
+        presetId: COMPANION_PRESET_CUSTOM,
+        path: "",
+        arguments: getCompanionPresetDefaultArguments(COMPANION_PRESET_CUSTOM),
+        openOnLaunch: false,
+      });
+      return;
+    }
+
+    const presetId = resolveCompanionPresetAfterBrowse(selectedPath);
+    const resolved = presetId === COMPANION_PRESET_CUSTOM ? null : resolveCompanionPreset(presetId);
+    updateCompanion(index, {
+      presetId,
+      path: resolved?.path ?? selectedPath,
+      arguments: resolved?.arguments ?? getCompanionPresetDefaultArguments(presetId),
+      openOnLaunch: true,
+    });
+  }
+
+  function addCompanionRow() {
     companionsCustomizedRef.current = true;
     if (companions.length >= VALIDATION_LIMITS.MAX_COMPANIONS) {
       void showToast({
@@ -331,42 +460,24 @@ export default function WorkspaceForm({
       return;
     }
 
-    const resolved = presetId ? resolveCompanionPreset(presetId) : null;
-    setCompanions((current) => [
-      ...current,
-      {
-        id: createStableId(),
-        path: resolved?.path ?? "",
-        arguments: resolved?.arguments ?? "{folder}",
-        openOnLaunch: true,
-      },
-    ]);
+    setCompanions((current) => [...current, createEmptyCompanionFormRow()]);
   }
 
   function removeCompanionRow(index: number) {
     companionsCustomizedRef.current = true;
-    setCompanions((current) => current.filter((_, rowIndex) => rowIndex !== index));
-  }
-
-  function applyCompanionPreset(index: number, presetId: string) {
-    companionsCustomizedRef.current = true;
-    const resolved = resolveCompanionPreset(presetId);
-    if (!resolved) {
-      void showToast({
-        style: Toast.Style.Failure,
-        title: "Preset not installed",
-        message: "That companion app was not found on this machine.",
-      });
-      return;
-    }
-    updateCompanion(index, { path: resolved.path, arguments: resolved.arguments, openOnLaunch: true });
+    setCompanions((current) => {
+      if (current.length <= 1) {
+        return [createEmptyCompanionFormRow()];
+      }
+      return current.filter((_, rowIndex) => rowIndex !== index);
+    });
   }
 
   function buildWorkspace(formValues: WorkspaceFormValues): Workspace {
     return buildWorkspaceFromFormState(initialWorkspace, {
       name: formValues.name,
       abbreviation: formValues.abbreviation,
-      directory: formValues.directory,
+      directory: normalizeDirectoryFormValue(formValues.directory),
       terminal: selectedTerminal?.terminal ?? "default",
       wtProfile: selectedTerminal?.wtProfile ?? null,
       isPinned: formValues.isPinned,
@@ -397,12 +508,18 @@ export default function WorkspaceForm({
       });
 
       if (mode === "edit") {
-        pop();
+        if (shouldPopOnSave) {
+          pop();
+        }
         return;
       }
 
       if (onCreated) {
         await onCreated(workspace);
+      }
+
+      if (shouldPopOnSave) {
+        pop();
         return;
       }
 
@@ -414,7 +531,7 @@ export default function WorkspaceForm({
       setValue("devServerUrl", "");
       setValue("openDevServerOnLaunch", false);
       setValue("repoUrl", "");
-      setCompanions([]);
+      setCompanions([createEmptyCompanionFormRow()]);
       setLaunches([
         {
           id: createStableId(),
@@ -430,6 +547,8 @@ export default function WorkspaceForm({
       abbreviationCustomizedRef.current = false;
       commandsCustomizedRef.current = false;
       companionsCustomizedRef.current = false;
+      repoUrlCustomizedRef.current = false;
+      devServerUrlCustomizedRef.current = false;
       setSuggestionPills([]);
       setSuggestionSource(null);
     } catch (error) {
@@ -448,18 +567,8 @@ export default function WorkspaceForm({
             onSubmit={handleSubmit}
           />
           <Action title="Add Command" icon={Icon.Plus} onAction={addLaunchRow} />
-          <Action title="Add Companion" icon={Icon.AppWindow} onAction={() => addCompanionRow()} />
-          {companionPresets.length > 0 ? (
-            <ActionPanel.Section title="Add companion preset">
-              {companionPresets.map((preset) => (
-                <Action
-                  key={`add-preset-${preset.id}`}
-                  title={preset.title}
-                  icon={Icon.AppWindow}
-                  onAction={() => addCompanionRow(preset.id)}
-                />
-              ))}
-            </ActionPanel.Section>
+          {companions.length < VALIDATION_LIMITS.MAX_COMPANIONS ? (
+            <Action title="Add Companion" icon={Icon.AppWindow} onAction={addCompanionRow} />
           ) : null}
           {unusedSuggestionPills.length > 0 ? (
             <ActionPanel.Section title="Suggestions">
@@ -467,7 +576,7 @@ export default function WorkspaceForm({
                 <Action
                   key={`${pill.taskType}-${pill.command}`}
                   title={pill.displayTitle || pill.typeTitle || pill.command}
-                  icon={Icon.LightBulb}
+                  icon={suggestionPillIcon(pill.taskType)}
                   onAction={() => applySuggestionPill(pill)}
                 />
               ))}
@@ -485,26 +594,12 @@ export default function WorkspaceForm({
               ))}
             </ActionPanel.Section>
           ) : null}
-          {companions.length > 0 && companionPresets.length > 0 ? (
-            <ActionPanel.Section title="Apply companion preset">
-              {companions.flatMap((companion, index) =>
-                companionPresets.map((preset) => (
-                  <Action
-                    key={`apply-${companion.id}-${preset.id}`}
-                    title={`Companion ${index + 1}: ${preset.title}`}
-                    icon={Icon.AppWindow}
-                    onAction={() => applyCompanionPreset(index, preset.id)}
-                  />
-                )),
-              )}
-            </ActionPanel.Section>
-          ) : null}
-          {companions.length > 0 ? (
+          {companions.length > 1 || companions.some((companion) => companion.presetId !== COMPANION_PRESET_NONE) ? (
             <ActionPanel.Section title="Remove companion">
               {companions.map((companion, index) => (
                 <Action
                   key={`remove-companion-${companion.id}`}
-                  title={`Remove Companion ${index + 1}`}
+                  title={companions.length === 1 ? "Clear Companion" : `Remove Companion ${index + 1}`}
                   icon={Icon.Trash}
                   onAction={() => removeCompanionRow(index)}
                 />
@@ -583,7 +678,7 @@ export default function WorkspaceForm({
           title="Command suggestions"
           text={
             suggestionSource === "suggest"
-              ? "Seeded from QuickShell.Suggest. Use Actions → Suggestions to apply additional pills."
+              ? "Seeded from Quick Shell Suggest. Use Actions → Suggestions to apply additional pills."
               : "Seeded from local folder heuristics (Suggest.exe unavailable). Install Suggest beside the extension or set QUICKSHELL_SUGGEST_EXE."
           }
         />
@@ -591,49 +686,97 @@ export default function WorkspaceForm({
       <Form.Checkbox {...itemProps.isPinned} label="Favorite" />
       <Form.Checkbox {...itemProps.runAsAdmin} label="Run as administrator" />
       <Form.Separator />
-      <Form.TextField {...itemProps.repoUrl} title="Repository URL" placeholder="https://github.com/org/repo" />
-      <Form.TextField {...itemProps.devServerUrl} title="Dev Server URL" placeholder="http://localhost:5173" />
+      <Form.TextField
+        {...itemProps.repoUrl}
+        title="Repository URL"
+        placeholder="https://github.com/org/repo"
+        onChange={(value) => {
+          repoUrlCustomizedRef.current = true;
+          itemProps.repoUrl.onChange?.(value);
+        }}
+      />
+      <Form.TextField
+        {...itemProps.devServerUrl}
+        title="Dev Server URL"
+        placeholder="http://localhost:5173"
+        onChange={(value) => {
+          devServerUrlCustomizedRef.current = true;
+          itemProps.devServerUrl.onChange?.(value);
+        }}
+      />
       <Form.Checkbox {...itemProps.openDevServerOnLaunch} label="Open dev server link on launch" />
       <Form.Separator />
-      {companions.length === 0 ? (
-        <Form.Description
-          title="Companions"
-          text="No companion apps yet. Use Actions → Add Companion or Add companion preset."
-        />
-      ) : null}
-      {companions.map((companion, index) => (
-        <Form.TextField
-          key={`companion-path-${companion.id}`}
-          id={`companion-path-${companion.id}`}
-          title={companions.length === 1 ? "Companion App" : `Companion ${index + 1}`}
-          value={companion.path}
-          onChange={(value) => updateCompanion(index, { path: value })}
-          placeholder="C:\\Program Files\\Microsoft VS Code\\Code.exe"
-        />
-      ))}
-      {companions.map((companion, index) => (
-        <Form.TextField
-          key={`companion-args-${companion.id}`}
-          id={`companion-args-${companion.id}`}
-          title={companions.length === 1 ? "Companion Arguments" : `Companion ${index + 1} Arguments`}
-          value={companion.arguments}
-          onChange={(value) => updateCompanion(index, { arguments: value })}
-          info="Use {folder} or . for the workspace directory."
-          placeholder="{folder}"
-        />
-      ))}
-      {companions.map((companion, index) => (
-        <Form.Checkbox
-          key={`companion-open-${companion.id}`}
-          id={`companion-open-${companion.id}`}
-          label={companions.length === 1 ? "Open companion app on launch" : `Open companion ${index + 1} on launch`}
-          value={companion.openOnLaunch}
-          onChange={(value) => updateCompanion(index, { openOnLaunch: value })}
-        />
-      ))}
+      {companions.map((companion, index) => {
+        const titlePrefix = companions.length === 1 ? "Companion app" : `Companion ${index + 1}`;
+
+        return (
+          <Form.Dropdown
+            key={`companion-preset-${companion.id}`}
+            id={`companion-preset-${companion.id}`}
+            title={titlePrefix}
+            value={companion.presetId}
+            info={
+              companion.path.trim()
+                ? companion.path
+                : companion.presetId === COMPANION_PRESET_CUSTOM
+                  ? "Choose a custom executable below."
+                  : "Installed apps on this machine, plus Custom app."
+            }
+            onChange={(value) => applyCompanionPresetChoice(index, value)}
+          >
+            {companionChoices.map((choice) => (
+              <Form.Dropdown.Item key={`${companion.id}-${choice.id}`} value={choice.id} title={choice.title} />
+            ))}
+          </Form.Dropdown>
+        );
+      })}
+      {companions.map((companion, index) =>
+        companion.presetId === COMPANION_PRESET_CUSTOM ? (
+          <Form.FilePicker
+            key={`companion-exe-${companion.id}`}
+            id={`companion-exe-${companion.id}`}
+            title={companions.length === 1 ? "Custom executable" : `Companion ${index + 1} executable`}
+            value={companion.path ? [companion.path] : []}
+            onChange={(paths) => handleCompanionExecutableChange(index, paths)}
+            canChooseFiles
+            canChooseDirectories={false}
+            allowMultipleSelection={false}
+            info="Opens the file explorer to pick an .exe (or shortcut)."
+          />
+        ) : null,
+      )}
+      {companions.map((companion, index) =>
+        companion.presetId !== COMPANION_PRESET_NONE &&
+        (Boolean(companion.path.trim()) || companion.presetId === COMPANION_PRESET_CUSTOM) ? (
+          <Form.TextField
+            key={`companion-args-${companion.id}`}
+            id={`companion-args-${companion.id}`}
+            title={companions.length === 1 ? "Companion arguments" : `Companion ${index + 1} arguments`}
+            value={companion.arguments}
+            onChange={(value) => updateCompanion(index, { arguments: value })}
+            info="Use {folder} or . for the workspace directory."
+            placeholder="{folder}"
+          />
+        ) : null,
+      )}
+      {companions.map((companion, index) =>
+        companion.presetId !== COMPANION_PRESET_NONE && companion.path.trim() ? (
+          <Form.Checkbox
+            key={`companion-open-${companion.id}`}
+            id={`companion-open-${companion.id}`}
+            label={companions.length === 1 ? "Open companion app on launch" : `Open companion ${index + 1} on launch`}
+            value={companion.openOnLaunch}
+            onChange={(value) => updateCompanion(index, { openOnLaunch: value })}
+          />
+        ) : null,
+      )}
       <Form.Description
         title="Defaults"
-        text={`Commands and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "Raycast extension preferences"}. Companion apps open before terminals on full workspace launch; the dev server URL opens afterward.`}
+        text={
+          directorySeedMode === "full"
+            ? `Commands, companions, and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "Raycast extension preferences"}. Companion apps open before terminals on full workspace launch; the dev server URL opens afterward.`
+            : `Choosing a folder fills Name, Repository URL, and Dev Server URL when found. Commands and companions stay blank until you set them. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "Raycast extension preferences"}.`
+        }
       />
     </Form>
   );

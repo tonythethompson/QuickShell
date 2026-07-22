@@ -147,7 +147,7 @@ export function validateWorkspaceCount(count: number): ValidationResult {
   if (count > MAX_WORKSPACES) {
     return {
       ok: false,
-      message: `QuickShell supports at most ${MAX_WORKSPACES} workspaces.`,
+      message: `Quick Shell supports at most ${MAX_WORKSPACES} workspaces.`,
     };
   }
   return { ok: true };
