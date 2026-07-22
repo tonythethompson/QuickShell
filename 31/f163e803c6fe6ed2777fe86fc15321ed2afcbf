@@ -1,0 +1,32 @@
+scripts/submit-cmdpal-gallery.ps1
+  s_c794253886b768::t_76604b381e29cc 1,4-5,19
+  s_c794253886b768::t_6d6711aa5b1315 44,47,50-51,53-56,60,62-65,70-73
+cmdpal-gallery/README.md
+  s_c794253886b768::t_375745e4833b86 14,16,18-22
+cmdpal-gallery/extensions/tonythethompson/quickshell/extension.json
+  s_2b89eaf48e0bf9::t_9a160c2fdaf959 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "31f163e803c6fe6ed2777fe86fc15321ed2afcbf",
+  "prompts": {},
+  "sessions": {
+    "s_2b89eaf48e0bf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c938dcd-4797-4f21-84dc-089f6a387dca",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
