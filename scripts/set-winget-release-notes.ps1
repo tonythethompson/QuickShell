@@ -25,7 +25,9 @@ $content = Get-Content -Path $localeFile.FullName -Raw
 # don't end up with a duplicate key.
 $content = $content -replace '(?ms)^ReleaseNotes:\s*\|.*?(?=^\S)', ''
 
-$notesBlock = "ReleaseNotes: |`n  $ReleaseNotes`n"
+$indentedNotes = ($ReleaseNotes -split "`n" | ForEach-Object { "  $_" }) -join "`n"
+$notesBlock = "ReleaseNotes: |`n$indentedNotes`n"
+$notesBlock = $notesBlock -replace '\$', '$$$$'
 
 if ($content -match '(?m)^ReleaseNotesUrl:') {
     $content = $content -replace '(?m)^(ReleaseNotesUrl:)', "$notesBlock`$1"
