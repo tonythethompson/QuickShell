@@ -599,7 +599,7 @@ internal static class CompanionAppCatalog
             return false;
         }
 
-        if (PathExecutableLookup.TryFindOnPath(fileName, out var onPath))
+        if (TryFindOnPath(fileName, out var onPath))
         {
             resolvedPath = onPath;
             return true;
@@ -672,6 +672,35 @@ internal static class CompanionAppCatalog
         }
 
         return null;
+    }
+
+    private static bool TryFindOnPath(string fileName, out string resolvedPath)
+    {
+        resolvedPath = string.Empty;
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathValue))
+        {
+            return false;
+        }
+
+        foreach (var segment in pathValue.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            try
+            {
+                var candidate = Path.Combine(segment, fileName);
+                if (File.Exists(candidate))
+                {
+                    resolvedPath = Path.GetFullPath(candidate);
+                    return true;
+                }
+            }
+            catch
+            {
+                // Skip invalid PATH segments.
+            }
+        }
+
+        return false;
     }
 
     private static IReadOnlyList<string> BuildExplorerCandidates() =>

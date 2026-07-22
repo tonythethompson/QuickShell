@@ -43,12 +43,6 @@ internal static class ShortcutFormTemplateJson
         /// </summary>
         public bool SuggestionScanning { get; init; }
 
-        /// <summary>
-        /// Precomputed presentation-ordered pills from <c>WorkspaceEditState.Pills</c>.
-        /// When set, data JSON skips a second <c>GetPills</c> scan.
-        /// </summary>
-        public IReadOnlyList<CommandSuggestionPill>? SuggestionPills { get; init; }
-
         /// <summary>Non-empty when the last Save failed validation; shown as an attention banner.</summary>
         public string SaveError { get; init; } = string.Empty;
     }
@@ -317,28 +311,16 @@ internal static class ShortcutFormTemplateJson
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions)
     {
-        IReadOnlyDictionary<string, string> pillData;
-        if (draft.SuggestionPills is not null)
-        {
-            pillData = SuggestionPillPresentation.BuildDataFields(
-                draft.SuggestionPills,
-                draft.ExpandSuggestionPills,
-                isScanningSuggestions: draft.SuggestionScanning);
-        }
-        else
-        {
-            var launchRows = commands.ToList();
-            pillData = SuggestionPillPresentation.BuildDataFields(
-                draft.Directory,
-                launchRows.Select(row => row.Command),
-                projectAnalysis,
-                commandSuggestions,
-                draft.ExpandSuggestionPills,
-                isScanningSuggestions: draft.SuggestionScanning);
-        }
+        var launchRows = commands.ToList();
 
         var fields = new List<string>();
-        foreach (var entry in pillData)
+        foreach (var entry in SuggestionPillPresentation.BuildDataFields(
+                     draft.Directory,
+                     launchRows.Select(row => row.Command),
+                     projectAnalysis,
+                     commandSuggestions,
+                     draft.ExpandSuggestionPills,
+                     isScanningSuggestions: draft.SuggestionScanning))
         {
             fields.Add(FormatPillDataField(entry.Key, entry.Value));
         }

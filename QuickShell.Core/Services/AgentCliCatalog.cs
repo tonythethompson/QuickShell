@@ -152,9 +152,9 @@ internal static class AgentCliCatalog
             return IsCommandOnPathOverride(commandName);
         }
 
-        return PathExecutableLookup.Exists(commandName + ".exe")
-            || PathExecutableLookup.Exists(commandName + ".cmd")
-            || PathExecutableLookup.Exists(commandName);
+        return TryFindOnPath(commandName + ".exe")
+            || TryFindOnPath(commandName + ".cmd")
+            || TryFindOnPath(commandName);
     }
 
     public static bool HasProjectMarker(string directory, AgentCliDefinition definition)
@@ -165,6 +165,33 @@ internal static class AgentCliCatalog
             if (File.Exists(fullPath) || Directory.Exists(fullPath))
             {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryFindOnPath(string fileName)
+    {
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathValue))
+        {
+            return false;
+        }
+
+        foreach (var segment in pathValue.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            try
+            {
+                var candidate = Path.Combine(segment, fileName);
+                if (File.Exists(candidate))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Skip invalid PATH segments.
             }
         }
 

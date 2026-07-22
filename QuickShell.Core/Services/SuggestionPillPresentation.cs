@@ -77,29 +77,6 @@ internal static class SuggestionPillPresentation
     {
         ArgumentNullException.ThrowIfNull(commandSuggestions);
 
-        if (isScanningSuggestions
-            || string.IsNullOrWhiteSpace(directory)
-            || !Directory.Exists(directory))
-        {
-            return BuildDataFields([], expandSuggestionPills, isScanningSuggestions);
-        }
-
-        // Same ordered real-command list the form uses when applying a pill click.
-        var pills = BuildSelectablePills(directory, usedCommands, projectAnalysis, commandSuggestions);
-        return BuildDataFields(pills, expandSuggestionPills, isScanningSuggestions: false);
-    }
-
-    /// <summary>
-    /// Fills Adaptive Card pill data from a precomputed presentation-ordered list
-    /// (e.g. <c>WorkspaceEditState.Pills</c>) without calling <see cref="ICommandSuggestionService.GetPills"/>.
-    /// </summary>
-    public static IReadOnlyDictionary<string, string> BuildDataFields(
-        IReadOnlyList<CommandSuggestionPill> pills,
-        bool expandSuggestionPills,
-        bool isScanningSuggestions = false)
-    {
-        ArgumentNullException.ThrowIfNull(pills);
-
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["ShowSuggestionPills"] = "false",
@@ -118,10 +95,15 @@ internal static class SuggestionPillPresentation
             fields[$"PillTooltip_{i}"] = string.Empty;
         }
 
-        if (isScanningSuggestions)
+        if (isScanningSuggestions
+            || string.IsNullOrWhiteSpace(directory)
+            || !Directory.Exists(directory))
         {
             return fields;
         }
+
+        // Same ordered real-command list the form uses when applying a pill click.
+        var pills = BuildSelectablePills(directory, usedCommands, projectAnalysis, commandSuggestions);
 
         fields["ShowSuggestionPills"] = pills.Count > 0 ? "true" : "false";
         fields["ShowMoreSuggestions"] = pills.Count > DefaultVisibleSlots && !expandSuggestionPills ? "true" : "false";

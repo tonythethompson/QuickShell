@@ -912,7 +912,47 @@ internal sealed class TerminalCatalog : ITerminalCatalog
             };
         }
 
-        private static bool IsOnPath(string fileName) => PathExecutableLookup.Exists(fileName);
+        private static bool IsOnPath(string fileName)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "where.exe",
+                    Arguments = fileName,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process is null)
+                {
+                    return false;
+                }
+
+                if (!process.WaitForExit(1500))
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch
+                    {
+                        // Best effort.
+                    }
+
+                    return false;
+                }
+
+                return process.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private static string[] GetWslDistros()
         {

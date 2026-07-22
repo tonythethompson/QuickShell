@@ -56,8 +56,10 @@ internal static class ShortcutListItems
             ? new ShortcutFormPage(services, shortcut, onChanged)
             : new OpenTerminalShortcutCommand(shortcut, services);
 
+        var stored = services.Shortcuts.GetStoredWorkspace(shortcut.Id);
         var trustPrefix = WorkspaceTrustFeatures.Enabled
-            && services.Shortcuts.GetStoredWorkspace(shortcut.Id)?.Security.IsTrusted == false
+            && stored is not null
+            && !stored.Security.IsTrusted
                 ? "Untrusted · "
                 : string.Empty;
         var item = new ListItem(primaryCommand)

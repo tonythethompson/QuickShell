@@ -46,8 +46,14 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
         var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(_projectAnalysis, state.Directory);
         var commandRows = state.Commands.ToList();
-        // Reuse presentation-ordered pills from BuildState; do not rescan GetPills here.
-        var selectablePills = state.Pills;
+        var usedCommands = commandRows.Select(row => row.Command);
+        var selectablePills = state.IsSuggestionScanning
+            ? Array.Empty<CommandSuggestionPill>()
+            : SuggestionPillPresentation.BuildSelectablePills(
+                state.Directory,
+                usedCommands,
+                _projectAnalysis,
+                _commandSuggestions);
         var visiblePillCount = SuggestionPillPresentation.GetVisiblePillCount(
             selectablePills.Count,
             state.ExpandSuggestionPills,
@@ -98,7 +104,6 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
                 ShowRestoredDraftNote = state.ShowRestoredDraftNote,
                 ExpandSuggestionPills = state.ExpandSuggestionPills,
                 SuggestionScanning = state.IsSuggestionScanning,
-                SuggestionPills = selectablePills,
                 SaveError = state.SaveError ?? string.Empty,
             },
             _projectAnalysis,
