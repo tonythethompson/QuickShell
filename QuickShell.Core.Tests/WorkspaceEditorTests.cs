@@ -437,6 +437,8 @@ public sealed class WorkspaceEditorTests : IDisposable
             _analysis,
             _commandSuggestions,
             _lifetime,
+            "Add at least one launch.",
+            "Open in terminal",
             onSaved);
 
     private static string JsonEscaped(string value) =>

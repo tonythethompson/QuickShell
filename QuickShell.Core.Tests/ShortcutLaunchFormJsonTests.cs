@@ -8,13 +8,23 @@ public sealed class ShortcutLaunchFormJsonTests
 {
     private const string TerminalChoices = """[{ "title": "Default", "value": "default" }]""";
 
+    private static readonly LaunchEditorText EditorText = new(
+        "Add command",
+        "Open in terminal",
+        "Remove launch",
+        "No launches yet",
+        "Add at least one command or terminal launch.",
+        "Add at least one launch.",
+        "Add a command or open the folder in a terminal.");
+
     [Fact]
     public void BuildCommandRowsJson_TwoCommands_UsesDistinctIds()
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
                 [new() { Command = "npm start", LaunchTarget = "default" }, new() { Command = "dotnet watch", TaskType = TaskTypeCatalog.Api, LaunchTarget = "default", RunAsAdmin = true }],
-                TerminalChoices));
+                TerminalChoices,
+                EditorText));
 
         using var document = JsonDocument.Parse(json);
         var text = document.RootElement.GetRawText();
@@ -46,7 +56,8 @@ public sealed class ShortcutLaunchFormJsonTests
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
                 [new() { Command = "npm start", TaskType = TaskTypeCatalog.Frontend, LaunchTarget = "default" }, new() { Command = "dotnet watch", TaskType = TaskTypeCatalog.Api, LaunchTarget = "default" }],
-                TerminalChoices));
+                TerminalChoices,
+                EditorText));
 
         using var document = JsonDocument.Parse(json);
         var text = document.RootElement.GetRawText();
@@ -63,7 +74,8 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var text = ShortcutLaunchFormJson.BuildCommandRowsJson(
             [new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Open in terminal" }],
-            TerminalChoices);
+            TerminalChoices,
+            EditorText);
 
         Assert.Contains("Open in terminal", text);
         Assert.Contains("removeLaunch", text);
@@ -73,7 +85,7 @@ public sealed class ShortcutLaunchFormJsonTests
     [Fact]
     public void BuildCommandRowsJson_ZeroRows_RendersEmptyStateWithoutSyntheticCommand()
     {
-        var text = ShortcutLaunchFormJson.BuildCommandRowsJson([], TerminalChoices);
+        var text = ShortcutLaunchFormJson.BuildCommandRowsJson([], TerminalChoices, EditorText);
 
         Assert.Contains("No launches yet", text);
         Assert.Contains("addCommandRow", text);
@@ -165,23 +177,39 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Equal("true", launchEnabled2.GetProperty("value").GetString());
     }
 
-    private static JsonElement FindElementById(JsonElement body, string id)
+    private static JsonElement FindElementById(JsonElement node, string id)
     {
-        foreach (var element in body.EnumerateArray())
+        if (node.ValueKind == JsonValueKind.Object)
         {
-            if (element.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
+            if (node.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
             {
-                return element;
+                return node;
             }
-            if (element.TryGetProperty("body", out var nestedBody) && nestedBody.ValueKind == JsonValueKind.Array)
+
+            foreach (var propertyName in new[] { "body", "items", "columns" })
             {
-                var found = FindElementById(nestedBody, id);
+                if (node.TryGetProperty(propertyName, out var nested) && nested.ValueKind == JsonValueKind.Array)
+                {
+                    var found = FindElementById(nested, id);
+                    if (found.ValueKind != JsonValueKind.Undefined)
+                    {
+                        return found;
+                    }
+                }
+            }
+        }
+        else if (node.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in node.EnumerateArray())
+            {
+                var found = FindElementById(element, id);
                 if (found.ValueKind != JsonValueKind.Undefined)
                 {
                     return found;
                 }
             }
         }
+
         return default;
     }
 }

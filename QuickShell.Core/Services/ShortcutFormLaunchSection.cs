@@ -74,8 +74,9 @@ internal static class ShortcutFormLaunchSection
 
     public static string BuildCommandRowsJson(
         IReadOnlyList<LaunchRowDraft> commands,
-        string terminalChoices) =>
-        ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices);
+        string terminalChoices,
+        LaunchEditorText text) =>
+        ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices, text);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(
         IProjectAnalysisService projectAnalysis,

@@ -229,7 +229,7 @@ internal static partial class ShortcutLaunchFormJson
 
 
 
-            var commandInput = BuildCommandInputWithClear(i, literalValue: escapedCommand);
+            var commandInput = BuildCommandInputWithClear(i, literalValue: escapedCommand, removeTooltip: FormActionGlyphs.ClearCommandTooltip);
 
 
 
