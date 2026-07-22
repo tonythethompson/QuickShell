@@ -1,0 +1,35 @@
+scripts/build-raycast-extension.ps1
+  s_c794253886b768::t_d997715d1161c8 1-3
+QuickShell.Raycast/README.md
+  s_c794253886b768::t_5ec20cf823588c 65-66
+QuickShell.Raycast/CHANGELOG.md
+  s_c794253886b768::t_a16635939e55a4 8
+.github/workflows/release-extension.yml
+  s_c794253886b768::t_484b5de8688a19 16,131,133
+AGENTS.md
+  s_c794253886b768::t_2b0b8208e0dba9 138
+README.md
+  s_c794253886b768::t_76af4138afc697 354,356
+docs/architecture/hosts.md
+  s_c794253886b768::t_0420eb7a5b607d 77
+docs/release-packages.md
+  s_c794253886b768::t_bad0e84bd0ee56 13-14,29,31-33,37-39,42
+scripts/verify-release-artifacts.ps1
+  s_c794253886b768::t_a18d5930672350 7-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e9fb72260cfb28af3212c3c27094874d91a74e81",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
