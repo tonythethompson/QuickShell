@@ -127,7 +127,15 @@ internal static class PathExecutableLookup
                 fullPath = Path.GetFullPath(candidate);
                 return true;
             }
-            catch
+            catch (ArgumentException)
+            {
+                // Skip invalid PATH segments.
+            }
+            catch (NotSupportedException)
+            {
+                // Skip invalid PATH segments.
+            }
+            catch (PathTooLongException)
             {
                 // Skip invalid PATH segments.
             }
