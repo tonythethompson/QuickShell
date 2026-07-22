@@ -1,0 +1,22 @@
+.cursor/hooks/inject-pr-review-policy.py
+  s_407abef7cf414e::t_fdb125d88fc927 1-147
+.cursor/hooks.json
+  s_407abef7cf414e::t_94f6399516e2ba 3-8
+  s_407abef7cf414e::t_daa45227e84c9a 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8aa93003b1b5e937795ab08da6fb8c69bd89846c",
+  "prompts": {},
+  "sessions": {
+    "s_407abef7cf414e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bc6be279-e68b-4578-b7e8-38b883456927",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
