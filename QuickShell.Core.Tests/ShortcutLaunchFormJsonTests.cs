@@ -8,14 +8,7 @@ public sealed class ShortcutLaunchFormJsonTests
 {
     private const string TerminalChoices = """[{ "title": "Default", "value": "default" }]""";
 
-    private static readonly LaunchEditorText EditorText = new(
-        "Add command",
-        "Open in terminal",
-        "Remove launch",
-        "No launches yet",
-        "Add at least one command or terminal launch.",
-        "Add at least one launch.",
-        "Add a command or open the folder in a terminal.");
+    private static readonly LaunchEditorText EditorText = LaunchEditorText.EnglishDefaults;
 
     [Fact]
     public void BuildCommandRowsJson_TwoCommands_UsesDistinctIds()

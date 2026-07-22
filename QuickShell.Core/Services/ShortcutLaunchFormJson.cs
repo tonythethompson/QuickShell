@@ -153,24 +153,24 @@ internal static partial class ShortcutLaunchFormJson
 
 
 
-    public static string BuildCommandsSectionHeaderJson(string commandsSectionTooltip) =>
+    public static string BuildCommandsSectionHeaderJson(LaunchEditorText text) =>
         $$"""
         {
           "type": "Container",
           "spacing": "None",
           "items": [
-            {{AdaptiveCardFormJson.FieldLabel("Commands", commandsSectionTooltip)}}
+            {{AdaptiveCardFormJson.FieldLabel(text.CommandsSectionTitle, text.CommandsSectionTooltip)}}
           ]
         }
         """;
 
-    public static string BuildCommandsSectionJson(string commandRows, string suggestionPillsBlock, string commandsSectionTooltip) =>
+    public static string BuildCommandsSectionJson(string commandRows, string suggestionPillsBlock, LaunchEditorText text) =>
         $$"""
         {
           "type": "Container",
           "spacing": "Medium",
           "items": [
-            {{BuildCommandsSectionHeaderJson(commandsSectionTooltip)}},
+            {{BuildCommandsSectionHeaderJson(text)}},
             {{suggestionPillsBlock}},
             {{commandRows}}
           ]

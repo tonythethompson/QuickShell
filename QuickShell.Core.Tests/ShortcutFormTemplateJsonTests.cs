@@ -61,8 +61,7 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
     [Fact]
     public void BuildTemplate_ZeroLaunches_IsValidAndHasNoSyntheticCommandInput()
     {
-        var text = new LaunchEditorText("Add command", "Open in terminal", "Remove launch", "No launches yet", "Add at least one command or terminal launch.", "Add at least one launch.", "Add a command or open the folder in a terminal.");
-        var json = ShortcutFormTemplateJson.BuildTemplate("[]", "[]", [], launchText: text);
+        var json = ShortcutFormTemplateJson.BuildTemplate("[]", "[]", [], LaunchEditorText.EnglishDefaults);
 
         using var document = JsonDocument.Parse(json);
         Assert.Contains("No launches yet", json);
@@ -72,7 +71,6 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
     [Fact]
     public void BuildTemplate_MixedLaunchKinds_IsValid()
     {
-        var text = new LaunchEditorText("Add command", "Open in terminal", "Remove launch", "No launches yet", "Add at least one command or terminal launch.", "Add at least one launch.", "Add a command or open the folder in a terminal.");
         var json = ShortcutFormTemplateJson.BuildTemplate(
             "[]",
             "[]",
@@ -80,7 +78,7 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
                 new() { Kind = LaunchRowKind.Command, Command = "npm start" },
                 new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Shell" },
             ],
-            launchText: text);
+            LaunchEditorText.EnglishDefaults);
 
         using var document = JsonDocument.Parse(json);
         Assert.Contains("LaunchCommand_0", json);

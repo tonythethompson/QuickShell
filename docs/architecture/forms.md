@@ -40,7 +40,7 @@ Suggestion pills on the form call into [intelligence.md](./intelligence.md); com
 ### 1) Form-local (`FormEditHistory`)
 
 - Generic stack depth **25** (`FormEditHistory.cs`).  
-- Snapshot = launch **commands rows** + expand-pills flag (not every name/path keystroke).
+- Snapshot = launch **rows** (both `OpenInTerminal` and command kinds) + expand-pills flag (not every name/path keystroke).
 - Pushed before pill add, remove row, expand/collapse pills.
 - `TryUndoEdit` / `TryRedoEdit` on the form.
 

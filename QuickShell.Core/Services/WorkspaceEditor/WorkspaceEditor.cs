@@ -147,9 +147,10 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
 
             UpdateAutoFilledNameTracking(update.Name);
             var previousCompanions = _draft.Companions.Select(row => row.Clone()).ToList();
-            var commands = update.Commands.Count > 0
-                ? [.. update.Commands.Select(row => row.Clone())]
-                : LaunchRowListEditor.CloneRows(_draft.Commands);
+            // null = host omitted commands (keep draft); empty list = host cleared all launches.
+            var commands = update.Commands is null
+                ? LaunchRowListEditor.CloneRows(_draft.Commands)
+                : [.. update.Commands.Select(row => row.Clone())];
             NormalizeLaunchRows(commands);
 
             var companionSource = update.Companions.Count > 0 ? update.Companions : _draft.Companions;
@@ -250,7 +251,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             {
                 Kind = LaunchRowKind.Command,
                 Label = CreateUniqueLaunchLabel("Command"),
-                LaunchTarget = _draft.Commands.Count == 0
+                LaunchTarget = LaunchRowListEditor.TrimForSave(_draft.Commands).Count == 0
                     ? GetDefaultRowLaunchTarget()
                     : TerminalCatalog.SameAsPreviousLaunchTargetId,
             });
@@ -266,7 +267,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_draft.Commands.Any(row => row.Kind == LaunchRowKind.OpenInTerminal))
             {
-                return WorkspaceEditResult.StayOpen("Only one 'Open in terminal' launch is allowed per workspace.");
+                return WorkspaceEditResult.StayOpen($"Only one '{_openInTerminalLabel}' launch is allowed per workspace.");
             }
 
             if (!TryReserveLaunchSlot(out var limitMessage))
@@ -278,8 +279,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             _draft.Commands.Add(new LaunchRowDraft
             {
                 Kind = LaunchRowKind.OpenInTerminal,
-                Label = CreateUniqueLaunchLabel("Open in terminal"),
-                LaunchTarget = _draft.Commands.Count == 0
+                Label = CreateUniqueLaunchLabel(_openInTerminalLabel),
+                LaunchTarget = LaunchRowListEditor.TrimForSave(_draft.Commands).Count == 0
                     ? GetDefaultRowLaunchTarget()
                     : TerminalCatalog.SameAsPreviousLaunchTargetId,
             });
@@ -822,7 +823,9 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         List<LaunchRowDraft> commands = restored.Launches.Count > 0
             ? [.. restored.Launches.Select(launch => new LaunchRowDraft
             {
-                Kind = launch.Kind ?? InferLegacyRestoredKind(launch),
+                Kind = launch.Kind is { } persistedKind && Enum.IsDefined(persistedKind)
+                    ? persistedKind
+                    : InferLegacyRestoredKind(launch),
                 Id = string.IsNullOrWhiteSpace(launch.Id) ? Guid.NewGuid().ToString("N") : launch.Id,
                 Label = launch.Label ?? string.Empty,
                 Command = launch.Command,
@@ -1260,7 +1263,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             merged.Add(new LaunchRowDraft
             {
                 Kind = Enum.TryParse<LaunchRowKind>(data[$"LaunchKind_{i}"]?.ToString(), ignoreCase: true, out var kind)
-                    && Enum.IsDefined(typeof(LaunchRowKind), kind)
+                    && Enum.IsDefined(kind)
                     ? kind
                     : prior.Kind,
                 Id = prior.Id,

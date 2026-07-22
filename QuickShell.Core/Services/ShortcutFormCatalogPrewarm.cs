@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using QuickShell.Abstractions;
+using QuickShell.Core.Services;
 
 namespace QuickShell.Services;
 
@@ -51,6 +52,7 @@ internal static class ShortcutFormCatalogPrewarm
                 terminalChoicesJson,
                 companionChoicesJson,
                 [],
+                LaunchEditorText.EnglishDefaults,
                 "Quick Shell",
                 companionCount: 1));
     }

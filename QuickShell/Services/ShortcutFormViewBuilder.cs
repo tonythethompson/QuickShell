@@ -59,8 +59,6 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
                 _terminalCatalog.BuildFormChoicesJson(includeDefaultChoice: true, terminalApplicationId),
                 companionChoicesJson,
                 commandRows,
-                QuickShellBrand.DisplayName,
-                companionCount,
                 new LaunchEditorText(
                     Strings.LaunchEditor_AddCommand,
                     Strings.LaunchEditor_OpenInTerminal,
@@ -68,7 +66,10 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
                     Strings.LaunchEditor_EmptyTitle,
                     Strings.LaunchEditor_EmptyGuidance,
                     Strings.LaunchEditor_ValidationAtLeastOne,
-                    Strings.LaunchEditor_CommandsSectionTooltip)));
+                    Strings.LaunchEditor_CommandsSectionTooltip,
+                    Strings.LaunchEditor_CommandsSectionTitle),
+                QuickShellBrand.DisplayName,
+                companionCount));
 
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(
             new ShortcutFormTemplateJson.DataPayload

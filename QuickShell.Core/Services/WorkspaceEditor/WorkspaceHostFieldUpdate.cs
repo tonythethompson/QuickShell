@@ -17,7 +17,7 @@ internal sealed class WorkspaceHostFieldUpdate
 
     public string RepoUrl { get; init; } = string.Empty;
 
-    public IReadOnlyList<LaunchRowDraft> Commands { get; init; } = [];
+    public IReadOnlyList<LaunchRowDraft>? Commands { get; init; }
 
     public IReadOnlyList<CompanionAppFormRow> Companions { get; init; } = [];
 }

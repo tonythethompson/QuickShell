@@ -51,9 +51,9 @@ internal static class ShortcutFormTemplateJson
         string terminalChoices,
         string companionChoices,
         IReadOnlyList<LaunchRowDraft> commands,
+        LaunchEditorText launchText,
         string displayName = DisplayNameDefault,
-        int companionCount = 1,
-        LaunchEditorText? launchText = null)
+        int companionCount = 1)
     {
         ArgumentNullException.ThrowIfNull(launchText);
         var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices, launchText);
@@ -67,7 +67,7 @@ internal static class ShortcutFormTemplateJson
         var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
             commandRows,
             suggestionPillsBlock,
-            launchText.CommandsSectionTooltip);
+            launchText);
         var companionRows = Enumerable.Range(0, Math.Max(1, companionCount))
             .Select(_ => CompanionAppFormRow.Empty())
             .ToList();
