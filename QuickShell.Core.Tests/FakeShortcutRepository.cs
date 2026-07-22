@@ -16,6 +16,7 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     private readonly Dictionary<string, TerminalShortcut> _byId;
     private readonly Dictionary<string, TerminalShortcut> _byName;
+    private readonly Dictionary<string, WorkspaceSecurityMetadata> _securityById = new(StringComparer.OrdinalIgnoreCase);
 
     public FakeShortcutRepository(IEnumerable<TerminalShortcut> shortcuts, string? configDirectory = null)
     {
@@ -45,6 +46,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public int GetSnapshotCallCount { get; private set; }
 
+    public int GetStoredWorkspaceCallCount { get; private set; }
+
     public WorkspaceRepositorySnapshot GetSnapshot()
     {
         GetSnapshotCallCount++;
@@ -63,6 +66,7 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
     {
         _byId.Clear();
         _byName.Clear();
+        _securityById.Clear();
     }
 
     public TerminalShortcut? GetByName(string name) =>
@@ -77,12 +81,22 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public TerminalShortcut? ResolveForOpenCommand(string key) => GetById(key) ?? GetByName(key);
 
+    public void SetSecurity(string id, WorkspaceSecurityMetadata security) =>
+        _securityById[id] = security;
+
     public StoredWorkspace? GetStoredWorkspace(string id)
     {
+        GetStoredWorkspaceCallCount++;
         var shortcut = GetById(id);
-        return shortcut is null
-            ? null
-            : new StoredWorkspace(shortcut, new WorkspaceSecurityMetadata(), 1);
+        if (shortcut is null)
+        {
+            return null;
+        }
+
+        var security = _securityById.TryGetValue(id, out var configured)
+            ? configured
+            : new WorkspaceSecurityMetadata();
+        return new StoredWorkspace(shortcut, security, Math.Max(1, security.Revision));
     }
 
     public WorkspaceReviewSnapshot BeginTrustReview(string workspaceId) =>

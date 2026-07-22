@@ -1417,12 +1417,14 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
     {
         // Callers always hold _sync; read fields directly instead of re-entering via IsSuggestionScanning.
         var scanning = !_suggestionScanComplete && !string.IsNullOrWhiteSpace(_draft.Directory);
+        // Presentation order (type-grouped) must match form render / pillIndex clicks.
         IReadOnlyList<CommandSuggestionPill> pills = scanning
             ? []
-            : _commandSuggestions.GetPills(
+            : SuggestionPillPresentation.BuildSelectablePills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
-                _projectAnalysis);
+                _projectAnalysis,
+                _commandSuggestions);
 
         return new WorkspaceEditState(
             _originalName,
