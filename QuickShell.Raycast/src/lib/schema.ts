@@ -2,7 +2,7 @@ export const SCHEMA_VERSION = 1;
 
 export const STORAGE_KEY = "quickshell-data";
 
-export type TerminalApplication = "system" | "wt" | "conhost" | "it";
+export type TerminalApplication = "system" | "wt" | "conhost" | "it" | "terminal" | "iterm";
 
 export type LaunchEntry = {
   id: string;

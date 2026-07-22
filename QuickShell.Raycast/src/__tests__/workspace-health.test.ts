@@ -47,12 +47,23 @@ describe("workspace-health", () => {
     expect(message).toBe("First problem. Second problem.");
   });
 
-  it("flags non-windows platforms for launch", () => {
+  it("flags unsupported platforms for launch", () => {
     const originalPlatform = process.platform;
-    Object.defineProperty(process, "platform", { value: "darwin" });
+    Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
     const report = assessWorkspaceHealth(workspace, DEFAULT_SETTINGS);
-    Object.defineProperty(process, "platform", { value: originalPlatform });
+    Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
     expect(report.issues.some((issue) => issue.code === "platform")).toBe(true);
+  });
+
+  it("does not flag macOS as an unsupported platform", () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { configurable: true, value: "darwin" });
+    const report = assessWorkspaceHealth(
+      { ...workspace, directory: "/Users/dev/Projects/web" },
+      { ...DEFAULT_SETTINGS, terminalApplication: "terminal" },
+    );
+    Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+    expect(report.issues.some((issue) => issue.code === "platform")).toBe(false);
   });
 
   it("collects localhost and command ports", () => {

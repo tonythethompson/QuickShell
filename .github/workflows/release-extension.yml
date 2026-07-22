@@ -140,12 +140,12 @@ jobs:
             - **ARM64**: `QuickShellforRun-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
             - **ZIP**: `QuickShell.Run-x64.zip` / `QuickShell.Run-ARM64.zip`
 
-            ### Raycast for Windows
+            ### Raycast (Windows + macOS)
 
-            - **x64 EXE**: `QuickShellforRaycast-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
-            - **ZIP**: `QuickShell.Raycast.zip` (Developer → Import Extension)
+            - **Windows x64 EXE**: `QuickShellforRaycast-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
+            - **ZIP**: `QuickShell.Raycast.zip` (Developer → Import Extension on Windows or macOS)
 
-            Requires [Raycast for Windows](https://www.raycast.com/). Store distribution is separate from these GitHub installers.
+            Requires [Raycast](https://www.raycast.com/) for Windows or macOS. Store distribution is separate from these GitHub installers. WinGet / Inno Setup installers are Windows-only.
 
             After installing the Command Palette extension, run **Reload Command Palette Extension** in PowerToys Command Palette.
 

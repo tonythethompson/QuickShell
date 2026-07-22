@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { isMacPlatform } from "./platform";
 
 export type CompanionPreset = {
   id: string;
@@ -36,8 +37,7 @@ function windowsDir(): string {
   return process.env.WINDIR?.trim() || "C:\\Windows";
 }
 
-/** Static catalog mirrored from Core CompanionAppCatalog (common presets + candidate paths). */
-export const COMPANION_PRESETS: CompanionPreset[] = [
+const WINDOWS_COMPANION_PRESETS: CompanionPreset[] = [
   {
     id: "explorer",
     title: "Windows Explorer",
@@ -140,10 +140,72 @@ export const COMPANION_PRESETS: CompanionPreset[] = [
   },
 ];
 
+const MAC_COMPANION_PRESETS: CompanionPreset[] = [
+  {
+    id: "finder",
+    title: "Finder",
+    defaultArguments: "{folder}",
+    candidatePaths: ["/System/Library/CoreServices/Finder.app"],
+  },
+  {
+    id: "vscode",
+    title: "Visual Studio Code",
+    defaultArguments: ".",
+    candidatePaths: ["/Applications/Visual Studio Code.app", "/usr/local/bin/code", "/opt/homebrew/bin/code"],
+  },
+  {
+    id: "vscode-insiders",
+    title: "VS Code Insiders",
+    defaultArguments: ".",
+    candidatePaths: [
+      "/Applications/Visual Studio Code - Insiders.app",
+      "/usr/local/bin/code-insiders",
+      "/opt/homebrew/bin/code-insiders",
+    ],
+  },
+  {
+    id: "cursor",
+    title: "Cursor",
+    defaultArguments: ".",
+    candidatePaths: ["/Applications/Cursor.app", "/usr/local/bin/cursor", "/opt/homebrew/bin/cursor"],
+  },
+  {
+    id: "zed",
+    title: "Zed",
+    defaultArguments: ".",
+    candidatePaths: ["/Applications/Zed.app", "/usr/local/bin/zed", "/opt/homebrew/bin/zed"],
+  },
+  {
+    id: "sublime",
+    title: "Sublime Text",
+    defaultArguments: ".",
+    candidatePaths: ["/Applications/Sublime Text.app", "/usr/local/bin/subl", "/opt/homebrew/bin/subl"],
+  },
+  {
+    id: "obsidian",
+    title: "Obsidian",
+    defaultArguments: "{folder}",
+    candidatePaths: ["/Applications/Obsidian.app"],
+  },
+  {
+    id: "github-desktop",
+    title: "GitHub Desktop",
+    defaultArguments: "{folder}",
+    candidatePaths: ["/Applications/GitHub Desktop.app"],
+  },
+];
+
+export function getCompanionPresets(): CompanionPreset[] {
+  return isMacPlatform() ? MAC_COMPANION_PRESETS : WINDOWS_COMPANION_PRESETS;
+}
+
+/** @deprecated Prefer getCompanionPresets(); Windows catalog for tests that do not stub platform. */
+export const COMPANION_PRESETS: CompanionPreset[] = WINDOWS_COMPANION_PRESETS;
+
 let cachedCompanionChoices: CompanionFormChoice[] | null = null;
 
 export function resolveCompanionPreset(presetId: string): { path: string; arguments: string } | null {
-  const preset = COMPANION_PRESETS.find((entry) => entry.id === presetId);
+  const preset = getCompanionPresets().find((entry) => entry.id === presetId);
   if (!preset) {
     return null;
   }
@@ -158,10 +220,12 @@ export function resolveCompanionPreset(presetId: string): { path: string; argume
 }
 
 export function listInstalledCompanionPresets(): Array<{ id: string; title: string }> {
-  return COMPANION_PRESETS.filter((preset) => resolveCompanionPreset(preset.id) !== null).map((preset) => ({
-    id: preset.id,
-    title: preset.title,
-  }));
+  return getCompanionPresets()
+    .filter((preset) => resolveCompanionPreset(preset.id) !== null)
+    .map((preset) => ({
+      id: preset.id,
+      title: preset.title,
+    }));
 }
 
 /** CmdPal-style dropdown: None → installed apps → Custom. */
@@ -185,7 +249,7 @@ export function getCompanionPresetDefaultArguments(presetId: string): string {
   if (presetId === COMPANION_PRESET_NONE) {
     return "";
   }
-  const preset = COMPANION_PRESETS.find((entry) => entry.id === presetId);
+  const preset = getCompanionPresets().find((entry) => entry.id === presetId);
   return preset?.defaultArguments ?? "{folder}";
 }
 
@@ -199,21 +263,25 @@ export function inferCompanionPresetFromPath(executablePath: string | null | und
     return COMPANION_PRESET_NONE;
   }
 
-  const normalized = trimmed.replace(/\//g, "\\").toLowerCase();
-  for (const preset of COMPANION_PRESETS) {
+  const normalized = normalizePathForCompare(trimmed);
+  for (const preset of getCompanionPresets()) {
     for (const candidate of preset.candidatePaths) {
-      if (candidate.replace(/\//g, "\\").toLowerCase() === normalized) {
+      if (normalizePathForCompare(candidate) === normalized) {
         return preset.id;
       }
     }
   }
 
-  const fileName = windowsBasename(trimmed).toLowerCase();
-  for (const preset of COMPANION_PRESETS) {
+  const fileName = pathBasename(trimmed).toLowerCase();
+  for (const preset of getCompanionPresets()) {
     for (const candidate of preset.candidatePaths) {
-      if (windowsBasename(candidate).toLowerCase() === fileName) {
+      if (pathBasename(candidate).toLowerCase() === fileName) {
         // Explorer basename alone is too ambiguous off Windows\explorer.exe.
-        if (preset.id === "explorer" && !normalized.includes("\\windows\\explorer.exe")) {
+        if (
+          preset.id === "explorer" &&
+          !normalized.includes("/windows/explorer.exe") &&
+          !normalized.includes("\\windows\\explorer.exe")
+        ) {
           continue;
         }
         return preset.id;
@@ -224,10 +292,14 @@ export function inferCompanionPresetFromPath(executablePath: string | null | und
   return COMPANION_PRESET_CUSTOM;
 }
 
-/** Basename that works for Windows paths even when tests run on Linux CI. */
-function windowsBasename(filePath: string): string {
-  const normalized = filePath.replace(/\//g, "\\");
-  const parts = normalized.split("\\").filter(Boolean);
+function normalizePathForCompare(filePath: string): string {
+  return filePath.replace(/\\/g, "/").toLowerCase();
+}
+
+/** Basename that works for Windows and POSIX paths (including Linux CI). */
+function pathBasename(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? normalized;
 }
 

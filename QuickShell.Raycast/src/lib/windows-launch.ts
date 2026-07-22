@@ -1,4 +1,6 @@
 import type { LaunchEntry, QuickShellSettings, Workspace } from "./schema";
+import { isMacPlatform } from "./platform";
+import { normalizeTerminalApplicationForPlatform } from "./terminal-options";
 
 export type LaunchTargetKind = "wt" | "powershell" | "pwsh" | "cmd" | "wsl";
 
@@ -108,13 +110,18 @@ export function resolveTerminalForLaunch(
   }
 
   if (launch.terminal === "default") {
-    const terminalApp = settings.terminalApplication === "system" ? "wt" : settings.terminalApplication;
+    const rawApp =
+      settings.terminalApplication === "system" ? (isMacPlatform() ? "terminal" : "wt") : settings.terminalApplication;
+    const terminalApp = normalizeTerminalApplicationForPlatform(rawApp);
     const profile = settings.defaultProfile === "__default__" ? null : settings.defaultProfile;
     if (terminalApp === "conhost") {
       return { terminal: resolveConhostTerminal(profile), wtProfile: null };
     }
     if (terminalApp === "it") {
       return { terminal: "it", wtProfile: profile };
+    }
+    if (terminalApp === "terminal" || terminalApp === "iterm") {
+      return { terminal: terminalApp, wtProfile: null };
     }
     return { terminal: terminalApp, wtProfile: profile };
   }

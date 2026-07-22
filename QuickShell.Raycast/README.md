@@ -1,12 +1,12 @@
 # Quick Shell Raycast
 
-Raycast-native workspace launcher for Quick Shell on **Windows**.
+Raycast-native workspace launcher for Quick Shell on **Windows** and **macOS**.
 
 ## Commands
 
 - **Quick Shell** — search, launch, create, discover git repos, edit, favorite, duplicate, import/export, undo/redo, preferences
 
-**Extension preferences** (Raycast → Extensions → Quick Shell): default terminal app, default profile, show recents, multi-command tabs, block dirty branch switch.
+**Extension preferences** (Raycast → Extensions → Quick Shell): default terminal app, default profile, show recents, multi-command tabs (Windows), block dirty branch switch.
 
 Root search: the command is titled **Quick Shell**; its subtitle shows your 3 most recent workspaces. Register it as a fallback command so root-search text seeds the list via `fallbackText`. Open the command and use Actions (Ctrl+K) for Recent / Import / Export. Use **Add to Root Search** on a workspace to create a Quicklink.
 
@@ -14,9 +14,10 @@ Create, Discover, and Edit are Actions / pushed views inside Quick Shell (not se
 
 ## Requirements
 
-- **Raycast for Windows**
+- **Raycast** for Windows or macOS
 - **Node.js 22.14+** (development only)
-- Windows terminals such as Windows Terminal, PowerShell, or WSL
+- Windows: Windows Terminal, PowerShell, or WSL
+- macOS: Terminal.app and/or iTerm2 (multi-launch opens separate windows)
 
 ## File structure
 
@@ -72,4 +73,4 @@ Run `npm run build` before submitting Store changes. Do not add a `version` fiel
 
 Workspaces live in Raycast `LocalStorage` (`quickshell-data`), not shared `%LOCALAPPDATA%\QuickShell\` files. Use **Export Workspaces…** / **Import Workspaces…** (JSON files) to bridge with CmdPal/Run.
 
-Raycast-local parity includes: trust/import contracts, Suggest.exe pills with local fallback, multi-companion form + presets, terminal-host and port-in-use health warnings, copyable launch diagnostics, git launch gate (`branchTargets` + `blockDirtyBranchSwitch`), and layout section separators. Intentional gaps remain: shared LocalAppData stores / Core `worktree-branch-targets.json`, process-list health, ETW.
+Raycast-local parity includes: trust/import contracts, Suggest.exe pills with local fallback (Suggest is Windows-only; Mac uses heuristics), multi-companion form + presets, terminal-host and port-in-use health warnings, copyable launch diagnostics, git launch gate (`branchTargets` + `blockDirtyBranchSwitch`), and layout section separators. Intentional gaps remain: shared LocalAppData stores / Core `worktree-branch-targets.json`, process-list health, ETW, Windows Terminal-style tab grouping on macOS.

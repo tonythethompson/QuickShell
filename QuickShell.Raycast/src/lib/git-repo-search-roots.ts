@@ -1,14 +1,13 @@
 import path from "node:path";
 import os from "node:os";
 import { existsSync } from "node:fs";
+import { isMacPlatform } from "./platform";
 
-/** Always use win32 separators: discovery targets Windows paths even when tests run on Linux CI. */
-const win32 = path.win32;
-
-/** Folder names searched under the user profile and each drive root (parity with Core). */
+/** Folder names searched under the user profile (and each drive root on Windows). */
 export const COMMON_ROOT_FOLDER_NAMES = [
   "Projects",
   "projects",
+  "Developer",
   "dev",
   "Development",
   "code",
@@ -20,7 +19,7 @@ export const COMMON_ROOT_FOLDER_NAMES = [
 
 /**
  * Nested paths under the user profile only (not every drive).
- * Includes GitHub Desktop's default: %USERPROFILE%\Documents\GitHub.
+ * Includes GitHub Desktop's default: Documents/GitHub.
  */
 export const COMMON_PROFILE_RELATIVE_NESTED_ROOTS = [["Documents", "GitHub"]] as const;
 
@@ -34,13 +33,27 @@ export type BuildSearchRootsOptions = {
   /** System drive root to exclude from bare-drive candidates (default Windows folder root). */
   systemRoot?: string;
   exists?: (candidate: string) => boolean;
+  /** Force path style in tests (`win32` | `posix`). Defaults from process.platform. */
+  pathStyle?: "win32" | "posix";
 };
+
+function pathApi(options?: BuildSearchRootsOptions): path.PlatformPath {
+  return useWin32Style(options) ? path.win32 : path.posix;
+}
+
+function useWin32Style(options?: BuildSearchRootsOptions): boolean {
+  if (options?.pathStyle) {
+    return options.pathStyle === "win32";
+  }
+  // Windows + Linux CI keep win32-style roots (existing tests). Real Mac uses POSIX.
+  return !isMacPlatform();
+}
 
 /**
  * Workspace-derived roots: each directory plus its parent, skipping parents that are drive roots.
  * Mirrors Core `GitRepoSearchRoots.FromShortcuts`.
  */
-export function searchRootsFromWorkspaces(directories: string[]): string[] {
+export function searchRootsFromWorkspaces(directories: string[], options: BuildSearchRootsOptions = {}): string[] {
   const roots = new Map<string, string>();
 
   for (const directory of directories) {
@@ -49,12 +62,12 @@ export function searchRootsFromWorkspaces(directories: string[]): string[] {
       continue;
     }
 
-    const normalized = tryNormalizeDirectory(trimmed);
+    const normalized = tryNormalizeDirectory(trimmed, options);
     if (normalized) {
       roots.set(normalized.toLowerCase(), normalized);
     }
 
-    const parent = tryGetParentDirectory(trimmed);
+    const parent = tryGetParentDirectory(trimmed, options);
     if (parent) {
       roots.set(parent.toLowerCase(), parent);
     }
@@ -64,30 +77,33 @@ export function searchRootsFromWorkspaces(directories: string[]): string[] {
 }
 
 /**
- * Default search roots under the profile and every ready drive.
+ * Default search roots under the profile and (on Windows) every ready drive.
  * Does **not** include the profile home itself (Core parity).
  */
 export function listDefaultRootCandidates(options: BuildSearchRootsOptions = {}): string[] {
+  const api = pathApi(options);
   const home = options.home ?? os.homedir();
-  const systemRoot = normalizeDriveRoot(options.systemRoot ?? "C:\\");
-  const drives = options.drives ?? listWindowsDriveRoots();
   const candidates: string[] = [];
 
   for (const name of COMMON_ROOT_FOLDER_NAMES) {
-    candidates.push(win32.join(home, name));
+    candidates.push(api.join(home, name));
   }
 
   for (const segments of COMMON_PROFILE_RELATIVE_NESTED_ROOTS) {
-    candidates.push(win32.join(home, ...segments));
+    candidates.push(api.join(home, ...segments));
   }
 
-  for (const drive of drives) {
-    const root = normalizeDriveRoot(drive);
-    for (const name of COMMON_ROOT_FOLDER_NAMES) {
-      candidates.push(win32.join(root, name));
-    }
-    if (root.toLowerCase() !== systemRoot.toLowerCase()) {
-      candidates.push(root);
+  if (useWin32Style(options)) {
+    const systemRoot = normalizeDriveRoot(options.systemRoot ?? "C:\\", options);
+    const drives = options.drives ?? listWindowsDriveRoots();
+    for (const drive of drives) {
+      const root = normalizeDriveRoot(drive, options);
+      for (const name of COMMON_ROOT_FOLDER_NAMES) {
+        candidates.push(api.join(root, name));
+      }
+      if (root.toLowerCase() !== systemRoot.toLowerCase()) {
+        candidates.push(root);
+      }
     }
   }
 
@@ -109,7 +125,7 @@ export function buildSearchRoots(extraRoots: string[] = [], options: BuildSearch
     if (!trimmed) {
       return;
     }
-    const normalized = tryNormalizeDirectory(trimmed);
+    const normalized = tryNormalizeDirectory(trimmed, options);
     if (!normalized) {
       return;
     }
@@ -138,25 +154,37 @@ export function buildSearchRoots(extraRoots: string[] = [], options: BuildSearch
   return ordered;
 }
 
-function tryNormalizeDirectory(directory: string): string | null {
+function tryNormalizeDirectory(directory: string, options: BuildSearchRootsOptions = {}): string | null {
   try {
-    return win32.normalize(directory.replace(/\//g, "\\"));
+    const api = pathApi(options);
+    if (useWin32Style(options)) {
+      return api.normalize(directory.replace(/\//g, "\\"));
+    }
+    return api.normalize(directory.replace(/\\/g, "/"));
   } catch {
     return null;
   }
 }
 
-function tryGetParentDirectory(directory: string): string | null {
+function tryGetParentDirectory(directory: string, options: BuildSearchRootsOptions = {}): string | null {
   try {
+    const api = pathApi(options);
     const trimmed = directory.trim().replace(/[\\/]+$/, "");
-    const normalized = win32.normalize(trimmed.replace(/\//g, "\\"));
-    const parent = win32.dirname(normalized);
+    const normalized = useWin32Style(options)
+      ? api.normalize(trimmed.replace(/\//g, "\\"))
+      : api.normalize(trimmed.replace(/\\/g, "/"));
+    const parent = api.dirname(normalized);
     if (!parent || parent === normalized) {
       return null;
     }
 
-    const driveRoot = win32.parse(parent).root;
+    const driveRoot = api.parse(parent).root;
     if (driveRoot && parent.toLowerCase() === driveRoot.toLowerCase()) {
+      return null;
+    }
+
+    // On POSIX, skip filesystem root `/`.
+    if (!useWin32Style(options) && parent === "/") {
       return null;
     }
 
@@ -166,8 +194,9 @@ function tryGetParentDirectory(directory: string): string | null {
   }
 }
 
-function normalizeDriveRoot(drive: string): string {
-  const normalized = win32.normalize(drive.trim().replace(/\//g, "\\"));
+function normalizeDriveRoot(drive: string, options: BuildSearchRootsOptions = {}): string {
+  const api = pathApi(options);
+  const normalized = api.normalize(drive.trim().replace(/\//g, "\\"));
   if (/^[a-zA-Z]:\\?$/.test(normalized)) {
     return `${normalized.replace(/\\$/, "")}\\`;
   }

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { isMacPlatform } from "./platform";
 import type { AuthorizedCompanionEffect, AuthorizedPostLaunchEffectsPlan } from "./security";
 
 export type PostLaunchResult = {
@@ -18,7 +19,31 @@ const defaultOpenUrl: OpenUrlFn = async (url) => {
 };
 
 export function buildOpenUrlInvocation(url: string): { executable: string; args: string[] } {
+  if (isMacPlatform()) {
+    return { executable: "open", args: [url] };
+  }
   return { executable: "explorer.exe", args: [url] };
+}
+
+/** Build the process invocation used to launch a companion on the current platform. */
+export function buildCompanionLaunchInvocation(
+  executablePath: string,
+  args: string[],
+): { executable: string; args: string[] } {
+  if (!isMacPlatform()) {
+    return { executable: executablePath, args };
+  }
+
+  const lower = executablePath.replace(/\\/g, "/").toLowerCase();
+  if (lower.endsWith("/finder.app") || lower.endsWith("/finder")) {
+    return { executable: "open", args: args.length > 0 ? args : ["."] };
+  }
+  if (lower.endsWith(".app")) {
+    return args.length > 0
+      ? { executable: "open", args: [executablePath, "--args", ...args] }
+      : { executable: "open", args: [executablePath] };
+  }
+  return { executable: executablePath, args };
 }
 
 export async function runCompanionActions(
@@ -93,7 +118,8 @@ export async function runPostLaunchActions(
 
 async function launchCompanionEffect(effect: AuthorizedCompanionEffect): Promise<void> {
   const args = buildCompanionArguments(effect.arguments, effect.workingDirectory);
-  await spawnDetached(effect.executablePath, args);
+  const invocation = buildCompanionLaunchInvocation(effect.executablePath, args);
+  await spawnDetached(invocation.executable, invocation.args);
 }
 
 export function buildCompanionArguments(rawArguments: string | null | undefined, directory: string): string[] {

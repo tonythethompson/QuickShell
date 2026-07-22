@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import net from "node:net";
 import type { QuickShellSettings, Workspace } from "./schema";
+import { macITermAppExists, macTerminalAppExists } from "./mac-launch";
+import { isMacPlatform, isSupportedPlatform, isWindowsPlatform } from "./platform";
 import { terminalHostExecutableExists } from "./terminal-catalog";
 import { isAbsoluteDirectory, normalizeLaunches, validateWorkspace } from "./validation";
 import { resolveLaunchTarget, validateLaunchPlanErrors } from "./windows-launch";
@@ -21,9 +23,13 @@ export type PortInUseProbe = (port: number) => boolean;
 /** Aligns with Core CommandPortRegex: localhost:, --port, -p, or =digits. */
 const COMMAND_PORT_REGEX = /(?:localhost:|--port\s+|-p\s+|=)(\d{2,5})/gi;
 
-/** Restricts filesystem probes to local drive paths; UNC/device paths (e.g. \\host\share) are never probed to avoid triggering outbound network lookups for untrusted, unauthorized paths. */
+/** Restricts filesystem probes to local paths; UNC/device paths are never probed. */
 function isLocalCompanionPath(path: string): boolean {
-  return /^[a-zA-Z]:[\\/]/.test(path) && !path.startsWith("\\\\");
+  if (/^[a-zA-Z]:[\\/]/.test(path) && !path.startsWith("\\\\")) {
+    return true;
+  }
+  // POSIX absolute (macOS companions under /Applications, /usr, etc.).
+  return path.startsWith("/") && !path.startsWith("//");
 }
 
 export function assessWorkspaceHealthForList(
@@ -83,7 +89,13 @@ export function assessWorkspaceHealth(
     });
   }
 
-  if (includeDirectoryExists && directory && process.platform === "win32" && !isWslUnc && !existsSync(directory)) {
+  if (
+    includeDirectoryExists &&
+    directory &&
+    (isWindowsPlatform() || isMacPlatform()) &&
+    !isWslUnc &&
+    !existsSync(directory)
+  ) {
     issues.push({ code: "directory_missing", message: `Directory not found: ${directory}`, severity: "error" });
   }
 
@@ -93,7 +105,7 @@ export function assessWorkspaceHealth(
     }
   }
 
-  if (process.platform === "win32") {
+  if (isWindowsPlatform()) {
     const launches = normalizeLaunches(workspace.launches, workspace).filter((entry) => entry.isEnabled);
     const seenHosts = new Set<string>();
     for (const launch of launches) {
@@ -126,22 +138,26 @@ export function assessWorkspaceHealth(
       });
     }
 
-    let openCompanionPaths = (workspace.companionApps ?? [])
-      .filter((entry) => entry.openOnLaunch && entry.path?.trim())
-      .map((entry) => entry.path.trim());
-    if (openCompanionPaths.length === 0 && workspace.openCompanionAppOnLaunch && workspace.companionAppPath?.trim()) {
-      openCompanionPaths = [workspace.companionAppPath.trim()];
+    appendCompanionMissingIssues(workspace, issues);
+  } else if (isMacPlatform()) {
+    if (
+      (settings.terminalApplication === "terminal" || settings.terminalApplication === "system") &&
+      !macTerminalAppExists()
+    ) {
+      issues.push({
+        code: "preferred_terminal_missing",
+        message: "Preferred terminal Terminal.app was not found.",
+        severity: "warning",
+      });
+    } else if (settings.terminalApplication === "iterm" && !macITermAppExists()) {
+      issues.push({
+        code: "preferred_terminal_missing",
+        message: "Preferred terminal iTerm2 was not found in /Applications.",
+        severity: "warning",
+      });
     }
 
-    for (const companionPath of openCompanionPaths) {
-      if (isLocalCompanionPath(companionPath) && !existsSync(companionPath)) {
-        issues.push({
-          code: "companion_missing",
-          message: `Companion app not found: ${companionPath}`,
-          severity: "warning",
-        });
-      }
-    }
+    appendCompanionMissingIssues(workspace, issues);
   }
 
   const portProbe = options?.isPortInUse ?? defaultPortInUseProbe;
@@ -159,16 +175,35 @@ export function assessWorkspaceHealth(
     });
   }
 
-  if (process.platform !== "win32") {
+  if (!isSupportedPlatform()) {
     issues.push({
       code: "platform",
-      message: "Terminal launch requires Windows. You can still edit workspaces on this machine.",
+      message: "Terminal launch requires Windows or macOS. You can still edit workspaces on this machine.",
       severity: "error",
     });
   }
 
   const blocking = issues.filter((issue) => issue.severity !== "warning");
   return { ok: blocking.length === 0, issues };
+}
+
+function appendCompanionMissingIssues(workspace: Workspace, issues: WorkspaceHealthIssue[]): void {
+  let openCompanionPaths = (workspace.companionApps ?? [])
+    .filter((entry) => entry.openOnLaunch && entry.path?.trim())
+    .map((entry) => entry.path.trim());
+  if (openCompanionPaths.length === 0 && workspace.openCompanionAppOnLaunch && workspace.companionAppPath?.trim()) {
+    openCompanionPaths = [workspace.companionAppPath.trim()];
+  }
+
+  for (const companionPath of openCompanionPaths) {
+    if (isLocalCompanionPath(companionPath) && !existsSync(companionPath)) {
+      issues.push({
+        code: "companion_missing",
+        message: `Companion app not found: ${companionPath}`,
+        severity: "warning",
+      });
+    }
+  }
 }
 
 /** Extract loopback URL ports and command ports from enabled launches. */

@@ -19,7 +19,7 @@ import { createDeeplink, usePromise } from "@raycast/utils";
 import { useEffect, useMemo, useState } from "react";
 import DiscoverGitReposView from "./components/discover-git-repos-view";
 import EditWorkspaceView from "./components/edit-workspace-view";
-import WindowsRequiredView from "./components/windows-required-view";
+import UnsupportedPlatformView from "./components/unsupported-platform-view";
 import WorkspaceForm from "./components/workspace-form";
 import SetTargetBranchForm from "./components/set-target-branch-form";
 import AddSeparatorForm from "./components/add-separator-form";
@@ -53,7 +53,8 @@ import {
   resolveOpenWorkspaceSearchSeed,
   type OpenWorkspaceLaunchContext,
 } from "./lib/launch-context";
-import { isWindowsPlatform } from "./lib/platform";
+import { isSupportedPlatform } from "./lib/platform";
+import { dualPlatformShortcut } from "./lib/shortcuts";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { discoverWorkspaceTerminalChoices, invalidateTerminalCatalogCache } from "./lib/terminal-catalog";
 import { getDefaultProfileChoices } from "./lib/terminal-options";
@@ -663,8 +664,8 @@ export default function OpenWorkspaceCommand({
     }
   }
 
-  if (!isWindowsPlatform()) {
-    return <WindowsRequiredView />;
+  if (!isSupportedPlatform()) {
+    return <UnsupportedPlatformView />;
   }
 
   if (hubMode === "discover") {
@@ -845,13 +846,13 @@ export default function OpenWorkspaceCommand({
           <Action
             title="Undo"
             icon={Icon.ArrowCounterClockwise}
-            shortcut={{ modifiers: ["cmd"], key: "z" }}
+            shortcut={dualPlatformShortcut({ modifiers: ["cmd"], key: "z" })}
             onAction={handleUndo}
           />
           <Action
             title="Redo"
             icon={Icon.ArrowClockwise}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "z" }}
+            shortcut={dualPlatformShortcut({ modifiers: ["cmd", "shift"], key: "z" })}
             onAction={handleRedo}
           />
         </ActionPanel.Section>
@@ -956,7 +957,7 @@ export default function OpenWorkspaceCommand({
                 <Action
                   title="Run Normally"
                   icon={Icon.Terminal}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  shortcut={dualPlatformShortcut({ modifiers: ["cmd", "shift"], key: "return" })}
                   onAction={() => handleOpen(workspace, launch, { runAsStandard: true })}
                 />
               ) : null}
@@ -964,7 +965,7 @@ export default function OpenWorkspaceCommand({
                 <Action
                   title="Run as Administrator"
                   icon={Icon.Shield}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  shortcut={dualPlatformShortcut({ modifiers: ["cmd", "shift"], key: "return" })}
                   onAction={() => handleOpen(workspace, launch, { runAsAdmin: true })}
                 />
               )}
@@ -1045,7 +1046,7 @@ export default function OpenWorkspaceCommand({
               <Action
                 title={workspace.isPinned ? "Remove Favorite" : "Add Favorite"}
                 icon={workspace.isPinned ? Icon.StarDisabled : Icon.Star}
-                shortcut={{ modifiers: ["cmd"], key: "f" }}
+                shortcut={dualPlatformShortcut({ modifiers: ["cmd"], key: "f" })}
                 onAction={() => handleToggleFavorite(workspace)}
               />
               {workspace.isPinned ? (
@@ -1053,13 +1054,13 @@ export default function OpenWorkspaceCommand({
                   <Action
                     title="Move Favorite up"
                     icon={Icon.ArrowUp}
-                    shortcut={{ modifiers: ["cmd", "opt"], key: "arrowUp" }}
+                    shortcut={dualPlatformShortcut({ modifiers: ["cmd", "opt"], key: "arrowUp" })}
                     onAction={() => handleMoveFavorite(workspace, "up")}
                   />
                   <Action
                     title="Move Favorite Down"
                     icon={Icon.ArrowDown}
-                    shortcut={{ modifiers: ["cmd", "opt"], key: "arrowDown" }}
+                    shortcut={dualPlatformShortcut({ modifiers: ["cmd", "opt"], key: "arrowDown" })}
                     onAction={() => handleMoveFavorite(workspace, "down")}
                   />
                   <Action
@@ -1084,20 +1085,20 @@ export default function OpenWorkspaceCommand({
               <Action
                 title="Duplicate"
                 icon={Icon.Duplicate}
-                shortcut={{ modifiers: ["cmd"], key: "d" }}
+                shortcut={dualPlatformShortcut({ modifiers: ["cmd"], key: "d" })}
                 onAction={() => handleDuplicate(workspace)}
               />
               <Action
                 title="Delete"
                 icon={Icon.Trash}
                 style={Action.Style.Destructive}
-                shortcut={{ modifiers: ["cmd"], key: "backspace" }}
+                shortcut={dualPlatformShortcut({ modifiers: ["cmd"], key: "backspace" })}
                 onAction={() => handleDelete(workspace)}
               />
               <Action.CopyToClipboard
                 title="Copy Directory"
                 content={workspace.directory}
-                shortcut={{ modifiers: ["cmd"], key: "c" }}
+                shortcut={dualPlatformShortcut({ modifiers: ["cmd"], key: "c" })}
               />
             </ActionPanel.Section>
             {renderAddWorkspaceSection()}

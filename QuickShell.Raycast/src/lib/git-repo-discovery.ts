@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync, promises as fs } from "node:fs";
 import path from "node:path";
 import { withCache } from "@raycast/utils";
+import { isMacPlatform, isWindowsPlatform } from "./platform";
 import { buildSearchRoots, searchRootsFromWorkspaces } from "./git-repo-search-roots";
 
 export { tryGetGitRemoteUrl } from "./git-remote-url";
@@ -58,7 +59,7 @@ export async function discoverGitReposAsync(
   extraRoots: string[] = [],
   options?: { concurrency?: number },
 ): Promise<GitRepoCandidate[]> {
-  if (process.platform !== "win32") {
+  if (!isWindowsPlatform() && !isMacPlatform()) {
     return [];
   }
 
@@ -135,7 +136,7 @@ export async function discoverGitReposAsync(
 }
 
 function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
-  if (process.platform !== "win32") {
+  if (!isWindowsPlatform() && !isMacPlatform()) {
     return [];
   }
 

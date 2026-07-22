@@ -136,19 +136,74 @@ describe("launch-executor", () => {
     });
   });
 
-  it("refuses launch on non-windows platforms", async () => {
+  it("launches via open/osascript on macOS (separate windows)", async () => {
     const originalPlatform = process.platform;
-    Object.defineProperty(process, "platform", { value: "darwin" });
+    Object.defineProperty(process, "platform", { configurable: true, value: "darwin" });
+    const calls: Array<{ command: string; args: string[] }> = [];
+    const execFn: ExecFn = async (command, args) => {
+      calls.push({ command, args });
+    };
+
+    try {
+      const macWorkspace: Workspace = {
+        ...workspace,
+        directory: "/Users/dev/Projects/web",
+        terminal: "terminal",
+        launches: [
+          {
+            id: "1a",
+            label: "Web",
+            terminal: "terminal",
+            wtProfile: null,
+            command: "npm run dev",
+            runAsAdmin: false,
+            isEnabled: true,
+            order: 0,
+            taskType: "none",
+          },
+          {
+            id: "1b",
+            label: "API",
+            terminal: "terminal",
+            wtProfile: null,
+            command: "npm run api",
+            runAsAdmin: false,
+            isEnabled: true,
+            order: 1,
+            taskType: "none",
+          },
+        ],
+      };
+      const macSettings: QuickShellSettings = {
+        ...settings,
+        terminalApplication: "terminal",
+        multiLaunchPresentation: "singleWindowTabs",
+      };
+      const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
+      const plan = buildWorkspaceLaunchPlan(macWorkspace, macSettings);
+      const result = await executeWorkspaceLaunch(plan, macSettings, execFn);
+
+      expect(result.ok).toBe(true);
+      expect(calls).toHaveLength(2);
+      expect(calls.every((call) => call.command === "osascript")).toBe(true);
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+    }
+  });
+
+  it("refuses launch on unsupported platforms", async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
     const { buildWorkspaceLaunchPlan } = await import("../lib/windows-launch");
     const plan = buildWorkspaceLaunchPlan(workspace, settings);
     const execFn: ExecFn = async () => undefined;
 
     const result = await executeWorkspaceLaunch(plan, settings, execFn);
 
-    Object.defineProperty(process, "platform", { value: originalPlatform });
+    Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.message).toContain("Windows");
+      expect(result.message).toMatch(/Windows|macOS/);
     }
   });
 

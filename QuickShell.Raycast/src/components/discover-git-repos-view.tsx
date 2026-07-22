@@ -2,7 +2,7 @@ import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from
 import { usePromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import WorkspaceForm from "./workspace-form";
-import WindowsRequiredView from "./windows-required-view";
+import UnsupportedPlatformView from "./unsupported-platform-view";
 import { detectCompanionSeed } from "../lib/companion-detection";
 import { detectDevServerUrl } from "../lib/detect-dev-server-url";
 import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
@@ -12,7 +12,7 @@ import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/dire
 import { tryGetGitRemoteUrl } from "../lib/git-remote-url";
 import { getQuickShellStorage } from "../lib/raycast-storage";
 import { showStorageFailure } from "../lib/failure-feedback";
-import { isWindowsPlatform } from "../lib/platform";
+import { isSupportedPlatform } from "../lib/platform";
 import { useLoadErrorToast } from "../lib/use-load-error-toast";
 import { launchRowsFromSuggestions } from "../lib/workspace-form-state";
 import { normalizeWorkspace } from "../lib/validation";
@@ -194,8 +194,8 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
     }
   }
 
-  if (!isWindowsPlatform()) {
-    return <WindowsRequiredView />;
+  if (!isSupportedPlatform()) {
+    return <UnsupportedPlatformView />;
   }
 
   return (
