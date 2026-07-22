@@ -48,7 +48,7 @@ Restart PowerToys after deploy.
 | Home keywords | Per-workspace **Home keyword** in shortcut settings (same as CmdPal abbreviation) |
 | Manage actions | `qs create`, `qs settings`, `qs export`, etc., or browse after global activation |
 | Settings | `qs settings` or PowerToys → Quick Shell → **Open settings…** (full WPF window) |
-| Edit shortcut | Context menu → **Edit shortcut** (General / Launches / Links tabs) |
+| Edit shortcut | Context menu → **Edit shortcut** (one-page WPF editor; shared Core `WorkspaceEditor`) |
 | Run elevated | **Ctrl+Shift+Enter**, or context menu |
 
 Shared data lives in `%LOCALAPPDATA%\QuickShell\` (`shortcuts.json`, `settings.json`).

@@ -12,10 +12,12 @@ internal static class LaunchRowListEditor
             .Select(entry => new LaunchRowDraft
             {
                 Id = entry.Id,
+                Label = entry.Label ?? string.Empty,
                 Command = entry.Command ?? string.Empty,
                 TaskType = TaskTypeCatalog.Normalize(entry.TaskType),
                 LaunchTarget = ShortcutFormSave.EncodeLaunchTargetForEntry(entry),
                 RunAsAdmin = entry.RunAsAdmin,
+                IsEnabled = entry.IsEnabled,
             })
             .ToList();
 
@@ -32,15 +34,8 @@ internal static class LaunchRowListEditor
         }
     }
 
-    public static void EnsureMinimumRowsForEditor(List<LaunchRowDraft> rows, string fallbackLaunchTarget)
-    {
-        if (rows.Count >= MinimumEditorRowCount)
-        {
-            return;
-        }
-
+    public static void EnsureMinimumRowsForEditor(List<LaunchRowDraft> rows, string fallbackLaunchTarget) =>
         EnsureMinimumRows(rows, fallbackLaunchTarget);
-    }
 
     public static LaunchRowDraft CreateEmptyRow(int index, string fallbackLaunchTarget) =>
         new()

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
-using QuickShell.Pages;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;

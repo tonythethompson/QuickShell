@@ -12,6 +12,7 @@ using QuickShell.Classification;
 using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Services;
+using QuickShell.Services.WorkspaceEditor;
 using Wox.Plugin;
 
 namespace QuickShell.Run;
@@ -49,6 +50,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private QuickShellRunSettingsPanel? _settingsPanel;
     private IProjectAnalysisService? _projectAnalysis;
     private ICommandSuggestionService? _commandSuggestions;
+    private IWorkspaceEditorFactory? _editorFactory;
     private IWorkspaceHealthChecker? _healthChecker;
     private IWorkspaceGitOperations? _gitOperations;
     private IWorktreeBranchTargetStore? _targetStore;
@@ -78,6 +80,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
             _workspaceLaunch = _serviceProvider.GetRequiredService<IWorkspaceLaunchService>();
             _projectAnalysis = _serviceProvider.GetRequiredService<IProjectAnalysisService>();
             _commandSuggestions = _serviceProvider.GetRequiredService<ICommandSuggestionService>();
+            _editorFactory = _serviceProvider.GetRequiredService<IWorkspaceEditorFactory>();
             _healthChecker = _serviceProvider.GetRequiredService<IWorkspaceHealthChecker>();
             _gitOperations = _serviceProvider.GetRequiredService<IWorkspaceGitOperations>();
             _targetStore = _serviceProvider.GetRequiredService<IWorktreeBranchTargetStore>();
@@ -147,8 +150,9 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         _settingsPanel ??= new QuickShellRunSettingsPanel(
             Settings,
             Shortcuts,
-            _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
-            _commandSuggestions ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
+            EditorFactory,
+            ProjectAnalysis,
+            CommandSuggestions,
             GitOperations,
             TargetStore,
             TerminalCatalog,
@@ -319,7 +323,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
                     return false;
                 }
 
-                if (ShortcutEditor.TryShowDialog(duplicate, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), _commandSuggestions ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, TargetStore, TerminalCatalog, out var message))
+                if (ShortcutEditor.TryShowDialog(duplicate, Shortcuts, EditorFactory, ProjectAnalysis, CommandSuggestions, GitOperations, TargetStore, TerminalCatalog, out var message))
                 {
                     NotifyStatus(message);
                     RefreshResults();
@@ -402,15 +406,16 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         switch (action)
         {
             case RunManageAction.OpenQuickShellSettings:
-                QuickShellRunSettingsDialog.Show(Settings, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), TerminalCatalog);
+                QuickShellRunSettingsDialog.Show(Settings, Shortcuts, ProjectAnalysis, TerminalCatalog);
                 _settingsPanel?.Reload();
                 break;
             case RunManageAction.CreateShortcut:
                 if (ShortcutEditor.TryShowDialog(
                         null,
                         Shortcuts,
-                        _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
-                        _commandSuggestions ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."),
+                        EditorFactory,
+                        ProjectAnalysis,
+                        CommandSuggestions,
                         GitOperations,
                         TargetStore,
                         TerminalCatalog,
@@ -459,7 +464,7 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private void ExecuteManageShortcutEdit(TerminalShortcut shortcut)
     {
-        if (ShortcutEditor.TryShowDialog(shortcut, Shortcuts, _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), _commandSuggestions ?? throw new InvalidOperationException("Quick Shell plugin is not initialized."), GitOperations, TargetStore, TerminalCatalog, out var message))
+        if (ShortcutEditor.TryShowDialog(shortcut, Shortcuts, EditorFactory, ProjectAnalysis, CommandSuggestions, GitOperations, TargetStore, TerminalCatalog, out var message))
         {
             NotifyStatus(message);
             RefreshResults();
@@ -550,6 +555,15 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
 
     private ITerminalLaunchGlyphs TerminalLaunchGlyphs =>
         _terminalLaunchGlyphs ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
+
+    private IWorkspaceEditorFactory EditorFactory =>
+        _editorFactory ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
+
+    private IProjectAnalysisService ProjectAnalysis =>
+        _projectAnalysis ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
+
+    private ICommandSuggestionService CommandSuggestions =>
+        _commandSuggestions ?? throw new InvalidOperationException("Quick Shell plugin is not initialized.");
 
     private void Launch(string workspaceId, bool runAsAdmin = false, bool runAsStandard = false)
     {

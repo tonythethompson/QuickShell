@@ -1318,7 +1318,7 @@ PR description must include:
 
 
 
-\# Follow-ups
+# Follow-ups
 
 
 
@@ -1326,17 +1326,17 @@ Do not include these in this PR:
 
 
 
-1\. Move Adaptive Card JSON builders from Core to QuickShell.
+1. Move Adaptive Card JSON builders from Core to QuickShell.
 
-2\. Evaluate whether `QuickShell.Run` should share a UI-agnostic edit session.
+2. ~~Evaluate whether `QuickShell.Run` should share a UI-agnostic edit session.~~ **Done:** `IWorkspaceEditor` lives in Core; Run's one-page WPF window binds via `TryApplyHostFields` / `Save`.
 
-3\. Refactor `ShortcutDetailsFormPage`.
+3. Refactor `ShortcutDetailsFormPage`.
 
-4\. Finish broader static-service cleanup.
+4. Finish broader static-service cleanup.
 
-5\. Consolidate command ID factories.
+5. Consolidate command ID factories.
 
-6\. Split companion/suggestion providers into DI registries.
+6. Split companion/suggestion providers into DI registries.
 
 
 

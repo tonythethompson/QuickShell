@@ -12,7 +12,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.None, "default", false), ("dotnet watch", TaskTypeCatalog.Api, "default", true)],
+                [("", "npm start", TaskTypeCatalog.None, "default", false, true), ("", "dotnet watch", TaskTypeCatalog.Api, "default", true, true)],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
@@ -42,7 +42,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.Frontend, "default", false), ("dotnet watch", TaskTypeCatalog.Api, "default", false)],
+                [("", "npm start", TaskTypeCatalog.Frontend, "default", false, true), ("", "dotnet watch", TaskTypeCatalog.Api, "default", false, true)],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
@@ -107,5 +107,68 @@ public sealed class ShortcutLaunchFormJsonTests
         JsonDocument.Parse(json);
         Assert.Contains("\\\"hi\\\"", json);
         Assert.Contains("echo \\\"test\\\"", json);
+    }
+
+    [Fact]
+    public void BuildLaunchRowsJson_VerifiesLaunchLabelAndEnabledFields()
+    {
+        var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
+            ShortcutLaunchFormJson.BuildLaunchRowsJson(
+                [
+                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Main", Command = "npm start", IsEnabled = true },
+                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Disabled Task", Command = "npm test", IsEnabled = false },
+                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "", Command = "dotnet run", IsEnabled = true }
+                ],
+                TerminalChoices));
+
+        using var document = JsonDocument.Parse(json);
+        var body = document.RootElement.GetProperty("body");
+
+        var launchLabel0 = FindElementById(body, "LaunchLabel_0");
+        var launchLabel1 = FindElementById(body, "LaunchLabel_1");
+        var launchLabel2 = FindElementById(body, "LaunchLabel_2");
+        var launchEnabled0 = FindElementById(body, "LaunchEnabled_0");
+        var launchEnabled1 = FindElementById(body, "LaunchEnabled_1");
+        var launchEnabled2 = FindElementById(body, "LaunchEnabled_2");
+
+        Assert.Equal("Main", launchLabel0.GetProperty("value").GetString());
+        Assert.Equal("Disabled Task", launchLabel1.GetProperty("value").GetString());
+        Assert.Equal("", launchLabel2.GetProperty("value").GetString());
+        Assert.Equal("true", launchEnabled0.GetProperty("value").GetString());
+        Assert.Equal("false", launchEnabled1.GetProperty("value").GetString());
+        Assert.Equal("true", launchEnabled2.GetProperty("value").GetString());
+    }
+
+    private static JsonElement FindElementById(JsonElement container, string id)
+    {
+        foreach (var element in container.EnumerateArray())
+        {
+            if (element.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
+            {
+                return element;
+            }
+
+            // Adaptive Cards nest inputs under items/columns (and sometimes body).
+            if (TryFindInChildArray(element, "items", id, out var found)
+                || TryFindInChildArray(element, "columns", id, out found)
+                || TryFindInChildArray(element, "body", id, out found))
+            {
+                return found;
+            }
+        }
+
+        return default;
+    }
+
+    private static bool TryFindInChildArray(JsonElement element, string propertyName, string id, out JsonElement found)
+    {
+        found = default;
+        if (!element.TryGetProperty(propertyName, out var nested) || nested.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        found = FindElementById(nested, id);
+        return found.ValueKind != JsonValueKind.Undefined;
     }
 }

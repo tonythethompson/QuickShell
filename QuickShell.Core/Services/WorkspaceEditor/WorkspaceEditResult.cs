@@ -1,14 +1,5 @@
 namespace QuickShell.Services.WorkspaceEditor;
 
-internal enum WorkspaceEditResultKind
-{
-    StayOpen,
-    Saved,
-    Cancelled,
-    Discarded,
-    PromptDiscard,
-}
-
 internal readonly record struct WorkspaceEditResult(
     WorkspaceEditResultKind Kind,
     string? Message = null)

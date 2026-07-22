@@ -31,10 +31,6 @@ internal static class QuickShellCommandRoutingServiceCollectionExtensions
                 sp.GetRequiredService<IQuickShellLifetime>(),
                 sp.GetRequiredService<IExtensionCallbackQueue>()));
         services.AddSingleton<IShortcutFormViewBuilder, ShortcutFormViewBuilder>();
-        services.AddSingleton<IWorkspaceEditorFactory>(sp =>
-            new WorkspaceEditorFactory(
-                () => sp.GetRequiredService<IQuickShellServices>(),
-                sp.GetRequiredService<IQuickShellLifetime>()));
         services.AddSingleton<IQuickShellServices>(sp => new QuickShellServices(
             sp.GetRequiredService<IShortcutRepository>(),
             sp.GetRequiredService<IWorkspaceLaunchService>(),
