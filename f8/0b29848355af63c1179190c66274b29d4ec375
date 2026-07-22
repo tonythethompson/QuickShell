@@ -1,0 +1,41 @@
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditResultKind.cs
+  s_7d2c93cd439328::t_d6ed0eeb66c855 1-10
+QuickShell.Core/Services/ShortcutFormCatalogPrewarm.cs
+  s_e4da2aab379fa9::t_d12e7712c19f32 53
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_d40404aaafa8d9::t_8094ef818774e5 1018
+QuickShell.Run/Main.cs
+  s_d40404aaafa8d9::t_3093be4e89a3c9 153-155,326,409,416-418,467,559-567
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f80b29848355af63c1179190c66274b29d4ec375",
+  "prompts": {},
+  "sessions": {
+    "s_7d2c93cd439328": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "2d421f9d-8bad-4dd2-9739-5d7033fec1d5",
+        "model": "SWE-1.7 Max"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_d40404aaafa8d9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6882976c-46e8-4e65-ad00-00ab157f72d5",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_e4da2aab379fa9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35e5e554-c825-4481-a8ed-51d4915dd212",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
