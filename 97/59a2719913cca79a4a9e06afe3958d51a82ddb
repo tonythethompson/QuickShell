@@ -1,0 +1,23 @@
+QuickShell.Raycast/package.json
+  s_c794253886b768::t_80179bf4264eae 161-162
+Directory.Build.props
+  s_c794253886b768::t_94c0760f298937 4
+QuickShell/Package.appxmanifest
+  s_c794253886b768::t_6a994f3c15d828 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "9759a2719913cca79a4a9e06afe3958d51a82ddb",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
