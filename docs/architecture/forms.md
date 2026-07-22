@@ -35,6 +35,8 @@ Suggestion pills on the form call into [intelligence.md](./intelligence.md); com
 2. Submit → `WorkspaceFormActionParser` → `IWorkspaceEditor.TryApplyInputs` / action methods.  
 3. Editor raises `Changed` → form rebuilds via the view builder → optional disk draft persist.
 
+Stay-open form errors (validation, failed save) use `ToastStatusMessage` via `QuickShellStatus.ShowToast` plus `CommandResult.KeepOpen`, together with the in-form `SaveError` attention banner (`isVisible` bound to data so DataJson-only updates show it). Do **not** use `CommandResult.ShowToast` while remaining on the form (CmdPal treats that as toast-then-dismiss). Do **not** remount `TemplateJson` solely to flip SaveError visibility: that fights Cancel / discard navigation. Cancel skips `TryApplyInputs` so a Changed rebuild cannot overwrite leave/discard.
+
 ## Two undo stacks
 
 ### 1) Form-local (`FormEditHistory`)

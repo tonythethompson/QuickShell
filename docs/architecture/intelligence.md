@@ -63,7 +63,8 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 
 - Pill **button title** is the exact command (truncated); **tooltip** carries category / product name (`Test · npm test`, `Agent · Claude Code — …`)  
 - Merge by **command string** (keep higher score)  
-- Sort score ↓; take max (**16** slots; ~**8** visible + show more)  
+- Sort score ↓; take max (**20** slots; **12** visible by default = 3×4 rows + show more)  
+- CmdPal template emits **only currently visible** pill actions (no mixed `$when` slots; those broke ActionSets)  
 - Caps: scripts 40, docker services 20, pre-dedupe candidates 32  
 
 `ApplyPill` targets the first empty `Command` draft or appends a populated command row (`LaunchRowListEditor`). It never overwrites an `OpenInTerminal` row. Terminal-only launches are created by the dedicated `Add terminal` editor action (row label remains `Open in terminal`), not by a suggestion pill; the former `Open directory only` pill is no longer emitted.
@@ -72,7 +73,7 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 
 | Host | Integration |
 |------|-------------|
-| CmdPal | Adaptive Card pill actions on form (single flowing ActionSet; same-type pills grouped via `TypeTitle` sort) |
+| CmdPal | Adaptive Card pill actions on form (4 per row, 3 rows collapsed; template rebuilt for visible count; same-type pills grouped via `TypeTitle` sort) |
 | Run | `RunLaunchSuggestionPanel` |
 | Raycast | `QuickShell.Suggest.exe` → JSON pills via `suggest-commands.ts` (form seeds + Actions). Falls back to `project-setup-suggestion.ts` heuristics when Suggest.exe is missing. `QUICKSHELL_SUGGEST_EXE` overrides the path in development. |
 

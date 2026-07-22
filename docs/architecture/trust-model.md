@@ -1,5 +1,12 @@
 # Workspace trust boundary (as-built)
 
+> **Release note (deferred):** Ship kill switch is `shared/workspace-trust-features.json`
+> (`enabled: false`). Core embeds it; Raycast syncs a copy via `scripts/sync-workspace-trust-features.js`.
+> Flip that one JSON to re-enable. While off: enforcement and Trust/Revoke/Untrusted chrome are hidden;
+> load/save coerces existing `IsTrusted: false` rows to trusted so re-enable does not revive stale denials.
+> Trust-specific tests override via `EnableForTests()` / `setWorkspaceTrustEnabledForTests(true)` inside
+> the serialized `ShortcutRepositoryMutex` collection (Raycast: beforeEach/afterEach).
+
 QuickShell treats workspace content and execution authority as separate concerns. A local `StoredWorkspace` combines a portable `TerminalShortcut` content object with repository-owned security metadata (`IsTrusted` and a monotonically increasing revision). Editor drafts, portable DTOs, exports, and Raycast import/export payloads contain content only.
 
 ## Ingress and transitions
