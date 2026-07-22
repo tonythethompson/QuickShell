@@ -1,0 +1,23 @@
+QuickShell.Core.Tests/TerminalCatalogDiscoveryTests.cs
+  s_2b89eaf48e0bf9::t_a848b9cc7281a3 16,30-34,45,72-73,75
+QuickShell.Core.Tests/WorkspaceTrustFeaturesDisabledTests.cs
+  s_2b89eaf48e0bf9::t_96c69af90808c2 122-170
+QuickShell.Core/Services/PathExecutableLookup.cs
+  s_2b89eaf48e0bf9::t_4253e557a24905 79-80,90,98-99,122,131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "cc8ef59aabcacba0d4538816c82273791a6af654",
+  "prompts": {},
+  "sessions": {
+    "s_2b89eaf48e0bf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c938dcd-4797-4f21-84dc-089f6a387dca",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
