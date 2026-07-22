@@ -20,19 +20,22 @@ public sealed class SearchDebouncerTests
     [Fact]
     public void Schedule_AfterDebounce_InvokesLatestQuery()
     {
-        string? applied = null;
-        using var debouncer = new SearchDebouncer(query => applied = query, delayMilliseconds: 30);
+        // Timer callbacks use the thread pool; CI load can delay them well past the debounce window.
+        using var applied = new ManualResetEventSlim(false);
+        string? value = null;
+        using var debouncer = new SearchDebouncer(
+            query =>
+            {
+                value = query;
+                applied.Set();
+            },
+            delayMilliseconds: 30);
 
         debouncer.Schedule("first");
         debouncer.Schedule("second");
 
-        var deadline = DateTime.UtcNow.AddSeconds(2);
-        while (applied is null && DateTime.UtcNow < deadline)
-        {
-            Thread.Sleep(10);
-        }
-
-        Assert.Equal("second", applied);
+        Assert.True(applied.Wait(TimeSpan.FromSeconds(10)), "Debounced callback did not run within 10s.");
+        Assert.Equal("second", value);
     }
 
     [Fact]
