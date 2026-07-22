@@ -457,7 +457,13 @@ export class QuickShellStorage {
     }
 
     const targetIndex =
-      direction === "up" ? index - 1 : direction === "down" ? index + 1 : direction === "top" ? 0 : favorites.length - 1;
+      direction === "up"
+        ? index - 1
+        : direction === "down"
+          ? index + 1
+          : direction === "top"
+            ? 0
+            : favorites.length - 1;
     if (targetIndex < 0 || targetIndex >= favorites.length || targetIndex === index) {
       return { ...workspace };
     }

@@ -166,7 +166,11 @@ export default function SettingsCommand() {
           icon={Icon.ArrowClockwise}
           actions={
             <ActionPanel>
-              <Action title="Refresh Terminal / Profile List" icon={Icon.ArrowClockwise} onAction={handleRefreshTerminals} />
+              <Action
+                title="Refresh Terminal / Profile List"
+                icon={Icon.ArrowClockwise}
+                onAction={handleRefreshTerminals}
+              />
             </ActionPanel>
           }
         />
