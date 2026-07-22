@@ -86,7 +86,7 @@ internal static class PathExecutableLookup
     {
         if (fileName.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase))
         {
-            yield return Path.Combine(systemDirectory, fileName);
+            yield return Path.Join(systemDirectory, fileName);
             yield break;
         }
 
@@ -94,8 +94,8 @@ internal static class PathExecutableLookup
         {
             // Stock Windows installs keep Windows PowerShell under System32\WindowsPowerShell\v1.0,
             // not as a direct System32 sibling of cmd.exe.
-            yield return Path.Combine(systemDirectory, "WindowsPowerShell", "v1.0", fileName);
-            yield return Path.Combine(systemDirectory, fileName);
+            yield return Path.Join(systemDirectory, "WindowsPowerShell", "v1.0", fileName);
+            yield return Path.Join(systemDirectory, fileName);
         }
     }
 
@@ -118,7 +118,7 @@ internal static class PathExecutableLookup
         {
             try
             {
-                var candidate = Path.Combine(segment, name);
+                var candidate = Path.Join(segment, name);
                 if (!File.Exists(candidate))
                 {
                     continue;
