@@ -1,0 +1,103 @@
+QuickShell.Core.Tests/CommandSuggestionServiceTests.cs
+  s_464472bd9d67bd::t_4a80b4e37a8eda 33,38
+QuickShell.Core.Tests/LaunchRowListEditorTests.cs
+  s_464472bd9d67bd::t_f5d479b553e5c2 8,17,19,25,34,41,50,73,78,118,133,146,163,174
+QuickShell.Core.Tests/ShortcutDraftStoreTests.cs
+  s_464472bd9d67bd::t_69e4c8da86bf35 181-206
+QuickShell.Core.Tests/ShortcutFormLaunchSectionTests.cs
+  s_464472bd9d67bd::t_bb7b4562b9a18f 58,64,79,89,98,106
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_464472bd9d67bd::t_f2a043b4ac9e24 7,23-86
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_464472bd9d67bd::t_968aa2da0a4e29 15,31-37,47,60-82
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_464472bd9d67bd::t_1902d3bdfcbf7c 62-74
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_464472bd9d67bd::t_9fce4d7d41a98c 276-431
+QuickShell.Core.Tests/WorkspaceFormActionParserTests.cs
+  s_464472bd9d67bd::t_8a6fc67a39524d 61,63,65-81
+QuickShell.Core/Services/CommandSuggestionService.cs
+  s_464472bd9d67bd::t_e461873318f455 75-79
+QuickShell.Core/Services/LaunchRowDraft.cs
+  s_464472bd9d67bd::t_f99131fa79eb60 5-6,26
+QuickShell.Core/Services/LaunchRowListEditor.cs
+  s_464472bd9d67bd::t_3ce17f3986f8b2 14-16,46,54-55,57,82,86-91,102-103,115,117,119-120,146-166
+QuickShell.Core/Services/ShortcutDraftStore.cs
+  s_464472bd9d67bd::t_bd32fff120f957 139,192-216,230-249,275-284,556,591-596
+QuickShell.Core/Services/ShortcutFormCatalogPrewarm.cs
+  s_464472bd9d67bd::t_757d06c5d89dc3 42-43,45,53
+QuickShell.Core/Services/ShortcutFormDraftStore.cs
+  s_464472bd9d67bd::t_544bca038a3c1d 65,110-111,181-182,634
+QuickShell.Core/Services/ShortcutFormLaunchSection.cs
+  s_464472bd9d67bd::t_df9430de6750d7 13,25-27,57-59,61,76
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_464472bd9d67bd::t_520856692181bb 52,54-55,57,230,239-241,276,284,288,316
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_464472bd9d67bd::t_a1e3f65d60b8da 83-84,86,103-111
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_464472bd9d67bd::t_5bc243c836da3e 44-46,49,57-61,72-75,114-120,156,234
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_464472bd9d67bd::t_665869353b7e23 83,86,103,114,122
+QuickShell.Core/Services/WorkspaceEditor/IWorkspaceEditor.cs
+  s_464472bd9d67bd::t_ebb978c16461d5 33-37
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_464472bd9d67bd::t_81d4f7277cebc2 146,200-201,219-223,227-275,279,290,441-448,614-619,695,813,826,828-835,838-839,1037,1090,1191-1216,1224-1225,1250-1252,1261-1263,1268,1282-1313,1546-1548,1582
+QuickShell.Run/RunLaunchSuggestionPanel.cs
+  s_464472bd9d67bd::t_9e7f1bf7cc986e 13-14
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_464472bd9d67bd::t_fe5a32cb56ced1 642,664-668,678-683,780,914-917,942-945,970-973,1443-1444,1455-1458,1479,1483-1484,1531-1540,1623-1635,1643-1644,1695-1696,1707-1708,1723-1726,1749-1750
+QuickShell/Pages/ShortcutForm.cs
+  s_464472bd9d67bd::t_276cf8f913a2b7 111-116,302
+QuickShell/Resources/Strings.cs
+  s_e0a80837130c00::t_1fa408bd925e8c 33-38
+QuickShell/Resources/Strings.resx
+  s_e0a80837130c00::t_16bb032cdad1cc 612-629
+QuickShell/Services/ShortcutFormViewBuilder.cs
+  s_464472bd9d67bd::t_1da2f38e6dac42 43,47-49,56,60,62-69,93
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionKind.cs
+  s_464472bd9d67bd::t_996767727cb4b9 13-15
+QuickShell/Services/WorkspaceEditor/WorkspaceFormActionParser.cs
+  s_464472bd9d67bd::t_cad73fcbdcd34c 26-28,79,87
+docs/architecture/forms.md
+  s_464472bd9d67bd::t_c210da596ed011 26,88
+docs/architecture/intelligence.md
+  s_464472bd9d67bd::t_acbff900751951 69
+QuickShell.Core.Tests/ExplicitLaunchRowTests.cs
+  s_21a8129e1edcca::t_e8fc8ba823bbb4 1-108
+QuickShell.Core/Services/LaunchEditorText.cs
+  s_21a8129e1edcca::t_f77297f46ae7de 1-18
+QuickShell.Core/Services/LaunchRowKind.cs
+  s_21a8129e1edcca::t_cde83a4c16421a 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "0e6fdb8749071ba6480b1bd60c2affc941aa5d6b",
+  "prompts": {},
+  "sessions": {
+    "s_21a8129e1edcca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f83dd-4ef6-7831-bbe3-8f1c042464a9",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_464472bd9d67bd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "08dcd384-3749-4611-973d-8e52c643eaf2",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_e0a80837130c00": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "019f83dd-4ef6-7831-bbe3-8f1c042464a9",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
