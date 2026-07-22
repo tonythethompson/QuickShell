@@ -135,13 +135,20 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     [Fact]
     public void CreateOpen_WiresFullMoreCommands_WhenOnChangedProvided()
     {
+        ShortcutContextCommands.ResetBuildInvocationCount();
         var shortcut = CreateHealthyShortcut("ListItem");
         var item = ShortcutListItems.CreateOpen(
             _context,
             shortcut,
             onChanged: () => { });
 
+        var lazy = Assert.IsType<LazyMoreCommandsListItem>(item);
+        Assert.False(lazy.HasBuiltMoreCommands);
+        Assert.Equal(0, ShortcutContextCommands.BuildInvocationCount);
+
         Assert.NotNull(item.MoreCommands);
+        Assert.True(lazy.HasBuiltMoreCommands);
+        Assert.True(ShortcutContextCommands.BuildInvocationCount > 0);
         var titles = GetTitles(item.MoreCommands!);
 
         AssertContainsAll(

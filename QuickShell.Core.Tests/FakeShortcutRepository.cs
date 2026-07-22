@@ -42,7 +42,8 @@ internal sealed class FakeShortcutRepository : IShortcutRepository
 
     public IReadOnlyList<TerminalShortcut> GetShortcuts() => _byId.Values.ToList();
 
-    public IReadOnlyList<ShortcutLayoutEntry> GetLayout() => [];
+    public IReadOnlyList<ShortcutLayoutEntry> GetLayout() =>
+        _byId.Values.Select(shortcut => ShortcutLayoutEntry.FromShortcut(shortcut)).ToList();
 
     public int GetSnapshotCallCount { get; private set; }
 
