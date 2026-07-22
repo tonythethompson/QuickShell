@@ -73,7 +73,7 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 
 | Host | Integration |
 |------|-------------|
-| CmdPal | Adaptive Card pill actions on form (4 per row, 3 rows collapsed; template rebuilt for visible count; same-type pills grouped via `TypeTitle` sort) |
+| CmdPal | Adaptive Card pill actions on form (4 per row, 3 rows collapsed; template rebuilt for visible count; same-type pills grouped by `TypeTitle`, groups ordered by best score) |
 | Run | `RunLaunchSuggestionPanel` |
 | Raycast | `QuickShell.Suggest.exe` → JSON pills via `suggest-commands.ts` (form seeds + Actions). Falls back to `project-setup-suggestion.ts` heuristics when Suggest.exe is missing. `QUICKSHELL_SUGGEST_EXE` overrides the path in development. |
 
@@ -90,11 +90,13 @@ Agent CLI **pills** come from [`AgentCliCatalog`](../../QuickShell.Core/Services
 1. **PATH** — agent binaries such as `claude`, `codex`, `opencode`, `gemini`, `copilot`, `cursor-agent` / `agent`, `kiro-cli`, `grok`, `pi`, `kilocode`, `cmdc`, `agy`, `qwen`, `hermes`, `openclaw`, `cline`, `openhands`, `goose`, `aider`, `amp`, `auggie`, `autohand`, `cn`, `crush`, `devin`, `droid`, `jules`, `kimi`, `plandex` / `pdx`, `roo`, `vellum`, `oz`
 2. **Marker fallback** — project files such as `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.opencode/`, `.kiro/`, `.augment/`, `.factory/`, `crush.json`, `.plandex/`, etc.
 
-All detected agent CLIs enter the ranked pill pool (no separate agent-only cap). The form
-shows the first `SuggestionPillPresentation.DefaultVisibleSlots` (12) and offers
-**Show more suggestions** when more remain. Copilot is detected as the `copilot` CLI
-(not bare `gh`). They use task type `agent` and appear even when `ProjectStack.None`.
-They are **not** auto-seeded into new workspaces and must **not** be treated as
+All detected agent CLIs enter the ranked pill pool (no separate agent-only cap). Agent
+scores stay below typical Build/API/Test/Frontend pills (`PathDetectedScore` 42,
+`MarkerFallbackScore` 28) so project commands keep the early slots. The form shows the
+first `SuggestionPillPresentation.DefaultVisibleSlots` (12) and offers **Show more
+suggestions** when more remain. Copilot is detected as the `copilot` CLI (not bare
+`gh`). They use task type `agent` and appear even when `ProjectStack.None`. They are
+**not** auto-seeded into new workspaces and must **not** be treated as
 [companions](./companions.md) (GUI apps).
 
 ## Key files
