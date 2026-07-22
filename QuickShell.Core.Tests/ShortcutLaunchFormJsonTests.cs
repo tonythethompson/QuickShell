@@ -122,18 +122,40 @@ public sealed class ShortcutLaunchFormJsonTests
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
-        var text = document.RootElement.GetRawText();
+        var body = document.RootElement.GetProperty("body");
 
-        Assert.Contains("LaunchLabel_0", text);
-        Assert.Contains("LaunchLabel_1", text);
-        Assert.Contains("LaunchLabel_2", text);
-        Assert.Contains("LaunchEnabled_0", text);
-        Assert.Contains("LaunchEnabled_1", text);
-        Assert.Contains("LaunchEnabled_2", text);
+        var launchLabel0 = FindElementById(body, "LaunchLabel_0");
+        var launchLabel1 = FindElementById(body, "LaunchLabel_1");
+        var launchLabel2 = FindElementById(body, "LaunchLabel_2");
+        var launchEnabled0 = FindElementById(body, "LaunchEnabled_0");
+        var launchEnabled1 = FindElementById(body, "LaunchEnabled_1");
+        var launchEnabled2 = FindElementById(body, "LaunchEnabled_2");
 
-        Assert.Contains("\"value\": \"Main\"", text);
-        Assert.Contains("\"value\": \"Disabled Task\"", text);
-        Assert.Contains("\"value\": \"true\"", text);
-        Assert.Contains("\"value\": \"false\"", text);
+        Assert.Equal("Main", launchLabel0.GetProperty("value").GetString());
+        Assert.Equal("Disabled Task", launchLabel1.GetProperty("value").GetString());
+        Assert.Equal("", launchLabel2.GetProperty("value").GetString());
+        Assert.Equal("true", launchEnabled0.GetProperty("value").GetString());
+        Assert.Equal("false", launchEnabled1.GetProperty("value").GetString());
+        Assert.Equal("true", launchEnabled2.GetProperty("value").GetString());
+    }
+
+    private static JsonElement FindElementById(JsonElement body, string id)
+    {
+        foreach (var element in body.EnumerateArray())
+        {
+            if (element.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
+            {
+                return element;
+            }
+            if (element.TryGetProperty("body", out var nestedBody) && nestedBody.ValueKind == JsonValueKind.Array)
+            {
+                var found = FindElementById(nestedBody, id);
+                if (found.ValueKind != JsonValueKind.Undefined)
+                {
+                    return found;
+                }
+            }
+        }
+        return default;
     }
 }
