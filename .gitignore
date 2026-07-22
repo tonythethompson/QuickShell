@@ -10,10 +10,29 @@ _nupkg/
 _winget-pkgs/
 _winget-pr/
 _winget-test/
+
+# Shared Claude hooks/settings; ignore the rest of the tree.
 .claude/*
 !.claude/settings.json
 !.claude/hooks/
 !.claude/hooks/**
+
+# Shared Cursor hooks only; local settings/MCP stay untracked.
+.cursor/**
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/hooks/**
+
+# Local AI / agent scratch (not shared product config).
+.crush/
+.remember/
+.dirac-cache/
+.gemini/
+.jules/
+.bob/
+.commandcode/
+.codex/
+
 .serena/
 .oac.json
 QuickShell/QuickShell_Dev.cer
@@ -22,7 +41,6 @@ QuickShell/bin/
 QuickShell/obj/
 QuickShell/setup-x64.iss
 QuickShell/setup-arm64.iss
-.commandcode/taste
 
 # Store screenshot scratch (raw/prepared captures, local backup); README Screenshot_1-3 stay in Assets/
 QuickShell/Assets/StoreScreenshots/
@@ -52,9 +70,6 @@ pr9-comments.json
 pr9-review.md
 pr8-threads.json
 pr9-threads.json
-/.bob/.bob-errors
-/.bob/tmp
-/.bob/notes
 pr9-comments-latest.json
 tessl.json
 /.tmp/tasks
@@ -71,7 +86,6 @@ QuickShell.Raycast/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd
 debug-a49e01.log
 .vscode/settings.json
 /.workflow
-.commandcode/taste/taste.md
 _allrefs.json
 _css.diff
 _local_items.json
@@ -81,4 +95,3 @@ diag.txt
 pr65_ic2.json
 pr65_rc2.json
 pr65_rev2.json
-.commandcode/taste/taste.md
