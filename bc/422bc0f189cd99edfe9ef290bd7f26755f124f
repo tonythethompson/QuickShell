@@ -1,0 +1,25 @@
+QuickShell.Raycast/src/__tests__/git-repo-discovery.test.ts
+  s_c794253886b768::t_2ba21d5db6c94c 4-6,9-12,27,36,62,80,83
+QuickShell.Raycast/src/__tests__/windows-launch.test.ts
+  s_c794253886b768::t_9c47fb68cb6c97 1,15-23
+  s_c794253886b768::t_29e5563d74e265 24
+QuickShell.Raycast/src/__tests__/companion-form.test.ts
+  s_c794253886b768::t_0c5566b82a1add 1,21-30
+  s_c794253886b768::t_7262b846a32cf5 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bc422bc0f189cd99edfe9ef290bd7f26755f124f",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
