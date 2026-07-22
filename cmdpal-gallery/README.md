@@ -11,14 +11,15 @@ Ready-to-submit package for [microsoft/CmdPal-Extensions](https://github.com/mic
 
 Publishing to the Microsoft Store registers the extension with Command Palette, but **does not** add it to the in-app Extension Gallery. That requires a separate PR to `microsoft/CmdPal-Extensions`.
 
-## Submit
+## Submit / update
 
-1. Fork https://github.com/microsoft/CmdPal-Extensions
-2. Copy `extensions/tonythethompson/quickshell/` from this folder into your fork
-3. Open a PR titled `Add tonythethompson.quickshell to gallery`
-4. After merge, maintainers regenerate `extensions.json`; the extension then appears under **Command Palette → Settings → Extensions → Gallery**
+Listing already lives at `extensions/tonythethompson/quickshell/` upstream. To refresh logo, screenshots, or metadata:
 
-Or run `scripts/submit-cmdpal-gallery.ps1` if `gh` is authenticated.
+1. Keep this folder as the source of truth (`icon.png`, `extension.json`, `screenshots/`)
+2. Run `scripts/submit-cmdpal-gallery.ps1` if `gh` is authenticated (syncs your fork, pushes an update branch, opens a PR)
+3. After merge, maintainers regenerate `extensions.json`; Command Palette picks up the gallery change
+
+Manual path: fork https://github.com/microsoft/CmdPal-Extensions, replace `extensions/tonythethompson/quickshell/`, open a PR titled `Update tonythethompson.quickshell gallery listing`.
 
 ## Gallery title note
 

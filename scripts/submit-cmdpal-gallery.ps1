@@ -1,7 +1,8 @@
-# Submit Quick Shell to the Command Palette Extension Gallery.
+# Submit or update Quick Shell in the Command Palette Extension Gallery.
 # Requires: gh auth login, fork of microsoft/CmdPal-Extensions
 param(
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$Branch = 'update-tonythethompson-quickshell'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,14 +10,13 @@ $repoRoot = Split-Path $PSScriptRoot -Parent
 $source = Join-Path $repoRoot 'cmdpal-gallery\extensions\tonythethompson\quickshell'
 $workDir = Join-Path $env:TEMP 'CmdPal-Extensions-quickshell'
 $upstream = 'microsoft/CmdPal-Extensions'
-$branch = 'add-tonythethompson-quickshell'
 
 if (-not (Test-Path $source)) {
     throw "Missing gallery source at $source"
 }
 
 if ($DryRun) {
-    Write-Host "Would fork $upstream, copy $source, and open PR on branch $branch"
+    Write-Host "Would sync fork $upstream, copy $source, and open PR on branch $Branch"
     exit 0
 }
 
@@ -41,30 +41,36 @@ if (-not $forkExists) {
 }
 
 Write-Host "Using fork: $forkRepo"
+gh repo sync $forkRepo --source $upstream --force 2>$null
 gh repo clone $forkRepo $workDir -- --depth=1
 Push-Location $workDir
-git checkout -b $branch
+git checkout -b $Branch
 $dest = Join-Path $workDir 'extensions\tonythethompson\quickshell'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
+# Replace listing contents so renamed/removed screenshots do not linger.
+Get-ChildItem -Force $dest | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item -Recurse -Force (Join-Path $source '*') $dest
-git add extensions/tonythethompson/quickshell
-git commit -m "Add tonythethompson.quickshell to gallery"
-git push -u origin $branch
+git add -A extensions/tonythethompson/quickshell
+git status --short
+git commit -m "Update tonythethompson.quickshell gallery listing"
+git push -u origin $Branch --force-with-lease
 $bodyFile = Join-Path $env:TEMP 'cmdpal-gallery-pr-body.md'
 @'
 ## Summary
-Adds **Quick Shell** to the Command Palette Extension Gallery.
+Updates the **Quick Shell** Command Palette Extension Gallery listing.
 
-- Microsoft Store: [9PC8S6LNRT3R](https://apps.microsoft.com/detail/9PC8S6LNRT3R)
-- WinGet: `tonythethompson.QuickShell`
-- Source: https://github.com/tonythethompson/QuickShell
+- New product logo (`icon.png`, Store AppTile)
+- Screenshots refreshed for current workspace UI (list, create, settings, detail)
+- Description/tags aligned with current product language
+- Install sources unchanged: Microsoft Store `9PC8S6LNRT3R`, WinGet `tonythethompson.QuickShell`
 
 ## Test plan
 - [ ] CI schema validation passes
 - [ ] Store product ID resolves
-- [ ] Icon under 100 KB
-'@ | Set-Content -Path $bodyFile -Encoding utf8NoBOM
-$prUrl = gh pr create --repo $upstream --head "${forkRepo.Split('/')[0]}:$branch" --title 'Add tonythethompson.quickshell to gallery' --body-file $bodyFile
+- [ ] Icon under 100 KB; screenshots under 1 MB each
+- [ ] Tags ≤ 5
+'@ | Set-Content -Path $bodyFile -Encoding utf8
+$prUrl = gh pr create --repo $upstream --head "${login}:$Branch" --title 'Update tonythethompson.quickshell gallery listing' --body-file $bodyFile
 Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
 Pop-Location
 Write-Host "PR opened: $prUrl"
