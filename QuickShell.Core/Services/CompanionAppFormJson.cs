@@ -37,10 +37,9 @@ internal static class CompanionAppFormJson
             var row = companions[i];
             var preset = CompanionAppCatalog.ToFormPresetValue(row.Preset, row.Path);
             yield return $"\"CompanionAppPreset_{i}\": \"{Escape(preset)}\"";
-            yield return $"\"CompanionAppPathDisplay_{i}\": \"{Escape(row.Path)}\"";
+            yield return $"\"CompanionAppPresetTooltip_{i}\": \"{Escape(BuildPresetTooltip(row.Path))}\"";
             yield return $"\"ShowCompanionBrowseRequired_{i}\": {(CompanionAppCatalog.ShouldShowBrowseRequiredPrompt(row.Preset, row.Path) ? "true" : "false")}";
             yield return $"\"CompanionBrowseRequiredMessage_{i}\": \"{Escape(CompanionAppCatalog.BrowseRequiredMessage)}\"";
-            yield return $"\"ShowCompanionExecutablePath_{i}\": {(CompanionAppCatalog.ShouldShowExecutablePath(row.Path) ? "true" : "false")}";
             yield return $"\"ShowCompanionPathWarning_{i}\": {(CompanionAppCatalog.ShouldShowPathWarning(row.Preset, row.Path) ? "true" : "false")}";
             yield return $"\"CompanionPathWarning_{i}\": \"{Escape(CompanionAppCatalog.BuildPathWarning(row.Preset, row.Path))}\"";
             yield return $"\"ShowCompanionArguments_{i}\": {(CompanionAppArgumentValidation.ShouldShowArgumentsField(row.Preset, row.Path) ? "true" : "false")}";
@@ -59,9 +58,13 @@ internal static class CompanionAppFormJson
         }
     }
 
+    private static string BuildPresetTooltip(string? path) =>
+        CompanionAppCatalog.ShouldShowExecutablePath(path)
+            ? path!.Trim()
+            : WorkspaceFormTooltips.CompanionAppPreset;
+
     private static string BuildRow(int index, int totalCount, string companionChoicesJson)
     {
-        var tipCompanionPreset = Escape(WorkspaceFormTooltips.CompanionAppPreset);
         var browseTitle = Escape(CompanionAppCatalog.BrowseActionTitle);
         var label = index == 0 ? "Companion app" : $"Companion app {index + 1}";
 
@@ -128,10 +131,19 @@ internal static class CompanionAppFormJson
                       "type": "Input.ChoiceSet",
                       "id": "CompanionAppPreset_{{index}}",
                       "style": "compact",
-                      "tooltip": "{{tipCompanionPreset}}",
+                      "tooltip": "${CompanionAppPresetTooltip_{{index}}}",
                       "value": "${CompanionAppPreset_{{index}}}",
                       "choices": {{companionChoicesJson}}
                     }
+                  ]
+                },
+                {
+                  "type": "Column",
+                  "$when": "${ShowCompanionArguments_{{index}}}",
+                  "width": "2",
+                  "verticalContentAlignment": "Center",
+                  "items": [
+                    {{AdaptiveCardFormJson.InlineCompanionArgumentsInput(index)}}
                   ]
                 },
                 {
@@ -159,19 +171,6 @@ internal static class CompanionAppFormJson
               "spacing": "Small"
             },
             {
-              "type": "Container",
-              "$when": "${ShowCompanionExecutablePath_{{index}}}",
-              "spacing": "Small",
-              "items": [
-                {{AdaptiveCardFormJson.FieldLabel("Executable")}},
-                {
-                  "type": "TextBlock",
-                  "text": "${CompanionAppPathDisplay_{{index}}}",
-                  "wrap": true
-                }
-              ]
-            },
-            {
               "type": "TextBlock",
               "$when": "${ShowCompanionPathWarning_{{index}}}",
               "text": "${CompanionPathWarning_{{index}}}",
@@ -180,21 +179,12 @@ internal static class CompanionAppFormJson
               "spacing": "Small"
             },
             {
-              "type": "Container",
-              "$when": "${ShowCompanionArguments_{{index}}}",
-              "spacing": "Medium",
-              "items": [
-                {{AdaptiveCardFormJson.FieldLabel(CompanionAppArgumentValidation.FieldLabel)}},
-                {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.NarrowCompanionArgumentsInput(index))}},
-                {
-                  "type": "TextBlock",
-                  "$when": "${ShowCompanionArgumentWarning_{{index}}}",
-                  "text": "${CompanionArgumentWarning_{{index}}}",
-                  "color": "Attention",
-                  "wrap": true,
-                  "spacing": "Small"
-                }
-              ]
+              "type": "TextBlock",
+              "$when": "${ShowCompanionArgumentWarning_{{index}}}",
+              "text": "${CompanionArgumentWarning_{{index}}}",
+              "color": "Attention",
+              "wrap": true,
+              "spacing": "Small"
             }
           ]
         }

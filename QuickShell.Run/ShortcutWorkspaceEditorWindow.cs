@@ -200,55 +200,51 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
 
 
-        body.Children.Add(RunWpfUiHelpers.FieldLabel("Dev server URL", WorkspaceFormTooltips.DevServerUrl));
+        var linkRow = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+        linkRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        linkRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        _devServerUrlBox = new TextBox
+        var repoLabel = RunWpfUiHelpers.FieldLabel("Repository URL", WorkspaceFormTooltips.RepoUrl);
+        Grid.SetRow(repoLabel, 0);
+        Grid.SetColumn(repoLabel, 0);
+        linkRow.Children.Add(repoLabel);
 
-        {
-
-            Text = _working.DevServerUrl ?? string.Empty,
-
-            Margin = new Thickness(0, 0, 0, 4),
-
-            ToolTip = WorkspaceFormTooltips.DevServerUrlExample,
-
-        };
-
-        body.Children.Add(_devServerUrlBox);
-
-        _openDevServerBox = new CheckBox
-
-        {
-
-            Content = "Open dev server on launch",
-
-            IsChecked = _working.OpenDevServerOnLaunch,
-
-            Margin = new Thickness(0, 0, 0, 8),
-
-            ToolTip = WorkspaceFormTooltips.DevServerOnLaunch,
-
-        };
-
-        body.Children.Add(_openDevServerBox);
-
-
-
-        body.Children.Add(RunWpfUiHelpers.FieldLabel("Repository URL", WorkspaceFormTooltips.RepoUrl));
+        var devServerLabel = RunWpfUiHelpers.FieldLabel("Dev server URL", WorkspaceFormTooltips.DevServerUrl);
+        Grid.SetRow(devServerLabel, 0);
+        Grid.SetColumn(devServerLabel, 2);
+        linkRow.Children.Add(devServerLabel);
 
         _repoUrlBox = new TextBox
-
         {
-
             Text = _working.RepoUrl ?? string.Empty,
-
-            Margin = new Thickness(0, 0, 0, 8),
-
             ToolTip = WorkspaceFormTooltips.RepoUrlExample,
-
         };
+        Grid.SetRow(_repoUrlBox, 1);
+        Grid.SetColumn(_repoUrlBox, 0);
+        linkRow.Children.Add(_repoUrlBox);
 
-        body.Children.Add(_repoUrlBox);
+        var devServerColumn = new StackPanel();
+        _devServerUrlBox = new TextBox
+        {
+            Text = _working.DevServerUrl ?? string.Empty,
+            Margin = new Thickness(0, 0, 0, 4),
+            ToolTip = WorkspaceFormTooltips.DevServerUrlExample,
+        };
+        devServerColumn.Children.Add(_devServerUrlBox);
+        _openDevServerBox = new CheckBox
+        {
+            Content = "Open dev server on launch",
+            IsChecked = _working.OpenDevServerOnLaunch,
+            ToolTip = WorkspaceFormTooltips.DevServerOnLaunch,
+        };
+        devServerColumn.Children.Add(_openDevServerBox);
+        Grid.SetRow(devServerColumn, 1);
+        Grid.SetColumn(devServerColumn, 2);
+        linkRow.Children.Add(devServerColumn);
+        body.Children.Add(linkRow);
 
 
 
@@ -1248,6 +1244,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             _presetBox.SelectionChanged += (_, _) => ApplyPresetSelection();
             pickerRow.Children.Add(_presetBox);
 
+            _argsBox = new TextBox
+            {
+                Text = model.Arguments,
+                MinWidth = 120,
+                Margin = new Thickness(0, 0, 8, 0),
+                ToolTip = CompanionAppArgumentValidation.FieldLabel,
+            };
+            pickerRow.Children.Add(_argsBox);
+
             _browseButton = new Button { Content = "Browse…", MinWidth = 72, Margin = new Thickness(0, 0, 4, 0) };
             _browseButton.Click += (_, _) => BrowseExecutable();
             pickerRow.Children.Add(_browseButton);
@@ -1272,6 +1277,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             pickerRow.Children.Add(_removeButton);
             Root.Children.Add(pickerRow);
 
+            // Custom apps still need an editable path; catalog presets show the exe as the dropdown tooltip.
             _pathBox = new TextBox
             {
                 Text = model.Path,
@@ -1279,13 +1285,6 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
                 MinWidth = 360,
             };
             Root.Children.Add(_pathBox);
-
-            _argsBox = new TextBox
-            {
-                Text = model.Arguments,
-                Margin = new Thickness(0, 0, 0, 4),
-            };
-            Root.Children.Add(_argsBox);
 
             _openBox = new CheckBox
             {
@@ -1361,6 +1360,15 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             }
 
             _pathBox.IsReadOnly = !isCustom;
+            _pathBox.Visibility = isCustom
+                ? System.Windows.Visibility.Visible
+                : System.Windows.Visibility.Collapsed;
+            _argsBox.Visibility = CompanionAppArgumentValidation.ShouldShowArgumentsField(preset, _pathBox.Text)
+                ? System.Windows.Visibility.Visible
+                : System.Windows.Visibility.Collapsed;
+            _presetBox.ToolTip = CompanionAppCatalog.ShouldShowExecutablePath(_pathBox.Text)
+                ? _pathBox.Text
+                : WorkspaceFormTooltips.CompanionAppPreset;
             _browseButton.IsEnabled = isCustom;
             _openBox.IsEnabled = !isNone;
         }

@@ -176,35 +176,58 @@ internal static class ShortcutFormTemplateJson
                 """,
                 leftWeight: "3",
                 rightWeight: "2")}},
-            {{AdaptiveCardFormJson.DevServerFieldRow(
+            {{AdaptiveCardFormJson.PairedFieldRow(
+                "Repository URL (optional)",
                 """
                 {
                   "type": "Input.Text",
-                  "id": "DevServerUrl",
-                  "tooltip": "{{tipDevServerUrl}}",
-                  "value": "${DevServerUrl}"
+                  "id": "RepoUrl",
+                  "tooltip": "{{tipRepoUrl}}",
+                  "value": "${RepoUrl}"
                 }
                 """,
+                "Dev server URL (optional)",
                 """
                 {
-                  "type": "Input.Toggle",
-                  "id": "OpenDevServerOnLaunch",
-                  "title": "Open in browser",
-                  "tooltip": "{{tipDevServerOnLaunch}}",
-                  "value": "${OpenDevServerOnLaunch}",
-                  "valueOn": "true",
-                  "valueOff": "false"
+                  "type": "ColumnSet",
+                  "spacing": "Small",
+                  "columns": [
+                    {
+                      "type": "Column",
+                      "width": "stretch",
+                      "verticalContentAlignment": "Center",
+                      "items": [
+                        {
+                          "type": "Input.Text",
+                          "id": "DevServerUrl",
+                          "tooltip": "{{tipDevServerUrl}}",
+                          "value": "${DevServerUrl}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Column",
+                      "width": "auto",
+                      "verticalContentAlignment": "Center",
+                      "items": [
+                        {
+                          "type": "Input.Toggle",
+                          "id": "OpenDevServerOnLaunch",
+                          "title": "Open in browser",
+                          "tooltip": "{{tipDevServerOnLaunch}}",
+                          "value": "${OpenDevServerOnLaunch}",
+                          "valueOn": "true",
+                          "valueOff": "false"
+                        }
+                      ]
+                    }
+                  ]
                 }
                 """,
-                WorkspaceFormTooltips.DevServerUrlExample)}},
-            {{AdaptiveCardFormJson.FieldGroup("Repository URL (optional)", WorkspaceFormTooltips.RepoUrlExample, """
-            {
-              "type": "Input.Text",
-              "id": "RepoUrl",
-              "tooltip": "{{tipRepoUrl}}",
-              "value": "${RepoUrl}"
-            }
-            """)}},
+                leftWeight: "2",
+                rightWeight: "3",
+                leftHelp: WorkspaceFormTooltips.RepoUrlExample,
+                rightHelp: WorkspaceFormTooltips.DevServerUrlExample)}},
             {{companionsSection}},
             {{commandsSection}}
           ],

@@ -14,7 +14,8 @@ Persisted on TerminalShortcut
   CompanionAppArguments
 
 Form (multi-row)
-  Each row: CompanionAppPreset_i + Browse + (last row) "+" + (if >1) "−"
+  Each row: CompanionAppPreset_i + Arguments (when shown) + Browse + (last row) "+" + (if >1) "−"
+  Executable path is a tooltip on the preset dropdown (not a separate field)
   "+" tooltip: "Add another companion app" (inline with picker)
   Cap 5; save writes full CompanionApps list
 

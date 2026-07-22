@@ -5,10 +5,6 @@ namespace QuickShell.Services;
 /// </summary>
 internal static class AdaptiveCardFormJson
 {
-    public const string NarrowInputWidth = "1";
-    public const string NarrowSpacerWidth = "4";
-    public const string MediumInputWidth = "2";
-    public const string MediumSpacerWidth = "3";
     private const string LabelInputSpacing = "Small";
     private const string SectionSpacing = "Medium";
 
@@ -118,47 +114,8 @@ internal static class AdaptiveCardFormJson
         """;
     }
 
-    public static string DevServerFieldRow(string urlInputJson, string toggleInputJson, string? exampleHelp = null)
-    {
-        var helpBlock = OptionalFieldHelpEntry(exampleHelp);
-
-        return $$"""
-        {
-          "type": "Container",
-          "spacing": "{{SectionSpacing}}",
-          "items": [
-            {{FieldLabel("Dev server URL (optional)")}},
-            {{helpBlock}}
-            {
-              "type": "ColumnSet",
-              "spacing": "{{LabelInputSpacing}}",
-              "columns": [
-                {
-                  "type": "Column",
-                  "width": "stretch",
-                  "verticalContentAlignment": "Center",
-                  "items": [
-                    {{urlInputJson}}
-                  ]
-                },
-                {
-                  "type": "Column",
-                  "width": "auto",
-                  "verticalContentAlignment": "Center",
-                  "items": [
-                    {{toggleInputJson}}
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-        """;
-    }
-
     /// <summary>
-    /// Input + trailing action buttons. One <see cref="ActionColumn"/> per button.
-    /// Default action alignment is <c>Top</c>: CmdPal ActionSets carry bottom chrome that
+    /// Input + trailing action buttons. One <see cref="ActionColumn"/> per button.    /// Default action alignment is <c>Top</c>: CmdPal ActionSets carry bottom chrome that
     /// makes Center/Bottom sit under the text box. Label belongs above this row, not on the input.
     /// </summary>
     public static string InputWithTrailingActionsRow(
@@ -343,31 +300,6 @@ internal static class AdaptiveCardFormJson
         }
         """;
 
-    public static string MediumWidthColumn(
-        string elementJson,
-        string inputWidth = MediumInputWidth,
-        string spacerWidth = MediumSpacerWidth) =>
-        $$"""
-        {
-          "type": "ColumnSet",
-          "spacing": "Small",
-          "columns": [
-            {
-              "type": "Column",
-              "width": "{{inputWidth}}",
-              "items": [
-                {{elementJson}}
-              ]
-            },
-            {
-              "type": "Column",
-              "width": "{{spacerWidth}}",
-              "items": []
-            }
-          ]
-        }
-        """;
-
     public static string IconSubmitAction(
         string glyph,
         string tooltip,
@@ -442,23 +374,20 @@ internal static class AdaptiveCardFormJson
             : FieldHelp(help) + ",\n                ";
 
     /// <summary>
-    /// Single-line companion arguments input in a narrow column.
+    /// Single-line companion arguments input for the picker row (beside the preset dropdown).
     /// Placeholder, value, and tooltip bind from form data JSON.
     /// </summary>
-    public static string NarrowCompanionArgumentsInput(int index = 0) =>
-        MediumWidthColumn(
-            $$"""
-            {
-              "type": "Input.Text",
-              "id": "CompanionAppArguments_{{index}}",
-              "placeholder": "${CompanionArgumentPlaceholder_{{index}}}",
-              "value": "${CompanionAppArguments_{{index}}}",
-              "tooltip": "${CompanionArgumentTooltip_{{index}}}",
-              "maxLength": {{ShortcutValidation.MaxCompanionAppArgumentsLength}}
-            }
-            """,
-            NarrowInputWidth,
-            NarrowSpacerWidth);
+    public static string InlineCompanionArgumentsInput(int index = 0) =>
+        $$"""
+        {
+          "type": "Input.Text",
+          "id": "CompanionAppArguments_{{index}}",
+          "placeholder": "${CompanionArgumentPlaceholder_{{index}}}",
+          "value": "${CompanionAppArguments_{{index}}}",
+          "tooltip": "${CompanionArgumentTooltip_{{index}}}",
+          "maxLength": {{ShortcutValidation.MaxCompanionAppArgumentsLength}}
+        }
+        """;
 
     private static string Escape(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
