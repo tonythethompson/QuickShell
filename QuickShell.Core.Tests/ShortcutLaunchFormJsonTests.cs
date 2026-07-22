@@ -177,39 +177,36 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Equal("true", launchEnabled2.GetProperty("value").GetString());
     }
 
-    private static JsonElement FindElementById(JsonElement node, string id)
+    private static JsonElement FindElementById(JsonElement container, string id)
     {
-        if (node.ValueKind == JsonValueKind.Object)
+        foreach (var element in container.EnumerateArray())
         {
-            if (node.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
+            if (element.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
             {
-                return node;
+                return element;
             }
 
-            foreach (var propertyName in new[] { "body", "items", "columns" })
+            // Adaptive Cards nest inputs under items/columns (and sometimes body).
+            if (TryFindInChildArray(element, "items", id, out var found)
+                || TryFindInChildArray(element, "columns", id, out found)
+                || TryFindInChildArray(element, "body", id, out found))
             {
-                if (node.TryGetProperty(propertyName, out var nested) && nested.ValueKind == JsonValueKind.Array)
-                {
-                    var found = FindElementById(nested, id);
-                    if (found.ValueKind != JsonValueKind.Undefined)
-                    {
-                        return found;
-                    }
-                }
-            }
-        }
-        else if (node.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var element in node.EnumerateArray())
-            {
-                var found = FindElementById(element, id);
-                if (found.ValueKind != JsonValueKind.Undefined)
-                {
-                    return found;
-                }
+                return found;
             }
         }
 
         return default;
+    }
+
+    private static bool TryFindInChildArray(JsonElement element, string propertyName, string id, out JsonElement found)
+    {
+        found = default;
+        if (!element.TryGetProperty(propertyName, out var nested) || nested.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        found = FindElementById(nested, id);
+        return found.ValueKind != JsonValueKind.Undefined;
     }
 }
