@@ -1,0 +1,30 @@
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_e1213fb061c354::t_e310a359ef2c1f 79-80
+  s_e1213fb061c354::t_c13f444a5835db 116-117
+docs/architecture/forms.md
+  s_ce658b422942f2::t_4d7f68821e9cf8 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4f521efa6e1af663e0d8772a2f68990fb74045d2",
+  "prompts": {},
+  "sessions": {
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_e1213fb061c354": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e0f2042-ed11-4b8b-b589-fa2f8665312e",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
