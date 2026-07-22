@@ -1,0 +1,29 @@
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_605af5d56ff20c::t_f1fd447722a44c 70,78-80
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_605af5d56ff20c::t_4416f226fbc38c 120-121,130-132
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_605af5d56ff20c::t_f10cd352c3bc76 328-338,345-347
+QuickShell.Raycast/src/lib/storage.ts
+  s_605af5d56ff20c::t_1083f34e1dd21e 21-27
+QuickShell.Raycast/src/open-workspace.tsx
+  s_605af5d56ff20c::t_de224952b18aef 48-54,762-768
+QuickShell/Pages/QuickShellPage.cs
+  s_605af5d56ff20c::t_89d97c6da8cdbf 389
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1a62d7a00bb6f7d2bebd11adfffc94e325a91a28",
+  "prompts": {},
+  "sessions": {
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
