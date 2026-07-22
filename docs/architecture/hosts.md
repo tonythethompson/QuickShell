@@ -64,7 +64,7 @@ Important libs:
 | `suggest-commands.ts` | shells out to Core Suggest CLI |
 | `settings.ts` | settings prefs |
 
-Parity goals: multi-launch tabs (no `-w` on tab segments), similar settings keys, similar workspace shape. Gaps: health (lighter), companion presets/detection, git worktree targets file, full Adaptive Card forms.
+Parity goals: multi-launch tabs (no `-w` on tab segments), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, git worktree targets / dirty gate, full Core health (ports/process), Adaptive Card forms.
 
 ## Shared Core (desktop only)
 

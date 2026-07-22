@@ -134,6 +134,23 @@ export function authorize(
       issues.push({ code: "InvalidCommand", message: commandResult.message, blocking: true });
     }
   }
+  if (request.kind === "grantTrust") {
+    for (const companion of normalizeCompanionApps(content)) {
+      if (
+        !companion.path ||
+        companion.path.length > 1024 ||
+        /[\r\n\0]/.test(companion.path) ||
+        (companion.arguments && /[\r\n\0]/.test(companion.arguments))
+      ) {
+        issues.push({
+          code: "InvalidCompanion",
+          message: "Companion executable configuration is invalid.",
+          blocking: true,
+        });
+        break;
+      }
+    }
+  }
   if (content.command) {
     risks.push({ code: "command", description: "This workspace can execute arbitrary code." });
   }

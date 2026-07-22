@@ -1,6 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { authorize, authorizePostLaunchEffects, createReviewToken, matchesReviewToken } from "../lib/security";
 import type { StoredWorkspace, Workspace } from "../lib/schema";
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  while (tempDirs.length > 0) {
+    const directory = tempDirs.pop();
+    if (!directory) {
+      continue;
+    }
+    try {
+      rmSync(directory, { recursive: true, force: true });
+    } catch {
+      // Best-effort cleanup.
+    }
+  }
+});
+
+function createTempDirectory(): string {
+  const directory = mkdtempSync(join(tmpdir(), "quickshell-security-"));
+  tempDirs.push(directory);
+  return directory;
+}
 
 const workspace: Workspace = {
   id: "workspace-1",
@@ -79,6 +104,63 @@ describe("workspace security policy", () => {
     const result = authorize({ ...stored(true), content: malformed }, { kind: "url", url: malformed.repoUrl });
     expect(result.isAllowed).toBe(false);
     expect(result.primaryIssueCode).toBe("InvalidUrl");
+  });
+
+  it.each(["javascript:alert(1)", "file:///c:/windows/system32/notepad.exe", "vbscript:msgbox(1)"])(
+    "rejects unsafe URL scheme %s",
+    (url) => {
+      const result = authorize(stored(true), { kind: "url", url });
+      expect(result.isAllowed).toBe(false);
+      expect(result.primaryIssueCode).toBe("InvalidUrl");
+    },
+  );
+
+  it.each(["echo one\necho two", "echo one\recho two", "echo one\0echo two"])(
+    "rejects control characters in commands",
+    (command) => {
+      const directory = createTempDirectory();
+      const content = {
+        ...workspace,
+        directory,
+        command,
+        launches: [{ ...workspace.launches[0], command }],
+      };
+      const value = { ...stored(true), content };
+      expect(authorize(value, { kind: "terminal" }).primaryIssueCode).toBe("InvalidCommand");
+      expect(authorize(value, { kind: "grantTrust" }).primaryIssueCode).toBe("InvalidCommand");
+    },
+  );
+
+  it.each(["\\\\?\\pipe\\quickshell", "\\\\localhost\\share\\project", "%TEMP%\\project"])(
+    "rejects UNC, pipe, and env open-directory paths (%s)",
+    (directory) => {
+      const value = { ...stored(true), content: { ...workspace, directory } };
+      const open = authorize(value, { kind: "directory" });
+      expect(open.isAllowed).toBe(false);
+      expect(["InvalidDirectory", "DirectoryOpenNotAllowed"]).toContain(open.primaryIssueCode);
+    },
+  );
+
+  it("rejects companion newline injection for companion and grantTrust", () => {
+    const directory = createTempDirectory();
+    const content: Workspace = {
+      ...workspace,
+      directory,
+      companionApps: [
+        {
+          id: "companion-1",
+          path: `${process.execPath}\nbad`,
+          arguments: "--folder\n--evil",
+          openOnLaunch: true,
+          order: 0,
+        },
+      ],
+    };
+    const value = { ...stored(true), content };
+    expect(authorize(value, { kind: "companion", companionId: "companion-1" }).primaryIssueCode).toBe(
+      "InvalidCompanion",
+    );
+    expect(authorize(value, { kind: "grantTrust" }).primaryIssueCode).toBe("InvalidCompanion");
   });
 
   it("allows a valid terminal launch when optional effects are invalid", () => {

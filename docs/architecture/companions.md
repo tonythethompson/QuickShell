@@ -80,7 +80,7 @@ First match, only if executable resolves:
 
 Signals: `WorkspaceCompanionSignals`. Suggestion sets `EnableOnLaunch = true`.
 
-Raycast form is still weaker on companion presets (path/args oriented); desktop Detect seeds on Discover only.
+Raycast form supports multi companion rows, an installed-preset picker (`companion-catalog.ts`), and light folder-marker seeding (`.cursor` / `.vscode` / `.trae` / `.obsidian` / `.git` → installed presets). Full vswhere/JetBrains Toolbox detection remains desktop-only.
 
 ## Launch (`CompanionAppLauncher`)
 
