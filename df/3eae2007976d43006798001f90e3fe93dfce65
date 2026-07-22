@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_ce658b422942f2::t_24023298e2dff4 142,144,150-154,156,159,162-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "df3eae2007976d43006798001f90e3fe93dfce65",
+  "prompts": {},
+  "sessions": {
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
