@@ -1,0 +1,21 @@
+.gitignore
+  s_01a3ec5c336989::t_c46ae1e6c0f5a7 13-14,19
+  s_01a3ec5c336989::t_bcd393b92f9425 20-22
+  s_01a3ec5c336989::t_7135375c80247a 23-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "74365708adc0212f480c0850d80fd624293a8318",
+  "prompts": {},
+  "sessions": {
+    "s_01a3ec5c336989": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4a69f25f-83a8-4c53-8cae-128bc38c1520",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
