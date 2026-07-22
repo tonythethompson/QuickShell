@@ -324,8 +324,18 @@ describe("workspace trust kill switch (disabled)", () => {
     };
     expect(authorize(value, { kind: "terminal" }).isAllowed).toBe(true);
     expect(authorize(value, { kind: "launchEntry", launchId: "launch-1" }).isAllowed).toBe(true);
-    expect(authorize(value, { kind: "directory" }).isAllowed).toBe(true);
     expect(authorize(value, { kind: "url", url: "https://example.com" }).isAllowed).toBe(true);
+
+    // Open-directory still requires an existing rooted Windows drive path (product is
+    // Windows-only). On Linux CI assert trust is not the blocker; on Windows assert allow.
+    const openDirectory = authorize(value, { kind: "directory" });
+    expect(openDirectory.issues.some((issue) => issue.code === "WorkspaceUntrusted")).toBe(false);
+    if (process.platform === "win32") {
+      expect(openDirectory.isAllowed).toBe(true);
+    } else {
+      expect(openDirectory.isAllowed).toBe(false);
+      expect(openDirectory.primaryIssueCode).toBe("DirectoryOpenNotAllowed");
+    }
   });
 
   it("matches the shared JSON default", () => {
