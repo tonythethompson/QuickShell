@@ -1,0 +1,19 @@
+.github/workflows/release-extension.yml
+  s_c794253886b768::t_a2bfadf9a4f53e 173-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "c2a4f125d65c6b9a27c4d2a53bdb5cbb321f062c",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
