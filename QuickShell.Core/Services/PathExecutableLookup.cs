@@ -76,27 +76,8 @@ internal static class PathExecutableLookup
 
             return false;
         }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (NotSupportedException)
-        {
-            return false;
-        }
-        catch (PathTooLongException)
-        {
-            return false;
-        }
-        catch (IOException)
-        {
-            return false;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-        catch (System.Security.SecurityException)
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException
+            or IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
             return false;
         }
@@ -147,15 +128,7 @@ internal static class PathExecutableLookup
                 fullPath = Path.GetFullPath(candidate);
                 return true;
             }
-            catch (ArgumentException)
-            {
-                // Skip invalid PATH segments.
-            }
-            catch (NotSupportedException)
-            {
-                // Skip invalid PATH segments.
-            }
-            catch (PathTooLongException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
             {
                 // Skip invalid PATH segments.
             }
