@@ -1,0 +1,33 @@
+QuickShell.Core/Services/AgentCliCatalog.cs
+  s_605af5d56ff20c::t_58beba156d9078 138-215
+docs/architecture/intelligence.md
+  s_ce658b422942f2::t_034680532a2d5d 90-98
+QuickShell.Core.Tests/AgentCliSuggestionTests.cs
+  s_605af5d56ff20c::t_e03c9898116cf6 39-64
+QuickShell.Core/Classification/Suggestions/AgentCliSuggestionProvider.cs
+  s_605af5d56ff20c::t_ef4bc5198cf5f1 23-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a2a28fe44d1de943dff3c17a289156cae99bf8dc",
+  "prompts": {},
+  "sessions": {
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
