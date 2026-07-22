@@ -133,7 +133,7 @@ public sealed class WorkspaceTrustFeaturesDisabledTests
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            var candidate = Path.Combine(directory.FullName, "shared", "workspace-trust-features.json");
+            var candidate = Path.Join(directory.FullName, "shared", "workspace-trust-features.json");
             if (File.Exists(candidate))
             {
                 return candidate;
