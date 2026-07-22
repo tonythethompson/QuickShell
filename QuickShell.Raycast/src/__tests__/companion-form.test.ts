@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   COMPANION_CHOICE_TITLE_CUSTOM,
   COMPANION_CHOICE_TITLE_NONE,
@@ -17,6 +17,17 @@ import {
   workspaceFormStateFromWorkspace,
 } from "../lib/workspace-form-state";
 import type { Workspace } from "../lib/schema";
+
+const originalPlatform = process.platform;
+
+beforeEach(() => {
+  // Windows companion catalog + basename inference (macOS CI is darwin).
+  Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+});
+
+afterEach(() => {
+  Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+});
 
 describe("companion-catalog", () => {
   it("lists presets with stable ids and default arguments", () => {
