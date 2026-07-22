@@ -102,6 +102,48 @@ describe("moveFavorite", () => {
     expect(atTop.map((w) => w.id)).toEqual([second.id, first.id]);
   });
 
+  it("moves favorites to top and bottom", async () => {
+    const adapter = createMemoryStorageAdapter();
+    let storage = new QuickShellStorage(adapter);
+    const pinnedOrder = async (instance: QuickShellStorage) =>
+      (await instance.getWorkspaces())
+        .filter((w) => w.isPinned)
+        .sort((l, r) => (l.pinOrder ?? Number.MAX_SAFE_INTEGER) - (r.pinOrder ?? Number.MAX_SAFE_INTEGER))
+        .map((w) => w.id);
+
+    const make = async (name: string, directory: string) =>
+      storage.upsertWorkspace(
+        normalizeWorkspace({
+          id: createStableId(),
+          name,
+          directory,
+          terminal: "wt",
+          command: "echo",
+          runAsAdmin: false,
+          isPinned: false,
+          launches: [],
+        }),
+      );
+    const a = await make("A", "C:\\a");
+    const b = await make("B", "C:\\b");
+    const c = await make("C", "C:\\c");
+    await storage.setFavorite(a.id, true);
+    await storage.setFavorite(b.id, true);
+    await storage.setFavorite(c.id, true);
+
+    expect(await storage.moveFavorite(c.id, "top")).not.toBeNull();
+    storage = new QuickShellStorage(adapter);
+    expect(await pinnedOrder(storage)).toEqual([c.id, a.id, b.id]);
+
+    expect(await storage.moveFavorite(c.id, "bottom")).not.toBeNull();
+    storage = new QuickShellStorage(adapter);
+    expect(await pinnedOrder(storage)).toEqual([a.id, b.id, c.id]);
+
+    expect(await storage.moveFavorite(c.id, "bottom")).toBeNull();
+    storage = new QuickShellStorage(adapter);
+    expect(await pinnedOrder(storage)).toEqual([a.id, b.id, c.id]);
+  });
+
   it("orders null pinOrder like Favorites list then normalizes on move", async () => {
     const storage = new QuickShellStorage(createMemoryStorageAdapter());
     const zebra = await storage.upsertWorkspace(

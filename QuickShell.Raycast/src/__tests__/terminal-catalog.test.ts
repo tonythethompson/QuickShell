@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   discoverDefaultProfileChoices,
   discoverWorkspaceTerminalChoices,
+  invalidateTerminalCatalogCache,
   parseJsoncForTests,
   resetTerminalCatalogCacheForTests,
 } from "../lib/terminal-catalog";
@@ -12,6 +13,18 @@ describe("terminal-catalog", () => {
     const choices = discoverWorkspaceTerminalChoices();
     expect(choices.some((choice) => choice.id === "default")).toBe(true);
     expect(choices.every((choice) => choice.terminal)).toBe(true);
+  });
+
+  it("invalidates the workspace terminal choice cache", () => {
+    invalidateTerminalCatalogCache();
+    const first = discoverWorkspaceTerminalChoices();
+    invalidateTerminalCatalogCache();
+    const second = discoverWorkspaceTerminalChoices();
+    expect(second).not.toBe(first);
+    expect(first.some((choice) => choice.id === "default")).toBe(true);
+    expect(second.some((choice) => choice.id === "default")).toBe(true);
+    expect(second).not.toBe(first);
+    expect(second.every((choice) => choice.terminal)).toBe(true);
   });
 
   it("includes a default profile sentinel for windows terminal settings", () => {

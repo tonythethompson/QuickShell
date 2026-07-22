@@ -103,8 +103,13 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
   return cachedChoices;
 }
 
-export function resetTerminalCatalogCacheForTests(): void {
+export function invalidateTerminalCatalogCache(): void {
   cachedChoices = null;
+}
+
+/** @deprecated Prefer invalidateTerminalCatalogCache in production code. */
+export function resetTerminalCatalogCacheForTests(): void {
+  invalidateTerminalCatalogCache();
 }
 
 export function discoverDefaultProfileChoices(terminalApplication: string): TerminalChoice[] {
