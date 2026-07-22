@@ -67,7 +67,7 @@ public sealed class ShortcutLaunchFormJsonTests
     }
 
     [Fact]
-    public void BuildCommandRowsJson_OpenInTerminal_RendersReadOnlyStyleCommandField()
+    public void BuildCommandRowsJson_OpenInTerminal_RendersNonEditableFieldChrome()
     {
         var text = ShortcutLaunchFormJson.BuildCommandRowsJson(
             [new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Open in terminal" }],
@@ -75,13 +75,14 @@ public sealed class ShortcutLaunchFormJsonTests
             EditorText);
 
         Assert.Contains("Open in terminal", text);
-        Assert.Contains("LaunchOpenInTerminalDisplay_0", text);
-        Assert.Contains("\"type\": \"Input.Text\"", text);
+        Assert.Contains("\"type\": \"Container\"", text);
+        Assert.Contains("\"style\": \"emphasis\"", text);
+        Assert.Contains("\"type\": \"TextBlock\"", text);
+        Assert.DoesNotContain("LaunchOpenInTerminalDisplay_0", text);
+        Assert.DoesNotContain("LaunchCommand_0", text);
         Assert.Contains("Add terminal", text);
         Assert.Contains("addOpenInTerminalRow", text);
         Assert.Contains("removeLaunch", text);
-        Assert.DoesNotContain("LaunchCommand_0", text);
-        Assert.DoesNotContain("\"isSubtle\": true", text);
         Assert.DoesNotContain("ShowAddOpenInTerminal", text);
     }
 
