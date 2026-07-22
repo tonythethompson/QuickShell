@@ -1,6 +1,6 @@
 # Quick Shell
 
-**Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) in one search.**
+**Open your favorite project folders from [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview), [PowerToys Run](https://learn.microsoft.com/en-us/windows/powertoys/run), or [Raycast for Windows](https://www.raycast.com/windows) in one search.**
 
 Save directories you use every day, open them in whichever terminal you actually use, optionally run a command on open (`dotnet run`, `npm run dev`, and so on), and jump there without digging through File Explorer.
 
