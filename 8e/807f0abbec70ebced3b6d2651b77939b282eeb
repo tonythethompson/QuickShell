@@ -1,0 +1,93 @@
+QuickShell.Raycast/src/lib/terminal-catalog.ts
+  s_c794253886b768::t_11cec1f1aebe5e 85,126,128-133
+  s_c794253886b768::t_422e0790be08e3 118,185
+  s_e1213fb061c354::t_3409be50a726bc 82
+  s_c794253886b768::t_734a85cf2bb0cb 102,110,179,182
+  s_c794253886b768::t_c1e9c0f5cf6fbf 134
+  s_e1213fb061c354::t_931faf8d702a03 11-15,39-45
+  s_c794253886b768::t_08ba328529173e 23-33,35-36,38,49-59,61,66-72,205,220,226,231,256,260,263,279
+  s_c794253886b768::t_9514ba39c9d446 78
+  s_c794253886b768::t_f5654dde308786 37
+  s_c794253886b768::t_067b6a3d5dbf3e 135-136
+  s_c794253886b768::t_52fbbfe57398bc 203-204
+  s_c794253886b768::t_ad5bb8ef7b596d 217-219
+  s_c794253886b768::t_4ecc91a197dc3f 221-225
+  s_c794253886b768::t_3a169887e7b468 227-230
+  s_c794253886b768::t_2e3f3897b6355b 232-234
+  s_c794253886b768::t_1639f43f02d8de 253-255
+  s_c794253886b768::t_5c4451b51286ab 257-259
+  s_c794253886b768::t_01be3867f7852e 261-262
+  s_c794253886b768::t_48eeed65522b9b 264-266
+  s_c794253886b768::t_fc5a0a27c8699d 276-278
+  s_e1213fb061c354::t_516c80ed4f71be 140-143,148-155,160-161,216,235-240,252,267,270-275,291
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_e1213fb061c354::t_6ed92c3004a2ab 132-133
+  s_e1213fb061c354::t_3ee867a1757833 912-915,919-922
+  s_e1213fb061c354::t_8c1026d04397f5 973-974,976-979,992,994,997-998,1002-1013,1015,1017-1034,1036-1042,1044-1045,1047,1051-1052,1056,1059-1061,1063,1065,1067,1070-1071,1073,1075-1078,1080-1082,1084,1087,1089,1091,1097,1099,1102-1103,1110-1111,1113-1116,1123-1124,1126-1129
+  s_e1213fb061c354::t_63cfeeee744b06 660-663,677,689,702
+  s_e1213fb061c354::t_61fb6c2c71e7ea 657-658,674
+  s_e1213fb061c354::t_bb3a343b37a8b4 78-81
+  s_e1213fb061c354::t_8ec9aaa5b6beb8 25,41
+  s_e1213fb061c354::t_d9ced417fdd3ed 161-165,167,171-174,179,181,184,186-189,191-201,203,223-229
+  s_e1213fb061c354::t_8aa9076445f97e 352,357-360,366-367,369-371,373-378,395,398-409,411-431,433-444,446-455,457-474,479-481,487,490-491,495-505,510,513-514,517-525,527-535
+  s_e1213fb061c354::t_3fcbb62ae846d1 571-580,582-597,599
+QuickShell.Raycast/src/__tests__/windows-launch.test.ts
+  s_e1213fb061c354::t_0a3f1a11d39e61 10
+  s_e1213fb061c354::t_4a79505c26e94e 191-209
+QuickShell.Core.Tests/TerminalCatalogChoicesTests.cs
+  s_e1213fb061c354::t_12957b60201a11 73-87
+QuickShell.Core/Services/TerminalCatalog.cs
+  s_c794253886b768::t_cce4f69924efec 101,110-115
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_605af5d56ff20c::t_1952b68e98722e 482
+docs/architecture/forms.md
+  s_ce658b422942f2::t_b87ba4ba94f2a9 12,26,90
+QuickShell.Core/Services/CompanionAppFormEditor.cs
+  s_e1213fb061c354::t_6fcbf12d1111ab 102-103
+QuickShell.Raycast/src/__tests__/terminal-catalog.test.ts
+  s_e1213fb061c354::t_7c0705509b0652 15-18
+QuickShell.Raycast/src/lib/windows-launch.ts
+  s_e1213fb061c354::t_8f44b1dc687e58 102-107
+docs/architecture/companions.md
+  s_e1213fb061c354::t_10f5e04eae36f2 21,27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8e807f0abbec70ebced3b6d2651b77939b282eeb",
+  "prompts": {},
+  "sessions": {
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_e1213fb061c354": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e0f2042-ed11-4b8b-b589-fa2f8665312e",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
