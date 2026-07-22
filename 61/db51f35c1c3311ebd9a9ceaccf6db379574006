@@ -1,0 +1,39 @@
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_ce658b422942f2::t_e0a81ab11eec54 45,49,51-59
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_ce658b422942f2::t_462c9d226f96ad 39-40,68,76-78,81
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_ce658b422942f2::t_e23f4f41a1043f 299-315
+QuickShell.Core/Services/LaunchEditorText.cs
+  s_ce658b422942f2::t_ef824b52eca58b 5,19
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_ce658b422942f2::t_a937649aeaa9f8 60,120-121
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_ce658b422942f2::t_f59b07852eae58 279-280,284
+QuickShell/Resources/Strings.cs
+  s_ce658b422942f2::t_75f233b6a1c266 34
+QuickShell/Resources/Strings.resx
+  s_ce658b422942f2::t_76dbc8f0c2ed37 615-617
+QuickShell/Services/ShortcutFormViewBuilder.cs
+  s_ce658b422942f2::t_398a64c036b88d 64
+docs/architecture/forms.md
+  s_ce658b422942f2::t_c042b078fbc89e 26
+docs/architecture/intelligence.md
+  s_ce658b422942f2::t_e925df63e337ff 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "61db51f35c1c3311ebd9a9ceaccf6db379574006",
+  "prompts": {},
+  "sessions": {
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
