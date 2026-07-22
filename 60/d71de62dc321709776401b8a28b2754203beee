@@ -1,0 +1,26 @@
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_ce658b422942f2::t_a721ae187c2fa5 17-19,26-27,59-60
+  s_ce658b422942f2::t_16b2ada75c7ab0 11-16,77-78,88,180,182,184-189,191-198,200-203,205,212
+QuickShell.Core.Tests/WorkspaceEditorTests.cs
+  s_ce658b422942f2::t_79e5c067164c0a 440-441
+QuickShell.Core/Services/ShortcutFormLaunchSection.cs
+  s_ce658b422942f2::t_05925fe0cc539c 77-79
+QuickShell.Core/Services/ShortcutLaunchFormJson.cs
+  s_ce658b422942f2::t_64ee507b1e77a5 232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "60d71de62dc321709776401b8a28b2754203beee",
+  "prompts": {},
+  "sessions": {
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
