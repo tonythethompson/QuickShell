@@ -177,7 +177,11 @@ jobs:
             --accept-source-agreements --accept-package-agreements --disable-interactivity
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
-          wingetcreate version
+          # WingetCreate 1.12.x: `version` exits 1 / prints help; `info` is the reliable probe.
+          if (-not (Get-Command wingetcreate -ErrorAction SilentlyContinue)) {
+            throw 'wingetcreate was not found on PATH after install.'
+          }
+          wingetcreate info
         shell: pwsh
 
       - name: Submit WinGet manifest update (PowerToys bundled)
