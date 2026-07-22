@@ -1,0 +1,19 @@
+QuickShell/Services/LazyMoreCommandsListItem.cs
+  s_48324972032c2c::t_16acf093cd8979 26,30,32,34-35,37-40,50,53,55-56,60-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "81d42b78bbad0230cba2f589dae2daa60f25a1de",
+  "prompts": {},
+  "sessions": {
+    "s_48324972032c2c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d71a5830-760b-4059-8cde-6737cf7be7c8",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
