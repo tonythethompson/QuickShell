@@ -121,9 +121,15 @@ public sealed class CriticalPathContractTests : IDisposable
     {
         var directoryExistenceProbes = 0;
         var scheduledDirectoryProbes = 0;
-        ShortcutValidation.DirectoryExistsOverride = _ =>
+        // Count only the fixture path. DirectoryExistsOverride is process-wide; leftover
+        // Task.Run directory probes from earlier tests must not inflate this counter.
+        ShortcutValidation.DirectoryExistsOverride = path =>
         {
-            Interlocked.Increment(ref directoryExistenceProbes);
+            if (string.Equals(path, directory, StringComparison.OrdinalIgnoreCase))
+            {
+                Interlocked.Increment(ref directoryExistenceProbes);
+            }
+
             return false;
         };
         QuickShellPage.DirectoryRepairProbeSchedulerOverride =
