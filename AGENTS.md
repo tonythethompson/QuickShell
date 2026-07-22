@@ -135,7 +135,7 @@ npm run dev     # ray develop
 - **InternalsVisibleTo:** `QuickShell.Core` exposes internals to `QuickShell`, `QuickShell.Run`, `QuickShell.Core.Tests`, and `QuickShell.Suggest` (see `QuickShell.Core.csproj`).
 - **Raycast:** Vitest (`vitest run`) under `QuickShell.Raycast/src/__tests__/windows-launch.test.ts` (arg escaping, target resolution, `wt` launch plan), kept in parity with Core behavior.
 - **What is covered:** `AgentCliSuggestionTests`, `TaskTypeCatalogTests`, `LaunchRowListEditorTests`, `TerminalProfileIconResolverTests`, `RunQueryScoringTests`, `ShortcutDisplayTests`, `ShortcutFormSaveRunEditorTests`, `ShortcutLaunchFormJsonTests`, `WorkspaceUtilityTests`, `ShortcutLaunchExecutorTests`, `TerminalLauncherArgsTests`.
-- **CI gates:** `.github/workflows/ci.yml` -> `windows-latest` runs `dotnet test --no-build` and the `raycast-check` job (`npm test`/`lint`/`build`). `.github/workflows/release-extension.yml` (on `v*` tag or dispatch) builds EXE/Run/Raycast installers, creates a GitHub Release, and opens WinGet manifest PRs. **No coverage threshold**; CI gates on pass/fail only.
+- **CI gates:** `.github/workflows/ci.yml` -> `windows-latest` runs `dotnet test --no-build` and the `raycast-check` job (`npm test`/`lint`/`build`), plus `raycast-check-macos` (`npm test`). `.github/workflows/release-extension.yml` (on `v*` tag or dispatch) builds CmdPal/Run EXE installers, creates a GitHub Release, and opens WinGet manifest PRs. Raycast ships via the Raycast Store only (not GitHub/WinGet). **No coverage threshold**; CI gates on pass/fail only.
 
 ## Conventions & Gotchas
 

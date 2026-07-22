@@ -62,6 +62,8 @@ npm run dev
 
 Run `npm run build` before submitting Store changes. Do not add a `version` field to `package.json`; Store versioning uses `CHANGELOG.md`.
 
+**Distribution:** publish via the [Raycast Store](https://www.raycast.com/store) only. GitHub Releases and WinGet do not ship Raycast sideload packages. `scripts/build-raycast-extension.ps1` is for local/dev packaging.
+
 ## Store checklist
 
 - [x] Extension preferences for defaults, `CHANGELOG.md`, ESLint/Prettier scaffold

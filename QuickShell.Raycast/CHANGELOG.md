@@ -5,6 +5,7 @@
 - Add macOS to Raycast platforms: Terminal.app / iTerm2 launch, Mac companions, discover roots, import/export dialogs
 - Multi-launch on Mac opens separate windows; Windows Terminal tab grouping unchanged on Windows
 - Dual-platform keyboard shortcuts; CI macOS test job alongside Windows lint/build
+- Distribution is Raycast Store only (no GitHub Release / WinGet sideload packages)
 
 ## [Preferences, useForm, and navigation] - 2026-07-06
 

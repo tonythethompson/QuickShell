@@ -74,7 +74,7 @@ Anything that must stay consistent between CmdPal and Run belongs in **QuickShel
 
 - Microsoft Store / CmdPal-only WinGet: extension without Run.  
 - Bundled WinGet / GH setup: CmdPal + Run plugin (restart PowerToys for Run).  
-- Raycast: separate release track (`scripts/build-raycast-extension.ps1`, etc.).
+- Raycast: [Raycast Store](https://www.raycast.com/store) only (no GitHub/WinGet sideload packages). Local packaging via `scripts/build-raycast-extension.ps1` for Store/dev.
 
 ## Key files
 

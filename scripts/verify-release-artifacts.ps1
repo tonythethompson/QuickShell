@@ -4,6 +4,8 @@
 # Release / submitting the WinGet manifest update — catching a missing or
 # mismatched artifact here is much cheaper than catching it after users hit
 # a 404 or install a version-mismatched build.
+#
+# Raycast is Store-only: GitHub Releases do not ship Raycast sideload packages.
 param(
     [Parameter(Mandatory)]
     [string]$Version,
@@ -12,13 +14,9 @@ param(
 
     [string]$RunInstallerDirectory = "QuickShell.Run/bin/Release/installer",
 
-    [string]$RaycastInstallerDirectory = "QuickShell.Raycast/bin/Release/installer",
-
     [string]$RunPluginX64Zip = "QuickShell.Run/bin/x64/Release/QuickShell.Run-x64.zip",
 
     [string]$RunPluginArm64Zip = "QuickShell.Run/bin/ARM64/Release/QuickShell.Run-ARM64.zip",
-
-    [string]$RaycastZip = "QuickShell.Raycast/bin/Release/QuickShell.Raycast.zip",
 
     [long]$MinimumInstallerBytes = 500KB
 )
@@ -69,28 +67,6 @@ function Test-RunPluginZip([string]$Path, [string]$Label) {
     }
 }
 
-function Test-RaycastZip([string]$Path) {
-    if (-not (Test-Path $Path)) {
-        $script:failures += "Missing Raycast extension zip: $Path"
-        return
-    }
-
-    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
-    $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $Path))
-    try {
-        $entryNames = $zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') }
-        foreach ($required in @('package.json', 'extension-icon.png', 'open-workspace.tsx')) {
-            $matched = $entryNames | Where-Object { $_ -like "*$required" }
-            if (-not $matched) {
-                $script:failures += "Raycast zip is missing '$required': $Path"
-            }
-        }
-    }
-    finally {
-        $zip.Dispose()
-    }
-}
-
 Write-Host "Verifying release artifacts for version $Version..." -ForegroundColor Cyan
 
 foreach ($installerBaseName in @("QuickShell", "QuickShellforCmdPal")) {
@@ -102,11 +78,8 @@ foreach ($platform in @("x64", "arm64")) {
     Test-InstallerArtifact -Directory $RunInstallerDirectory -Platform $platform -InstallerBaseName "QuickShellforRun"
 }
 
-Test-InstallerArtifact -Directory $RaycastInstallerDirectory -Platform "x64" -InstallerBaseName "QuickShellforRaycast"
-
 Test-RunPluginZip -Path $RunPluginX64Zip -Label "x64"
 Test-RunPluginZip -Path $RunPluginArm64Zip -Label "ARM64"
-Test-RaycastZip -Path $RaycastZip
 
 if ($failures.Count -gt 0) {
     Write-Host "`nRelease artifact verification FAILED:" -ForegroundColor Red
