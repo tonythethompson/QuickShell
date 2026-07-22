@@ -1,0 +1,53 @@
+QuickShell.Core/Services/WorkspaceEditor/WorkspaceEditor.cs
+  s_605af5d56ff20c::t_76299bee427e01 1420,1423,1426-1427
+QuickShell.Core.Tests/ShortcutListItemsTests.cs
+  s_605af5d56ff20c::t_5c0e9e7dd8dc8e 14,69-121
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_605af5d56ff20c::t_b2fb243b89b268 46-51,320-338,341
+QuickShell.Core.Tests/StartupPerformanceMeasurementsTests.cs
+  s_605af5d56ff20c::t_873d069e5dfedf 94-118
+QuickShell.Core.Tests/ShortcutFormTemplateJsonTests.cs
+  s_605af5d56ff20c::t_b8bbb0da2a49b5 90-131
+QuickShell.Core/Services/PathExecutableLookup.cs
+  s_605af5d56ff20c::t_7414bc490985a6 1-138
+QuickShell.Core.Tests/PathExecutableLookupTests.cs
+  s_605af5d56ff20c::t_c04fb3a927ef84 1-78
+QuickShell.Core.Tests/Performance/PerformanceRegressionHarnessTests.cs
+  s_605af5d56ff20c::t_ce4bdcba3b295c 90,306-338
+QuickShell.Core/Services/CompanionAppCatalog.cs
+  s_605af5d56ff20c::t_2cca68cad67bd1 602
+QuickShell.Core.Tests/TerminalCatalogDiscoveryTests.cs
+  s_605af5d56ff20c::t_04dbce129a8893 1-109
+QuickShell.Core.Tests/SuggestionPillPresentationTests.cs
+  s_605af5d56ff20c::t_a3aa7e9160b649 62-115
+QuickShell.Core/Services/TerminalCatalog.cs
+  s_605af5d56ff20c::t_50fa93ac1bdc55 915
+QuickShell.Core.Tests/TerminalLauncherTests.cs
+  s_605af5d56ff20c::t_138d0bb1a00d55 105,130
+QuickShell.Core/Services/AgentCliCatalog.cs
+  s_605af5d56ff20c::t_8d7c7c2ef4f2df 155-157
+QuickShell/Services/ShortcutListItems.cs
+  s_605af5d56ff20c::t_b3612ad8158aea 60
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_605af5d56ff20c::t_8d96a210635252 19,49-50,69,84-86,89,91-99
+QuickShell.Core/Services/SuggestionPillPresentation.cs
+  s_605af5d56ff20c::t_dc3ad381458b4a 80-102,121
+QuickShell/Services/ShortcutFormViewBuilder.cs
+  s_605af5d56ff20c::t_92e0f1bd7089ce 49-50,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "51c0a22e7c88d4f28de46dbb48bec81ea4209484",
+  "prompts": {},
+  "sessions": {
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
