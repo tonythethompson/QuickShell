@@ -9,7 +9,7 @@ In-palette create/edit (CmdPal Adaptive Cards), disk drafts, and the **two** und
 | Create / Edit / Duplicate | `ShortcutFormPage` + `ShortcutForm` (`QuickShell/Pages/`) over Core `IWorkspaceEditor` |
 | Pending edit resume | `PendingShortcutEditPage` |
 | Shared edit session | `QuickShell.Core/Services/WorkspaceEditor/` (`IWorkspaceEditor`, factory via `AddQuickShellCore`) |
-| Run host editor | `QuickShell.Run/ShortcutWorkspaceEditorWindow.cs` (one-page WPF binder over the same Core session; 680×860, min 640) |
+| Run host editor | `QuickShell.Run/ShortcutWorkspaceEditorWindow.cs` (one-page WPF binder over the same Core session; 680×980, min 720) |
 | Raycast | React form components + storage history (separate stack) |
 
 ## Form model

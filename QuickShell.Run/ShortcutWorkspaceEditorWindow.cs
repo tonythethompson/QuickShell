@@ -76,8 +76,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         Title = existing is null ? "Create Quick Shell workspace" : $"Edit {_working.Name}";
         Width = 680;
         // Tall enough for folder/name/links/companion + pills + a few launch rows without scrolling.
-        Height = 860;
-        MinHeight = 640;
+        Height = 980;
+        MinHeight = 720;
         MinWidth = 640;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
@@ -112,9 +112,9 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
         body.Children.Add(_abbreviationBox);
 
         var linkRow = new Grid { Margin = new Thickness(0, 0, 0, 8) };
-        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
-        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
         linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+        linkRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
         linkRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         linkRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var repoLabel = RunWpfUiHelpers.FieldLabel("Repository URL", WorkspaceFormTooltips.RepoUrl);
