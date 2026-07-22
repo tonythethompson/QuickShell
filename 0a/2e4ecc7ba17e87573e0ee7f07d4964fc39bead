@@ -1,0 +1,23 @@
+QuickShell.Raycast/src/open-workspace.tsx
+  s_605af5d56ff20c::t_2570ae28563338 48-54,762-768
+QuickShell.Raycast/src/lib/storage.ts
+  s_605af5d56ff20c::t_2570ae28563338 21-27
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_605af5d56ff20c::t_2570ae28563338 345-347
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "0a2e4ecc7ba17e87573e0ee7f07d4964fc39bead",
+  "prompts": {},
+  "sessions": {
+    "s_605af5d56ff20c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "358a1dbe-e094-4971-8ec5-65d34bfee02a",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
