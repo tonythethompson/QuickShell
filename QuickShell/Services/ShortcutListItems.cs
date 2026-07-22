@@ -29,8 +29,9 @@ internal static class ShortcutListItems
             needsRepairOverride);
 
     /// <summary>
-    /// Builds a row from cached immutable presentation data when available. Commands and
-    /// tags are always built fresh for the calling page; only display strings are reused.
+    /// Builds a row from cached immutable presentation data when available. Tags are built
+    /// for the calling page; per-row <see cref="ListItem.MoreCommands"/> menus are deferred
+    /// via <see cref="LazyMoreCommandsListItem"/> until first property read.
     /// </summary>
     public static ListItem CreateOpen(
         QuickShellPageContext context,
@@ -60,12 +61,41 @@ internal static class ShortcutListItems
             && services.Shortcuts.GetStoredWorkspace(shortcut.Id)?.Security.IsTrusted == false
                 ? "Untrusted · "
                 : string.Empty;
-        var item = new ListItem(primaryCommand)
+
+        ListItem item;
+        if (onChanged is not null)
         {
-            Title = shortcut.Name,
-            Subtitle = trustPrefix + ShortcutHealth.BuildListSubtitle(shortcut, services.TerminalCatalog, requireDirectoryExists),
-            Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, services.TerminalLaunchGlyphs, needsRepair)),
-        };
+            // Defer Build* until CmdPal reads MoreCommands (selection SlowInitialize).
+            Func<IContextItem[]> moreCommandsFactory = needsRepair
+                ? () => ShortcutContextCommands.BuildRepairOnly(context, shortcut, onChanged)
+                : useHomePinContextMenu
+                    ? () => ShortcutContextCommands.BuildForHomePin(
+                        context,
+                        shortcut,
+                        onChanged,
+                        needsRepair,
+                        moveVisibility,
+                        onFavoritesReordered)
+                    : () => ShortcutContextCommands.Build(
+                        context,
+                        shortcut,
+                        onChanged,
+                        includeEdit,
+                        moveVisibility,
+                        onFavoritesReordered: onFavoritesReordered,
+                        includePageCommands: true,
+                        needsRepair: needsRepair);
+
+            item = new LazyMoreCommandsListItem(primaryCommand, moreCommandsFactory);
+        }
+        else
+        {
+            item = new ListItem(primaryCommand);
+        }
+
+        item.Title = shortcut.Name;
+        item.Subtitle = trustPrefix + ShortcutHealth.BuildListSubtitle(shortcut, services.TerminalCatalog, requireDirectoryExists);
+        item.Icon = new IconInfo(ShortcutHealth.GetListGlyph(shortcut, services.TerminalLaunchGlyphs, needsRepair));
 
         var tags = ShortcutDisplayTags.BuildTags(
             shortcut,
@@ -76,29 +106,6 @@ internal static class ShortcutListItems
         if (tags is not null)
         {
             item.Tags = tags;
-        }
-
-        if (onChanged is not null)
-        {
-            item.MoreCommands = needsRepair
-                ? ShortcutContextCommands.BuildRepairOnly(context, shortcut, onChanged)
-                : useHomePinContextMenu
-                    ? ShortcutContextCommands.BuildForHomePin(
-                        context,
-                        shortcut,
-                        onChanged,
-                        needsRepair,
-                        moveVisibility,
-                        onFavoritesReordered)
-                    : ShortcutContextCommands.Build(
-                        context,
-                        shortcut,
-                        onChanged,
-                        includeEdit,
-                        moveVisibility,
-                        onFavoritesReordered: onFavoritesReordered,
-                        includePageCommands: true,
-                        needsRepair: needsRepair);
         }
 
         return item;

@@ -121,10 +121,17 @@ public sealed class CriticalPathContractTests : IDisposable
     {
         var directoryExistenceProbes = 0;
         var scheduledDirectoryProbes = 0;
-        ShortcutValidation.DirectoryExistsOverride = _ =>
+        // Count only the fixture path. DirectoryExistsOverride is process-wide; leftover
+        // Task.Run directory probes from earlier tests must not inflate this counter.
+        ShortcutValidation.DirectoryExistsOverride = path =>
         {
-            Interlocked.Increment(ref directoryExistenceProbes);
-            return false;
+            if (string.Equals(path, directory, StringComparison.OrdinalIgnoreCase))
+            {
+                Interlocked.Increment(ref directoryExistenceProbes);
+                return false;
+            }
+
+            return Directory.Exists(path);
         };
         QuickShellPage.DirectoryRepairProbeSchedulerOverride =
             _ => Interlocked.Increment(ref scheduledDirectoryProbes);
@@ -147,6 +154,36 @@ public sealed class CriticalPathContractTests : IDisposable
             QuickShellPage.DirectoryRepairProbeSchedulerOverride = null;
             ShortcutValidation.DirectoryExistsOverride = null;
         }
+    }
+
+    [Fact]
+    public void FirstListConstruction_DoesNotBuildContextMenusEagerly()
+    {
+        ShortcutContextCommands.ResetBuildInvocationCount();
+
+        var repository = new FakeShortcutRepository(
+        [
+            BuildShortcut("ws-1", _tempRoot),
+            BuildShortcut("ws-2", _tempRoot),
+            BuildShortcut("ws-3", _tempRoot),
+        ]);
+        var context = BuildPageContext(repository, out _);
+        using var page = new QuickShellPage(context);
+
+        var items = page.GetItems();
+
+        Assert.True(items.Length >= 3);
+        Assert.Equal(0, ShortcutContextCommands.BuildInvocationCount);
+
+        // Selecting a workspace row (host SlowInitialize) materializes that row's menu only.
+        var workspaceRow = items.OfType<LazyMoreCommandsListItem>().FirstOrDefault();
+        Assert.NotNull(workspaceRow);
+        Assert.False(workspaceRow.HasBuiltMoreCommands);
+
+        _ = workspaceRow.MoreCommands;
+
+        Assert.True(workspaceRow.HasBuiltMoreCommands);
+        Assert.Equal(1, ShortcutContextCommands.BuildInvocationCount);
     }
 
     // --- Root palette ---------------------------------------------------------------------
