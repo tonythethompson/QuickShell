@@ -7,12 +7,14 @@ describe("extension-preferences", () => {
       terminalApplication: "conhost",
       defaultProfile: "__default__",
       showRecents: false,
+      blockDirtyBranchSwitch: false,
     });
 
     expect(settings.terminalApplication).toBe("conhost");
     expect(settings.defaultProfile).toBe("__default__");
     expect(settings.recentWorkspaceCount).toBe(0);
     expect(settings.multiLaunchPresentation).toBe("singleWindowTabs");
+    expect(settings.blockDirtyBranchSwitch).toBe(false);
   });
 
   it("falls back to defaults for missing preference values", () => {
@@ -21,6 +23,7 @@ describe("extension-preferences", () => {
     expect(settings.defaultProfile).toBe("__default__");
     expect(settings.recentWorkspaceCount).toBe(8);
     expect(settings.multiLaunchPresentation).toBe("singleWindowTabs");
+    expect(settings.blockDirtyBranchSwitch).toBe(true);
   });
 
   it("maps singleWindowTabs preference to multiLaunchPresentation", () => {

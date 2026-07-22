@@ -174,11 +174,9 @@ internal sealed class WorkspaceGitOperations : IWorkspaceGitOperations
             return [];
         }
 
-        return result.StandardOutput
-            .Replace("\0", string.Empty, StringComparison.Ordinal)
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0)
+        var output = result.StandardOutput.Replace("\0", string.Empty, StringComparison.Ordinal);
+
+        return LineParsing.SplitTrimmedNonEmptyLines(output)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(branch => branch, StringComparer.OrdinalIgnoreCase)
             .ToList();

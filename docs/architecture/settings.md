@@ -27,7 +27,7 @@ Core helpers that know key names:
 | `blockDirtyBranchSwitch` | Git gate policy | `"true"` / `"false"` (default true) |
 | `recentWorkspaceCount` | Home “Recent” section | Normalized count; **0 hides** section (CmdPal text setting quirks) |
 
-Raycast settings mirror terminal app, default profile, recent count, multi-launch; git dirty gate may differ by version — check `schema.ts` / `settings.ts`.
+Raycast settings mirror terminal app, default profile, recent count, multi-launch, and `blockDirtyBranchSwitch` (extension preference checkbox, default true).
 
 ## CmdPal wiring
 

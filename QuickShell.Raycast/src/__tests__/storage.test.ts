@@ -115,6 +115,7 @@ describe("storage", () => {
       defaultProfile: "pwsh",
       recentWorkspaceCount: 0,
       multiLaunchPresentation: "separateWindows",
+      blockDirtyBranchSwitch: true,
     });
 
     const settings = await storage.getSettings();
@@ -164,6 +165,7 @@ describe("storage", () => {
           defaultProfile: "__default__",
           recentWorkspaceCount: 8,
           multiLaunchPresentation: "singleWindowTabs",
+          blockDirtyBranchSwitch: true,
         },
         workspaces: [
           normalizeWorkspace({

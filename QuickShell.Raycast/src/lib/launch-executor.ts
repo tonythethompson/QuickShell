@@ -40,18 +40,28 @@ export async function executeWorkspaceLaunch(
   }
 
   const separateWindows = settings.multiLaunchPresentation === "separateWindows";
+  const effects = options?.authorizedEffects ?? { companions: [], devServerUrl: null };
 
   try {
+    const companionResult = await runPostLaunchActions(effects, {
+      openUrl: options?.openUrl,
+      phase: "companions",
+    });
+
     const groups = groupLaunchEntries(plan.entries, settings, separateWindows);
     for (const group of groups) {
       await executeGroup(group.tabHostExecutable, group.runAsAdmin, group.entries, execFn);
     }
 
-    const postLaunch = await runPostLaunchActions(
-      options?.authorizedEffects ?? { companions: [], devServerUrl: null },
-      { openUrl: options?.openUrl },
-    );
-    const postLaunchWarnings = [...(options?.authorizationWarnings ?? []), ...postLaunch.warnings];
+    const devServerResult = await runPostLaunchActions(effects, {
+      openUrl: options?.openUrl,
+      phase: "devServer",
+    });
+    const postLaunchWarnings = [
+      ...(options?.authorizationWarnings ?? []),
+      ...companionResult.warnings,
+      ...devServerResult.warnings,
+    ];
 
     return {
       ok: true,

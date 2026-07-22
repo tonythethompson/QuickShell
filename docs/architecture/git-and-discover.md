@@ -99,7 +99,7 @@ CmdPal home and create flows link here. Raycast: `discover-git-repos.tsx` + `git
 1. Target is per **folder/worktree**, shared if two workspaces point at same path.  
 2. Discover is best-effort and capped — not a full-disk index.  
 3. Prewarm failure is silent; discover still works cold.  
-4. Raycast does not share `worktree-branch-targets.json` with desktop automatically.
+4. Raycast does not share `worktree-branch-targets.json` with desktop. It stores targets in LocalStorage `branchTargets` (worktree key → branch) and applies the same launch-gate rules via `git-launch-gate.ts` + preference `blockDirtyBranchSwitch`.
 
 ## Related
 
