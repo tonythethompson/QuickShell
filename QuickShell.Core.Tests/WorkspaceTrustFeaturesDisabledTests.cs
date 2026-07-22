@@ -25,7 +25,7 @@ public sealed class WorkspaceTrustFeaturesDisabledTests
                 new CompanionAppEntry
                 {
                     Id = "companion-1",
-                    Path = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                    Path = Path.Join(Environment.SystemDirectory, "cmd.exe"),
                     OpenOnLaunch = true,
                 },
             ];
