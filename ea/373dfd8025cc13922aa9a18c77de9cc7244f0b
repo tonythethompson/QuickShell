@@ -1,0 +1,23 @@
+QuickShell.Raycast/package.json
+  s_c794253886b768::t_a69d3d2507a685 102
+scripts/make-raycast-metadata.ps1
+  s_c794253886b768::t_5c08472490d723 8-10,15-21,29,31-32
+  s_c794253886b768::t_6f34099aeca714 27-28,30
+  s_c794253886b768::t_9e4e0bf45fd56c 33-36,40-43,45-46,50-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ea373dfd8025cc13922aa9a18c77de9cc7244f0b",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
