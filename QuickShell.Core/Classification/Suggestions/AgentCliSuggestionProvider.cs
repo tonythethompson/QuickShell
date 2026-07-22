@@ -20,6 +20,12 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
             var score = detected is not null ? AgentCliCatalog.PathDetectedScore : AgentCliCatalog.MarkerFallbackScore;
             pills.Add(new CommandSuggestionPill(cmd, TaskTypeCatalog.Agent, "Agent", SuggestionPillPresentation.FormatDisplayTitle(cmd), SuggestionPillPresentation.FormatTooltip("Agent", cmd, productName: def.Title), score, detected is not null ? "agent-path" : "agent-marker"));
         }
-        return pills.OrderByDescending(p => p.Score).ThenBy(p => p.DisplayTitle, StringComparer.OrdinalIgnoreCase).Take(AgentCliCatalog.MaxDefaultAgentPills).ToList();
+
+        // Do not Take() here: a provider-level cap hid the rest behind silent replacement
+        // instead of the form's "Show more suggestions" expand (DefaultVisibleSlots).
+        return pills
+            .OrderByDescending(p => p.Score)
+            .ThenBy(p => p.DisplayTitle, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }

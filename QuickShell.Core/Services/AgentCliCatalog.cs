@@ -9,9 +9,6 @@ internal static class AgentCliCatalog
     public const int PathDetectedScore = 94;
     public const int MarkerFallbackScore = 72;
 
-    /// <summary>Max agent pills merged into suggestions by default.</summary>
-    public const int MaxDefaultAgentPills = 4;
-
     /// <summary>
     /// Test hook. When set, replaces PATH probing (command name without extension).
     /// </summary>
@@ -138,6 +135,84 @@ internal static class AgentCliCatalog
             Command: "aider",
             PathNames: ["aider"],
             MarkerRelativePaths: [".aider", ".aider.conf.yml", ".aiderignore"]),
+        new(
+            Id: "amp",
+            Title: "Amp",
+            Command: "amp",
+            PathNames: ["amp"],
+            MarkerRelativePaths: ["AGENT.md", ".amp"]),
+        new(
+            Id: "auggie",
+            Title: "Auggie",
+            Command: "auggie",
+            PathNames: ["auggie"],
+            MarkerRelativePaths: [".augment", ".augment-guidelines", ".augment/rules"]),
+        new(
+            Id: "autohand",
+            Title: "AutoHand",
+            Command: "autohand",
+            PathNames: ["autohand", "autohand-code"],
+            MarkerRelativePaths: [".autohand", "AUTOHAND.md"]),
+        new(
+            Id: "continue",
+            Title: "Continue",
+            Command: "cn",
+            PathNames: ["cn"],
+            MarkerRelativePaths: [".continue"]),
+        new(
+            Id: "crush",
+            Title: "Crush",
+            Command: "crush",
+            PathNames: ["crush"],
+            MarkerRelativePaths: ["crush.json", ".crush.json", ".crush", "CRUSH.md", ".crushignore"]),
+        new(
+            Id: "devin",
+            Title: "Devin",
+            Command: "devin",
+            PathNames: ["devin"],
+            MarkerRelativePaths: [".devin", "DEVIN.md", ".windsurf", ".windsurfrules"]),
+        new(
+            Id: "droid",
+            Title: "Droid",
+            Command: "droid",
+            PathNames: ["droid"],
+            MarkerRelativePaths: [".factory", "FACTORY.md"]),
+        new(
+            Id: "jules",
+            Title: "Jules",
+            Command: "jules",
+            PathNames: ["jules"],
+            MarkerRelativePaths: [".jules", "JULES.md"]),
+        new(
+            Id: "kimi",
+            Title: "Kimi Code",
+            Command: "kimi",
+            PathNames: ["kimi"],
+            MarkerRelativePaths: [".kimi", "KIMI.md"]),
+        new(
+            Id: "plandex",
+            Title: "Plandex",
+            Command: "plandex",
+            PathNames: ["plandex", "pdx"],
+            MarkerRelativePaths: [".plandex", ".plandex-dev"]),
+        new(
+            Id: "roo",
+            Title: "Roo Code",
+            Command: "roo",
+            PathNames: ["roo"],
+            MarkerRelativePaths: [".roo", ".roo-code", "ROO.md"]),
+        new(
+            Id: "vellum",
+            Title: "Vellum",
+            Command: "vellum",
+            PathNames: ["vellum"],
+            MarkerRelativePaths: [".vellum", "vellum.lock.json"]),
+        new(
+            Id: "warp",
+            Title: "Warp",
+            Command: "oz",
+            PathNames: ["oz", "oz-preview", "warp-cli"],
+            MarkerRelativePaths: [".warp", "WARP.md"]),
     ];
 
     public static bool IsCommandOnPath(string commandName)

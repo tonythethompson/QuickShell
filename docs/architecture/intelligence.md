@@ -87,10 +87,15 @@ Architecture proposal **0004** discusses registry/plugin consolidation of this c
 
 Agent CLI **pills** come from [`AgentCliCatalog`](../../QuickShell.Core/Services/AgentCliCatalog.cs) / [`AgentCliSuggestion`](../../QuickShell.Core/Services/AgentCliSuggestion.cs), merged in `CommandSuggestionService.GetPills`:
 
-1. **PATH** — agent binaries such as `claude`, `codex`, `opencode`, `gemini`, `copilot`, `cursor-agent` / `agent`, `kiro-cli`, `grok`, `pi`, `kilocode`, `cmdc`, `agy`, `qwen`, `hermes`, `openclaw`, `cline`, `openhands`, `goose`, `aider`
-2. **Marker fallback** — project files such as `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.opencode/`, `.kiro/`, etc.
+1. **PATH** — agent binaries such as `claude`, `codex`, `opencode`, `gemini`, `copilot`, `cursor-agent` / `agent`, `kiro-cli`, `grok`, `pi`, `kilocode`, `cmdc`, `agy`, `qwen`, `hermes`, `openclaw`, `cline`, `openhands`, `goose`, `aider`, `amp`, `auggie`, `autohand`, `cn`, `crush`, `devin`, `droid`, `jules`, `kimi`, `plandex` / `pdx`, `roo`, `vellum`, `oz`
+2. **Marker fallback** — project files such as `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.opencode/`, `.kiro/`, `.augment/`, `.factory/`, `crush.json`, `.plandex/`, etc.
 
-At most **4** agent pills are shown by default (`AgentCliCatalog.MaxDefaultAgentPills`). Copilot is detected as the `copilot` CLI (not bare `gh`). They use task type `agent` and appear even when `ProjectStack.None`. They are **not** auto-seeded into new workspaces and must **not** be treated as [companions](./companions.md) (GUI apps).
+All detected agent CLIs enter the ranked pill pool (no separate agent-only cap). The form
+shows the first `SuggestionPillPresentation.DefaultVisibleSlots` (12) and offers
+**Show more suggestions** when more remain. Copilot is detected as the `copilot` CLI
+(not bare `gh`). They use task type `agent` and appear even when `ProjectStack.None`.
+They are **not** auto-seeded into new workspaces and must **not** be treated as
+[companions](./companions.md) (GUI apps).
 
 ## Key files
 

@@ -36,7 +36,32 @@ public sealed class AgentCliSuggestionTests : IDisposable
     [Fact] public void GetPills_GhAlone_NoCopilot() { AgentCliCatalog.IsCommandOnPathOverride = n => n.Equals("gh", StringComparison.OrdinalIgnoreCase); var p = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.Empty(p); }
     [Fact] public void GetPills_MarkerFallback_Suggests() { File.WriteAllText(Path.Join(_root, "CLAUDE.md"), "# Claude"); File.WriteAllText(Path.Join(_root, "GEMINI.md"), "# Gemini"); var p = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.Contains(p, x => x.Command == "claude" && x.Source == "agent-marker"); Assert.Contains(p, x => x.Command == "gemini" && x.Source == "agent-marker"); }
     [Fact] public void GetPills_AgentsMd_MapsToCodex() { File.WriteAllText(Path.Join(_root, "AGENTS.md"), "# Agents"); var p = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.Contains(p, x => x.Command == "codex"); }
-    [Fact] public void GetPills_CapsAtFour() { AgentCliCatalog.IsCommandOnPathOverride = _ => true; var p = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.True(p.Count <= 4); }
+    [Fact]
+    public void GetPills_IncludesAllPathAgents_UpToOverallMaxSlots()
+    {
+        AgentCliCatalog.IsCommandOnPathOverride = _ => true;
+        var p = _suggestions.GetPills(_root, [], _projectAnalysis);
+        Assert.True(p.Count > 4);
+        Assert.True(p.Count <= SuggestionPillPresentation.MaxSlots);
+        Assert.Equal(
+            Math.Min(AgentCliCatalog.Definitions.Count, SuggestionPillPresentation.MaxSlots),
+            p.Count);
+    }
+
+    [Fact]
+    public void BuildDataFields_ManyAgents_ShowsMoreSuggestionsWhenCollapsed()
+    {
+        AgentCliCatalog.IsCommandOnPathOverride = _ => true;
+        var pills = SuggestionPillPresentation.BuildSelectablePills(_root, [], _projectAnalysis, _suggestions);
+        Assert.True(pills.Count > SuggestionPillPresentation.DefaultVisibleSlots);
+
+        var fields = SuggestionPillPresentation.BuildDataFields(pills, expandSuggestionPills: false);
+        Assert.Equal("true", fields["ShowMoreSuggestions"]);
+        Assert.Equal(
+            SuggestionPillPresentation.DefaultVisibleSlots,
+            SuggestionPillPresentation.GetVisiblePillCount(pills.Count, expandSuggestionPills: false, isScanningSuggestions: false));
+    }
+
     [Fact] public void GetPills_ExcludesUsedCommands() { AgentCliCatalog.IsCommandOnPathOverride = n => n.Equals("claude", StringComparison.OrdinalIgnoreCase); var p = _suggestions.GetPills(_root, ["claude"], _projectAnalysis); Assert.DoesNotContain(p, x => x.Command == "claude"); }
     [Fact] public void GetPills_MarkerOnly_ReturnsAgent() { File.WriteAllText(Path.Join(_root, "CLAUDE.md"), "# Claude"); var p = _suggestions.GetPills(_root, [], _projectAnalysis); Assert.Contains(p, x => x.Command == "claude" && x.TaskType == TaskTypeCatalog.Agent); }
     public void Dispose()
