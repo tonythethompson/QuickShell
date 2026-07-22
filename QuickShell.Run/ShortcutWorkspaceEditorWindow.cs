@@ -1380,6 +1380,8 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
         private bool _isEditorPlaceholder;
 
+        private bool _suppressCommandTextChanged;
+
 
 
         public LaunchRow(
@@ -1466,10 +1468,19 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             commandBox.TextChanged += (_, _) =>
             {
+                if (_suppressCommandTextChanged)
+                {
+                    return;
+                }
+
                 if (!string.IsNullOrWhiteSpace(commandBox.Text))
                 {
                     _kind = LaunchRowKind.Command;
                     _isEditorPlaceholder = false;
+                }
+                else
+                {
+                    NormalizeEmptyCommandAsPlaceholder();
                 }
 
                 _owner.RefreshSuggestionPanel();
@@ -1556,10 +1567,7 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
             clear.Click += (_, _) =>
 
             {
-                if (_kind != LaunchRowKind.OpenInTerminal
-                    && _owner._launchRows.Any(row =>
-                        !ReferenceEquals(row, this)
-                        && row.Kind == LaunchRowKind.OpenInTerminal))
+                if (!TryConvertEmptyCommandToOpenInTerminal())
                 {
                     MessageBox.Show(
                         _owner,
@@ -1572,13 +1580,16 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
                 _owner.PushFormEditSnapshot();
 
-                commandBox.Text = string.Empty;
-
-                _taskType = TaskTypeCatalog.None;
-
-                _kind = LaunchRowKind.OpenInTerminal;
-
-                _isEditorPlaceholder = false;
+                _suppressCommandTextChanged = true;
+                try
+                {
+                    commandBox.Text = string.Empty;
+                    ApplyEmptyCommandAsOpenInTerminal();
+                }
+                finally
+                {
+                    _suppressCommandTextChanged = false;
+                }
 
                 _owner.RefreshSuggestionPanel();
 
@@ -1644,6 +1655,34 @@ internal sealed class ShortcutWorkspaceEditorWindow : Window, IDisposable
 
             _isEditorPlaceholder = false;
 
+        }
+
+
+
+        private void NormalizeEmptyCommandAsPlaceholder()
+        {
+            _taskType = TaskTypeCatalog.None;
+            _kind = LaunchRowKind.Command;
+            _isEditorPlaceholder = true;
+        }
+
+        private bool TryConvertEmptyCommandToOpenInTerminal()
+        {
+            if (_kind == LaunchRowKind.OpenInTerminal)
+            {
+                return true;
+            }
+
+            return !_owner._launchRows.Any(row =>
+                !ReferenceEquals(row, this)
+                && row.Kind == LaunchRowKind.OpenInTerminal);
+        }
+
+        private void ApplyEmptyCommandAsOpenInTerminal()
+        {
+            _taskType = TaskTypeCatalog.None;
+            _kind = LaunchRowKind.OpenInTerminal;
+            _isEditorPlaceholder = false;
         }
 
 
