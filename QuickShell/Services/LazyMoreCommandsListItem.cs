@@ -29,12 +29,6 @@ internal sealed partial class LazyMoreCommandsListItem : ListItem
     {
         get
         {
-            var existing = _built;
-            if (existing is not null)
-            {
-                return existing;
-            }
-
             lock (_moreCommandsGate)
             {
                 return _built ??= _factory();
