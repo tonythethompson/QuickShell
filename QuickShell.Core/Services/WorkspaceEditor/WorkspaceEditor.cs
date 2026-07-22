@@ -1015,6 +1015,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             CompanionAppPath = _draft.CompanionAppPath,
             CompanionAppArguments = _draft.CompanionAppArguments,
             RunAsAdmin = false,
+            ExpandSuggestionPills = _draft.ExpandSuggestionPills,
         };
 
         SyncDraftRunAsAdminFromCommands();

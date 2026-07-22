@@ -49,7 +49,7 @@ internal static class ShortcutFormTemplateJson
     public static string BuildTemplate(
         string terminalChoices,
         string companionChoices,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
+        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)> commands,
         string displayName = DisplayNameDefault,
         int companionCount = 1)
     {
@@ -226,7 +226,7 @@ internal static class ShortcutFormTemplateJson
         DataPayload draft,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)>? commands = null)
+        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)>? commands = null)
     {
         ArgumentNullException.ThrowIfNull(commandSuggestions);
         commands ??= [];
@@ -235,9 +235,11 @@ internal static class ShortcutFormTemplateJson
             commands.SelectMany((row, index) => new[]
             {
                 $"\"LaunchCommand_{index}\": \"{Escape(row.Command)}\"",
+                $"\"LaunchLabel_{index}\": \"{Escape(row.Label)}\"",
                 $"\"LaunchType_{index}\": \"{Escape(TaskTypeCatalog.Normalize(row.TaskType))}\"",
                 $"\"LaunchTarget_{index}\": \"{Escape(row.LaunchTarget)}\"",
                 $"\"LaunchRunAsAdmin_{index}\": \"{(row.RunAsAdmin ? "true" : "false")}\"",
+                $"\"LaunchEnabled_{index}\": \"{(row.IsEnabled ? "true" : "false")}\"",
             }));
 
         var commandSection = commandFields.Length > 0 ? ",\n" + commandFields : string.Empty;
@@ -276,7 +278,7 @@ internal static class ShortcutFormTemplateJson
 
     private static string BuildPillDataFields(
         DataPayload draft,
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> commands,
+        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)> commands,
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions)
     {

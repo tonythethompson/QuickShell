@@ -45,7 +45,7 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
         var companionChoicesJson = CompanionAppCatalog.BuildFormChoicesJson();
         var taskTypeChoicesJson = TaskTypeCatalog.BuildFormChoicesJson(_projectAnalysis, state.Directory);
         var commandTuples = state.Commands
-            .Select(c => (c.Command, c.TaskType, c.LaunchTarget, c.RunAsAdmin))
+            .Select(c => (c.Label, c.Command, c.TaskType, c.LaunchTarget, c.RunAsAdmin, c.IsEnabled))
             .ToList();
 
         var templateJson = ShortcutFormTemplateCache.GetOrBuild(

@@ -42,7 +42,7 @@ internal static partial class ShortcutLaunchFormJson
 
     public static string BuildCommandRowsJson(
 
-        IReadOnlyList<(string Command, string TaskType, string LaunchTarget, bool RunAsAdmin)> rows,
+        IReadOnlyList<(string Label, string Command, string TaskType, string LaunchTarget, bool RunAsAdmin, bool IsEnabled)> rows,
 
         string terminalChoices)
 
@@ -52,7 +52,7 @@ internal static partial class ShortcutLaunchFormJson
 
         {
 
-            rows = [(string.Empty, TaskTypeCatalog.None, "default", false)];
+            rows = [(string.Empty, string.Empty, TaskTypeCatalog.None, "default", false, true)];
 
         }
 
@@ -74,7 +74,22 @@ internal static partial class ShortcutLaunchFormJson
                   "width": "{{CommandColumnWidth}}",
                   "verticalContentAlignment": "Center",
                   "items": [
-                    {{BuildCommandInputWithClear(i)}}
+                    {{BuildCommandInputWithClear(i)}},
+                    {
+                      "type": "Input.Text",
+                      "id": "LaunchLabel_{{i}}",
+                      "isVisible": false,
+                      "value": "${LaunchLabel_{{i}}}"
+                    },
+                    {
+                      "type": "Input.Toggle",
+                      "id": "LaunchEnabled_{{i}}",
+                      "title": "Enabled",
+                      "isVisible": false,
+                      "value": "${LaunchEnabled_{{i}}}",
+                      "valueOn": "true",
+                      "valueOff": "false"
+                    }
                   ]
                 },
                 {

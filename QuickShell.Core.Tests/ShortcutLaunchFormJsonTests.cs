@@ -12,7 +12,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.None, "default", false), ("dotnet watch", TaskTypeCatalog.Api, "default", true)],
+                [("", "npm start", TaskTypeCatalog.None, "default", false, true), ("", "dotnet watch", TaskTypeCatalog.Api, "default", true, true)],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);
@@ -42,7 +42,7 @@ public sealed class ShortcutLaunchFormJsonTests
     {
         var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
             ShortcutLaunchFormJson.BuildCommandRowsJson(
-                [("npm start", TaskTypeCatalog.Frontend, "default", false), ("dotnet watch", TaskTypeCatalog.Api, "default", false)],
+                [("", "npm start", TaskTypeCatalog.Frontend, "default", false, true), ("", "dotnet watch", TaskTypeCatalog.Api, "default", false, true)],
                 TerminalChoices));
 
         using var document = JsonDocument.Parse(json);

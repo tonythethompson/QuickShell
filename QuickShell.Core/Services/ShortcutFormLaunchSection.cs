@@ -70,7 +70,7 @@ internal static class ShortcutFormLaunchSection
         IReadOnlyList<LaunchRowDraft> commands,
         string terminalChoices) =>
         ShortcutLaunchFormJson.BuildCommandRowsJson(
-            commands.Select(command => (command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin)).ToList(),
+            commands.Select(command => (command.Label, command.Command, command.TaskType, command.LaunchTarget, command.RunAsAdmin, command.IsEnabled)).ToList(),
             terminalChoices);
 
     public static LaunchRowDraft? TryCreateCommandFromTaskType(

@@ -50,7 +50,7 @@ internal static class ShortcutFormCatalogPrewarm
             () => ShortcutFormTemplateJson.BuildTemplate(
                 terminalChoicesJson,
                 companionChoicesJson,
-                [("", TaskTypeCatalog.None, "default", false)],
+                [("", "", TaskTypeCatalog.None, "default", false, true)],
                 "Quick Shell",
                 companionCount: 1));
     }
