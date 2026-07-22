@@ -1,0 +1,62 @@
+QuickShell.Raycast/src/__tests__/companion-form.test.ts
+  s_e1213fb061c354::t_c1ac9af0393c0f 92-95
+QuickShell.Raycast/scripts/sync-workspace-trust-features.js
+  s_e1213fb061c354::t_f161c788259513 17-21,23-24,26
+QuickShell.Raycast/README.md
+  s_e1213fb061c354::t_0000e978bcbddf 73
+QuickShell.Raycast/src/__tests__/git-repo-discovery.test.ts
+  s_e1213fb061c354::t_e3d073f57c04d6 2,73
+QuickShell.Raycast/.gitattributes
+  s_e1213fb061c354::t_f763a29234b920 1-10
+QuickShell.Raycast/src/lib/workspace-transfer-files.ts
+  s_e1213fb061c354::t_a696a678fe94f4 1-60
+QuickShell.Raycast/src/__tests__/detect-dev-server-url.test.ts
+  s_e1213fb061c354::t_20fec2ea519d4d 1
+QuickShell.Raycast/.prettierrc
+  s_e1213fb061c354::t_269166c96ff674 5-6
+QuickShell.Raycast/src/open-workspace.tsx
+  s_e1213fb061c354::t_c266343b53e36d 760-761
+  s_e1213fb061c354::t_0b1232ac6c2c91 47-50
+  s_e1213fb061c354::t_280b0c97bd7748 12
+  s_e1213fb061c354::t_01b5271d7c4de0 530-533,535-546,552,554-558,562-563
+  s_e1213fb061c354::t_a696a678fe94f4 110-111,118-144,245-250
+  s_e1213fb061c354::t_98225df4b71b3c 46
+QuickShell.Raycast/src/lib/git-repo-discovery.ts
+  s_e1213fb061c354::t_e3d073f57c04d6 53-55
+QuickShell.Raycast/src/__tests__/workspace-transfer-files.test.ts
+  s_e1213fb061c354::t_e9748550d381f7 1-31
+QuickShell.Raycast/package.json
+  s_e1213fb061c354::t_7ac478711da880 113
+QuickShell.Raycast/src/__tests__/terminal-host-exists.test.ts
+  s_e1213fb061c354::t_e3d073f57c04d6 18
+.github/workflows/ci.yml
+  s_b210e48caa21a0::t_414133f95ef621 40-41,45,47-50
+AGENTS.md
+  s_e1213fb061c354::t_f82b549a3c4755 78,138
+docs/tech-stack.md
+  s_e1213fb061c354::t_c0aaafdb506e85 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a06927ffb37f17d171883e20e9faf765b65d1f06",
+  "prompts": {},
+  "sessions": {
+    "s_b210e48caa21a0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4f2dfd76-512d-42b4-84e4-07fe989c1736",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_e1213fb061c354": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1e0f2042-ed11-4b8b-b589-fa2f8665312e",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
