@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildLaunchArguments,
   buildSelectedLaunchWorkspace,
@@ -11,6 +11,16 @@ import {
 } from "../lib/windows-launch";
 import type { Workspace } from "../lib/schema";
 import { DEFAULT_SETTINGS } from "../lib/schema";
+
+const originalPlatform = process.platform;
+
+beforeEach(() => {
+  Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+});
+
+afterEach(() => {
+  Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+});
 
 const workspace: Workspace = {
   id: "1",

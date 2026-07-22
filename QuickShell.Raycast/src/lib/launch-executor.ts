@@ -1,5 +1,7 @@
 import type { QuickShellSettings } from "./schema";
 import { groupLaunchEntries } from "./launch-grouping";
+import { buildMacLaunchInvocations } from "./mac-launch";
+import { isMacPlatform, isWindowsPlatform } from "./platform";
 import { runPostLaunchActions, type OpenUrlFn } from "./post-launch-actions";
 import type { AuthorizedPostLaunchEffectsPlan } from "./security";
 import {
@@ -35,11 +37,10 @@ export async function executeWorkspaceLaunch(
     return { ok: false, message: "No enabled launch entries." };
   }
 
-  if (process.platform !== "win32") {
-    return { ok: false, message: "Terminal launch requires Windows." };
+  if (!isWindowsPlatform() && !isMacPlatform()) {
+    return { ok: false, message: "Terminal launch requires Windows or macOS." };
   }
 
-  const separateWindows = settings.multiLaunchPresentation === "separateWindows";
   const effects = options?.authorizedEffects ?? { companions: [], devServerUrl: null };
 
   try {
@@ -48,9 +49,17 @@ export async function executeWorkspaceLaunch(
       phase: "companions",
     });
 
-    const groups = groupLaunchEntries(plan.entries, settings, separateWindows);
-    for (const group of groups) {
-      await executeGroup(group.tabHostExecutable, group.runAsAdmin, group.entries, execFn);
+    if (isMacPlatform()) {
+      const invocations = buildMacLaunchInvocations(plan, settings);
+      for (const invocation of invocations) {
+        await execFn(invocation.executable, invocation.args);
+      }
+    } else {
+      const separateWindows = settings.multiLaunchPresentation === "separateWindows";
+      const groups = groupLaunchEntries(plan.entries, settings, separateWindows);
+      for (const group of groups) {
+        await executeGroup(group.tabHostExecutable, group.runAsAdmin, group.entries, execFn);
+      }
     }
 
     const devServerResult = await runPostLaunchActions(effects, {

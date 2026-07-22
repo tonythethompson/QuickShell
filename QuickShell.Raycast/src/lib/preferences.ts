@@ -1,7 +1,12 @@
 import type { QuickShellSettings, TerminalApplication } from "./schema";
 import { DEFAULT_SETTINGS } from "./schema";
+import { isMacPlatform } from "./platform";
 import { recentCountFromEnabled } from "./settings";
-import { normalizeDefaultProfile, parseTerminalApplication } from "./terminal-options";
+import {
+  normalizeDefaultProfile,
+  normalizeTerminalApplicationForPlatform,
+  parseTerminalApplication,
+} from "./terminal-options";
 
 export type ExtensionPreferences = {
   terminalApplication?: TerminalApplication;
@@ -13,7 +18,7 @@ export type ExtensionPreferences = {
 
 export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSettings {
   const terminalApplication = parseTerminalApplication(prefs.terminalApplication);
-  const profileTerminal = terminalApplication === "system" ? "wt" : terminalApplication;
+  const profileTerminal = resolveProfileTerminal(terminalApplication);
   const defaultProfile = normalizeDefaultProfile(
     profileTerminal,
     prefs.defaultProfile?.trim() || DEFAULT_SETTINGS.defaultProfile,
@@ -23,7 +28,19 @@ export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSe
     terminalApplication,
     defaultProfile,
     recentWorkspaceCount: recentCountFromEnabled(prefs.showRecents ?? true),
-    multiLaunchPresentation: (prefs.singleWindowTabs ?? true) ? "singleWindowTabs" : "separateWindows",
+    multiLaunchPresentation: isMacPlatform()
+      ? "separateWindows"
+      : (prefs.singleWindowTabs ?? true)
+        ? "singleWindowTabs"
+        : "separateWindows",
     blockDirtyBranchSwitch: prefs.blockDirtyBranchSwitch ?? DEFAULT_SETTINGS.blockDirtyBranchSwitch,
   };
+}
+
+function resolveProfileTerminal(terminalApplication: TerminalApplication): TerminalApplication {
+  const normalized = normalizeTerminalApplicationForPlatform(terminalApplication);
+  if (normalized === "system") {
+    return isMacPlatform() ? "terminal" : "wt";
+  }
+  return normalized;
 }

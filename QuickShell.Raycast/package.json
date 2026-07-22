@@ -2,11 +2,12 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "quickshell",
   "title": "Quick Shell",
-  "description": "Open saved project folders in Windows Terminal and other shells",
+  "description": "Open saved project folders in Terminal, Windows Terminal, and other shells",
   "icon": "extension-icon.png",
   "author": "tonythethompson",
   "platforms": [
-    "Windows"
+    "Windows",
+    "macOS"
   ],
   "categories": [
     "Developer Tools",
@@ -18,6 +19,7 @@
     "quick shell",
     "terminal",
     "windows terminal",
+    "iterm",
     "workspace",
     "developer",
     "powershell",
@@ -28,13 +30,13 @@
     {
       "name": "terminalApplication",
       "title": "Default Terminal App",
-      "description": "Terminal application used when a workspace launch uses the Quick Shell default.",
+      "description": "Terminal application used when a workspace launch uses the Quick Shell default. On macOS use Terminal or iTerm2; Windows values are ignored on Mac.",
       "type": "dropdown",
       "required": false,
       "default": "wt",
       "data": [
         {
-          "title": "Let Windows choose",
+          "title": "System default",
           "value": "system"
         },
         {
@@ -48,6 +50,14 @@
         {
           "title": "Intelligent Terminal",
           "value": "it"
+        },
+        {
+          "title": "Terminal (macOS)",
+          "value": "terminal"
+        },
+        {
+          "title": "iTerm2 (macOS)",
+          "value": "iterm"
         }
       ]
     },
@@ -72,7 +82,7 @@
     {
       "name": "singleWindowTabs",
       "title": "Multi-command Launch",
-      "description": "When supported, open multiple launch commands as tabs in one Windows Terminal window instead of separate windows.",
+      "description": "When supported on Windows, open multiple launch commands as tabs in one Windows Terminal window. On macOS, launches always open as separate windows.",
       "type": "checkbox",
       "required": false,
       "default": true,

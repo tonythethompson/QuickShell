@@ -1,3 +1,6 @@
+# Builds a local Raycast extension ZIP + optional Inno sideload installer for
+# development / Store packaging. GitHub Releases and WinGet do NOT publish these
+# artifacts; end users install from the Raycast Store.
 param(
     [Parameter(Mandatory)]
     [string]$Version,

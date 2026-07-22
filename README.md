@@ -351,11 +351,9 @@ Run ships its own native (WPF) settings window and workspace editor, so both wor
 
 A native Raycast for Windows extension covering the same workspace model: **Open Workspace**, **Create Workspace**, **Edit Workspace**, **Discover Git Repos**, and **Manage Workspaces**. Search `qs`, `quickshell`, or a workspace's home keyword from Raycast's root search.
 
-**Install:**
-- WinGet: `winget install tonythethompson.QuickShellforRaycast`
-- Or download `QuickShellforRaycast-Setup-*-x64.exe` (installer) or `QuickShell.Raycast.zip` (Raycast → Developer → Import Extension) from [GitHub Releases](https://github.com/tonythethompson/QuickShell/releases)
+**Install:** from the [Raycast Store](https://www.raycast.com/store) (Windows and macOS). GitHub Releases and WinGet do not ship Raycast sideload packages.
 
-Requires [Raycast for Windows](https://www.raycast.com/). Raycast reads/writes the same `shortcuts.json` as Command Palette and Run, so workspaces stay in sync across all three. See [QuickShell.Raycast/README.md](QuickShell.Raycast/README.md) for commands, preferences, and deeplinks.
+Requires [Raycast](https://www.raycast.com/). Raycast stores workspaces in its own `LocalStorage` (not shared `%LOCALAPPDATA%\QuickShell\shortcuts.json`); use Import/Export JSON to bridge with CmdPal/Run. See [QuickShell.Raycast/README.md](QuickShell.Raycast/README.md) for commands, preferences, and deeplinks.
 
 <table>
 <tr>

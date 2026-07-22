@@ -15,23 +15,29 @@ describe("post-launch-actions", () => {
   });
 
   it("opens URL metacharacters as data without a command shell", async () => {
-    const opened: string[] = [];
-    const url = "https://localhost:5173/?next=a&mode=b%20c#done";
-    const invocation = buildOpenUrlInvocation(url);
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+    try {
+      const opened: string[] = [];
+      const url = "https://localhost:5173/?next=a&mode=b%20c#done";
+      const invocation = buildOpenUrlInvocation(url);
 
-    const result = await runPostLaunchActions(
-      { companions: [], devServerUrl: url },
-      {
-        openUrl: async (value) => {
-          opened.push(value);
+      const result = await runPostLaunchActions(
+        { companions: [], devServerUrl: url },
+        {
+          openUrl: async (value) => {
+            opened.push(value);
+          },
         },
-      },
-    );
+      );
 
-    expect(invocation).toEqual({ executable: "explorer.exe", args: [url] });
-    expect(invocation.executable).not.toBe("cmd.exe");
-    expect(opened).toEqual([url]);
-    expect(result.devServerOpened).toBe(true);
+      expect(invocation).toEqual({ executable: "explorer.exe", args: [url] });
+      expect(invocation.executable).not.toBe("cmd.exe");
+      expect(opened).toEqual([url]);
+      expect(result.devServerOpened).toBe(true);
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+    }
   });
 
   it("executes only companions present in the authorized effects plan", async () => {

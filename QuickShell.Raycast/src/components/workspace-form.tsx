@@ -37,7 +37,8 @@ import { getQuickShellStorage } from "../lib/raycast-storage";
 import type { Workspace } from "../lib/schema";
 import { suggestionPillIcon } from "../lib/task-type-accent";
 import { choiceForTerminalState, discoverWorkspaceTerminalChoices } from "../lib/terminal-catalog";
-import { TERMINAL_APPLICATION_CHOICES } from "../lib/terminal-options";
+import { getTerminalApplicationChoices } from "../lib/terminal-options";
+import { isMacPlatform } from "../lib/platform";
 import {
   buildWorkspaceFromFormState,
   createEmptyCompanionFormRow,
@@ -48,6 +49,12 @@ import {
   workspaceFormStateFromWorkspace,
 } from "../lib/workspace-form-state";
 import { isAbsoluteDirectory, validateWorkspace, VALIDATION_LIMITS } from "../lib/validation";
+
+function defaultTerminalTitle(): string {
+  const choices = getTerminalApplicationChoices();
+  const preferredId = isMacPlatform() ? "terminal" : "wt";
+  return choices.find((choice) => choice.id === preferredId)?.title ?? "Raycast extension preferences";
+}
 
 type WorkspaceFormValues = {
   name: string;
@@ -678,7 +685,9 @@ export default function WorkspaceForm({
           text={
             suggestionSource === "suggest"
               ? "Seeded from Quick Shell Suggest. Use Actions → Suggestions to apply additional pills."
-              : "Seeded from local folder heuristics (Suggest.exe unavailable). Install Suggest beside the extension or set QUICKSHELL_SUGGEST_EXE."
+              : isMacPlatform()
+                ? "Seeded from local folder heuristics (Suggest CLI is Windows-only). Folders are classified with Node heuristics on Mac."
+                : "Seeded from local folder heuristics (Suggest.exe unavailable). Install Suggest beside the extension or set QUICKSHELL_SUGGEST_EXE."
           }
         />
       ) : null}
@@ -773,8 +782,8 @@ export default function WorkspaceForm({
         title="Defaults"
         text={
           directorySeedMode === "full"
-            ? `Commands, companions, and names auto-fill from the selected folder when possible. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "Raycast extension preferences"}. Companion apps open before terminals on full workspace launch; the dev server URL opens afterward.`
-            : `Choosing a folder fills Name, Repository URL, and Dev Server URL when found. Commands and companions stay blank until you set them. Terminals marked "default" use ${TERMINAL_APPLICATION_CHOICES.find((choice) => choice.id === "wt")?.title ?? "Raycast extension preferences"}.`
+            ? `Commands, companions, and names auto-fill from the selected folder when possible. Terminals marked "default" use ${defaultTerminalTitle()}. Companion apps open before terminals on full workspace launch; the dev server URL opens afterward.`
+            : `Choosing a folder fills Name, Repository URL, and Dev Server URL when found. Commands and companions stay blank until you set them. Terminals marked "default" use ${defaultTerminalTitle()}.`
         }
       />
     </Form>

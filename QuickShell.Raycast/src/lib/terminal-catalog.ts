@@ -1,7 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { WORKSPACE_TERMINAL_CHOICES, type TerminalChoice } from "./terminal-options";
+import {
+  WORKSPACE_TERMINAL_CHOICES_WINDOWS,
+  getWorkspaceTerminalChoices,
+  type TerminalChoice,
+} from "./terminal-options";
+import { isMacPlatform } from "./platform";
+import { macITermAppExists, macTerminalAppExists } from "./mac-launch";
 
 export type DiscoveredTerminalChoice = TerminalChoice & {
   terminal: string;
@@ -57,19 +63,12 @@ export function discoverWorkspaceTerminalChoices(options: DiscoverTerminalOption
 }
 
 function buildTerminalChoices(options: { includeSlowProbes: boolean }): DiscoveredTerminalChoice[] {
+  if (isMacPlatform()) {
+    return buildMacTerminalChoices();
+  }
+
   if (process.platform !== "win32") {
-    const mapped = WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
-      ...choice,
-      terminal: choice.id,
-      wtProfile: null,
-    }));
-    const defaultIndex = mapped.findIndex((choice) => choice.id === "default");
-    if (defaultIndex >= 0) {
-      mapped.splice(defaultIndex + 1, 0, sameAsPreviousChoice());
-    } else {
-      mapped.unshift(sameAsPreviousChoice());
-    }
-    return mapped;
+    return mapStaticWorkspaceChoices(WORKSPACE_TERMINAL_CHOICES_WINDOWS);
   }
 
   const choices: DiscoveredTerminalChoice[] = [
@@ -137,22 +136,53 @@ function buildTerminalChoices(options: { includeSlowProbes: boolean }): Discover
     }
   }
 
-  return choices.length > 2
-    ? choices
-    : (() => {
-        const mapped = WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
-          ...choice,
-          terminal: choice.id,
-          wtProfile: null,
-        }));
-        const defaultIndex = mapped.findIndex((choice) => choice.id === "default");
-        if (defaultIndex >= 0) {
-          mapped.splice(defaultIndex + 1, 0, sameAsPreviousChoice());
-        } else {
-          mapped.unshift(sameAsPreviousChoice());
-        }
-        return mapped;
-      })();
+  return choices.length > 2 ? choices : mapStaticWorkspaceChoices(WORKSPACE_TERMINAL_CHOICES_WINDOWS);
+}
+
+function buildMacTerminalChoices(): DiscoveredTerminalChoice[] {
+  const choices: DiscoveredTerminalChoice[] = [
+    {
+      id: "default",
+      title: "Use Quick Shell default",
+      terminal: "default",
+      wtProfile: null,
+    },
+    sameAsPreviousChoice(),
+  ];
+
+  if (macTerminalAppExists()) {
+    choices.push({
+      id: "terminal",
+      title: "Terminal",
+      terminal: "terminal",
+      wtProfile: null,
+    });
+  }
+  if (macITermAppExists()) {
+    choices.push({
+      id: "iterm",
+      title: "iTerm2",
+      terminal: "iterm",
+      wtProfile: null,
+    });
+  }
+
+  return choices.length > 2 ? choices : mapStaticWorkspaceChoices(getWorkspaceTerminalChoices());
+}
+
+function mapStaticWorkspaceChoices(source: TerminalChoice[]): DiscoveredTerminalChoice[] {
+  const mapped = source.map((choice) => ({
+    ...choice,
+    terminal: choice.id,
+    wtProfile: null,
+  }));
+  const defaultIndex = mapped.findIndex((choice) => choice.id === "default");
+  if (defaultIndex >= 0) {
+    mapped.splice(defaultIndex + 1, 0, sameAsPreviousChoice());
+  } else {
+    mapped.unshift(sameAsPreviousChoice());
+  }
+  return mapped;
 }
 
 export function invalidateTerminalCatalogCache(): void {

@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { buildSearchRoots, listDefaultRootCandidates, searchRootsFromWorkspaces } from "../lib/git-repo-search-roots";
 
+/** Windows-path contracts must not depend on the host OS (macOS CI uses darwin). */
+const win32Roots = { pathStyle: "win32" as const };
+
 describe("searchRootsFromWorkspaces", () => {
   it("includes each workspace directory and its parent, skipping drive-root parents", () => {
-    const roots = searchRootsFromWorkspaces([
-      "D:\\Dev\\QuickShell",
-      "D:\\Dev\\Trackdub",
-      "C:\\Users\\tonyt\\source\\repos\\demo",
-    ]);
+    const roots = searchRootsFromWorkspaces(
+      ["D:\\Dev\\QuickShell", "D:\\Dev\\Trackdub", "C:\\Users\\tonyt\\source\\repos\\demo"],
+      win32Roots,
+    );
 
     expect(roots.map((root) => root.toLowerCase())).toEqual(
       expect.arrayContaining([
@@ -22,7 +24,7 @@ describe("searchRootsFromWorkspaces", () => {
   });
 
   it("dedupes case-insensitively", () => {
-    const roots = searchRootsFromWorkspaces(["D:\\Dev\\QuickShell", "d:\\dev\\QuickShell"]);
+    const roots = searchRootsFromWorkspaces(["D:\\Dev\\QuickShell", "d:\\dev\\QuickShell"], win32Roots);
     const lower = roots.map((root) => root.toLowerCase());
     expect(new Set(lower).size).toBe(lower.length);
   });
@@ -31,6 +33,7 @@ describe("searchRootsFromWorkspaces", () => {
 describe("listDefaultRootCandidates", () => {
   it("adds common folders under profile and every drive, plus non-system drive roots", () => {
     const candidates = listDefaultRootCandidates({
+      ...win32Roots,
       home: "C:\\Users\\tonyt",
       drives: ["C:\\", "D:\\"],
       systemRoot: "C:\\",
@@ -56,6 +59,7 @@ describe("listDefaultRootCandidates", () => {
 
   it("resolves profile nested roots from the real username home, not a literal YourName", () => {
     const candidates = listDefaultRootCandidates({
+      ...win32Roots,
       home: "C:\\Users\\actual.user",
       drives: ["C:\\"],
       systemRoot: "C:\\",
@@ -73,8 +77,10 @@ describe("buildSearchRoots", () => {
     const exists = new Set(["d:\\dev", "c:\\users\\tonyt\\projects", "c:\\users\\tonyt", "d:\\"]);
 
     const roots = buildSearchRoots(["D:\\Dev"], {
+      ...win32Roots,
       home: "C:\\Users\\tonyt",
       defaultRootCandidates: listDefaultRootCandidates({
+        ...win32Roots,
         home: "C:\\Users\\tonyt",
         drives: ["C:\\", "D:\\"],
         systemRoot: "C:\\",
