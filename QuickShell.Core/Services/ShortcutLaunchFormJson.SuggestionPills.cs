@@ -117,8 +117,8 @@ internal static partial class ShortcutLaunchFormJson
             BuildRemoveLaunchAction(index, removeTooltip));
 
     /// <summary>
-    /// Matches command-row chrome (full-width text field + Remove) without binding
-    /// <c>LaunchCommand_*</c>. Display id is ignored on submit; kind stays OpenInTerminal.
+    /// Matches command-row chrome (label + Remove) without an editable command field.
+    /// Kind stays OpenInTerminal; there is no <c>LaunchCommand_*</c> bind on submit.
     /// </summary>
     private static string BuildOpenInTerminalInputWithClear(
         int index,
@@ -127,9 +127,9 @@ internal static partial class ShortcutLaunchFormJson
         AdaptiveCardFormJson.InputWithTrailingActionsRow(
             $$"""
             {
-              "type": "Input.Text",
-              "id": "LaunchOpenInTerminalDisplay_{{index}}",
-              "value": "{{Escape(openInTerminalLabel)}}",
+              "type": "TextBlock",
+              "text": "{{Escape(openInTerminalLabel)}}",
+              "wrap": true,
               "tooltip": "Opens a terminal in the workspace folder without running a command."
             }
             """,
