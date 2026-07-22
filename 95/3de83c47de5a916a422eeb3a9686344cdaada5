@@ -1,0 +1,21 @@
+QuickShell.Raycast/src/lib/terminal-catalog.ts
+  s_c794253886b768::t_6572a6c3875a45 174
+QuickShell.Raycast/src/__tests__/launch-executor.test.ts
+  s_c794253886b768::t_d54cc547ec45a0 6-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "953de83c47de5a916a422eeb3a9686344cdaada5",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
