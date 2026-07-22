@@ -50,17 +50,6 @@ public async Task<PostLaunchResult> Execute(WorkspaceShortcut shortcut)
   var postLaunchResult = await BuildPostLaunchResult(shortcut, launchPlan);
   return postLaunchResult;
 }
-
-## 3. Strengths
-
-1. **Clear host/core split.** `QuickShell.Core` can be unit-tested and reused; CmdPal and Run share it.
-2. **Modern .NET packaging.** AOT/trimming, source-generated JSON, MSIX with proper identity, Store/WinGet/Release variants.
-3. **Rich domain model.** Workspaces, multi-launch rows, companions, git worktrees, health, undo/redo, import/export, section separators — all modeled and persisted.
-4. **Atomic persistence.** `ShortcutRepository` writes a temp file then `File.Replace`, with a process-wide named mutex, a `SemaphoreSlim`, backup `.bak`, and versioned envelope.
-5. **Typed command routing exists.** `CommandDescriptor` + `CommandKind` + `ICommandRouter` is already in place, replacing much of the earlier string-munging.
-6. **Good test seams.** `FakeShortcutRepository`, `LaunchExecutorTestEnvironment`, process override hooks, `InternalsVisibleTo`. No heavy mocking frameworks.
-7. **Developer tooling.** Build/deploy scripts, local CmdPal SDK override, CI matrix for CmdPal + Run + Raycast, architecture tours under `docs/architecture/`.
-
 ## 4. Tech Debt & Risk Areas
 
 ### 4.1 Incomplete DI migration (highest leverage fix)
@@ -167,8 +156,6 @@ public async Task<PostLaunchResult> Execute(WorkspaceShortcut shortcut)
 
 **Status:** Implemented by the repository-owned trust boundary.
 
-Implementation status: addressed by the repository-owned trust boundary, centralized action authorization, revision-bound review confirmation, and host launch audit described in [trust-model.md](./trust-model.md).
-
 **Evidence:**
 
 - `WorkspaceSecurityPolicy` authorizes every external effect (`LaunchTerminal`, `LaunchEntry`, `StartCompanion`, `OpenUrl`, `OpenDevServer`, `OpenDirectory`, `CopyPath`, `GrantTrust`, `RevokeTrust`) and returns issues, risks, and exact effective values (`QuickShell.Core/Services/WorkspaceSecurityPolicy.cs`).
@@ -250,8 +237,6 @@ Based on the existing architecture tours and the `remaining-architectural-gaps` 
 ### Tier 3 — Performance (measure and tune)
 
 - Row presentation cache, launch plan cache, project classification cache, and git index TTL are implemented.
-- [x] Structured ETW (`QuickShell-Diagnostics`) beside support JSONL (see `diagnostics.md`).
-- [x] Perf harness CI artifact upload (`Category=PerformanceMeasurement`); critical-path contracts remain the blocking gate.
 - Measure provider ctor time, list reload, and discover scan time with real workspace counts before adding more caching layers.
 
 ### Tier 4 — Non-goals
