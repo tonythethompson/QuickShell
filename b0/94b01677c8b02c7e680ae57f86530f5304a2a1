@@ -1,0 +1,19 @@
+docs/architecture/intelligence.md
+  s_46b40eaa1e679e::t_7c7a8e6477bde5 76,93-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b094b01677c8b02c7e680ae57f86530f5304a2a1",
+  "prompts": {},
+  "sessions": {
+    "s_46b40eaa1e679e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "904c2223-4e1e-4dd6-947e-323445e3e65d",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
