@@ -1,7 +1,7 @@
 import type { QuickShellSettings, TerminalApplication } from "./schema";
 import { DEFAULT_SETTINGS } from "./schema";
 import { recentCountFromEnabled } from "./settings";
-import { normalizeDefaultProfile } from "./terminal-options";
+import { normalizeDefaultProfile, parseTerminalApplication } from "./terminal-options";
 
 export type ExtensionPreferences = {
   terminalApplication?: TerminalApplication;
@@ -12,7 +12,7 @@ export type ExtensionPreferences = {
 };
 
 export function preferencesToSettings(prefs: ExtensionPreferences): QuickShellSettings {
-  const terminalApplication = prefs.terminalApplication ?? DEFAULT_SETTINGS.terminalApplication;
+  const terminalApplication = parseTerminalApplication(prefs.terminalApplication);
   const profileTerminal = terminalApplication === "system" ? "wt" : terminalApplication;
   const defaultProfile = normalizeDefaultProfile(
     profileTerminal,

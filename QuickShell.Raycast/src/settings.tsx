@@ -19,7 +19,8 @@ import { showStorageFailure } from "./lib/failure-feedback";
 import { isWindowsPlatform } from "./lib/platform";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { isRecentSectionEnabled } from "./lib/settings";
-import { settingsSummary } from "./lib/terminal-options";
+import { settingsSummary, getDefaultProfileChoices } from "./lib/terminal-options";
+import { discoverWorkspaceTerminalChoices, invalidateTerminalCatalogCache } from "./lib/terminal-catalog";
 
 export default function SettingsCommand() {
   const storage = getQuickShellStorage();
@@ -113,6 +114,21 @@ export default function SettingsCommand() {
     }
   }
 
+  async function handleRefreshTerminals() {
+    try {
+      invalidateTerminalCatalogCache();
+      const terminals = discoverWorkspaceTerminalChoices();
+      const profiles = getDefaultProfileChoices(preferences.terminalApplication);
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Terminal list refreshed",
+        message: `${terminals.length} terminals, ${profiles.length} profiles`,
+      });
+    } catch (refreshError) {
+      await showStorageFailure("Refresh terminal list", refreshError);
+    }
+  }
+
   if (!isWindowsPlatform()) {
     return <WindowsRequiredView />;
   }
@@ -141,6 +157,16 @@ export default function SettingsCommand() {
           actions={
             <ActionPanel>
               <Action title="Open Extension Preferences" icon={Icon.Gear} onAction={() => openExtensionPreferences()} />
+            </ActionPanel>
+          }
+        />
+        <List.Item
+          title="Refresh Terminal / Profile List"
+          subtitle="Re-scan installed terminals and profiles"
+          icon={Icon.ArrowClockwise}
+          actions={
+            <ActionPanel>
+              <Action title="Refresh Terminal / Profile List" icon={Icon.ArrowClockwise} onAction={handleRefreshTerminals} />
             </ActionPanel>
           }
         />

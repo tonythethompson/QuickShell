@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { preferencesToSettings } from "../lib/preferences";
+import { type ExtensionPreferences, preferencesToSettings } from "../lib/preferences";
 
 describe("extension-preferences", () => {
   it("maps Raycast preferences to QuickShell settings", () => {
@@ -24,6 +24,13 @@ describe("extension-preferences", () => {
     expect(settings.recentWorkspaceCount).toBe(8);
     expect(settings.multiLaunchPresentation).toBe("singleWindowTabs");
     expect(settings.blockDirtyBranchSwitch).toBe(true);
+  });
+
+  it("falls back to wt for unknown terminalApplication values", () => {
+    const settings = preferencesToSettings({
+      terminalApplication: "bogus" as ExtensionPreferences["terminalApplication"],
+    });
+    expect(settings.terminalApplication).toBe("wt");
   });
 
   it("maps singleWindowTabs preference to multiLaunchPresentation", () => {

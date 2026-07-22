@@ -1,7 +1,15 @@
-import type { QuickShellSettings, TerminalApplication } from "./schema";
+import { DEFAULT_SETTINGS, type QuickShellSettings, type TerminalApplication } from "./schema";
 import { discoverDefaultProfileChoices } from "./terminal-catalog";
 
 export type TerminalChoice = { id: string; title: string };
+
+/** Allowlist terminal host ids; unknown values fall back to the safe default. */
+export function parseTerminalApplication(value: unknown): TerminalApplication {
+  if (value === "system" || value === "wt" || value === "conhost" || value === "it") {
+    return value;
+  }
+  return DEFAULT_SETTINGS.terminalApplication;
+}
 
 export const WORKSPACE_TERMINAL_CHOICES: TerminalChoice[] = [
   { id: "default", title: "Use QuickShell default" },

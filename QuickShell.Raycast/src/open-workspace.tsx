@@ -326,11 +326,19 @@ export default function OpenWorkspaceCommand({
     }
   }
 
-  async function handleMoveFavorite(workspace: Workspace, direction: "up" | "down") {
+  async function handleMoveFavorite(workspace: Workspace, direction: "up" | "down" | "top" | "bottom") {
     try {
       await storage.moveFavorite(workspace.id, direction);
       await revalidate();
-      await showLaunchSuccess(direction === "up" ? "Moved up" : "Moved down", workspace.name);
+      const message =
+        direction === "up"
+          ? "Moved up"
+          : direction === "down"
+            ? "Moved down"
+            : direction === "top"
+              ? "Moved to top"
+              : "Moved to bottom";
+      await showLaunchSuccess(message, workspace.name);
     } catch (favoriteError) {
       await showStorageFailure("Reorder favorite", favoriteError);
     }
@@ -727,6 +735,16 @@ export default function OpenWorkspaceCommand({
                     icon={Icon.ArrowDown}
                     shortcut={{ modifiers: ["cmd", "opt"], key: "arrowDown" }}
                     onAction={() => handleMoveFavorite(workspace, "down")}
+                  />
+                  <Action
+                    title="Move Favorite to Top"
+                    icon={Icon.ArrowUpCircle}
+                    onAction={() => handleMoveFavorite(workspace, "top")}
+                  />
+                  <Action
+                    title="Move Favorite to Bottom"
+                    icon={Icon.ArrowDownCircle}
+                    onAction={() => handleMoveFavorite(workspace, "bottom")}
                   />
                 </>
               ) : null}

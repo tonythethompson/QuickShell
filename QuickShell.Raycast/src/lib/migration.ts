@@ -9,6 +9,7 @@ import {
   createEmptyStoredData,
 } from "./schema";
 import { createStableId, ensureStableId, isStableWorkspaceId } from "./ids";
+import { parseTerminalApplication } from "./terminal-options";
 import { normalizeLaunches, normalizeWorkspace } from "./validation";
 import { isSafeGitBranchName } from "./git-launch-gate";
 
@@ -308,13 +309,6 @@ function migrateLaunchEntry(raw: unknown): LaunchEntry | null {
     order: typeof record.order === "number" ? record.order : 0,
     taskType: typeof record.taskType === "string" ? record.taskType : "none",
   };
-}
-
-function parseTerminalApplication(value: unknown): QuickShellSettings["terminalApplication"] {
-  if (value === "system" || value === "wt" || value === "conhost" || value === "it") {
-    return value;
-  }
-  return DEFAULT_SETTINGS.terminalApplication;
 }
 
 function parseStrictBoolean(value: unknown): boolean {

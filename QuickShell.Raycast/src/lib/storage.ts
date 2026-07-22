@@ -441,7 +441,7 @@ export class QuickShellStorage {
     return { ...workspace };
   }
 
-  async moveFavorite(workspaceId: string, direction: "up" | "down"): Promise<Workspace> {
+  async moveFavorite(workspaceId: string, direction: "up" | "down" | "top" | "bottom"): Promise<Workspace> {
     await this.flushRecentWrites();
     const data = await this.load();
     const workspace = data.workspaces.find((item) => item.id === workspaceId);
@@ -456,20 +456,27 @@ export class QuickShellStorage {
       throw new Error("Favorite workspace not found.");
     }
 
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
-    if (swapIndex < 0 || swapIndex >= favorites.length) {
+    const targetIndex =
+      direction === "up" ? index - 1 : direction === "down" ? index + 1 : direction === "top" ? 0 : favorites.length - 1;
+    if (targetIndex < 0 || targetIndex >= favorites.length || targetIndex === index) {
       return { ...workspace };
     }
 
-    const current = favorites[index];
-    favorites[index] = favorites[swapIndex];
-    favorites[swapIndex] = current;
+    if (direction === "up" || direction === "down") {
+      const current = favorites[index];
+      favorites[index] = favorites[targetIndex];
+      favorites[targetIndex] = current;
+    } else {
+      const [item] = favorites.splice(index, 1);
+      favorites.splice(targetIndex, 0, item);
+    }
+
     favorites.forEach((item, orderIndex) => {
       item.pinOrder = orderIndex + 1;
     });
 
     await this.save(data);
-    return { ...favorites[swapIndex] };
+    return { ...favorites[targetIndex] };
   }
 
   async markWorkspaceUsed(workspaceId: string, usedAt = new Date()): Promise<void> {
