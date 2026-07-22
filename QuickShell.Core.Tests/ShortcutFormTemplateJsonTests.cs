@@ -42,20 +42,21 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
         Assert.Equal("OpenInTerminal", root.GetProperty("LaunchKind_0").GetString());
         Assert.Equal("Terminal", root.GetProperty("LaunchLabel_0").GetString());
         Assert.Equal("false", root.GetProperty("LaunchIsEnabled_0").GetString());
-        Assert.False(root.GetProperty("ShowAddOpenInTerminal").GetBoolean());
+        Assert.False(root.TryGetProperty("ShowAddOpenInTerminal", out _));
     }
 
     [Fact]
-    public void BuildDataJson_WithoutTerminalOnlyLaunch_ShowsAddAction()
+    public void BuildTemplate_AlwaysIncludesAddTerminalAction()
     {
-        var json = ShortcutFormTemplateJson.BuildDataJson(
-            new ShortcutFormTemplateJson.DataPayload(),
-            _projectAnalysis,
-            _commandSuggestions,
-            []);
+        var withTerminal = ShortcutFormTemplateJson.BuildTemplate(
+            "[]",
+            "[]",
+            [new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Shell" }],
+            LaunchEditorText.EnglishDefaults);
 
-        using var document = JsonDocument.Parse(json);
-        Assert.True(document.RootElement.GetProperty("ShowAddOpenInTerminal").GetBoolean());
+        Assert.Contains("addOpenInTerminalRow", withTerminal);
+        Assert.Contains("Add terminal", withTerminal);
+        Assert.DoesNotContain("ShowAddOpenInTerminal", withTerminal);
     }
 
     [Fact]

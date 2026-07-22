@@ -57,7 +57,7 @@ internal static partial class ShortcutLaunchFormJson
         {
             var rowContent = rows[i].Kind == LaunchRowKind.OpenInTerminal
                 ? AdaptiveCardFormJson.InputWithTrailingActionsRow(
-                    $$"""{ "type": "TextBlock", "text": "{{Escape(text.OpenInTerminal)}}", "weight": "Bolder", "wrap": true }""",
+                    $$"""{ "type": "TextBlock", "text": "{{Escape(text.OpenInTerminal)}}", "isSubtle": true, "wrap": true }""",
                     BuildRemoveLaunchAction(i, text.RemoveTooltip))
                 : BuildCommandInputWithClear(i, text.RemoveTooltip);
             blocks.Add($$"""
@@ -117,7 +117,8 @@ internal static partial class ShortcutLaunchFormJson
             blocks.Add($$"""{ "type": "Container", "spacing": "Small", "items": [{ "type": "TextBlock", "text": "{{Escape(text.EmptyTitle)}}", "weight": "Bolder", "wrap": true }, { "type": "TextBlock", "text": "{{Escape(text.EmptyGuidance)}}", "isSubtle": true, "wrap": true }] }""");
         }
 
-        blocks.Add($$"""{ "type": "ActionSet", "spacing": "Small", "actions": [{ "type": "Action.Submit", "title": "{{Escape(text.AddCommand)}}", "associatedInputs": "auto", "data": { "action": "addCommandRow" } }, { "type": "Action.Submit", "title": "{{Escape(text.OpenInTerminal)}}", "$when": "${ShowAddOpenInTerminal}", "associatedInputs": "auto", "data": { "action": "addOpenInTerminalRow" } }] }""");
+        // Keep "Add terminal" visible even when a terminal row exists; duplicate add stays open with a message.
+        blocks.Add($$"""{ "type": "ActionSet", "spacing": "Small", "actions": [{ "type": "Action.Submit", "title": "{{Escape(text.AddCommand)}}", "associatedInputs": "auto", "data": { "action": "addCommandRow" } }, { "type": "Action.Submit", "title": "{{Escape(text.AddOpenInTerminal)}}", "associatedInputs": "auto", "data": { "action": "addOpenInTerminalRow" } }] }""");
 
         blocks.Add($$"""
         {

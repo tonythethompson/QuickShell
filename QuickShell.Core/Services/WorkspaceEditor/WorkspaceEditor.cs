@@ -276,13 +276,12 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             }
 
             PushEditSnapshot();
-            _draft.Commands.Add(new LaunchRowDraft
+            // Terminal-only launches default to first: shell then tasks is the common tab order.
+            _draft.Commands.Insert(0, new LaunchRowDraft
             {
                 Kind = LaunchRowKind.OpenInTerminal,
                 Label = CreateUniqueLaunchLabel(_openInTerminalLabel),
-                LaunchTarget = LaunchRowListEditor.TrimForSave(_draft.Commands).Count == 0
-                    ? GetDefaultRowLaunchTarget()
-                    : TerminalCatalog.SameAsPreviousLaunchTargetId,
+                LaunchTarget = GetDefaultRowLaunchTarget(),
             });
             ApplyDraft();
             return WorkspaceEditResult.StayOpen();

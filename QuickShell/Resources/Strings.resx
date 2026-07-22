@@ -612,6 +612,9 @@
   <data name="LaunchEditor_AddCommand" xml:space="preserve">
     <value>Add command</value>
   </data>
+  <data name="LaunchEditor_AddOpenInTerminal" xml:space="preserve">
+    <value>Add terminal</value>
+  </data>
   <data name="LaunchEditor_OpenInTerminal" xml:space="preserve">
     <value>Open in terminal</value>
   </data>

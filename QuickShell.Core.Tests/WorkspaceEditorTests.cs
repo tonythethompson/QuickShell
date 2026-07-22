@@ -297,6 +297,23 @@ public sealed class WorkspaceEditorTests : IDisposable
     }
 
     [Fact]
+    public void AddOpenInTerminalRow_InsertsAtFrontOfExistingCommands()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+
+        editor.AddCommandRow();
+        Assert.True(editor.TryApplyInputs("""{"LaunchKind_0":"Command","LaunchLabel_0":"Dev","LaunchCommand_0":"npm start","LaunchIsEnabled_0":"true"}"""));
+        editor.AddOpenInTerminalRow();
+
+        var state = editor.GetState();
+        Assert.Equal(2, state.Commands.Count);
+        Assert.Equal(LaunchRowKind.OpenInTerminal, state.Commands[0].Kind);
+        Assert.Equal(LaunchRowKind.Command, state.Commands[1].Kind);
+        Assert.Equal("npm start", state.Commands[1].Command);
+    }
+
+    [Fact]
     public void Save_WithoutRealLaunchesFailsWithActionableMessage()
     {
         var editor = CreateEditor();

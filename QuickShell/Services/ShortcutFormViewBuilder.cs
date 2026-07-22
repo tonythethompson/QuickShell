@@ -61,6 +61,7 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
                 commandRows,
                 new LaunchEditorText(
                     Strings.LaunchEditor_AddCommand,
+                    Strings.LaunchEditor_AddOpenInTerminal,
                     Strings.LaunchEditor_OpenInTerminal,
                     Strings.LaunchEditor_RemoveTooltip,
                     Strings.LaunchEditor_EmptyTitle,

@@ -31,6 +31,7 @@ internal static class Strings
     public static string Section_NeedsAttention => Get(nameof(Section_NeedsAttention));
     public static string Pill_OpenToDirectory => Get(nameof(Pill_OpenToDirectory));
     public static string LaunchEditor_AddCommand => Get(nameof(LaunchEditor_AddCommand));
+    public static string LaunchEditor_AddOpenInTerminal => Get(nameof(LaunchEditor_AddOpenInTerminal));
     public static string LaunchEditor_OpenInTerminal => Get(nameof(LaunchEditor_OpenInTerminal));
     public static string LaunchEditor_RemoveTooltip => Get(nameof(LaunchEditor_RemoveTooltip));
     public static string LaunchEditor_EmptyTitle => Get(nameof(LaunchEditor_EmptyTitle));

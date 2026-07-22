@@ -36,6 +36,8 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("removeLaunch", text);
         Assert.Contains("addCommandRow", text);
         Assert.Contains("Add command", text);
+        Assert.Contains("addOpenInTerminalRow", text);
+        Assert.Contains("Add terminal", text);
         Assert.Contains("LaunchKind_0", text);
         Assert.Contains("LaunchLabel_0", text);
         Assert.Contains("LaunchIsEnabled_0", text);
@@ -63,7 +65,7 @@ public sealed class ShortcutLaunchFormJsonTests
     }
 
     [Fact]
-    public void BuildCommandRowsJson_OpenInTerminal_RendersLabelWithoutCommandInput()
+    public void BuildCommandRowsJson_OpenInTerminal_RendersSubtleLabelWithoutCommandInput()
     {
         var text = ShortcutLaunchFormJson.BuildCommandRowsJson(
             [new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Open in terminal" }],
@@ -71,8 +73,12 @@ public sealed class ShortcutLaunchFormJsonTests
             EditorText);
 
         Assert.Contains("Open in terminal", text);
+        Assert.Contains("\"isSubtle\": true", text);
+        Assert.Contains("Add terminal", text);
+        Assert.Contains("addOpenInTerminalRow", text);
         Assert.Contains("removeLaunch", text);
         Assert.DoesNotContain("LaunchCommand_0", text);
+        Assert.DoesNotContain("ShowAddOpenInTerminal", text);
     }
 
     [Fact]

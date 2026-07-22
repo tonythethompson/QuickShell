@@ -299,7 +299,6 @@ internal static class ShortcutFormTemplateJson
           "RepoUrl": "{{Escape(draft.RepoUrl)}}",
           "ShowRestoredDraftNote": {{(draft.ShowRestoredDraftNote ? "true" : "false")}},
           "ShowSaveError": {{(!string.IsNullOrWhiteSpace(draft.SaveError) ? "true" : "false")}},
-          "ShowAddOpenInTerminal": {{(!commands.Any(row => row.Kind == LaunchRowKind.OpenInTerminal) ? "true" : "false")}},
           "SaveError": "{{Escape(draft.SaveError)}}"{{companionSection}}{{commandSection}}{{pillSection}}
         }
         """;

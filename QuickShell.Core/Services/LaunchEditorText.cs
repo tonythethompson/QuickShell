@@ -2,6 +2,7 @@ namespace QuickShell.Core.Services;
 
 internal sealed record LaunchEditorText(
     string AddCommand,
+    string AddOpenInTerminal,
     string OpenInTerminal,
     string RemoveTooltip,
     string EmptyTitle,
@@ -15,6 +16,7 @@ internal sealed record LaunchEditorText(
     /// </summary>
     public static LaunchEditorText EnglishDefaults { get; } = new(
         "Add command",
+        "Add terminal",
         "Open in terminal",
         "Remove launch",
         "No launches yet",
