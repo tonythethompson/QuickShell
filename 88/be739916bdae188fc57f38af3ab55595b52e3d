@@ -1,0 +1,29 @@
+QuickShell.Core.Tests/Performance/CriticalPathContractTests.cs
+  s_2b89eaf48e0bf9::t_96194a1a3b3466 179
+QuickShell/Services/ShortcutContextCommands.cs
+  s_48324972032c2c::t_c4431d8cd7c95a 222
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "88be739916bdae188fc57f38af3ab55595b52e3d",
+  "prompts": {},
+  "sessions": {
+    "s_2b89eaf48e0bf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c938dcd-4797-4f21-84dc-089f6a387dca",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_48324972032c2c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d71a5830-760b-4059-8cde-6737cf7be7c8",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
