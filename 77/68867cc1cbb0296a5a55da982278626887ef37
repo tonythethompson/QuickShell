@@ -1,0 +1,19 @@
+.cursor/hooks.json
+  s_bbdfc6c6fe44b9::t_a015df42705d8c 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7768867cc1cbb0296a5a55da982278626887ef37",
+  "prompts": {},
+  "sessions": {
+    "s_bbdfc6c6fe44b9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7b06320b-f901-4802-bdbb-6251d281d2d0",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
