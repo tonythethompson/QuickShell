@@ -32,9 +32,15 @@ _winget-test/
 .bob/
 .commandcode/
 .codex/
-
+.devinignore
+.clineignore
+.bobignore
 .serena/
 .oac.json
+.mcp.json
+opencode.json
+
+
 QuickShell/QuickShell_Dev.cer
 QuickShell/QuickShell_Dev.pfx
 QuickShell/bin/
