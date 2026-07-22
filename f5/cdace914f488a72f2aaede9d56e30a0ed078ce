@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/Performance/CriticalPathContractTests.cs
+  s_b210e48caa21a0::t_a9de3fbb8ba388 124-126,128-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f5cdace914f488a72f2aaede9d56e30a0ed078ce",
+  "prompts": {},
+  "sessions": {
+    "s_b210e48caa21a0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4f2dfd76-512d-42b4-84e4-07fe989c1736",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
