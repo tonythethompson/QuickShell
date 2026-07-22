@@ -60,6 +60,60 @@ public sealed class SuggestionPillPresentationTests : IDisposable
     }
 
     [Fact]
+    public void BuildDataFields_FromPrecomputedPills_MatchesDirectoryScanSlotOrder()
+    {
+        File.WriteAllText(Path.Join(_root, "docker-compose.yml"), "services: {}");
+        _suggestions.ResetForTests();
+
+        var pills = SuggestionPillPresentation.BuildSelectablePills(
+            _root,
+            [],
+            _projectAnalysis,
+            _suggestions);
+        var fromDirectory = SuggestionPillPresentation.BuildDataFields(
+            _root,
+            [],
+            _projectAnalysis,
+            _suggestions,
+            expandSuggestionPills: true);
+        var fromPills = SuggestionPillPresentation.BuildDataFields(
+            pills,
+            expandSuggestionPills: true);
+
+        Assert.Equal(fromDirectory.Count, fromPills.Count);
+        foreach (var key in fromDirectory.Keys)
+        {
+            Assert.Equal(fromDirectory[key], fromPills[key]);
+        }
+    }
+
+    [Fact]
+    public void BuildDataFields_FromPrecomputedPills_Scanning_OmitsPillSlots()
+    {
+        var pills = new[]
+        {
+            new CommandSuggestionPill(
+                Command: "npm test",
+                TaskType: TaskTypeCatalog.Test,
+                TypeTitle: "Test",
+                DisplayTitle: "npm test",
+                Tooltip: "Test · npm test",
+                Score: 90,
+                Source: "fixture"),
+        };
+
+        var fields = SuggestionPillPresentation.BuildDataFields(
+            pills,
+            expandSuggestionPills: true,
+            isScanningSuggestions: true);
+
+        Assert.Equal("true", fields["SuggestionScanning"]);
+        Assert.Equal("false", fields["ShowSuggestionPills"]);
+        Assert.Equal("false", fields["ShowPill_0"]);
+        Assert.Equal(string.Empty, fields["PillCommand_0"]);
+    }
+
+    [Fact]
     public void BuildSelectablePills_ContainsOnlyRealCommands()
     {
         var pills = SuggestionPillPresentation.BuildSelectablePills(
