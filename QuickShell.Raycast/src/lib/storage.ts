@@ -18,7 +18,7 @@ import {
 import { migrateStoredData, synthesizeLayoutEntries } from "./migration";
 import { getFavoriteWorkspaces } from "./ranking";
 import { normalizeWorkspace, validateWorkspace, validateWorkspaceCount } from "./validation";
-import { digest, matchesReviewToken, type WorkspaceReviewToken } from "./security";
+import { digest, coerceTrustedWhileDisabled, isWorkspaceTrustEnabled, matchesReviewToken, type WorkspaceReviewToken } from "./security";
 import { isSafeGitBranchName } from "./git-launch-gate";
 
 export type StorageAdapter = {
@@ -150,7 +150,10 @@ export class QuickShellStorage {
       } else if (allowSubmittedSecurity && submitted) {
         normalized.workspaceSecurity![workspace.id] = { ...submitted };
       } else {
-        normalized.workspaceSecurity![workspace.id] = { isTrusted: false, revision: 1 };
+        normalized.workspaceSecurity![workspace.id] = {
+          isTrusted: !isWorkspaceTrustEnabled(),
+          revision: 1,
+        };
       }
     }
 
@@ -537,6 +540,15 @@ export class QuickShellStorage {
     } catch {
       this.cache = createEmptyStoredData();
     }
+
+    const coerced = coerceTrustedWhileDisabled(
+      this.cache.workspaceSecurity,
+      this.cache.workspaces.map((workspace) => workspace.id),
+    );
+    if (coerced.changed) {
+      this.cache.workspaceSecurity = coerced.security;
+      await this.persistCache({ recordHistory: false });
+    }
   }
 
   private async persistCache(options?: { recordHistory?: boolean }): Promise<void> {
@@ -599,7 +611,7 @@ export class QuickShellStorage {
       next.workspaces.map((workspace) => {
         const security = currentSecurity[workspace.id];
         if (!security) {
-          return [workspace.id, { isTrusted: false, revision: 1 }];
+          return [workspace.id, { isTrusted: !isWorkspaceTrustEnabled(), revision: 1 }];
         }
 
         const currentWorkspace = current?.workspaces.find((candidate) => candidate.id === workspace.id);

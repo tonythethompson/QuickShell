@@ -1259,12 +1259,24 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             // without this, ApplyPill skips it forever (same as intentionally blank Open to Directory).
             var becameBlankViaEdit = !string.IsNullOrWhiteSpace(prior.Command) && string.IsNullOrWhiteSpace(mergedCommand);
 
+            var kind = Enum.TryParse<LaunchRowKind>(data[$"LaunchKind_{i}"]?.ToString(), ignoreCase: true, out var parsedKind)
+                && Enum.IsDefined(parsedKind)
+                    ? parsedKind
+                    : prior.Kind;
+
+            // CmdPal sometimes drops or mis-binds hidden LaunchKind inputs. Do not demote an
+            // OpenInTerminal row to a blank Command (TrimForSave would then drop it and Save
+            // falsely reports "Add at least one launch.").
+            if (prior.Kind == LaunchRowKind.OpenInTerminal
+                && kind == LaunchRowKind.Command
+                && string.IsNullOrWhiteSpace(mergedCommand))
+            {
+                kind = LaunchRowKind.OpenInTerminal;
+            }
+
             merged.Add(new LaunchRowDraft
             {
-                Kind = Enum.TryParse<LaunchRowKind>(data[$"LaunchKind_{i}"]?.ToString(), ignoreCase: true, out var kind)
-                    && Enum.IsDefined(kind)
-                    ? kind
-                    : prior.Kind,
+                Kind = kind,
                 Id = prior.Id,
                 Label = data[$"LaunchLabel_{i}"]?.ToString() ?? prior.Label,
                 Command = mergedCommand,

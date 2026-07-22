@@ -15,6 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\shared\workspace-trust-features.json">
+      <LogicalName>QuickShell.workspace-trust-features.json</LogicalName>
+      <Link>Features\workspace-trust-features.json</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="QuickShell" />
     <InternalsVisibleTo Include="QuickShell.Run" />
     <InternalsVisibleTo Include="QuickShell.Core.Tests" />

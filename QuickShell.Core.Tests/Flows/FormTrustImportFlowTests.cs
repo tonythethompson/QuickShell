@@ -122,8 +122,12 @@ public sealed class FormEditFlowTests : IDisposable
 }
 
 [Collection("ShortcutRepositoryMutex")]
-public sealed class TrustLaunchFlowTests
+public sealed class TrustLaunchFlowTests : IDisposable
 {
+    private readonly IDisposable _trustScope = WorkspaceTrustFeatures.EnableForTests();
+
+    public void Dispose() => _trustScope.Dispose();
+
     [Fact]
     public void Untrusted_grant_launch_revoke_blocks_again()
     {

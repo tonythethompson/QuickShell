@@ -15,7 +15,9 @@ type ExtensionPreferences = {
   /** Recent Workspaces - Show recently opened workspaces in Open Workspace. */
   "showRecents": boolean,
   /** Multi-command Launch - When supported, open multiple launch commands as tabs in one Windows Terminal window instead of separate windows. */
-  "singleWindowTabs": boolean
+  "singleWindowTabs": boolean,
+  /** Git Branch Gate - Block launch when a target branch is set and the working tree has uncommitted changes. */
+  "blockDirtyBranchSwitch": boolean
 }
 
 /** Preferences accessible in all the extension's commands */

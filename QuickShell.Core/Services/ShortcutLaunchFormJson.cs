@@ -56,9 +56,7 @@ internal static partial class ShortcutLaunchFormJson
         for (var i = 0; i < rows.Count; i++)
         {
             var rowContent = rows[i].Kind == LaunchRowKind.OpenInTerminal
-                ? AdaptiveCardFormJson.InputWithTrailingActionsRow(
-                    $$"""{ "type": "TextBlock", "text": "{{Escape(text.OpenInTerminal)}}", "isSubtle": true, "wrap": true }""",
-                    BuildRemoveLaunchAction(i, text.RemoveTooltip))
+                ? BuildOpenInTerminalInputWithClear(i, text.OpenInTerminal, text.RemoveTooltip)
                 : BuildCommandInputWithClear(i, text.RemoveTooltip);
             blocks.Add($$"""
             {
@@ -120,33 +118,8 @@ internal static partial class ShortcutLaunchFormJson
         // Keep "Add terminal" visible even when a terminal row exists; duplicate add stays open with a message.
         blocks.Add($$"""{ "type": "ActionSet", "spacing": "Small", "actions": [{ "type": "Action.Submit", "title": "{{Escape(text.AddCommand)}}", "associatedInputs": "auto", "data": { "action": "addCommandRow" } }, { "type": "Action.Submit", "title": "{{Escape(text.AddOpenInTerminal)}}", "associatedInputs": "auto", "data": { "action": "addOpenInTerminalRow" } }] }""");
 
-        blocks.Add($$"""
-        {
-          "type": "ColumnSet",
-          "spacing": "Small",
-          "columns": [
-            {
-              "type": "Column",
-              "width": "{{ProfileColumnWidth}}",
-              "items": [
-                {
-                  "type": "ActionSet",
-                  "spacing": "None",
-                  "actions": [
-                    {{AdaptiveCardFormJson.IconSubmitAction(
-                        FormActionGlyphs.RefreshLabel,
-                        FormActionGlyphs.RefreshProfileListTooltip,
-                        "refreshTerminals",
-                        "none")}}
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-        """);
-
-
+        // Spacer only: terminal/profile refresh lives in Settings. Keep vertical gap before Save/Cancel.
+        blocks.Add("""{ "type": "Container", "spacing": "Medium", "items": [] }""");
 
         return string.Join(',', blocks);
 
@@ -173,6 +146,12 @@ internal static partial class ShortcutLaunchFormJson
           "items": [
             {{BuildCommandsSectionHeaderJson(text)}},
             {{suggestionPillsBlock}},
+            {
+              "type": "Container",
+              "spacing": "Medium",
+              "separator": true,
+              "items": []
+            },
             {{commandRows}}
           ]
         }

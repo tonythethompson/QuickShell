@@ -314,6 +314,52 @@ public sealed class WorkspaceEditorTests : IDisposable
     }
 
     [Fact]
+    public void Save_WithOnlyOpenInTerminal_Succeeds()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "ShellOnly" });
+        editor.AddOpenInTerminalRow();
+
+        var result = editor.Save();
+
+        Assert.Equal(WorkspaceEditResultKind.Saved, result.Kind);
+        var saved = Assert.IsType<TerminalShortcut>(_repository.GetByName("ShellOnly"));
+        Assert.Single(saved.Launches);
+        Assert.Null(saved.Launches[0].Command);
+    }
+
+    [Fact]
+    public void TryApplyInputs_DoesNotDemoteOpenInTerminalWhenLaunchKindMisreportsCommand()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "ShellOnly" });
+        editor.AddOpenInTerminalRow();
+
+        // Mimic CmdPal dropping/mis-binding hidden LaunchKind while still submitting a blank command slot.
+        Assert.True(editor.TryApplyInputs("""{"LaunchKind_0":"Command","LaunchCommand_0":"","LaunchLabel_0":"Open in terminal","LaunchTarget_0":"default","LaunchIsEnabled_0":"true"}"""));
+
+        var row = Assert.Single(editor.GetState().Commands);
+        Assert.Equal(LaunchRowKind.OpenInTerminal, row.Kind);
+
+        var result = editor.Save();
+        Assert.Equal(WorkspaceEditResultKind.Saved, result.Kind);
+    }
+
+    [Fact]
+    public void AddCommandRow_AfterOpenInTerminal_AppendsVisibleCommand()
+    {
+        var editor = CreateEditor();
+        editor.ResetForOpen(null, new TerminalShortcut { Directory = _temp.Path, Name = "Project" });
+        editor.AddOpenInTerminalRow();
+        editor.AddCommandRow();
+
+        var state = editor.GetState();
+        Assert.Equal(2, state.Commands.Count);
+        Assert.Equal(LaunchRowKind.OpenInTerminal, state.Commands[0].Kind);
+        Assert.Equal(LaunchRowKind.Command, state.Commands[1].Kind);
+    }
+
+    [Fact]
     public void Save_WithoutRealLaunchesFailsWithActionableMessage()
     {
         var editor = CreateEditor();

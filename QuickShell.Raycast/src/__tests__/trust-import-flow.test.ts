@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   exportStoredData,
   importParsedPayload,
@@ -9,11 +9,16 @@ import {
   parseImportPayload,
 } from "../lib/import-export";
 import { createEmptyStoredData, type StoredWorkspace, type Workspace } from "../lib/schema";
-import { authorize, createReviewToken, matchesReviewToken } from "../lib/security";
+import { authorize, createReviewToken, matchesReviewToken, setWorkspaceTrustEnabledForTests } from "../lib/security";
 
 const tempDirs: string[] = [];
 
+beforeEach(() => {
+  setWorkspaceTrustEnabledForTests(true);
+});
+
 afterEach(() => {
+  setWorkspaceTrustEnabledForTests(null);
   while (tempDirs.length > 0) {
     const directory = tempDirs.pop();
     if (!directory) {

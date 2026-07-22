@@ -57,7 +57,11 @@ internal static class ShortcutListItems
             : new OpenTerminalShortcutCommand(shortcut, services);
 
         var stored = services.Shortcuts.GetStoredWorkspace(shortcut.Id);
-        var trustPrefix = stored is not null && !stored.Security.IsTrusted ? "Untrusted · " : string.Empty;
+        var trustPrefix = WorkspaceTrustFeatures.Enabled
+            && stored is not null
+            && !stored.Security.IsTrusted
+                ? "Untrusted · "
+                : string.Empty;
         var item = new ListItem(primaryCommand)
         {
             Title = shortcut.Name,
@@ -86,7 +90,8 @@ internal static class ShortcutListItems
                         shortcut,
                         onChanged,
                         needsRepair,
-                        moveVisibility)
+                        moveVisibility,
+                        onFavoritesReordered)
                     : ShortcutContextCommands.Build(
                         context,
                         shortcut,

@@ -170,14 +170,16 @@ internal static class ShortcutContextCommands
     }
 
     /// <summary>
-    /// Home-list context menu without page-level history or favorites-reordering commands.
+    /// Home-list context menu without page-level Undo/Redo. Favorites move commands stay
+    /// available so pinned order can be changed from the home list.
     /// </summary>
     public static CommandContextItem[] BuildForHomePin(
         QuickShellPageContext context,
         TerminalShortcut shortcut,
         Action onChanged,
         bool? needsRepair = null,
-        PinnedMoveVisibility moveVisibility = default) =>
+        PinnedMoveVisibility moveVisibility = default,
+        Action? onFavoritesReordered = null) =>
         (needsRepair ?? ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
             ? BuildRepairOnly(context, shortcut, onChanged)
             : Build(
@@ -186,8 +188,9 @@ internal static class ShortcutContextCommands
                 onChanged,
                 includeEdit: true,
                 moveVisibility,
+                onFavoritesReordered: onFavoritesReordered,
                 includePageCommands: false,
-                includePinnedMoveCommands: false,
+                includePinnedMoveCommands: true,
                 needsRepair: false);
 
     public static CommandContextItem[] BuildRepairOnly(
@@ -439,6 +442,11 @@ internal static class ShortcutContextCommands
         Action onChanged,
         IQuickShellServices services)
     {
+        if (!WorkspaceTrustFeatures.Enabled)
+        {
+            return;
+        }
+
         var stored = services.Shortcuts.GetStoredWorkspace(shortcut.Id);
         if (stored is null)
         {

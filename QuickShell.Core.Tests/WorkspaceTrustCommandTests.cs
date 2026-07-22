@@ -7,8 +7,12 @@ using QuickShell.Services;
 namespace QuickShell.Core.Tests;
 
 [Collection("ShortcutRepositoryMutex")]
-public sealed class WorkspaceTrustCommandTests
+public sealed class WorkspaceTrustCommandTests : IDisposable
 {
+    private readonly IDisposable _trustScope = WorkspaceTrustFeatures.EnableForTests();
+
+    public void Dispose() => _trustScope.Dispose();
+
     [Fact]
     public void Grant_then_confirm_with_token_trusts_workspace()
     {

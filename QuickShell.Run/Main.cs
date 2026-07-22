@@ -289,22 +289,25 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
         }
 
         var menus = new List<ContextMenuResult>();
-        var storedWorkspace = Shortcuts.GetStoredWorkspace(shortcut.Id);
-        if (storedWorkspace is not null)
+        if (WorkspaceTrustFeatures.Enabled)
         {
-            if (storedWorkspace.Security.IsTrusted)
+            var storedWorkspace = Shortcuts.GetStoredWorkspace(shortcut.Id);
+            if (storedWorkspace is not null)
             {
-                menus.Add(CreateContextMenu("Revoke workspace trust", "\uE72E", _ =>
+                if (storedWorkspace.Security.IsTrusted)
                 {
-                    var transition = Shortcuts.RevokeTrust(shortcut.Id);
-                    NotifyStatus(transition.Message);
-                    RefreshResults();
-                    return false;
-                }));
-            }
-            else
-            {
-                menus.Add(CreateContextMenu("Trust workspace", "\uE72E", _ => TrustWorkspace(storedWorkspace)));
+                    menus.Add(CreateContextMenu("Revoke workspace trust", "\uE72E", _ =>
+                    {
+                        var transition = Shortcuts.RevokeTrust(shortcut.Id);
+                        NotifyStatus(transition.Message);
+                        RefreshResults();
+                        return false;
+                    }));
+                }
+                else
+                {
+                    menus.Add(CreateContextMenu("Trust workspace", "\uE72E", _ => TrustWorkspace(storedWorkspace)));
+                }
             }
         }
 
@@ -499,9 +502,10 @@ public class Main : IPlugin, IPluginI18n, IContextMenu, ISettingProvider, IReloa
     private Result CreateShortcutResult(TerminalShortcut shortcut, string search, bool directActivationBrowse)
     {
         var needsRepair = ShortcutHealth.WouldNeedRepair(shortcut);
-        var trustPrefix = Shortcuts.GetStoredWorkspace(shortcut.Id)?.Security.IsTrusted == false
-            ? "Untrusted · "
-            : string.Empty;
+        var trustPrefix = WorkspaceTrustFeatures.Enabled
+            && Shortcuts.GetStoredWorkspace(shortcut.Id)?.Security.IsTrusted == false
+                ? "Untrusted · "
+                : string.Empty;
         var result = new Result
         {
             Title = shortcut.Name,

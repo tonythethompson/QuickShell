@@ -374,7 +374,7 @@ internal static class AdaptiveCardFormJson
             : FieldHelp(help) + ",\n                ";
 
     /// <summary>
-    /// Single-line companion arguments input for the picker row (beside the preset dropdown).
+    /// Compact companion arguments input for the picker row (beside the preset dropdown).
     /// Placeholder, value, and tooltip bind from form data JSON.
     /// </summary>
     public static string InlineCompanionArgumentsInput(int index = 0) =>
@@ -385,7 +385,8 @@ internal static class AdaptiveCardFormJson
           "placeholder": "${CompanionArgumentPlaceholder_{{index}}}",
           "value": "${CompanionAppArguments_{{index}}}",
           "tooltip": "${CompanionArgumentTooltip_{{index}}}",
-          "maxLength": {{ShortcutValidation.MaxCompanionAppArgumentsLength}}
+          "maxLength": {{ShortcutValidation.MaxCompanionAppArgumentsLength}},
+          "style": "text"
         }
         """;
 

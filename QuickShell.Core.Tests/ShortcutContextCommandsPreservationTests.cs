@@ -107,31 +107,64 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // Property 2b: BuildForHomePin() NEVER contains pinned move commands
+    // Property 2b: BuildForHomePin() includes pinned move commands when visible
     // ──────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// BuildForHomePin() must never include MoveFavoriteShortcutCommand entries
-    /// (move up/down/top/bottom). These are for the QuickShell favorites ordering
-    /// on a different page.
-    ///
-    /// **Validates: Requirements 2.6**
+    /// BuildForHomePin() must surface MoveFavoriteShortcutCommand entries when the
+    /// shortcut is pinned and move visibility allows them (home is where favorites
+    /// are reordered).
     /// </summary>
-    [Theory]
-    [InlineData(false, 1)]
-    [InlineData(true, 1)]
-    [InlineData(false, 2)]
-    [InlineData(true, 2)]
-    public void BuildForHomePin_NeverContainsPinnedMoveCommands(bool isPinned, int launchCount)
+    [Fact]
+    public void BuildForHomePin_PinnedShortcut_ContainsPinnedMoveCommandsWhenVisible()
     {
-        var shortcut = CreateHealthyShortcut(isPinned, launchCount);
+        var first = CreateHealthyShortcut(isPinned: true, launchCount: 1);
+        first.Name = "First";
+        first.PinOrder = 0;
+        var second = CreateHealthyShortcut(isPinned: true, launchCount: 1);
+        second.Name = "Second";
+        second.PinOrder = 1;
+        _repository.Upsert(first);
+        _repository.Upsert(second);
+
+        var visibility = PinnedMoveVisibility.ForShortcut(second, [first, second]);
+        Assert.True(visibility.ShowUp);
+        Assert.True(visibility.ShowToTop);
+
+        var items = ShortcutContextCommands.BuildForHomePin(
+            _context,
+            second,
+            OnChanged,
+            needsRepair: false,
+            moveVisibility: visibility);
+
+        var titles = items.Select(i => i.Title).ToList();
+
+        Assert.Contains(titles, t =>
+            t.Equals(Strings.Command_MoveUp_Name, StringComparison.Ordinal));
+        Assert.Contains(titles, t =>
+            t.Equals(Strings.Command_MoveToTop_Name, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// Unpinned home rows still omit move commands (nothing to reorder).
+    /// </summary>
+    [Fact]
+    public void BuildForHomePin_UnpinnedShortcut_OmitsPinnedMoveCommands()
+    {
+        var shortcut = CreateHealthyShortcut(isPinned: false, launchCount: 1);
         _repository.Upsert(shortcut);
 
         var items = ShortcutContextCommands.BuildForHomePin(
             _context,
             shortcut,
             OnChanged,
-            needsRepair: false);
+            needsRepair: false,
+            moveVisibility: new PinnedMoveVisibility(
+                ShowToTop: true,
+                ShowUp: true,
+                ShowDown: true,
+                ShowToBottom: true));
 
         var titles = items.Select(i => i.Title).ToList();
 
@@ -380,10 +413,7 @@ public sealed class ShortcutContextCommandsPreservationTests : IDisposable
 
     /// <summary>
     /// Build() with IsPinned=true and moveVisibility showing all directions
-    /// includes move commands — this confirms pinned move commands belong
-    /// in Build(), not in BuildForHomePin().
-    ///
-    /// **Validates: Requirements 3.5**
+    /// includes move commands.
     /// </summary>
     [Fact]
     public void Build_PinnedWithMoveVisibility_ContainsMoveCommands()

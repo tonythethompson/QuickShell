@@ -100,18 +100,27 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
     }
 
     [Fact]
-    public void BuildForHomePin_ExcludesPageAndPinnedMoveCommands()
+    public void BuildForHomePin_ExcludesPageCommands_ButKeepsPinnedMoves()
     {
-        var shortcut = CreateHealthyShortcut("HomePin");
+        var first = CreateHealthyShortcut("First");
+        first.IsPinned = true;
+        first.PinOrder = 0;
+        var second = CreateHealthyShortcut("Second");
+        second.IsPinned = true;
+        second.PinOrder = 1;
+        var visibility = PinnedMoveVisibility.ForShortcut(second, [first, second]);
+
         var full = GetTitles(ShortcutContextCommands.Build(
             _context,
-            shortcut,
+            second,
             onChanged: () => { },
-            includePageCommands: true));
+            includePageCommands: true,
+            moveVisibility: visibility));
         var home = GetTitles(ShortcutContextCommands.BuildForHomePin(
             _context,
-            shortcut,
-            onChanged: () => { }));
+            second,
+            onChanged: () => { },
+            moveVisibility: visibility));
 
         Assert.Contains(Strings.Menu_Undo, full);
         Assert.Contains(Strings.Menu_Redo, full);
@@ -119,6 +128,8 @@ public sealed class ShortcutContextMenuRegressionTests : IDisposable
         Assert.DoesNotContain(Strings.Menu_Undo, home);
         Assert.DoesNotContain(Strings.Menu_Redo, home);
         Assert.Contains(Strings.Menu_CreateWorkspace, home);
+        Assert.Contains(Strings.Command_MoveUp_Name, home);
+        Assert.Contains(Strings.Command_MoveToTop_Name, home);
     }
 
     [Fact]

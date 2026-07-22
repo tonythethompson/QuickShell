@@ -2,27 +2,56 @@ namespace QuickShell.Services;
 
 internal static partial class ShortcutLaunchFormJson
 {
-    public static string BuildSuggestionPillsBlock()
+    /// <summary>
+    /// Builds pill ActionSets for exactly <paramref name="visiblePillCount"/> slots.
+    /// CmdPal mishandles ActionSets that mix <c>$when:true</c> and <c>$when:false</c>
+    /// actions (often only the first couple render). Do not pad rows with hidden slots.
+    /// </summary>
+    public static string BuildSuggestionPillsBlock(int visiblePillCount)
     {
-        // One ActionSet for every slot: CmdPal lays actions out across the card width
-        // (wrapping as needed). Hard row breaks of 2–3 pills left a narrow left stack and
-        // split same-type groups from BuildSelectablePills' TypeTitle sort.
-        var actions = new List<string>(SuggestionPillPresentation.MaxSlots);
-        for (var slot = 0; slot < SuggestionPillPresentation.MaxSlots; slot++)
+        visiblePillCount = Math.Clamp(visiblePillCount, 0, SuggestionPillPresentation.MaxSlots);
+        if (visiblePillCount == 0)
         {
-            actions.Add($$"""
+            return """
             {
-              "type": "Action.Submit",
-              "title": "${PillTitle_{{slot}}}",
-              "tooltip": "${PillTooltip_{{slot}}}",
-              "$when": "${ShowPill_{{slot}}}",
-              "associatedInputs": "auto",
-              "data": {
-                "action": "addSuggestedCommand",
-                "pillCommand": "${PillCommand_{{slot}}}",
-                "pillTaskType": "${PillTaskType_{{slot}}}",
-                "pillIndex": {{slot}}
-              }
+              "type": "Container",
+              "spacing": "Small",
+              "items": []
+            }
+            """;
+        }
+
+        var pillsPerRow = SuggestionPillPresentation.PillsPerRow;
+        var pillRows = new List<string>();
+        for (var rowStart = 0; rowStart < visiblePillCount; rowStart += pillsPerRow)
+        {
+            var actions = new List<string>();
+            var rowEnd = Math.Min(rowStart + pillsPerRow, visiblePillCount);
+            for (var slot = rowStart; slot < rowEnd; slot++)
+            {
+                actions.Add($$"""
+                {
+                  "type": "Action.Submit",
+                  "title": "${PillTitle_{{slot}}}",
+                  "tooltip": "${PillTooltip_{{slot}}}",
+                  "associatedInputs": "auto",
+                  "data": {
+                    "action": "addSuggestedCommand",
+                    "pillCommand": "${PillCommand_{{slot}}}",
+                    "pillTaskType": "${PillTaskType_{{slot}}}",
+                    "pillIndex": {{slot}}
+                  }
+                }
+                """);
+            }
+
+            pillRows.Add($$"""
+            {
+              "type": "ActionSet",
+              "spacing": "Small",
+              "actions": [
+                {{string.Join(",\n", actions)}}
+              ]
             }
             """);
         }
@@ -31,16 +60,9 @@ internal static partial class ShortcutLaunchFormJson
         {
           "type": "Container",
           "spacing": "Small",
-          "$when": "${ShowSuggestionPills}",
           "items": [
             {{AdaptiveCardFormJson.FieldLabel("Suggested commands", "Click a pill to add.", bold: false)}},
-            {
-              "type": "ActionSet",
-              "spacing": "Small",
-              "actions": [
-                {{string.Join(",\n", actions)}}
-              ]
-            },
+            {{string.Join(",\n", pillRows)}},
             {
               "type": "ActionSet",
               "spacing": "Small",
@@ -92,6 +114,25 @@ internal static partial class ShortcutLaunchFormJson
                   "value": "{{literalValue}}"
                 }
                 """,
+            BuildRemoveLaunchAction(index, removeTooltip));
+
+    /// <summary>
+    /// Matches command-row chrome (full-width text field + Remove) without binding
+    /// <c>LaunchCommand_*</c>. Display id is ignored on submit; kind stays OpenInTerminal.
+    /// </summary>
+    private static string BuildOpenInTerminalInputWithClear(
+        int index,
+        string openInTerminalLabel,
+        string removeTooltip) =>
+        AdaptiveCardFormJson.InputWithTrailingActionsRow(
+            $$"""
+            {
+              "type": "Input.Text",
+              "id": "LaunchOpenInTerminalDisplay_{{index}}",
+              "value": "{{Escape(openInTerminalLabel)}}",
+              "tooltip": "Opens a terminal in the workspace folder without running a command."
+            }
+            """,
             BuildRemoveLaunchAction(index, removeTooltip));
 
     private static string BuildRemoveLaunchAction(int index, string removeTooltip) =>

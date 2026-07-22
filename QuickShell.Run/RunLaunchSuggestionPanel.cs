@@ -50,8 +50,8 @@ internal sealed class RunLaunchSuggestionPanel
 
         _scrollViewer = new ScrollViewer
         {
-            // Enough height for a few wrapped chip rows so type groups can spread horizontally.
-            MaxHeight = 120,
+            // Room for ~3 wrapped chip rows to match CmdPal's default visible rows.
+            MaxHeight = 160,
             VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
             Content = _chips,
             Visibility = Visibility.Collapsed,

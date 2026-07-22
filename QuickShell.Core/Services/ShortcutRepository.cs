@@ -665,7 +665,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
                 layout.Add(ShortcutLayoutEntry.FromShortcut(
                     shortcut,
-                    new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 }));
+                    WorkspaceTrustFeatures.CreateIngressSecurity()));
                 importedCount++;
             }
 
@@ -736,7 +736,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
 
                 valid.Add(ShortcutLayoutEntry.FromShortcut(
                     shortcut,
-                    new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 }));
+                    WorkspaceTrustFeatures.CreateIngressSecurity()));
             }
 
             if (CountValidShortcuts(valid) == 0)
@@ -1244,8 +1244,18 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     private void ApplyLoadedLayout(List<ShortcutLayoutEntry> loaded)
     {
         _layout = NormalizeLayout(CloneLayout(loaded));
+        var coercedTrust = WorkspaceTrustFeatures.CoerceTrustedWhileDisabled(_layout);
         SyncShortcutsFromLayout(_layout);
         _lastGoodLayout = CloneLayout(_layout);
+        if (coercedTrust)
+        {
+            // Persist so a later re-enable does not revive pre-kill-switch denials.
+            WriteLayoutAtomic(_layout);
+            _lastWriteTimeUtc = File.Exists(ConfigPath)
+                ? File.GetLastWriteTimeUtc(ConfigPath)
+                : DateTime.MinValue;
+        }
+
         TryMigrateLegacyWorkspacesLocked();
     }
 
@@ -1348,7 +1358,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 .Select(entry => entry.Kind == ShortcutLayoutEntryKind.Shortcut && entry.Shortcut is not null
                     ? ShortcutLayoutEntry.FromShortcut(
                         Clone(entry.Shortcut),
-                        new WorkspaceSecurityMetadata { IsTrusted = false, Revision = 1 })
+                        WorkspaceTrustFeatures.CreateIngressSecurity())
                     : ShortcutLayoutEntry.FromSeparator(entry.SeparatorTitle))
                 .ToList();
             ApplyLoadedLayout(layout);
@@ -1544,7 +1554,7 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
                 var security = incoming.Security ?? new WorkspaceSecurityMetadata();
                 security = security with
                 {
-                    IsTrusted = false,
+                    IsTrusted = !WorkspaceTrustFeatures.Enabled,
                     Revision = Math.Max(1, security.Revision),
                 };
                 incoming.Security = security;
@@ -1886,7 +1896,9 @@ internal sealed partial class ShortcutRepository : IShortcutRepository, IDisposa
     {
         var parts = new List<string>
         {
-            $"Imported {imported} shortcut{(imported == 1 ? "" : "s")}. Imported workspaces are untrusted until reviewed and trusted.",
+            WorkspaceTrustFeatures.Enabled
+                ? $"Imported {imported} shortcut{(imported == 1 ? "" : "s")}. Imported workspaces are untrusted until reviewed and trusted."
+                : $"Imported {imported} shortcut{(imported == 1 ? "" : "s")}.",
         };
 
         if (renamed > 0)

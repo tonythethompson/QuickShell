@@ -38,6 +38,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private bool _workspacesStale;
     private bool _refreshInProgress;
     private bool _refreshQueued;
+    private int _refreshThreadId;
     private bool _forceQueryRefresh;
     private bool _disposed;
     private WorkspaceRepositorySnapshot? _warmupSnapshotPendingPublication;
@@ -368,13 +369,27 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         var normalizedQuery = ListSearchQuery.Normalize(query);
 
-        // Wait for any in-flight refresh instead of returning early with a stale
-        // "Loading workspaces" list (that race left first open stuck forever).
         lock (_refreshSync)
         {
-            while (_refreshInProgress && !_disposed)
+            if (_refreshInProgress)
             {
-                Monitor.Wait(_refreshSync, 100);
+                // Same-thread re-entry happens when RaiseItemsChanged → GetItems → Drain →
+                // Reload while this method still holds the in-progress flag. Waiting here
+                // deadlocks the fetch thread (favorite/pin felt like a no-op, then home stuck
+                // on loading forever). Queue a follow-up rebuild instead.
+                if (_refreshThreadId == Environment.CurrentManagedThreadId)
+                {
+                    _refreshQueued = true;
+                    _query = normalizedQuery;
+                    return;
+                }
+
+                // Cross-thread: wait so first paint cannot return the opening "Loading
+                // workspaces" placeholder while another builder is still running.
+                while (_refreshInProgress && !_disposed)
+                {
+                    Monitor.Wait(_refreshSync, 100);
+                }
             }
 
             if (_disposed)
@@ -392,6 +407,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
 
             _refreshInProgress = true;
+            _refreshThreadId = Environment.CurrentManagedThreadId;
             _query = normalizedQuery;
         }
 
@@ -407,6 +423,7 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 unpinnedCache = _unpinnedItemCache.Count,
             });
 
+        string? queuedQuery = null;
         try
         {
             using (StartupPerformanceTrace.Measure("CmdPal home list refresh"))
@@ -489,6 +506,21 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _hasLoadedWorkspaces = true;
             _workspacesStale = false;
 
+            // Release before host notify. RaiseItemsChanged can re-enter GetItems/Reload on
+            // this thread; leaving _refreshInProgress set through notify deadlocks waiters.
+            lock (_refreshSync)
+            {
+                _refreshInProgress = false;
+                _refreshThreadId = 0;
+                if (_refreshQueued)
+                {
+                    _refreshQueued = false;
+                    queuedQuery = _query;
+                }
+
+                Monitor.PulseAll(_refreshSync);
+            }
+
             if (notifyHost)
             {
                 RaiseItemsChanged();
@@ -527,6 +559,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             _items = items.ToArray();
             _hasLoadedWorkspaces = true;
             _workspacesStale = false;
+
+            lock (_refreshSync)
+            {
+                _refreshInProgress = false;
+                _refreshThreadId = 0;
+                if (_refreshQueued)
+                {
+                    _refreshQueued = false;
+                    queuedQuery = _query;
+                }
+
+                Monitor.PulseAll(_refreshSync);
+            }
+
             if (notifyHost)
             {
                 try
@@ -541,17 +587,20 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
         finally
         {
-            string? queuedQuery = null;
             lock (_refreshSync)
             {
-                _refreshInProgress = false;
-                if (_refreshQueued)
+                if (_refreshInProgress && _refreshThreadId == Environment.CurrentManagedThreadId)
                 {
-                    _refreshQueued = false;
-                    queuedQuery = _query;
-                }
+                    _refreshInProgress = false;
+                    _refreshThreadId = 0;
+                    if (_refreshQueued)
+                    {
+                        _refreshQueued = false;
+                        queuedQuery ??= _query;
+                    }
 
-                Monitor.PulseAll(_refreshSync);
+                    Monitor.PulseAll(_refreshSync);
+                }
             }
 
             if (queuedQuery is not null)

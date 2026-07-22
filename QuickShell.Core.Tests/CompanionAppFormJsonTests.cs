@@ -52,6 +52,8 @@ public sealed class CompanionAppFormJsonTests
         Assert.Contains("CompanionAppArguments_0", section, StringComparison.Ordinal);
         Assert.Contains("\"$when\": \"${ShowCompanionArguments_0}\"", section, StringComparison.Ordinal);
         Assert.Contains("\"tooltip\": \"${CompanionAppPresetTooltip_0}\"", section, StringComparison.Ordinal);
+        Assert.Contains(CompanionAppArgumentValidation.FieldLabel, section, StringComparison.Ordinal);
+        Assert.Contains("\"width\": \"1\"", section, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Executable\"", section, StringComparison.Ordinal);
         Assert.DoesNotContain("ShowCompanionExecutablePath", section, StringComparison.Ordinal);
         Assert.DoesNotContain("CompanionAppPathDisplay", section, StringComparison.Ordinal);

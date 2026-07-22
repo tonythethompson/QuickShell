@@ -117,20 +117,21 @@ internal static class CompanionAppFormJson
           "type": "Container",
           "spacing": "Medium",
           "items": [
-            {{AdaptiveCardFormJson.FieldLabel(label)}},
             {
               "type": "ColumnSet",
               "spacing": "Small",
               "columns": [
                 {
                   "type": "Column",
-                  "width": "stretch",
-                  "verticalContentAlignment": "Center",
+                  "width": "3",
+                  "verticalContentAlignment": "Bottom",
                   "items": [
+                    {{AdaptiveCardFormJson.FieldLabel(label, wrap: false)}},
                     {
                       "type": "Input.ChoiceSet",
                       "id": "CompanionAppPreset_{{index}}",
                       "style": "compact",
+                      "spacing": "Small",
                       "tooltip": "${CompanionAppPresetTooltip_{{index}}}",
                       "value": "${CompanionAppPreset_{{index}}}",
                       "choices": {{companionChoicesJson}}
@@ -140,20 +141,21 @@ internal static class CompanionAppFormJson
                 {
                   "type": "Column",
                   "$when": "${ShowCompanionArguments_{{index}}}",
-                  "width": "2",
-                  "verticalContentAlignment": "Center",
+                  "width": "1",
+                  "verticalContentAlignment": "Bottom",
                   "items": [
-                    {{AdaptiveCardFormJson.InlineCompanionArgumentsInput(index)}}
+                    {{AdaptiveCardFormJson.FieldLabel(CompanionAppArgumentValidation.FieldLabel, wrap: false)}},
+                    {{AdaptiveCardFormJson.InputAfterLabel(AdaptiveCardFormJson.InlineCompanionArgumentsInput(index))}}
                   ]
                 },
                 {
                   "type": "Column",
                   "width": "auto",
-                  "verticalContentAlignment": "Center",
+                  "verticalContentAlignment": "Bottom",
                   "items": [
                     {
                       "type": "ActionSet",
-                      "spacing": "None",
+                      "spacing": "Small",
                       "actions": [
                         {{actionList}}
                       ]

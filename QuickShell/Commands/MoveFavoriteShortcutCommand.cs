@@ -35,10 +35,10 @@ internal sealed partial class MoveFavoriteShortcutCommand : InvokableCommand
 
         Name = move switch
         {
-            FavoriteMoveKind.Up => "Move up",
-            FavoriteMoveKind.Down => "Move down",
-            FavoriteMoveKind.ToTop => "Move to top",
-            FavoriteMoveKind.ToBottom => "Move to bottom",
+            FavoriteMoveKind.Up => Strings.Command_MoveUp_Name,
+            FavoriteMoveKind.Down => Strings.Command_MoveDown_Name,
+            FavoriteMoveKind.ToTop => Strings.Command_MoveToTop_Name,
+            FavoriteMoveKind.ToBottom => Strings.Command_MoveToBottom_Name,
             _ => "Move",
         };
 

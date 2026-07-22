@@ -3,6 +3,51 @@ import { isAbsolute, resolve } from "node:path";
 import type { StoredWorkspace, Workspace } from "./schema";
 import { isAbsoluteDirectory, normalizeCompanionApps, validateCommand, validateWorkspace } from "./validation";
 import { buildSelectedLaunchWorkspace, parseWslUncPath } from "./windows-launch";
+import trustFeatures from "./workspace-trust-features.json";
+
+/** Ship default from shared/workspace-trust-features.json (synced into this package). */
+export const WORKSPACE_TRUST_DEFAULT_ENABLED = trustFeatures.enabled === true;
+
+/**
+ * Test override stack. Null means use the shared JSON default.
+ * Must be restored in afterEach; prefer setWorkspaceTrustEnabledForTests in beforeEach/afterEach.
+ */
+let workspaceTrustTestOverride: boolean | null = null;
+
+export function isWorkspaceTrustEnabled(): boolean {
+  return workspaceTrustTestOverride ?? WORKSPACE_TRUST_DEFAULT_ENABLED;
+}
+
+/** Test seam only. Pass null to clear the override. */
+export function setWorkspaceTrustEnabledForTests(enabled: boolean | null): void {
+  workspaceTrustTestOverride = enabled;
+}
+
+/** While enforcement is off, rewrite untrusted rows so re-enable does not revive stale denials. */
+export function coerceTrustedWhileDisabled(
+  securityById: Record<string, { isTrusted: boolean; revision: number }> | undefined,
+  workspaceIds: string[],
+): { security: Record<string, { isTrusted: boolean; revision: number }>; changed: boolean } {
+  const next: Record<string, { isTrusted: boolean; revision: number }> = {
+    ...(securityById ?? {}),
+  };
+  let changed = false;
+  if (isWorkspaceTrustEnabled()) {
+    return { security: next, changed };
+  }
+
+  for (const id of workspaceIds) {
+    const current = next[id] ?? { isTrusted: true, revision: 1 };
+    if (!current.isTrusted) {
+      next[id] = { ...current, isTrusted: true };
+      changed = true;
+    } else if (!next[id]) {
+      next[id] = current;
+    }
+  }
+
+  return { security: next, changed };
+}
 
 export type WorkspaceAuthorizationRequest =
   | { kind: "terminal" }
@@ -219,6 +264,7 @@ export function authorize(
   }
 
   if (
+    isWorkspaceTrustEnabled() &&
     !workspace.security.isTrusted &&
     (request.kind === "terminal" ||
       request.kind === "launchEntry" ||
@@ -234,7 +280,7 @@ export function authorize(
   }
 
   if (request.kind === "directory") {
-    if (!workspace.security.isTrusted) {
+    if (isWorkspaceTrustEnabled() && !workspace.security.isTrusted) {
       issues.push({
         code: "DirectoryOpenNotAllowed",
         message: "Untrusted workspaces cannot open directories.",
