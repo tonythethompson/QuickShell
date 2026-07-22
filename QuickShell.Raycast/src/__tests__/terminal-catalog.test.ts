@@ -12,6 +12,10 @@ describe("terminal-catalog", () => {
     resetTerminalCatalogCacheForTests();
     const choices = discoverWorkspaceTerminalChoices();
     expect(choices.some((choice) => choice.id === "default")).toBe(true);
+    expect(choices.some((choice) => choice.id === "same-as-previous")).toBe(true);
+    expect(choices.findIndex((choice) => choice.id === "default")).toBeLessThan(
+      choices.findIndex((choice) => choice.id === "same-as-previous"),
+    );
     expect(choices.every((choice) => choice.terminal)).toBe(true);
   });
 

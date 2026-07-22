@@ -18,12 +18,13 @@ Form (multi-row)
   Executable path is a tooltip on the preset dropdown (not a separate field)
   "+" tooltip: "Add another companion app" (inline with picker)
   Cap 5; save writes full CompanionApps list
+  Selecting a companion (non-empty path) implies OpenOnLaunch = true; no per-row open toggle
 
 Detection (create)
   folder signals → installed preset (if exe found) → primary only
 
 Launch
-  Auto: all entries with OpenOnLaunch
+  Auto: all configured companion entries (OpenOnLaunch is always true for saved companions)
   On-demand: all configured entries
   Process.Start(exe, expanded args, WorkingDirectory = workspace)
 ```

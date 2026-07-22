@@ -7,6 +7,7 @@ import {
   escapeWindowsArgument,
   parseWslUncPath,
   resolveLaunchTarget,
+  resolveTerminalForLaunch,
 } from "../lib/windows-launch";
 import type { Workspace } from "../lib/schema";
 import { DEFAULT_SETTINGS } from "../lib/schema";
@@ -185,6 +186,25 @@ describe("windows-launch", () => {
       kind: "wt",
       profileOrDistro: "PowerShell",
     });
+  });
+
+  it("resolves first same-as-previous launch to settings default", () => {
+    expect(
+      resolveTerminalForLaunch(
+        {
+          id: "only",
+          label: "Only",
+          terminal: "same-as-previous",
+          wtProfile: null,
+          command: "npm start",
+          runAsAdmin: false,
+          isEnabled: true,
+          order: 0,
+          taskType: "none",
+        },
+        { ...DEFAULT_SETTINGS, terminalApplication: "wt", defaultProfile: "__default__" },
+      ),
+    ).toEqual({ terminal: "wt", wtProfile: null });
   });
 
   it("parses supported WSL UNC paths strictly", () => {

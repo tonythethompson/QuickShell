@@ -8,6 +8,11 @@ export type DiscoveredTerminalChoice = TerminalChoice & {
   wtProfile?: string | null;
 };
 
+/** Matches Core `TerminalCatalog.SameAsPreviousLaunchTargetId`. */
+export const SAME_AS_PREVIOUS_TERMINAL_ID = "same-as-previous";
+
+export const SAME_AS_PREVIOUS_TERMINAL_TITLE = "Same as previous command";
+
 type WtSettings = {
   profiles?: {
     list?: Array<{ name?: string; hidden?: boolean }>;
@@ -15,31 +20,69 @@ type WtSettings = {
 };
 
 let cachedChoices: DiscoveredTerminalChoice[] | null = null;
+let cachedChoicesEnriched: DiscoveredTerminalChoice[] | null = null;
+const executableExistsCache = new Map<string, boolean>();
 
-export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
-  if (cachedChoices) {
+function sameAsPreviousChoice(): DiscoveredTerminalChoice {
+  return {
+    id: SAME_AS_PREVIOUS_TERMINAL_ID,
+    title: SAME_AS_PREVIOUS_TERMINAL_TITLE,
+    terminal: SAME_AS_PREVIOUS_TERMINAL_ID,
+    wtProfile: null,
+  };
+}
+
+export type DiscoverTerminalOptions = {
+  /** Resolve App Execution Aliases via where.exe and enumerate WSL distros. Default false for fast first paint. */
+  includeSlowProbes?: boolean;
+};
+
+export function discoverWorkspaceTerminalChoices(options: DiscoverTerminalOptions = {}): DiscoveredTerminalChoice[] {
+  const includeSlowProbes = options.includeSlowProbes === true;
+  if (includeSlowProbes && cachedChoicesEnriched) {
+    return cachedChoicesEnriched;
+  }
+  if (!includeSlowProbes && cachedChoices) {
     return cachedChoices;
   }
 
+  const choices = buildTerminalChoices({ includeSlowProbes });
+  if (includeSlowProbes) {
+    cachedChoicesEnriched = choices;
+    cachedChoices = choices;
+  } else {
+    cachedChoices = choices;
+  }
+  return choices;
+}
+
+function buildTerminalChoices(options: { includeSlowProbes: boolean }): DiscoveredTerminalChoice[] {
   if (process.platform !== "win32") {
-    cachedChoices = WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
+    const mapped = WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
       ...choice,
       terminal: choice.id,
       wtProfile: null,
     }));
-    return cachedChoices;
+    const defaultIndex = mapped.findIndex((choice) => choice.id === "default");
+    if (defaultIndex >= 0) {
+      mapped.splice(defaultIndex + 1, 0, sameAsPreviousChoice());
+    } else {
+      mapped.unshift(sameAsPreviousChoice());
+    }
+    return mapped;
   }
 
   const choices: DiscoveredTerminalChoice[] = [
     {
       id: "default",
-      title: "Use QuickShell default",
+      title: "Use Quick Shell default",
       terminal: "default",
       wtProfile: null,
     },
+    sameAsPreviousChoice(),
   ];
 
-  if (executableExists("wt.exe")) {
+  if (executableExists("wt.exe", options.includeSlowProbes)) {
     choices.push({
       id: "wt",
       title: "Windows Terminal (default profile)",
@@ -56,7 +99,7 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
     }
   }
 
-  if (executableExists("pwsh.exe")) {
+  if (executableExists("pwsh.exe", false)) {
     choices.push({
       id: "pwsh",
       title: "PowerShell 7",
@@ -64,7 +107,7 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
       wtProfile: null,
     });
   }
-  if (executableExists("powershell.exe")) {
+  if (executableExists("powershell.exe", false)) {
     choices.push({
       id: "powershell",
       title: "Windows PowerShell",
@@ -72,7 +115,7 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
       wtProfile: null,
     });
   }
-  if (executableExists("cmd.exe")) {
+  if (executableExists("cmd.exe", false)) {
     choices.push({
       id: "cmd",
       title: "Command Prompt",
@@ -80,31 +123,42 @@ export function discoverWorkspaceTerminalChoices(): DiscoveredTerminalChoice[] {
       wtProfile: null,
     });
   }
-  if (executableExists("wsl.exe")) {
+  if (executableExists("wsl.exe", false)) {
     choices.push({ id: "wsl", title: "WSL (default distro)", terminal: "wsl", wtProfile: null });
-    for (const distro of listWslDistros()) {
-      choices.push({
-        id: `wsl:${distro}`,
-        title: `WSL · ${distro}`,
-        terminal: "wsl",
-        wtProfile: distro,
-      });
+    if (options.includeSlowProbes) {
+      for (const distro of listWslDistros()) {
+        choices.push({
+          id: `wsl:${distro}`,
+          title: `WSL · ${distro}`,
+          terminal: "wsl",
+          wtProfile: distro,
+        });
+      }
     }
   }
 
-  cachedChoices =
-    choices.length > 1
-      ? choices
-      : WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
+  return choices.length > 2
+    ? choices
+    : (() => {
+        const mapped = WORKSPACE_TERMINAL_CHOICES.map((choice) => ({
           ...choice,
           terminal: choice.id,
           wtProfile: null,
         }));
-  return cachedChoices;
+        const defaultIndex = mapped.findIndex((choice) => choice.id === "default");
+        if (defaultIndex >= 0) {
+          mapped.splice(defaultIndex + 1, 0, sameAsPreviousChoice());
+        } else {
+          mapped.unshift(sameAsPreviousChoice());
+        }
+        return mapped;
+      })();
 }
 
 export function invalidateTerminalCatalogCache(): void {
   cachedChoices = null;
+  cachedChoicesEnriched = null;
+  executableExistsCache.clear();
 }
 
 /** @deprecated Prefer invalidateTerminalCatalogCache in production code. */
@@ -122,13 +176,13 @@ export function discoverDefaultProfileChoices(terminalApplication: string): Term
   }
 
   const choices: TerminalChoice[] = [{ id: "__default__", title: "Default profile for this app" }];
-  if (executableExists("powershell.exe")) {
+  if (executableExists("powershell.exe", false)) {
     choices.push({ id: "powershell", title: "PowerShell" });
   }
-  if (executableExists("pwsh.exe")) {
+  if (executableExists("pwsh.exe", false)) {
     choices.push({ id: "pwsh", title: "PowerShell 7" });
   }
-  if (executableExists("cmd.exe")) {
+  if (executableExists("cmd.exe", false)) {
     choices.push({ id: "cmd", title: "Command Prompt" });
   }
   return choices.length > 1
@@ -146,6 +200,9 @@ export function choiceForTerminalState(
   wtProfile?: string | null,
   choices: DiscoveredTerminalChoice[] = discoverWorkspaceTerminalChoices(),
 ): string {
+  if (terminal === SAME_AS_PREVIOUS_TERMINAL_ID) {
+    return SAME_AS_PREVIOUS_TERMINAL_ID;
+  }
   if (wtProfile) {
     const profileMatch = choices.find((choice) => choice.terminal === terminal && choice.wtProfile === wtProfile);
     if (profileMatch) {
@@ -156,7 +213,31 @@ export function choiceForTerminalState(
   return match?.id ?? "default";
 }
 
-function executableExists(command: string): boolean {
+function executableExists(command: string, allowWhereFallback: boolean): boolean {
+  const normalized = command.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  const cacheKey = `${normalized}|where:${allowWhereFallback ? "1" : "0"}`;
+  const cached = executableExistsCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const found = probeExecutableExists(command.trim(), allowWhereFallback);
+  executableExistsCache.set(cacheKey, found);
+  return found;
+}
+
+/**
+ * Resolve host tools on PATH. Prefer fs.existsSync for normal binaries.
+ * For Windows Terminal / Intelligent Terminal App Execution Aliases under
+ * LocalAppData\Microsoft\WindowsApps, Node's existsSync often returns false
+ * even when the alias works, so fall back to where.exe for those hosts only
+ * when slow probes are enabled.
+ */
+function probeExecutableExists(command: string, allowWhereFallback: boolean): boolean {
   const candidates: string[] = [];
   const pathEnv = process.env.PATH ?? process.env.Path ?? "";
   for (const entry of pathEnv.split(path.delimiter)) {
@@ -168,17 +249,34 @@ function executableExists(command: string): boolean {
   const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
   candidates.push(path.join(systemRoot, "System32", command), path.join(systemRoot, "Sysnative", command));
 
-  if (command === "wt.exe") {
-    const localAppData = process.env.LOCALAPPDATA;
-    if (localAppData) {
-      candidates.push(
-        path.join(localAppData, "Microsoft", "WindowsApps", "wt.exe"),
-        path.join(localAppData, "Microsoft", "WindowsApps", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "wt.exe"),
-      );
-    }
+  const isStoreTerminalHost = command === "wt.exe" || command === "wtai.exe";
+  const localAppData = process.env.LOCALAPPDATA;
+  if (localAppData && isStoreTerminalHost) {
+    candidates.push(path.join(localAppData, "Microsoft", "WindowsApps", command));
   }
 
-  return candidates.some((candidate) => existsSync(candidate));
+  if (candidates.some((candidate) => existsSync(candidate))) {
+    return true;
+  }
+
+  return allowWhereFallback && isStoreTerminalHost && executableExistsViaWhere(command);
+}
+
+function executableExistsViaWhere(command: string): boolean {
+  if (process.platform !== "win32") {
+    return false;
+  }
+
+  try {
+    execFileSync("where.exe", [command], {
+      windowsHide: true,
+      stdio: "ignore",
+      timeout: 1500,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** True when the host executable is resolvable on PATH / known install locations. */
@@ -190,7 +288,7 @@ export function terminalHostExecutableExists(hostExecutable: string): boolean {
   if (existsSync(trimmed)) {
     return true;
   }
-  return executableExists(path.basename(trimmed));
+  return executableExists(path.basename(trimmed), true);
 }
 
 export function parseWslDistroListOutput(buffer: Buffer): string[] {

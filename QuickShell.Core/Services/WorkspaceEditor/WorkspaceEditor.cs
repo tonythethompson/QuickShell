@@ -479,7 +479,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                 }
 
                 row.Arguments = CompanionAppArgumentValidation.NormalizeForSave(row.Preset, row.Path, row.Arguments);
-                ApplyCompanionFormState(i, CompanionAppCatalog.ReconcileForSave(row.Preset, row.Path, row.Arguments, row.OpenOnLaunch), persist: false);
+                ApplyCompanionFormState(i, CompanionAppCatalog.ReconcileForSave(row.Preset, row.Path, row.Arguments, openOnLaunch: true), persist: false);
             }
 
             SyncCompanionLegacyScalars();

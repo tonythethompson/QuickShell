@@ -9,7 +9,7 @@ In-palette create/edit (CmdPal Adaptive Cards), disk drafts, and the **two** und
 | Create / Edit / Duplicate | `ShortcutFormPage` + `ShortcutForm` (`QuickShell/Pages/`) over Core `IWorkspaceEditor` |
 | Pending edit resume | `PendingShortcutEditPage` |
 | Shared edit session | `QuickShell.Core/Services/WorkspaceEditor/` (`IWorkspaceEditor`, factory via `AddQuickShellCore`) |
-| Run host editor | `QuickShell.Run/ShortcutWorkspaceEditorWindow.cs` (one-page WPF binder over the same Core session; 680×min 560) |
+| Run host editor | `QuickShell.Run/ShortcutWorkspaceEditorWindow.cs` (one-page WPF binder over the same Core session; 680×860, min 640) |
 | Raycast | React form components + storage history (separate stack) |
 
 ## Form model
@@ -23,7 +23,7 @@ ShortcutFormPage / ShortcutWorkspaceEditorWindow
         FormEditHistory lives on WorkspaceEditor (launch-row snapshots)
 ```
 
-`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` lives in `QuickShell.Core/Services/WorkspaceEditor/` behind `IWorkspaceEditor`. Shared launch drafts have an explicit `LaunchRowKind`: `Command` or `OpenInTerminal`. CmdPal renders only real launches and supports a true zero-row state with `Add command` and `Add terminal` actions; each row also has terminal profile, Admin, and remove controls. `Add terminal` stays visible when a terminal row already exists (duplicate add stays open with a message) and inserts the new row at index 0. The Run host retains three visible WPF slots locally using nonpersistent `IsEditorPlaceholder` rows. Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
+`IShortcutFormViewBuilder` (`ShortcutFormViewBuilder`) owns Adaptive Card construction via `ShortcutFormTemplateJson` (+ cache). `ShortcutForm` maps submit actions to `IWorkspaceEditor` and applies builder output. `WorkspaceEditor` lives in `QuickShell.Core/Services/WorkspaceEditor/` behind `IWorkspaceEditor`. Shared launch drafts have an explicit `LaunchRowKind`: `Command` or `OpenInTerminal`. CmdPal and Run both render only real launches and support a true zero-row state with `Add command` and `Add terminal` actions; each row also has terminal profile, Admin, and remove controls. `Add terminal` stays visible when a terminal row already exists (duplicate add stays open with a message) and inserts the new row at index 0. Run’s WPF editor mirrors that compact row layout (command or “Open in terminal”, profile, Admin, Remove) instead of the older multi-field launch cards / placeholder slots. Workspace-level “Always run as administrator” was removed from the CmdPal form; legacy `TerminalShortcut.RunAsAdmin` mirrors the first launch row on normalize.
 
 Browse/Paste folder on the form fills name (if unset), repo URL, and Dev Server URL when empty. It does **not** auto-seed launch commands or companion apps. Suggestion pills add commands; companion presets stay user-chosen. Discover create seeds via `WorkspaceSeedFactory` (see [intelligence.md](./intelligence.md), [companions.md](./companions.md)).
 
@@ -87,7 +87,7 @@ SaveCurrentDraft
        onSaved()  // reload list
 ```
 
-Blank `Command` drafts and Run-only WPF placeholders are trimmed. An explicit `OpenInTerminal` row persists as a launch whose on-disk `Command` remains `null`; saving with no real launch stays in the editor with `Add at least one launch.` Layout undo records the Upsert.
+Blank `Command` drafts (and any legacy editor placeholders) are trimmed. An explicit `OpenInTerminal` row persists as a launch whose on-disk `Command` remains `null`; saving with no real launch stays in the editor with `Add at least one launch.` Layout undo records the Upsert.
 
 ## Cancel / discard
 

@@ -99,8 +99,12 @@ export function resolveTerminalForLaunch(
   previousTerminal?: string,
   previousProfile?: string | null,
 ): { terminal: string; wtProfile?: string | null } {
-  if (launch.terminal === "same-as-previous" && previousTerminal) {
-    return { terminal: previousTerminal, wtProfile: launch.wtProfile ?? previousProfile };
+  if (launch.terminal === "same-as-previous") {
+    if (previousTerminal) {
+      return { terminal: previousTerminal, wtProfile: launch.wtProfile ?? previousProfile };
+    }
+    // No prior concrete target: same as Core ResolveEffectiveLaunchTargetId → default.
+    return resolveTerminalForLaunch({ ...launch, terminal: "default" }, settings);
   }
 
   if (launch.terminal === "default") {

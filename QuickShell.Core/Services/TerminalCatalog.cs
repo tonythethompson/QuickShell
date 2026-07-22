@@ -98,12 +98,19 @@ internal sealed class TerminalCatalog : ITerminalCatalog
             return snapshot.Targets;
         }
 
+        // Match BuildFormChoicesJson: Default, then Same as previous, then discovered targets.
         return
         [
             new LaunchTarget
             {
                 Id = "default",
                 DisplayName = "Default (from settings)",
+                Kind = LaunchTargetKind.Default,
+            },
+            new LaunchTarget
+            {
+                Id = SameAsPreviousLaunchTargetId,
+                DisplayName = SameAsPreviousDisplayName,
                 Kind = LaunchTargetKind.Default,
             },
             .. snapshot.Targets,

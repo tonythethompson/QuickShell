@@ -71,6 +71,21 @@ public sealed class TerminalCatalogChoicesTests
     }
 
     [Fact]
+    public void GetLaunchTargets_IncludeDefault_IncludesSameAsPreviousAfterDefault()
+    {
+        var catalog = new TerminalCatalog(new WtProfilesService());
+        var targets = catalog.GetLaunchTargets(includeDefaultChoice: true);
+
+        Assert.Equal(2, Math.Min(2, targets.Count));
+        Assert.Equal("default", targets[0].Id);
+        Assert.Equal(TerminalCatalog.SameAsPreviousLaunchTargetId, targets[1].Id);
+        Assert.Equal(TerminalCatalog.SameAsPreviousDisplayName, targets[1].DisplayName);
+        Assert.DoesNotContain(
+            catalog.GetLaunchTargets(includeDefaultChoice: false),
+            t => t.Id.Equals(TerminalCatalog.SameAsPreviousLaunchTargetId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void GetProfileLabel_StandalonePwsh_ReturnsPowerShell7()
     {
         var shortcut = new TerminalShortcut { Terminal = "pwsh" };
