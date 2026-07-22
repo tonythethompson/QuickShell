@@ -72,7 +72,7 @@ public sealed class TerminalCatalogDiscoveryTests : IDisposable
         var localAppData = Path.Combine(_tempRoot, "localappdata");
         var settingsDir = Path.Join(localAppData, "Microsoft", "Windows Terminal");
         Directory.CreateDirectory(settingsDir);
-        var settingsPath = Path.Combine(settingsDir, "settings.json");
+        var settingsPath = Path.Join(settingsDir, "settings.json");
         File.WriteAllText(settingsPath, """{"profiles":{"list":[]}}""");
 
         PathExecutableLookup.TryResolveOverride = name =>
