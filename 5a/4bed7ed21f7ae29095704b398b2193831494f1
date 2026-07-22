@@ -1,0 +1,21 @@
+QuickShell.Core.Tests/ShortcutLaunchFormJsonTests.cs
+  s_3d1e0a3ea5f9c1::t_9c7294a426444b 70,78-82
+QuickShell.Core/Services/ShortcutLaunchFormJson.SuggestionPills.cs
+  s_3d1e0a3ea5f9c1::t_6ba99334d5a27d 120-121,130-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "5a4bed7ed21f7ae29095704b398b2193831494f1",
+  "prompts": {},
+  "sessions": {
+    "s_3d1e0a3ea5f9c1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0d72f4cd-d95d-4a01-b5a8-b7096ca3fb64",
+        "model": "unknown"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
