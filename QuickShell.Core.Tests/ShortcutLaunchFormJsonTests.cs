@@ -108,4 +108,32 @@ public sealed class ShortcutLaunchFormJsonTests
         Assert.Contains("\\\"hi\\\"", json);
         Assert.Contains("echo \\\"test\\\"", json);
     }
+
+    [Fact]
+    public void BuildLaunchRowsJson_VerifiesLaunchLabelAndEnabledFields()
+    {
+        var json = ShortcutLaunchFormJson.WrapLaunchRowsForTest(
+            ShortcutLaunchFormJson.BuildLaunchRowsJson(
+                [
+                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Main", Command = "npm start", IsEnabled = true },
+                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "Disabled Task", Command = "npm test", IsEnabled = false },
+                    new ShortcutLaunchFormJson.LaunchRowDraft { Label = "", Command = "dotnet run", IsEnabled = true }
+                ],
+                TerminalChoices));
+
+        using var document = JsonDocument.Parse(json);
+        var text = document.RootElement.GetRawText();
+
+        Assert.Contains("LaunchLabel_0", text);
+        Assert.Contains("LaunchLabel_1", text);
+        Assert.Contains("LaunchLabel_2", text);
+        Assert.Contains("LaunchEnabled_0", text);
+        Assert.Contains("LaunchEnabled_1", text);
+        Assert.Contains("LaunchEnabled_2", text);
+
+        Assert.Contains("\"value\": \"Main\"", text);
+        Assert.Contains("\"value\": \"Disabled Task\"", text);
+        Assert.Contains("\"value\": \"true\"", text);
+        Assert.Contains("\"value\": \"false\"", text);
+    }
 }
