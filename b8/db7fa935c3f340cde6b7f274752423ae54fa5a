@@ -1,0 +1,19 @@
+QuickShell.Core.Tests/CommandRouterTests.cs
+  s_48324972032c2c::t_569d460aa0facd 158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b8db7fa935c3f340cde6b7f274752423ae54fa5a",
+  "prompts": {},
+  "sessions": {
+    "s_48324972032c2c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d71a5830-760b-4059-8cde-6737cf7be7c8",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
