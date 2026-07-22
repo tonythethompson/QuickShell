@@ -1,0 +1,49 @@
+docs/architecture/trust-model.md
+  s_9ec1680b094402::t_0e2ca35e4edccd 7
+  s_9ec1680b094402::t_5a54d13de5a46f 3-6
+  s_b210e48caa21a0::t_866c81833dade4 8-9
+docs/architecture/forms.md
+  s_ce658b422942f2::t_7ac7e8cbc4dcec 38-39
+docs/architecture/intelligence.md
+  s_911d943b6fabb8::t_6efbea31d67ede 66-67,76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "5644772f72ce3def16e1b16a78c016759bfa90bc",
+  "prompts": {},
+  "sessions": {
+    "s_911d943b6fabb8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0436738e-feec-4fcf-accd-54fe4a411a60",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_9ec1680b094402": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69b9ab76-4738-48ee-82f1-4b78b923820e",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_b210e48caa21a0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4f2dfd76-512d-42b4-84e4-07fe989c1736",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
