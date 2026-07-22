@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Services.WorkspaceEditor;
 
 namespace QuickShell.Services;
@@ -66,7 +67,8 @@ internal sealed class ShortcutFormViewBuilder : IShortcutFormViewBuilder
                     Strings.LaunchEditor_RemoveTooltip,
                     Strings.LaunchEditor_EmptyTitle,
                     Strings.LaunchEditor_EmptyGuidance,
-                    Strings.LaunchEditor_ValidationAtLeastOne)));
+                    Strings.LaunchEditor_ValidationAtLeastOne,
+                    Strings.LaunchEditor_CommandsSectionTooltip)));
 
         var dataJson = ShortcutFormTemplateJson.BuildDataJson(
             new ShortcutFormTemplateJson.DataPayload

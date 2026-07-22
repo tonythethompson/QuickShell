@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using QuickShell.Services;
 
@@ -98,7 +99,7 @@ public sealed class ExplicitLaunchRowTests
                 Label = "Terminal",
                 IsEnabled = false,
             },
-        ], "App", "default");
+        ], "App", "default", "Open in terminal");
 
         var input = Assert.Single(inputs);
         Assert.Equal("Terminal", input.Label);

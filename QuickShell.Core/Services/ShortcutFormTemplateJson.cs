@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 
 namespace QuickShell.Services;
 
@@ -54,6 +55,7 @@ internal static class ShortcutFormTemplateJson
         int companionCount = 1,
         LaunchEditorText? launchText = null)
     {
+        ArgumentNullException.ThrowIfNull(launchText);
         var commandRows = ShortcutLaunchFormJson.BuildCommandRowsJson(commands, terminalChoices, launchText);
         var tipDirectory = Escape(WorkspaceFormTooltips.Directory);
         var tipName = Escape(WorkspaceFormTooltips.Name);
@@ -64,7 +66,8 @@ internal static class ShortcutFormTemplateJson
         var suggestionPillsBlock = ShortcutLaunchFormJson.BuildSuggestionPillsBlock();
         var commandsSection = ShortcutLaunchFormJson.BuildCommandsSectionJson(
             commandRows,
-            suggestionPillsBlock);
+            suggestionPillsBlock,
+            launchText.CommandsSectionTooltip);
         var companionRows = Enumerable.Range(0, Math.Max(1, companionCount))
             .Select(_ => CompanionAppFormRow.Empty())
             .ToList();

@@ -1,5 +1,6 @@
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using QuickShell.Services;
 using QuickShell.Services.WorkspaceEditor;

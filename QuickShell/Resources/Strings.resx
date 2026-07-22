@@ -627,4 +627,7 @@
   <data name="LaunchEditor_ValidationAtLeastOne" xml:space="preserve">
     <value>Add at least one launch.</value>
   </data>
+  <data name="LaunchEditor_CommandsSectionTooltip" xml:space="preserve">
+    <value>Add a command or open the folder in a terminal.</value>
+  </data>
 </root>

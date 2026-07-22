@@ -1,3 +1,5 @@
+using QuickShell.Core.Services;
+
 namespace QuickShell.Services;
 
 
@@ -43,10 +45,9 @@ internal static partial class ShortcutLaunchFormJson
     public static string BuildCommandRowsJson(
         IReadOnlyList<QuickShell.Services.LaunchRowDraft> rows,
         string terminalChoices,
-        LaunchEditorText? text = null)
+        LaunchEditorText text)
 
     {
-        text ??= LaunchEditorText.English;
 
         var blocks = new List<string>();
 
@@ -152,27 +153,24 @@ internal static partial class ShortcutLaunchFormJson
 
 
 
-    public const string CommandsSectionTooltip =
-        "Add a command or open the folder in a terminal.";
-
-    public static string BuildCommandsSectionHeaderJson() =>
+    public static string BuildCommandsSectionHeaderJson(string commandsSectionTooltip) =>
         $$"""
         {
           "type": "Container",
           "spacing": "None",
           "items": [
-            {{AdaptiveCardFormJson.FieldLabel("Commands", CommandsSectionTooltip)}}
+            {{AdaptiveCardFormJson.FieldLabel("Commands", commandsSectionTooltip)}}
           ]
         }
         """;
 
-    public static string BuildCommandsSectionJson(string commandRows, string suggestionPillsBlock) =>
+    public static string BuildCommandsSectionJson(string commandRows, string suggestionPillsBlock, string commandsSectionTooltip) =>
         $$"""
         {
           "type": "Container",
           "spacing": "Medium",
           "items": [
-            {{BuildCommandsSectionHeaderJson()}},
+            {{BuildCommandsSectionHeaderJson(commandsSectionTooltip)}},
             {{suggestionPillsBlock}},
             {{commandRows}}
           ]

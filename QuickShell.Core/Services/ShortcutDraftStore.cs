@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using System.Diagnostics;
 using System.Text.Json;
@@ -170,7 +171,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
         }
     }
 
-    public ShortcutSaveResult TryCommitPending(Action? onSaved)
+    public ShortcutSaveResult TryCommitPending(Action? onSaved, string validationAtLeastOne, string openInTerminalLabel)
     {
         PersistedShortcutEditDraft? pending = null;
 
@@ -200,7 +201,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                 {
                     Id = item.Launch.Id,
                     Label = string.IsNullOrWhiteSpace(item.Launch.Label) && item.Kind == LaunchRowKind.OpenInTerminal
-                        ? "Open in terminal"
+                        ? openInTerminalLabel
                         : item.Launch.Label,
                     Command = item.Kind == LaunchRowKind.OpenInTerminal ? null : item.Launch.Command,
                     LaunchTarget = item.Launch.LaunchTarget,
@@ -209,10 +210,22 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
                     TaskType = item.Launch.TaskType,
                 })
                 .ToList();
-            var seenOpenInTerminal = false;
-            launches = launches
-                .Where(launch => launch.Command is not null || !seenOpenInTerminal && (seenOpenInTerminal = true))
-                .ToList();
+            // Retain all command launches and only the first OpenInTerminal launch.
+            var filtered = new List<ShortcutFormLaunchInput>();
+            var hasAddedTerminal = false;
+            foreach (var launch in launches)
+            {
+                if (launch.Command is not null)
+                {
+                    filtered.Add(launch);
+                }
+                else if (!hasAddedTerminal)
+                {
+                    filtered.Add(launch);
+                    hasAddedTerminal = true;
+                }
+            }
+            launches = filtered;
         }
 
         var companionApps = pending.Companions is { Count: > 0 }
@@ -245,7 +258,7 @@ internal sealed partial class ShortcutDraftStore : IDraftStore, IDisposable
 
         if (launches is not { Count: > 0 })
         {
-            return ShortcutSaveResult.Fail(LaunchEditorText.English.ValidationAtLeastOne);
+            return ShortcutSaveResult.Fail(validationAtLeastOne);
         }
 
         var result = ShortcutFormSave.TrySave(

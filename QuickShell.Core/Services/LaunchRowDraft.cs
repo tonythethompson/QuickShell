@@ -1,3 +1,5 @@
+using QuickShell.Core.Services;
+
 namespace QuickShell.Services;
 
 internal sealed class LaunchRowDraft

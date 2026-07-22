@@ -36,6 +36,7 @@ internal static class Strings
     public static string LaunchEditor_EmptyTitle => Get(nameof(LaunchEditor_EmptyTitle));
     public static string LaunchEditor_EmptyGuidance => Get(nameof(LaunchEditor_EmptyGuidance));
     public static string LaunchEditor_ValidationAtLeastOne => Get(nameof(LaunchEditor_ValidationAtLeastOne));
+    public static string LaunchEditor_CommandsSectionTooltip => Get(nameof(LaunchEditor_CommandsSectionTooltip));
     public static string Menu_SwitchBranch => Get(nameof(Menu_SwitchBranch));
     public static string Menu_SwitchBranchEllipsis => Get(nameof(Menu_SwitchBranchEllipsis));
     public static string Menu_UseCurrentBranch => Get(nameof(Menu_UseCurrentBranch));

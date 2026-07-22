@@ -21,5 +21,5 @@ internal interface IDraftStore
 
     void Clear();
 
-    ShortcutSaveResult TryCommitPending(Action? onSaved);
+    ShortcutSaveResult TryCommitPending(Action? onSaved, string validationAtLeastOne, string openInTerminalLabel);
 }

@@ -1,4 +1,5 @@
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Models;
 
 namespace QuickShell.Services;
@@ -45,7 +46,8 @@ internal static class ShortcutFormLaunchSection
     public static List<ShortcutFormLaunchInput> ToLaunchInputs(
         IReadOnlyList<LaunchRowDraft> commands,
         string workspaceName,
-        string fallbackLaunchTarget)
+        string fallbackLaunchTarget,
+        string openInTerminalLabel)
     {
         var rows = LaunchRowListEditor.TrimForSave(commands);
 
@@ -55,7 +57,7 @@ internal static class ShortcutFormLaunchSection
             Id = row.Id,
             Label = string.IsNullOrWhiteSpace(row.Label)
                 ? row.Kind == LaunchRowKind.OpenInTerminal
-                    ? "Open in terminal"
+                    ? openInTerminalLabel
                     : index == 0 ? labelBase : $"Command {index + 1}"
                 : row.Label.Trim(),
             Command = row.Kind == LaunchRowKind.OpenInTerminal ? null : row.Command,

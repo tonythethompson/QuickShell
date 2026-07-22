@@ -80,10 +80,10 @@ internal static partial class ShortcutLaunchFormJson
         """;
     }
 
-    private static string BuildCommandInputWithClear(int index, string? removeTooltip = null) =>
+    private static string BuildCommandInputWithClear(int index, string removeTooltip) =>
         BuildCommandInputWithClear(index, literalValue: null, removeTooltip);
 
-    private static string BuildCommandInputWithClear(int index, string? literalValue, string? removeTooltip = null) =>
+    private static string BuildCommandInputWithClear(int index, string? literalValue, string removeTooltip) =>
         AdaptiveCardFormJson.InputWithTrailingActionsRow(
             literalValue is null
                 ? $$"""
@@ -102,10 +102,10 @@ internal static partial class ShortcutLaunchFormJson
                 """,
             BuildRemoveLaunchAction(index, removeTooltip));
 
-    private static string BuildRemoveLaunchAction(int index, string? removeTooltip = null) =>
+    private static string BuildRemoveLaunchAction(int index, string removeTooltip) =>
         AdaptiveCardFormJson.IconSubmitAction(
             FormActionGlyphs.RemoveLabel,
-            removeTooltip ?? LaunchEditorText.English.RemoveTooltip,
+            removeTooltip,
             "removeLaunch",
             "auto",
             dataJson: $$"""{ "action": "removeLaunch", "launchIndex": {{index}} }""");

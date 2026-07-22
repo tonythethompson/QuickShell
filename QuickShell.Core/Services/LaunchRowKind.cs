@@ -1,4 +1,4 @@
-namespace QuickShell.Services;
+namespace QuickShell.Core.Services;
 
 internal enum LaunchRowKind
 {

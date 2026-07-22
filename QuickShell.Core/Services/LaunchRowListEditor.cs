@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 
 namespace QuickShell.Services;

@@ -1,4 +1,4 @@
-namespace QuickShell.Services;
+namespace QuickShell.Core.Services;
 
 internal sealed record LaunchEditorText(
     string AddCommand,
@@ -6,13 +6,5 @@ internal sealed record LaunchEditorText(
     string RemoveTooltip,
     string EmptyTitle,
     string EmptyGuidance,
-    string ValidationAtLeastOne)
-{
-    public static LaunchEditorText English { get; } = new(
-        "Add command",
-        "Open in terminal",
-        "Remove launch",
-        "No launches yet",
-        "Add at least one command or terminal launch.",
-        "Add at least one launch.");
-}
+    string ValidationAtLeastOne,
+    string CommandsSectionTooltip);

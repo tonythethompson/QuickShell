@@ -118,7 +118,7 @@ internal sealed partial class PendingShortcutEditForm : FormContent
             return QuickShellNavigation.StayOnSettings(Strings.PendingEdit_NonePending);
         }
 
-        var result = _services.Drafts.TryCommitPending(onSaved: null);
+        var result = _services.Drafts.TryCommitPending(onSaved: null, Strings.LaunchEditor_ValidationAtLeastOne, Strings.LaunchEditor_OpenInTerminal);
         if (!result.Success)
         {
             return QuickShellNavigation.StayOnSettings(result.Message);

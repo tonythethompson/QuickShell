@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Models;
 using System.Text.Json.Serialization;
 

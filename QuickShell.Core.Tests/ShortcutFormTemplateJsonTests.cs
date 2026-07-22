@@ -3,6 +3,7 @@ using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Classification;
 using QuickShell.Composition;
+using QuickShell.Core.Services;
 using QuickShell.Services;
 using System.Text.Json;
 
@@ -60,9 +61,10 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
     [Fact]
     public void BuildTemplate_ZeroLaunches_IsValidAndHasNoSyntheticCommandInput()
     {
-        var json = ShortcutFormTemplateJson.BuildTemplate("[]", "[]", []);
+        var text = new LaunchEditorText("Add command", "Open in terminal", "Remove launch", "No launches yet", "Add at least one command or terminal launch.", "Add at least one launch.", "Add a command or open the folder in a terminal.");
+        var json = ShortcutFormTemplateJson.BuildTemplate("[]", "[]", [], launchText: text);
 
-        JsonDocument.Parse(json);
+        using var document = JsonDocument.Parse(json);
         Assert.Contains("No launches yet", json);
         Assert.DoesNotContain("LaunchCommand_0", json);
     }
@@ -70,15 +72,17 @@ public sealed class ShortcutFormTemplateJsonTests : IDisposable
     [Fact]
     public void BuildTemplate_MixedLaunchKinds_IsValid()
     {
+        var text = new LaunchEditorText("Add command", "Open in terminal", "Remove launch", "No launches yet", "Add at least one command or terminal launch.", "Add at least one launch.", "Add a command or open the folder in a terminal.");
         var json = ShortcutFormTemplateJson.BuildTemplate(
             "[]",
             "[]",
             [
                 new() { Kind = LaunchRowKind.Command, Command = "npm start" },
                 new() { Kind = LaunchRowKind.OpenInTerminal, Label = "Shell" },
-            ]);
+            ],
+            launchText: text);
 
-        JsonDocument.Parse(json);
+        using var document = JsonDocument.Parse(json);
         Assert.Contains("LaunchCommand_0", json);
         Assert.DoesNotContain("LaunchCommand_1", json);
         Assert.Contains("removeLaunch", json);

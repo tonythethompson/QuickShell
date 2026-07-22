@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickShell.Abstractions.Classification;
 using QuickShell.Composition;
+using QuickShell.Core.Services;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
@@ -26,7 +27,7 @@ public sealed class ShortcutFormLaunchSectionTests : IDisposable
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.None, IsEditorPlaceholder = true },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", "Open in terminal");
 
         Assert.Single(inputs);
         Assert.Equal("npm start", inputs[0].Command);
@@ -42,7 +43,7 @@ public sealed class ShortcutFormLaunchSectionTests : IDisposable
             new() { Command = "npm test" },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", "Open in terminal");
 
         Assert.Equal(2, inputs.Count);
         Assert.Equal("npm start", inputs[0].Command);
@@ -58,7 +59,7 @@ public sealed class ShortcutFormLaunchSectionTests : IDisposable
             new() { Kind = LaunchRowKind.OpenInTerminal, Command = string.Empty, TaskType = TaskTypeCatalog.None, LaunchTarget = "wt:pwsh" },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", "Open in terminal");
 
         Assert.Equal(2, inputs.Count);
         Assert.Null(inputs[1].Command);
@@ -84,7 +85,7 @@ public sealed class ShortcutFormLaunchSectionTests : IDisposable
             new() { Command = string.Empty, TaskType = TaskTypeCatalog.Services },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", "Open in terminal");
 
         Assert.Single(inputs);
     }
@@ -98,7 +99,7 @@ public sealed class ShortcutFormLaunchSectionTests : IDisposable
             new() { Kind = LaunchRowKind.OpenInTerminal, Command = string.Empty, LaunchTarget = "wt:pwsh", RunAsAdmin = true },
         };
 
-        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default");
+        var inputs = ShortcutFormLaunchSection.ToLaunchInputs(rows, "App", "default", "Open in terminal");
 
         Assert.Equal(2, inputs.Count);
         Assert.False(inputs[0].RunAsAdmin);

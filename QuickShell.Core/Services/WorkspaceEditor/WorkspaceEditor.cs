@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using QuickShell.Abstractions;
 using QuickShell.Abstractions.Classification;
+using QuickShell.Core.Services;
 using QuickShell.Models;
 
 namespace QuickShell.Services.WorkspaceEditor;
@@ -15,6 +16,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
     private readonly IProjectAnalysisService _projectAnalysis;
     private readonly ICommandSuggestionService _commandSuggestions;
     private readonly IQuickShellLifetime _lifetime;
+    private readonly string _validationAtLeastOne;
+    private readonly string _openInTerminalLabel;
     private readonly Action? _onSaved;
 
     private readonly Lock _sync = new();
@@ -42,6 +45,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         IProjectAnalysisService projectAnalysis,
         ICommandSuggestionService commandSuggestions,
         IQuickShellLifetime lifetime,
+        string validationAtLeastOne,
+        string openInTerminalLabel,
         Action? onSaved = null)
     {
         _shortcuts = shortcuts ?? throw new ArgumentNullException(nameof(shortcuts));
@@ -49,6 +54,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         _projectAnalysis = projectAnalysis ?? throw new ArgumentNullException(nameof(projectAnalysis));
         _commandSuggestions = commandSuggestions ?? throw new ArgumentNullException(nameof(commandSuggestions));
         _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+        _validationAtLeastOne = validationAtLeastOne ?? throw new ArgumentNullException(nameof(validationAtLeastOne));
+        _openInTerminalLabel = openInTerminalLabel ?? throw new ArgumentNullException(nameof(openInTerminalLabel));
         _onSaved = onSaved;
     }
 
@@ -216,9 +223,9 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                 return WorkspaceEditResult.StayOpen("That suggestion is no longer available.");
             }
 
-            if (LaunchRowListEditor.TrimForSave(_draft.Commands).Count >= ShortcutLaunchNormalization.MaxLaunchCount)
+            if (!TryReserveLaunchSlot(out var limitMessage))
             {
-                return WorkspaceEditResult.StayOpen($"At most {ShortcutLaunchNormalization.MaxLaunchCount} launch entries are supported.");
+                return WorkspaceEditResult.StayOpen(limitMessage);
             }
 
             PushEditSnapshot();
@@ -233,6 +240,11 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         return Locked(() =>
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!TryReserveLaunchSlot(out var limitMessage))
+            {
+                return WorkspaceEditResult.StayOpen(limitMessage);
+            }
+
             PushEditSnapshot();
             _draft.Commands.Add(new LaunchRowDraft
             {
@@ -254,12 +266,12 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_draft.Commands.Any(row => row.Kind == LaunchRowKind.OpenInTerminal))
             {
-                return WorkspaceEditResult.StayOpen();
+                return WorkspaceEditResult.StayOpen("Only one 'Open in terminal' launch is allowed per workspace.");
             }
 
-            if (LaunchRowListEditor.TrimForSave(_draft.Commands).Count >= ShortcutLaunchNormalization.MaxLaunchCount)
+            if (!TryReserveLaunchSlot(out var limitMessage))
             {
-                return WorkspaceEditResult.StayOpen($"At most {ShortcutLaunchNormalization.MaxLaunchCount} launch entries are supported.");
+                return WorkspaceEditResult.StayOpen(limitMessage);
             }
 
             PushEditSnapshot();
@@ -441,7 +453,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             if (LaunchRowListEditor.TrimForSave(draft.Commands).Count == 0)
             {
                 PersistEditDraftIfNeeded();
-                _saveError = LaunchEditorText.English.ValidationAtLeastOne;
+                _saveError = _validationAtLeastOne;
                 OnChanged();
                 return WorkspaceEditResult.StayOpen(_saveError);
             }
@@ -477,7 +489,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                 draft.Name,
                 draft.Abbreviation,
                 draft.Directory,
-                ShortcutFormLaunchSection.ToLaunchInputs(draft.Commands, draft.Name, draft.LaunchTarget),
+                ShortcutFormLaunchSection.ToLaunchInputs(draft.Commands, draft.Name, draft.LaunchTarget, _openInTerminalLabel),
                 _shortcuts,
                 onSaved: null,
                 draft.DevServerUrl,
@@ -1248,6 +1260,7 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             merged.Add(new LaunchRowDraft
             {
                 Kind = Enum.TryParse<LaunchRowKind>(data[$"LaunchKind_{i}"]?.ToString(), ignoreCase: true, out var kind)
+                    && Enum.IsDefined(typeof(LaunchRowKind), kind)
                     ? kind
                     : prior.Kind,
                 Id = prior.Id,
@@ -1479,6 +1492,18 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
 
         FlushPendingChanged();
         return result;
+    }
+
+    private bool TryReserveLaunchSlot(out string limitMessage)
+    {
+        if (LaunchRowListEditor.TrimForSave(_draft.Commands).Count >= ShortcutLaunchNormalization.MaxLaunchCount)
+        {
+            limitMessage = $"At most {ShortcutLaunchNormalization.MaxLaunchCount} launch entries are supported.";
+            return false;
+        }
+
+        limitMessage = string.Empty;
+        return true;
     }
 
     private static string Normalize(string? value) => (value ?? string.Empty).Trim();

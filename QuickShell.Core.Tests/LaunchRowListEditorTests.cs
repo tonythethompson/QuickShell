@@ -1,3 +1,4 @@
+using QuickShell.Core.Services;
 using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
