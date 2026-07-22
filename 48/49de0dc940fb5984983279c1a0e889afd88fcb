@@ -1,0 +1,43 @@
+QuickShell.Core.Tests/CompanionAppFormJsonTests.cs
+  s_911d943b6fabb8::t_89d84ac53cd0b0 21,24-36,40,42
+  s_911d943b6fabb8::t_9953ee9efb2521 37-39
+  s_911d943b6fabb8::t_ac8c779d54ca80 41
+  s_911d943b6fabb8::t_ee9b7c48bc7ce3 43-45
+  s_ce658b422942f2::t_b21ec41f258917 46-58
+QuickShell.Core/Services/ShortcutFormTemplateJson.cs
+  s_ce658b422942f2::t_c6260425584532 179-180,184-186,189,192-224,227-230
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_911d943b6fabb8::t_baf353ad91daf6 594
+QuickShell.Run/ShortcutWorkspaceEditorWindow.cs
+  s_ce658b422942f2::t_423fa30c850b70 203-218,220,222-227,229-231,236,243-247,1247-1255,1280,1363-1371
+QuickShell.Core/Services/AdaptiveCardFormJson.cs
+  s_ce658b422942f2::t_78374a648a7b0a 118,377,380-390
+QuickShell.Core/Services/CompanionAppFormJson.cs
+  s_ce658b422942f2::t_cb1638fccc6519 40,61-65,134,140-148,182-187
+docs/architecture/companions.md
+  s_ce658b422942f2::t_ab34d946e82e8b 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4849de0dc940fb5984983279c1a0e889afd88fcb",
+  "prompts": {},
+  "sessions": {
+    "s_911d943b6fabb8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0436738e-feec-4fcf-accd-54fe4a411a60",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_ce658b422942f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "87a15c35-7521-48ae-be69-40d1d50fac36",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
