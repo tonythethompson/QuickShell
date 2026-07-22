@@ -1,0 +1,47 @@
+QuickShell/Services/ShortcutContextCommands.cs
+  s_48324972032c2c::t_f1972dc74cf63b 6
+  s_48324972032c2c::t_ddea8708f00e89 17
+  s_48324972032c2c::t_39bc6c697db43e 13-16
+  s_48324972032c2c::t_73c96b9fe54dc5 18-27,83,218
+QuickShell/Services/LazyMoreCommandsListItem.cs
+  s_48324972032c2c::t_8aebde086a3162 1-9,11-12,14-29,64-65
+  s_48324972032c2c::t_4e4534be958135 13,30-63
+  s_48324972032c2c::t_b676ed1e559697 10
+QuickShell.Core.Tests/LazyMoreCommandsListItemTests.cs
+  s_48324972032c2c::t_2d015541de59ca 41,44,52,63-66
+  s_48324972032c2c::t_e437ba4ef9f14d 1-40,42-43,45-51,53-62,67-68
+QuickShell.Core.Tests/FakeShortcutRepository.cs
+  s_48324972032c2c::t_8f9860ad1896d2 45-46
+QuickShell.Core.Tests/Performance/CriticalPathContractTests.cs
+  s_2b89eaf48e0bf9::t_b5fdd7b990fb0d 152-181
+QuickShell.Core.Tests/ShortcutContextMenuRegressionTests.cs
+  s_2b89eaf48e0bf9::t_613863bcdd6e28 138,145-148,150-151
+QuickShell/Services/ShortcutListItems.cs
+  s_48324972032c2c::t_1610a429fc198d 32-34,65,68-70,72,79,88-108
+docs/architecture/performance.md
+  s_48324972032c2c::t_0ff4a178344026 38-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "c28531acf2143fbc6f8c3eb4e510b18bd5ea37d0",
+  "prompts": {},
+  "sessions": {
+    "s_2b89eaf48e0bf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c938dcd-4797-4f21-84dc-089f6a387dca",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_48324972032c2c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d71a5830-760b-4059-8cde-6737cf7be7c8",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
