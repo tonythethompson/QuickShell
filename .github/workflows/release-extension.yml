@@ -163,14 +163,30 @@ jobs:
         github.event.inputs.submit_winget != 'false'
       )
 
+    env:
+      # wingetcreate's `update` command has no flag to set the ReleaseNotes text
+      # field (only --release-notes-url), so it always drops ReleaseNotes on
+      # automated updates. Generate the manifest locally, patch the field in,
+      # then submit the patched manifest instead of using `update --submit`.
+      WINGET_RELEASE_NOTES: ${{ github.event.inputs.release_notes || 'Quick Shell release for PowerToys Command Palette and Run.' }}
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Install WingetCreate
         run: |
           winget install --id Microsoft.WingetCreate -e --source winget `
             --accept-source-agreements --accept-package-agreements --disable-interactivity
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
-          wingetcreate version
+          # WingetCreate 1.12.x: `version` exits 1 / prints help; `info` is the reliable probe.
+          if (-not (Get-Command wingetcreate -ErrorAction SilentlyContinue)) {
+            throw 'wingetcreate was not found on PATH after install.'
+          }
+          wingetcreate info
         shell: pwsh
 
       - name: Submit WinGet manifest update (PowerToys bundled)
@@ -185,15 +201,25 @@ jobs:
 
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
+          $packageId = "${{ env.WINGET_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
           $x64Url = "$baseUrl/QuickShell-Setup-$version-x64.exe"
           $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
+          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
+          $outDir = "winget-out/$packageId"
 
-          wingetcreate update "${{ env.WINGET_PACKAGE_ID }}" `
+          wingetcreate update $packageId `
             --version $version `
             --urls $x64Url $arm64Url `
-            --submit `
-            --token $env:WINGET_PAT
+            --release-notes-url $releaseNotesUrl `
+            --out $outDir
+
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $env:WINGET_RELEASE_NOTES
+
+          wingetcreate submit `
+            --prtitle "$packageId version $version" `
+            --token $env:WINGET_PAT `
+            $outDir
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -207,15 +233,25 @@ jobs:
 
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
+          $packageId = "${{ env.WINGET_CMDPAL_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
           $x64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe"
           $arm64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe"
+          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
+          $outDir = "winget-out/$packageId"
 
-          wingetcreate update "${{ env.WINGET_CMDPAL_PACKAGE_ID }}" `
+          wingetcreate update $packageId `
             --version $version `
             --urls $x64Url $arm64Url `
-            --submit `
-            --token $env:WINGET_PAT
+            --release-notes-url $releaseNotesUrl `
+            --out $outDir
+
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $env:WINGET_RELEASE_NOTES
+
+          wingetcreate submit `
+            --prtitle "$packageId version $version" `
+            --token $env:WINGET_PAT `
+            $outDir
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -229,15 +265,25 @@ jobs:
 
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
+          $packageId = "${{ env.WINGET_RUN_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
           $x64Url = "$baseUrl/QuickShellforRun-Setup-$version-x64.exe"
           $arm64Url = "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe"
+          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
+          $outDir = "winget-out/$packageId"
 
-          wingetcreate update "${{ env.WINGET_RUN_PACKAGE_ID }}" `
+          wingetcreate update $packageId `
             --version $version `
             --urls $x64Url $arm64Url `
-            --submit `
-            --token $env:WINGET_PAT
+            --release-notes-url $releaseNotesUrl `
+            --out $outDir
+
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $env:WINGET_RELEASE_NOTES
+
+          wingetcreate submit `
+            --prtitle "$packageId version $version" `
+            --token $env:WINGET_PAT `
+            $outDir
         shell: pwsh
         continue-on-error: true
         env:
