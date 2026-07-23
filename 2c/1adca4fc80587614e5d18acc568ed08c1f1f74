@@ -1,0 +1,21 @@
+.tmp/gallery/ext-main.json
+  s_c794253886b768::t_a73a43ff000ee3 1-36
+.tmp/gallery/ext-pr.json
+  s_c794253886b768::t_a73a43ff000ee3 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2c1adca4fc80587614e5d18acc568ed08c1f1f74",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
