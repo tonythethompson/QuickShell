@@ -1,0 +1,23 @@
+QuickShell.Raycast/src/lib/storage.ts
+  s_c794253886b768::t_28a4f8f732d8d0 292-297,560-564
+QuickShell.Raycast/CHANGELOG.md
+  s_c794253886b768::t_28a4f8f732d8d0 3
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_c794253886b768::t_28a4f8f732d8d0 324-363
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7c37e5e3005bc1f027123606589385f6b804fe5f",
+  "prompts": {},
+  "sessions": {
+    "s_c794253886b768": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e24003b2-00dc-4a6f-9b84-6da0006dc969",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
