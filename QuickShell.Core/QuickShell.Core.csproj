@@ -9,6 +9,8 @@
     <PlatformTarget>$(Platform)</PlatformTarget>
     <!-- WinForms removed to unblock trimming in the packaged host. TerminalListIconCache
          still needs GDI+, supplied by the lighter System.Drawing.Common package instead. -->
+    <!-- Source-generated COM / LibraryImport for ShellFileDialog + Win32Clipboard. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

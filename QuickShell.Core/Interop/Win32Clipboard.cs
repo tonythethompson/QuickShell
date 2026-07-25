@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace QuickShell.Interop;
 
@@ -14,6 +15,8 @@ internal static partial class Win32Clipboard
 {
     private const uint CF_UNICODETEXT = 13;
     private const uint GMEM_MOVEABLE = 0x0002;
+    private const int OpenRetryCount = 10;
+    private const int OpenRetryDelayMs = 50;
 
     public static string? GetText()
     {
@@ -22,7 +25,7 @@ internal static partial class Win32Clipboard
             return null;
         }
 
-        if (!OpenClipboard(0))
+        if (!TryOpenClipboard())
         {
             return null;
         }
@@ -43,7 +46,16 @@ internal static partial class Win32Clipboard
 
             try
             {
-                return Marshal.PtrToStringUni(locked);
+                // Bound the read: clipboard memory is owned by another process and may omit
+                // a terminator. GlobalSize is the allocated byte length of the HGLOBAL.
+                nint byteLen = GlobalSize(handle);
+                if (byteLen <= 0)
+                {
+                    return null;
+                }
+
+                int charCount = (int)(byteLen / sizeof(char));
+                return Marshal.PtrToStringUni(locked, charCount)?.TrimEnd('\0');
             }
             finally
             {
@@ -60,7 +72,7 @@ internal static partial class Win32Clipboard
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        if (!OpenClipboard(0))
+        if (!TryOpenClipboard())
         {
             return false;
         }
@@ -123,6 +135,28 @@ internal static partial class Win32Clipboard
         }
     }
 
+    /// <summary>
+    /// WinForms Clipboard retried OpenClipboard briefly when another app held it.
+    /// Match that so transient contention does not fail copy/paste.
+    /// </summary>
+    private static bool TryOpenClipboard()
+    {
+        for (var attempt = 0; attempt < OpenRetryCount; attempt++)
+        {
+            if (OpenClipboard(0))
+            {
+                return true;
+            }
+
+            if (attempt + 1 < OpenRetryCount)
+            {
+                Thread.Sleep(OpenRetryDelayMs);
+            }
+        }
+
+        return false;
+    }
+
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool OpenClipboard(nint hWndNewOwner);
@@ -157,4 +191,7 @@ internal static partial class Win32Clipboard
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GlobalUnlock(nint hMem);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    private static partial nint GlobalSize(nint hMem);
 }

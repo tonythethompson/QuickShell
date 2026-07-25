@@ -14,8 +14,6 @@
     <AppxPackagePublisher>CN=31D3C278-3D55-4A42-BA6A-24E16D15B863</AppxPackagePublisher>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
-    <!-- Source-generated COM / LibraryImport interop (ShellFileDialog, Win32Clipboard). -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <!-- Local dev PFX password: override via QuickShellPackageCertificatePassword env/user prop -->

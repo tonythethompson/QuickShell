@@ -20,7 +20,12 @@ internal static class FolderPickerService
         }
 
         string? selected = null;
-        var thread = new Thread(() => selected = PickFolderOnStaThread(initialDirectory, ownerHandle))
+        var nativeThreadId = 0;
+        var thread = new Thread(() =>
+        {
+            nativeThreadId = StaDialogCloser.GetCurrentThreadId();
+            selected = PickFolderOnStaThread(initialDirectory, ownerHandle);
+        })
         {
             IsBackground = true,
         };
@@ -28,14 +33,14 @@ internal static class FolderPickerService
         thread.Start();
 
         // The modal IFileDialog blocks the STA thread until dismissed. DialogTimeout +
-        // JoinGracePeriod bounds a stuck dialog; on timeout, post WM_CLOSE to the foreground
-        // window (the modal dialog is topmost) so the thread unblocks and the caller never hangs.
+        // JoinGracePeriod bounds a stuck dialog; on timeout, post WM_CLOSE only to a
+        // dialog owned by that STA thread (not an arbitrary foreground window).
         if (thread.Join(DialogTimeout + JoinGracePeriod))
         {
             return selected;
         }
 
-        TryCloseForegroundDialog(ownerHandle);
+        StaDialogCloser.TryCloseThreadDialog(Volatile.Read(ref nativeThreadId), ownerHandle);
         return thread.Join(JoinGracePeriod) ? selected : null;
     }
 
@@ -48,23 +53,6 @@ internal static class FolderPickerService
         return ShellFileDialog.PickFolder(ownerHandle, initial);
     }
 
-    private static void TryCloseForegroundDialog(nint ownerHandle)
-    {
-        var hwnd = GetForegroundWindow();
-        if (hwnd == 0 || hwnd == ownerHandle)
-        {
-            return;
-        }
-
-        PostMessage(hwnd, WM_CLOSE, nint.Zero, nint.Zero);
-    }
-
     [DllImport("user32.dll")]
     private static extern nint GetForegroundWindow();
-
-    private const int WM_CLOSE = 0x0010;
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);
 }

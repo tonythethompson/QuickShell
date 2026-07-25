@@ -7,8 +7,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <!-- Source-generated COM / LibraryImport interop (ShellFileDialog, Win32Clipboard). -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Platforms>x64;ARM64</Platforms>
     <PlatformTarget>$(Platform)</PlatformTarget>
   </PropertyGroup>

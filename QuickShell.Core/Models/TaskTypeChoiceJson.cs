@@ -10,7 +10,7 @@ namespace QuickShell.Models;
 /// <see cref="JsonPropertyNameAttribute"/> preserves the exact lowercase JSON keys the
 /// previous anonymous-type serialization produced (the CmdPal host expects this casing).
 /// </summary>
-internal sealed record TaskTypeChoiceJson(
+internal readonly record struct TaskTypeChoiceJson(
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("value")] string Value,
     [property: JsonPropertyName("tooltip")] string Tooltip);

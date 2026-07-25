@@ -10,6 +10,6 @@ namespace QuickShell.Models;
 /// <see cref="JsonPropertyNameAttribute"/> preserves the exact lowercase JSON keys the
 /// previous anonymous-type serialization produced (the CmdPal host expects this casing).
 /// </summary>
-internal sealed record FormChoiceJson(
+internal readonly record struct FormChoiceJson(
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("value")] string Value);
