@@ -11,6 +11,7 @@ on:
       - "**/*.sln"
       - "QuickShell.Raycast/**"
       - ".github/workflows/codeql.yml"
+      - ".github/codeql/**"
   pull_request:
     paths:
       - "**/*.cs"
@@ -18,6 +19,7 @@ on:
       - "**/*.sln"
       - "QuickShell.Raycast/**"
       - ".github/workflows/codeql.yml"
+      - ".github/codeql/**"
   schedule:
     - cron: "17 3 * * 0"
   workflow_dispatch:
@@ -51,6 +53,7 @@ jobs:
               - '**/*.csproj'
               - '**/*.sln'
               - '.github/workflows/codeql.yml'
+              - '.github/codeql/**'
             raycast:
               - 'QuickShell.Raycast/**'
               - '.github/workflows/codeql.yml'
@@ -86,7 +89,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: csharp
-          queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Restore solution
         run: dotnet restore QuickShell.sln --verbosity minimal

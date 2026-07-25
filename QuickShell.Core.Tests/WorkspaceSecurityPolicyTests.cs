@@ -271,6 +271,78 @@ public sealed class WorkspaceSecurityPolicyTests : IDisposable
     }
 
     [Fact]
+    public void ComputeDigest_matches_legacy_anonymous_Serialize_bytes()
+    {
+        // Pins trim-safe DTO serialization to the pre-refactor JsonSerializer.Serialize(anonymous)
+        // shape (compact, nulls included). Drift here silently invalidates WorkspaceReviewToken digests.
+        var workspace = new TerminalShortcut
+        {
+            Id = "digest-workspace",
+            Name = "Digest",
+            Directory = @"C:\repos\demo",
+            Command = null,
+            Terminal = "wt",
+            WtProfile = null,
+            RunAsAdmin = false,
+            Launches =
+            [
+                new WorkspaceEntry
+                {
+                    Id = "launch-1",
+                    Label = "Launch",
+                    Terminal = "default",
+                    WtProfile = null,
+                    Command = "echo hi",
+                    RunAsAdmin = false,
+                    IsEnabled = true,
+                    Order = 0,
+                    TaskType = "none",
+                },
+            ],
+            DevServerUrl = null,
+            OpenDevServerOnLaunch = false,
+            RepoUrl = null,
+            CompanionApps =
+            [
+                new CompanionAppEntry
+                {
+                    Id = "companion-1",
+                    Path = @"C:\Tools\editor.exe",
+                    Arguments = null,
+                    OpenOnLaunch = true,
+                    Order = 0,
+                },
+            ],
+            OpenCompanionAppOnLaunch = true,
+            CompanionAppPath = @"C:\Tools\editor.exe",
+            CompanionAppArguments = null,
+        };
+
+        var legacyPayload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            workspace.Id,
+            workspace.Name,
+            workspace.Directory,
+            workspace.Command,
+            workspace.Terminal,
+            workspace.WtProfile,
+            workspace.RunAsAdmin,
+            workspace.Launches,
+            workspace.DevServerUrl,
+            workspace.OpenDevServerOnLaunch,
+            workspace.RepoUrl,
+            workspace.CompanionApps,
+            workspace.OpenCompanionAppOnLaunch,
+            workspace.CompanionAppPath,
+            workspace.CompanionAppArguments,
+        });
+        var expected = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(legacyPayload)));
+
+        Assert.Equal(expected, WorkspaceSecurityPolicy.ComputeDigest(workspace));
+    }
+
+    [Fact]
     public void Trust_review_token_is_invalidated_by_revision_change()
     {
         using var repository = CreateRepository();

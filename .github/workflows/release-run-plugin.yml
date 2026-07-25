@@ -92,7 +92,7 @@ jobs:
             Restart PowerToys after copying files.
 
             - Activate with the **qs** action keyword, or type **Quick Shell** / **quickshell** in global Run.
-            - See [docs/powertoys-run-plugin.md](https://github.com/tonythethompson/QuickShell/blob/main/docs/powertoys-run-plugin.md).
+            - See [docs/powertoys-run-plugin.md](https://github.com/tonythethompson/QuickShell/blob/master/docs/powertoys-run-plugin.md).
           files: |
             QuickShell.Run/bin/x64/Release/QuickShell.Run-x64.zip
             QuickShell.Run/bin/ARM64/Release/QuickShell.Run-ARM64.zip

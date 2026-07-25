@@ -1,4 +1,5 @@
 using QuickShell.Abstractions.Classification;
+using QuickShell.Models;
 using QuickShell.Services;
 
 namespace QuickShell.Classification;
@@ -78,21 +79,26 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         return $"Suggests: {first.Command} · also {alternates}";
     }
 
+    /// <summary>
+    /// Builds a JSON payload containing the available task type choices.
+    /// </summary>
+    /// <param name="directory">The project directory used to determine available choices.</param>
+    /// <param name="pickContext">Context used to select task type suggestions.</param>
+    /// <param name="includePlaceholder">Whether to include the choice for adding a new command row.</param>
+    /// <returns>A JSON representation of the task type choices.</returns>
     public string BuildTaskTypeChoicesJson(
         string? directory = null,
         TaskTypePickContext? pickContext = null,
         bool includePlaceholder = true)
     {
         pickContext ??= TaskTypePickContext.Empty;
-        var choices = new List<object>();
+        var choices = new List<TaskTypeChoiceJson>();
         if (includePlaceholder)
         {
-            choices.Add(new
-            {
-                title = "Choose a command…",
-                value = TaskTypeCatalog.None,
-                tooltip = "Adds a new command row with a project-aware suggestion.",
-            });
+            choices.Add(new TaskTypeChoiceJson(
+                "Choose a command…",
+                TaskTypeCatalog.None,
+                "Adds a new command row with a project-aware suggestion."));
         }
 
         foreach (var def in TaskTypeCatalog.GetChoices())
@@ -102,18 +108,21 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
                 continue;
             }
 
-            choices.Add(new
-            {
-                title = def.Title,
-                value = def.Id,
-                tooltip = GetTaskTypeChoiceTooltip(directory, def.Id, pickContext),
-            });
+            choices.Add(new TaskTypeChoiceJson(
+                def.Title,
+                def.Id,
+                GetTaskTypeChoiceTooltip(directory, def.Id, pickContext)));
         }
 
-        return System.Text.Json.JsonSerializer.Serialize(choices);
+        return System.Text.Json.JsonSerializer.Serialize(choices, QuickShellJsonContext.Default.ListTaskTypeChoiceJson);
     }
 
-    public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
+    /// <summary>
+        /// Suggests a companion app for the specified project directory.
+        /// </summary>
+        /// <param name="directory">The project directory to inspect.</param>
+        /// <returns>A companion app suggestion, or null when no suggestion is available.</returns>
+        public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
         _companionAppDetector.TrySuggest(directory);
 
     public string? TryDetectDevServerUrl(string directory) =>

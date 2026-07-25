@@ -1,0 +1,15 @@
+<linker>
+  <!--
+    Trimmer safety net for the CmdPal COM-activation seam. QuickShellExtension is created
+    via an explicit factory lambda (Program.cs:57) and handed to Shmuelie.WinRTServer, which
+    marshals it to the CmdPal host over COM/CsWinRT. The static trimmer can't always see that
+    path is reachable from the process entry point, so root the extension type. (The
+    Microsoft.CommandPalette.Extensions contract is an out-of-process winmd, not a loadable
+    managed assembly — see MarkCmdPalContractWinmdOutOfProcess in QuickShell.csproj — so it
+    cannot be rooted here and does not need to be: the trimmer only prunes IL in assemblies it
+    can load.)
+  -->
+  <assembly fullname="QuickShell">
+    <type fullname="QuickShell.QuickShellExtension" />
+  </assembly>
+</linker>

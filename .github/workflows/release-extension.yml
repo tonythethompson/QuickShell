@@ -106,7 +106,7 @@ jobs:
 
             ${{ github.event.inputs.release_notes }}
 
-            Package matrix: [docs/release-packages.md](https://github.com/tonythethompson/QuickShell/blob/main/docs/release-packages.md)
+            Package matrix: [docs/release-packages.md](https://github.com/tonythethompson/QuickShell/blob/master/docs/release-packages.md)
 
             ## Install
 

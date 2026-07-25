@@ -407,10 +407,17 @@ internal static class WorkspaceSecurityPolicy
         && workspace.Revision == token.Revision
         && string.Equals(ComputeDigest(workspace.Content), token.Digest, StringComparison.Ordinal);
 
+    /// <summary>
+    /// Computes a hexadecimal SHA-256 digest for the workspace content.
+    /// </summary>
+    /// <param name="workspace">The workspace content to digest.</param>
+    /// <returns>The hexadecimal SHA-256 digest of the workspace content.</returns>
     public static string ComputeDigest(TerminalShortcut workspace)
     {
-        var payload = JsonSerializer.Serialize(new
-        {
+        // Named DTO + QuickShellDigestJsonContext (not QuickShellJsonContext): the digest
+        // context mirrors default Serialize(object) bytes so existing WorkspaceReviewToken
+        // values keep matching. Field set/order below is load-bearing.
+        var digestPayload = new WorkspaceDigestPayload(
             workspace.Id,
             workspace.Name,
             workspace.Directory,
@@ -425,8 +432,10 @@ internal static class WorkspaceSecurityPolicy
             workspace.CompanionApps,
             workspace.OpenCompanionAppOnLaunch,
             workspace.CompanionAppPath,
-            workspace.CompanionAppArguments,
-        });
+            workspace.CompanionAppArguments);
+        var payload = JsonSerializer.Serialize(
+            digestPayload,
+            QuickShellDigestJsonContext.Default.WorkspaceDigestPayload);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
     }
 

@@ -1,10 +1,15 @@
 using System.Threading;
-using System.Windows.Forms;
+using QuickShell.Interop;
 
 namespace QuickShell.Services;
 
 internal static class StaClipboard
 {
+    /// <summary>
+    /// Attempts to set the clipboard text, using an STA thread when required.
+    /// </summary>
+    /// <param name="text">The text to place on the clipboard.</param>
+    /// <returns><c>true</c> if the clipboard text is set successfully within five seconds; <c>false</c> otherwise.</returns>
     public static bool TrySetText(string text)
     {
         if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) return SetText();
@@ -14,10 +19,7 @@ internal static class StaClipboard
         thread.Start();
         return thread.Join(TimeSpan.FromSeconds(5)) && success;
 
-        bool SetText()
-        {
-            try { Clipboard.SetText(text); return true; }
-            catch { return false; }
-        }
+        // Win32Clipboard returns false on failure; no generic catch needed.
+        bool SetText() => Win32Clipboard.SetText(text);
     }
 }
