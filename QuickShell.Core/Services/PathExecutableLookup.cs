@@ -115,11 +115,20 @@ internal static class PathExecutableLookup
         }
 
         var name = Path.GetFileName(fileName.Trim());
-        foreach (var segment in pathValue.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        // Performance optimization - avoid string[] and intermediate string allocations
+        // from pathValue.Split() on long PATH variables. Using AsSpan().Split() with Range
+        // makes this hot-path executable resolution allocation-free for the segment iteration.
+        foreach (var range in pathValue.AsSpan().Split(';'))
         {
+            var segment = pathValue.AsSpan()[range].Trim();
+            if (segment.IsEmpty)
+            {
+                continue;
+            }
+
             try
             {
-                var candidate = Path.Join(segment, name);
+                var candidate = Path.Join(segment, name.AsSpan());
                 if (!File.Exists(candidate))
                 {
                     continue;
