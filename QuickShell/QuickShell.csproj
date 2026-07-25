@@ -14,8 +14,8 @@
     <AppxPackagePublisher>CN=31D3C278-3D55-4A42-BA6A-24E16D15B863</AppxPackagePublisher>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- Source-generated COM / LibraryImport interop (ShellFileDialog, Win32Clipboard). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <!-- Local dev PFX password: override via QuickShellPackageCertificatePassword env/user prop -->
@@ -105,8 +105,12 @@
 
     <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
     <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
-    <!-- Suppress DynamicallyAccessedMemberTypes.PublicParameterlessConstructor in fallback code path of Windows SDK projection -->
-    <WarningsNotAsErrors>IL2081;$(WarningsNotAsErrors)</WarningsNotAsErrors>
+    <!-- IL2081: DynamicallyAccessedMemberTypes.PublicParameterlessConstructor fallback path in
+         the Windows SDK projection. IL2104: Microsoft.Windows.SDK.NET and WinRT.Runtime are not
+         themselves annotated IsTrimmable, so ILLink reports "assembly produced trim warnings"
+         for them as a rollup diagnostic once ILLinkTreatWarningsAsErrors is on; the assemblies
+         are still trimmed (unreferenced types removed), this only suppresses the summary error. -->
+    <WarningsNotAsErrors>IL2081;IL2104;$(WarningsNotAsErrors)</WarningsNotAsErrors>
 
     <!-- When publishing trimmed, make sure to treat trimming warnings as build errors -->
     <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
@@ -150,14 +154,18 @@
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Release MSIX (Store / VS Create App Packages): WinForms is incompatible with trimming -->
+  <!-- Release MSIX (Store / VS Create App Packages): WinForms is gone, so trimming can prune
+       the CsWinRT/Windows SDK projection (Microsoft.Windows.SDK.NET.dll) and the rest of the BCL. -->
   <PropertyGroup Condition="'$(Configuration)'=='Release' and '$(WinGetBuild)'!='true'">
-    <PublishTrimmed>false</PublishTrimmed>
-    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
-    <!-- WinForms ships many localized satellite assemblies. List only the cultures Quick Shell
-         actually ships so MakePRI stays quiet and the MSIX stays lean. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
+    <!-- List only the cultures Quick Shell actually ships so MakePRI stays quiet and the MSIX stays lean. -->
     <SatelliteResourceLanguages>en;fr;de;it;ru;zh-Hans;zh-Hant;es;ja;ko;pt-BR</SatelliteResourceLanguages>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)'=='Release' and '$(WinGetBuild)'!='true'">
+    <TrimmerRootDescriptor Include="ILLink.Descriptors.xml" />
+  </ItemGroup>
 
   <!-- Release MSIX for Microsoft Store (scripts/build-store.ps1 sets StoreBuild=true).
        Unsigned packages are re-signed by Microsoft after certification. -->

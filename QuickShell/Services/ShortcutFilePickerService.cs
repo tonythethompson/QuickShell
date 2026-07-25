@@ -1,98 +1,68 @@
-using System.Runtime.InteropServices;
 using System.Threading;
+using System.Runtime.InteropServices;
+using QuickShell.Interop;
 
 namespace QuickShell.Services;
 
 internal static class ShortcutFilePickerService
 {
-    private const string JsonFilter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+    private static readonly (string Name, string Spec)[] JsonFilters =
+    {
+        ("JSON files (*.json)", "*.json"),
+        ("All files (*.*)", "*.*"),
+    };
+
+    private static readonly (string Name, string Spec)[] ExecutableFilters =
+    {
+        ("Applications (*.exe;*.lnk;*.bat;*.cmd)", "*.exe;*.lnk;*.bat;*.cmd"),
+        ("All files (*.*)", "*.*"),
+    };
+
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromMinutes(2);
 
     public static string? PickExportFile(IQuickShellServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
-        var initialDirectory = services.Shortcuts.ConfigDirectory;
+        var initialDirectory = DirectoryOrNull(services.Shortcuts.ConfigDirectory);
 
-        return RunOnStaThread(() =>
-        {
-            using var dialog = new System.Windows.Forms.SaveFileDialog
-            {
-                Title = $"Export {QuickShellBrand.DisplayName} workspaces",
-                Filter = JsonFilter,
-                DefaultExt = "json",
-                AddExtension = true,
-                FileName = defaultName,
-                OverwritePrompt = true,
-            };
-
-            if (Directory.Exists(initialDirectory))
-            {
-                dialog.InitialDirectory = initialDirectory;
-            }
-
-            return ShowDialog(dialog);
-        });
+        return RunOnStaThread(() => ShellFileDialog.PickSaveFile(
+            GetForegroundWindow(),
+            $"Export {QuickShellBrand.DisplayName} workspaces",
+            JsonFilters,
+            defaultExt: "json",
+            defaultFileName: defaultName,
+            initialDirectory: initialDirectory));
     }
 
     public static string? PickImportFile(IQuickShellServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        var initialDirectory = services.Shortcuts.ConfigDirectory;
+        var initialDirectory = DirectoryOrNull(services.Shortcuts.ConfigDirectory);
 
-        return RunOnStaThread(() =>
-        {
-            using var dialog = new System.Windows.Forms.OpenFileDialog
-            {
-                Title = $"Import {QuickShellBrand.DisplayName} workspaces",
-                Filter = JsonFilter,
-                DefaultExt = "json",
-                CheckFileExists = true,
-                Multiselect = false,
-            };
-
-            if (Directory.Exists(initialDirectory))
-            {
-                dialog.InitialDirectory = initialDirectory;
-            }
-
-            return ShowDialog(dialog);
-        });
+        return RunOnStaThread(() => ShellFileDialog.PickOpenFile(
+            GetForegroundWindow(),
+            $"Import {QuickShellBrand.DisplayName} workspaces",
+            JsonFilters,
+            defaultExt: "json",
+            initialDirectory: initialDirectory));
     }
 
     public static string? PickExecutableFile()
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-        var initialDirectory = Directory.Exists(programFiles) ? programFiles : null;
+        var initialDirectory = DirectoryOrNull(programFiles);
 
-        return RunOnStaThread(() =>
-        {
-            using var dialog = new System.Windows.Forms.OpenFileDialog
-            {
-                Title = "Choose companion app",
-                Filter = "Applications (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|All files (*.*)|*.*",
-                DefaultExt = "exe",
-                CheckFileExists = true,
-                Multiselect = false,
-            };
-
-            if (initialDirectory is not null)
-            {
-                dialog.InitialDirectory = initialDirectory;
-            }
-
-            return ShowDialog(dialog);
-        });
+        return RunOnStaThread(() => ShellFileDialog.PickOpenFile(
+            GetForegroundWindow(),
+            "Choose companion app",
+            ExecutableFilters,
+            defaultExt: "exe",
+            initialDirectory: initialDirectory));
     }
 
-    private static string? ShowDialog(System.Windows.Forms.FileDialog dialog)
-    {
-        var ownerHandle = GetForegroundWindow();
-        var owner = ownerHandle != 0 ? new NativeWindowWrapper(ownerHandle) : null;
-        return dialog.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK
-            ? dialog.FileName
-            : null;
-    }
+    private static string? DirectoryOrNull(string? path) =>
+        !string.IsNullOrWhiteSpace(path) && Directory.Exists(path) ? path : null;
 
     private static string? RunOnStaThread(Func<string?> action)
     {
@@ -114,9 +84,4 @@ internal static class ShortcutFilePickerService
 
     [DllImport("user32.dll")]
     private static extern nint GetForegroundWindow();
-
-    private sealed class NativeWindowWrapper(nint handle) : System.Windows.Forms.IWin32Window
-    {
-        public nint Handle { get; } = handle;
-    }
 }

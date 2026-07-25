@@ -1,4 +1,5 @@
 using QuickShell.Abstractions.Classification;
+using QuickShell.Models;
 using QuickShell.Services;
 
 namespace QuickShell.Classification;
@@ -84,15 +85,13 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         bool includePlaceholder = true)
     {
         pickContext ??= TaskTypePickContext.Empty;
-        var choices = new List<object>();
+        var choices = new List<TaskTypeChoiceJson>();
         if (includePlaceholder)
         {
-            choices.Add(new
-            {
-                title = "Choose a command…",
-                value = TaskTypeCatalog.None,
-                tooltip = "Adds a new command row with a project-aware suggestion.",
-            });
+            choices.Add(new TaskTypeChoiceJson(
+                "Choose a command…",
+                TaskTypeCatalog.None,
+                "Adds a new command row with a project-aware suggestion."));
         }
 
         foreach (var def in TaskTypeCatalog.GetChoices())
@@ -102,15 +101,13 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
                 continue;
             }
 
-            choices.Add(new
-            {
-                title = def.Title,
-                value = def.Id,
-                tooltip = GetTaskTypeChoiceTooltip(directory, def.Id, pickContext),
-            });
+            choices.Add(new TaskTypeChoiceJson(
+                def.Title,
+                def.Id,
+                GetTaskTypeChoiceTooltip(directory, def.Id, pickContext)));
         }
 
-        return System.Text.Json.JsonSerializer.Serialize(choices);
+        return System.Text.Json.JsonSerializer.Serialize(choices, QuickShellJsonContext.Default.ListTaskTypeChoiceJson);
     }
 
     public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>

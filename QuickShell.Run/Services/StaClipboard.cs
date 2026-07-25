@@ -1,5 +1,5 @@
 using System.Threading;
-using System.Windows.Forms;
+using QuickShell.Interop;
 
 namespace QuickShell.Services;
 
@@ -16,7 +16,7 @@ internal static class StaClipboard
 
         bool SetText()
         {
-            try { Clipboard.SetText(text); return true; }
+            try { return Win32Clipboard.SetText(text); }
             catch { return false; }
         }
     }

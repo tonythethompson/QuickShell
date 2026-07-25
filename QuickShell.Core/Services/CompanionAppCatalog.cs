@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickShell.Models;
 
 namespace QuickShell.Services;
 
@@ -166,7 +167,8 @@ internal static class CompanionAppCatalog
 
     private static string SerializeFormChoices(IReadOnlyList<(string Id, string Title)> choices) =>
         JsonSerializer.Serialize(
-            choices.Select(choice => new { title = choice.Title, value = choice.Id }));
+            choices.Select(choice => new FormChoiceJson(choice.Title, choice.Id)).ToList(),
+            QuickShellJsonContext.Default.ListFormChoiceJson);
 
     private static List<(string Id, string Title)> BuildInstalledFormChoicesUncached()
     {
