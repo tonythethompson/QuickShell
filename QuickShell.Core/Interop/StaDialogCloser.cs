@@ -65,8 +65,7 @@ internal static class StaDialogCloser
 
     public static int CurrentNativeThreadId()
     {
-        // codeql[cs/call-to-unmanaged-code]: Native thread id required for EnumThreadWindows on the picker STA thread.
-        return GetCurrentThreadId();
+        return Environment.CurrentManagedThreadId;
     }
 
     private static unsafe bool IsDialogClass(nint hwnd)
@@ -102,6 +101,5 @@ internal static class StaDialogCloser
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);
 
-    [DllImport("kernel32.dll")]
-    private static extern int GetCurrentThreadId();
+
 }
