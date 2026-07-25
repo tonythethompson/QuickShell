@@ -100,12 +100,6 @@ internal static class PathExecutableLookup
         }
     }
 
-    /// <summary>
-    /// Searches the system PATH for an executable file.
-    /// </summary>
-    /// <param name="fileName">The executable file name or path to search for.</param>
-    /// <param name="fullPath">The resolved full path when the executable is found; otherwise, an empty string.</param>
-    /// <returns><see langword="true"/> if the executable is found on the PATH; <see langword="false"/> otherwise.</returns>
     public static bool TryFindOnPath(string fileName, out string fullPath)
     {
         fullPath = string.Empty;
