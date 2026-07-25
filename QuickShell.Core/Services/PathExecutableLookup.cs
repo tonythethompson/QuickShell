@@ -100,6 +100,12 @@ internal static class PathExecutableLookup
         }
     }
 
+    /// <summary>
+    /// Searches the PATH environment variable for an existing executable.
+    /// </summary>
+    /// <param name="fileName">The executable file name to locate.</param>
+    /// <param name="fullPath">Receives the fully qualified path when the executable is found.</param>
+    /// <returns><c>true</c> if an existing executable is found; <c>false</c> otherwise.</returns>
     public static bool TryFindOnPath(string fileName, out string fullPath)
     {
         fullPath = string.Empty;
