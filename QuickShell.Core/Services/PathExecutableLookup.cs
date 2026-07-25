@@ -100,12 +100,6 @@ internal static class PathExecutableLookup
         }
     }
 
-    /// <summary>
-    /// Searches the PATH environment variable for an existing executable.
-    /// </summary>
-    /// <param name="fileName">The executable file name to locate.</param>
-    /// <param name="fullPath">Receives the fully qualified path when the executable is found.</param>
-    /// <returns><c>true</c> if an existing executable is found; <c>false</c> otherwise.</returns>
     public static bool TryFindOnPath(string fileName, out string fullPath)
     {
         fullPath = string.Empty;
@@ -121,9 +115,10 @@ internal static class PathExecutableLookup
         }
 
         var name = Path.GetFileName(fileName.Trim());
-        foreach (var rawSegment in pathValue.Split(';'))
+        // ⚡ Bolt: Performance optimization - use AsSpan().Split() to avoid allocating intermediate string array and instances
+        foreach (var range in pathValue.AsSpan().Split(';'))
         {
-            var segment = rawSegment.AsSpan().Trim();
+            var segment = pathValue.AsSpan()[range].Trim();
             if (segment.IsEmpty)
             {
                 continue;
