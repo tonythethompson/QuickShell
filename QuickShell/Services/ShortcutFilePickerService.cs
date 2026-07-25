@@ -19,6 +19,11 @@ internal static class ShortcutFilePickerService
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan JoinGracePeriod = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Prompts the user to choose a destination for exporting workspace data.
+    /// </summary>
+    /// <param name="services">The shell services used to determine the workspace configuration directory.</param>
+    /// <returns>The selected export file path, or <c>null</c> if no file is selected.</returns>
     public static string? PickExportFile(IQuickShellServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -39,6 +44,11 @@ internal static class ShortcutFilePickerService
             JoinGracePeriod);
     }
 
+    /// <summary>
+    /// Prompts the user to select a workspace import file.
+    /// </summary>
+    /// <param name="services">The shell services used to locate the shortcuts configuration directory.</param>
+    /// <returns>The selected JSON file path, or <c>null</c> if no file is selected.</returns>
     public static string? PickImportFile(IQuickShellServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -57,6 +67,10 @@ internal static class ShortcutFilePickerService
             JoinGracePeriod);
     }
 
+    /// <summary>
+    /// Prompts the user to select a companion executable file.
+    /// </summary>
+    /// <returns>The selected executable file path, or <c>null</c> if no file is selected.</returns>
     public static string? PickExecutableFile()
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -75,6 +89,11 @@ internal static class ShortcutFilePickerService
             JoinGracePeriod);
     }
 
-    private static string? DirectoryOrNull(string? path) =>
+    /// <summary>
+        /// Gets the path when it identifies an existing directory.
+        /// </summary>
+        /// <param name="path">The directory path to check.</param>
+        /// <returns>The existing directory path, or <c>null</c> when the path is blank or does not exist.</returns>
+        private static string? DirectoryOrNull(string? path) =>
         !string.IsNullOrWhiteSpace(path) && Directory.Exists(path) ? path : null;
 }

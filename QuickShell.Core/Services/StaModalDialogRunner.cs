@@ -10,6 +10,15 @@ namespace QuickShell.Services;
 /// </summary>
 internal static class StaModalDialogRunner
 {
+    /// <summary>
+    /// Executes an action in an STA context with timeout-based dialog recovery.
+    /// </summary>
+    /// <param name="ownerHandle">The native handle of the dialog owner.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="dialogTimeout">The initial time allowed for the action to complete.</param>
+    /// <param name="joinGracePeriod">The additional time allowed for completion and recovery.</param>
+    /// <returns>The action's selected value, or <see langword="null"/> if the action fails or does not complete within the recovery period.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="action"/> is <see langword="null"/>.</exception>
     public static string? Run(
         nint ownerHandle,
         Func<string?> action,

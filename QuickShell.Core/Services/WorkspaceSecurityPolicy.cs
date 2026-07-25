@@ -407,6 +407,11 @@ internal static class WorkspaceSecurityPolicy
         && workspace.Revision == token.Revision
         && string.Equals(ComputeDigest(workspace.Content), token.Digest, StringComparison.Ordinal);
 
+    /// <summary>
+    /// Computes a hexadecimal SHA-256 digest for the workspace content.
+    /// </summary>
+    /// <param name="workspace">The workspace content to digest.</param>
+    /// <returns>The hexadecimal SHA-256 digest of the workspace content.</returns>
     public static string ComputeDigest(TerminalShortcut workspace)
     {
         // Named DTO + QuickShellDigestJsonContext (not QuickShellJsonContext): the digest

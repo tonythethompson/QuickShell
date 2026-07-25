@@ -43,7 +43,12 @@ internal static partial class ShellFileDialog
     // HRESULT_FROM_WIN32(ERROR_CANCELLED) — returned by Show when the user cancels.
     private const int ERROR_CANCELLED_HRESULT = unchecked((int)0x800704C7);
 
-    /// <summary>Modern folder picker (IFileOpenDialog with FOS_PICKFOLDERS).</summary>
+    /// <summary>
+    /// Displays a folder picker and obtains the selected folder path.
+    /// </summary>
+    /// <param name="owner">The handle of the parent window.</param>
+    /// <param name="initialDirectory">The directory initially displayed by the picker, when valid.</param>
+    /// <returns>The selected folder path, or <c>null</c> if the picker is canceled.</returns>
     public static string? PickFolder(nint owner, string? initialDirectory)
     {
         var dialog = (IFileOpenDialog)CreateInstance(CLSID_FileOpenDialog, IID_IFileOpenDialog);
@@ -60,7 +65,15 @@ internal static partial class ShellFileDialog
     }
 
     /// <summary>Open-file picker. <paramref name="filters"/> pairs display name to a
-    /// semicolon-delimited pattern (e.g. "JSON files (*.json)" -> "*.json").</summary>
+    /// <summary>
+    /// Displays a file selection dialog and obtains the selected file path.
+    /// </summary>
+    /// <param name="owner">The handle of the dialog's owner window.</param>
+    /// <param name="title">The dialog title.</param>
+    /// <param name="filters">The file type filters to display.</param>
+    /// <param name="defaultExt">The default file extension.</param>
+    /// <param name="initialDirectory">The directory initially displayed by the dialog.</param>
+    /// <returns>The selected file path, or <c>null</c> if the dialog is canceled.</returns>
     public static string? PickOpenFile(nint owner, string title, (string Name, string Spec)[] filters, string? defaultExt, string? initialDirectory)
     {
         var dialog = (IFileOpenDialog)CreateInstance(CLSID_FileOpenDialog, IID_IFileOpenDialog);
@@ -80,7 +93,11 @@ internal static partial class ShellFileDialog
         }
     }
 
-    /// <summary>Save-file picker with overwrite prompt and a suggested file name.</summary>
+    /// <summary>
+    /// Opens a save-file dialog with overwrite confirmation and optional file name, extension, filter, and initial directory settings.
+    /// </summary>
+    /// <param name="defaultFileName">The suggested file name.</param>
+    /// <returns>The selected file's filesystem path, or <c>null</c> if the dialog is canceled.</returns>
     public static string? PickSaveFile(nint owner, string title, (string Name, string Spec)[] filters, string? defaultExt, string? defaultFileName, string? initialDirectory)
     {
         var dialog = (IFileSaveDialog)CreateInstance(CLSID_FileSaveDialog, IID_IFileSaveDialog);
@@ -105,6 +122,12 @@ internal static partial class ShellFileDialog
         }
     }
 
+    /// <summary>
+    /// Displays the file dialog and retrieves the selected item's filesystem path.
+    /// </summary>
+    /// <param name="dialog">The file dialog to display.</param>
+    /// <param name="owner">The handle of the dialog's owner window.</param>
+    /// <returns>The selected filesystem path, or <c>null</c> if the dialog is canceled or no path is available.</returns>
     private static string? ShowAndGetPath(IFileDialog dialog, nint owner)
     {
         int hr = dialog.Show(owner);
@@ -146,6 +169,11 @@ internal static partial class ShellFileDialog
         }
     }
 
+    /// <summary>
+    /// Applies an existing directory as the dialog's initial folder.
+    /// </summary>
+    /// <param name="dialog">The file dialog to configure.</param>
+    /// <param name="initialDirectory">The directory to use initially, or <see langword="null"/> to use the shell's default folder.</param>
     private static void ApplyInitialDirectory(IFileDialog dialog, string? initialDirectory)
     {
         if (string.IsNullOrWhiteSpace(initialDirectory) || !Directory.Exists(initialDirectory))
@@ -175,7 +203,12 @@ internal static partial class ShellFileDialog
     /// Builds COMDLG_FILTERSPEC native memory for <see cref="IFileDialog.SetFileTypes"/>.
     /// The returned disposable must stay alive until after <see cref="IModalWindow.Show"/>;
     /// the dialog may keep pointers into this buffer for the lifetime of the modal call.
+    /// <summary>
+    /// Applies file type filters and an optional default extension to a file dialog.
     /// </summary>
+    /// <param name="filters">The display names and wildcard specifications for the file types.</param>
+    /// <param name="defaultExt">The default file name extension.</param>
+    /// <returns>Native memory that owns the applied filter specifications, or <c>null</c> when no filters are provided.</returns>
     private static FilterNativeMemory? ApplyFilters(IFileDialog dialog, (string Name, string Spec)[] filters, string? defaultExt)
     {
         if (filters.Length == 0)
@@ -239,6 +272,9 @@ internal static partial class ShellFileDialog
         private nint _block = block;
         private List<nint>? _strings = strings;
 
+        /// <summary>
+        /// Releases the native memory allocated for the filter specifications.
+        /// </summary>
         public void Dispose()
         {
             var ownedStrings = Interlocked.Exchange(ref _strings, null);
@@ -258,6 +294,12 @@ internal static partial class ShellFileDialog
         }
     }
 
+    /// <summary>
+    /// Creates and wraps an instance of the specified COM class and interface.
+    /// </summary>
+    /// <param name="clsid">The class identifier of the COM class to create.</param>
+    /// <param name="iid">The interface identifier to expose.</param>
+    /// <returns>The wrapped COM object.</returns>
     private static object CreateInstance(Guid clsid, Guid iid)
     {
         int hr = CoCreateInstance(in clsid, 0, CLSCTX_INPROC_SERVER, in iid, out nint ptr);
@@ -271,9 +313,26 @@ internal static partial class ShellFileDialog
     // on Dispose — Marshal.FinalReleaseComObject does not work with them (SYSLIB1099).
     private static void Release(object comObject) => (comObject as IDisposable)?.Dispose();
 
+    /// <summary>
+    /// Creates a COM object for the specified class and interface.
+    /// </summary>
+    /// <param name="rclsid">The class identifier of the COM object to create.</param>
+    /// <param name="pUnkOuter">The controlling unknown for aggregation, or zero.</param>
+    /// <param name="dwClsContext">The execution context in which the COM object runs.</param>
+    /// <param name="riid">The interface identifier to retrieve.</param>
+    /// <param name="ppv">Receives a pointer to the requested interface.</param>
+    /// <returns>An HRESULT indicating whether the object was created successfully.</returns>
     [LibraryImport("ole32.dll")]
     private static partial int CoCreateInstance(in Guid rclsid, nint pUnkOuter, uint dwClsContext, in Guid riid, out nint ppv);
 
+    /// <summary>
+    /// Creates a Shell item from a filesystem path.
+    /// </summary>
+    /// <param name="pszPath">The filesystem path used to create the Shell item.</param>
+    /// <param name="pbc">The optional bind context, or zero.</param>
+    /// <param name="riid">The interface identifier requested for the Shell item.</param>
+    /// <param name="ppv">Receives a pointer to the requested interface.</param>
+    /// <returns>An HRESULT indicating whether the Shell item was created.</returns>
     [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
     private static partial int SHCreateItemFromParsingName(string pszPath, nint pbc, in Guid riid, out nint ppv);
 
@@ -282,6 +341,11 @@ internal static partial class ShellFileDialog
     [Guid("b4db1657-70d7-485e-8e3e-6fcb5a5c1802")]
     internal partial interface IModalWindow
     {
+        /// <summary>
+        /// Displays the modal window.
+        /// </summary>
+        /// <param name="parent">The handle of the window that owns the modal window.</param>
+        /// <returns>An HRESULT indicating whether the window was displayed successfully.</returns>
         [PreserveSig]
         int Show(nint parent);
     }
@@ -292,64 +356,158 @@ internal static partial class ShellFileDialog
     [Guid("42f85136-db7e-439c-85f1-e4075d135fc8")]
     internal partial interface IFileDialog : IModalWindow
     {
-        void SetFileTypes(uint cFileTypes, nint rgFilterSpec);
+        /// <summary>
+/// Configures the file types displayed by the dialog.
+/// </summary>
+/// <param name="cFileTypes">The number of file type specifications.</param>
+/// <param name="rgFilterSpec">A pointer to the array of file type specifications.</param>
+void SetFileTypes(uint cFileTypes, nint rgFilterSpec);
 
-        void SetFileTypeIndex(uint iFileType);
+        /// <summary>
+/// Selects the default file type in the dialog's file type list.
+/// </summary>
+/// <param name="iFileType">The one-based index of the file type to select.</param>
+void SetFileTypeIndex(uint iFileType);
 
+        /// <summary>
+        /// Retrieves the index of the currently selected file type.
+        /// </summary>
+        /// <param name="piFileType">Receives the one-based index of the selected file type.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetFileTypeIndex(out uint piFileType);
 
         [PreserveSig]
         int Advise(nint pfde, out uint pdwCookie);
 
+        /// <summary>
+        /// Removes the registered file dialog event handler.
+        /// </summary>
+        /// <param name="dwCookie">The connection cookie returned when the event handler was registered.</param>
+        /// <returns>An HRESULT indicating whether the event handler was removed successfully.</returns>
         [PreserveSig]
         int Unadvise(uint dwCookie);
 
-        void SetOptions(uint fos);
+        /// <summary>
+/// Configures the file dialog options.
+/// </summary>
+/// <param name="fos">The bitwise combination of file dialog option flags.</param>
+void SetOptions(uint fos);
 
+        /// <summary>
+        /// Retrieves the current options configured for the file dialog.
+        /// </summary>
+        /// <param name="pfos">Receives the configured file dialog option flags.</param>
+        /// <returns>An HRESULT indicating whether the options were retrieved successfully.</returns>
         [PreserveSig]
         int GetOptions(out uint pfos);
 
+        /// <summary>
+        /// Sets the dialog's default folder.
+        /// </summary>
+        /// <param name="psi">A pointer to the shell item representing the default folder.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int SetDefaultFolder(nint psi);
 
-        void SetFolder(IShellItem psi);
+        /// <summary>
+/// Sets the folder displayed by the file dialog.
+/// </summary>
+/// <param name="psi">The shell item representing the folder to display.</param>
+void SetFolder(IShellItem psi);
 
+        /// <summary>
+        /// Retrieves the dialog's current folder.
+        /// </summary>
+        /// <param name="ppsi">Receives a pointer to the folder's shell item.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetFolder(out nint ppsi);
 
+        /// <summary>
+        /// Retrieves the shell item currently selected in the dialog.
+        /// </summary>
+        /// <param name="ppsi">Receives a pointer to the selected shell item.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetCurrentSelection(out nint ppsi);
 
-        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+        /// <summary>
+/// Sets the file name displayed in the dialog.
+/// </summary>
+/// <param name="pszName">The file name to display.</param>
+void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
 
+        /// <summary>
+        /// Retrieves the current file name displayed by the dialog.
+        /// </summary>
+        /// <param name="pszName">Receives a pointer to the file name.</param>
+        /// <returns>An HRESULT indicating whether the file name was retrieved successfully.</returns>
         [PreserveSig]
         int GetFileName(out nint pszName);
 
-        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
+        /// <summary>
+/// Sets the dialog title.
+/// </summary>
+void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
 
+        /// <summary>
+        /// Sets the label of the dialog's OK button.
+        /// </summary>
+        /// <param name="pszText">A pointer to a null-terminated string containing the button label.</param>
+        /// <returns>An HRESULT indicating whether the label was set successfully.</returns>
         [PreserveSig]
         int SetOkButtonLabel(nint pszText);
 
+        /// <summary>
+        /// Sets the label for the file name input control.
+        /// </summary>
+        /// <param name="pszLabel">A pointer to the label string.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int SetFileNameLabel(nint pszLabel);
 
-        void GetResult(out nint ppsi);
+        /// <summary>
+/// Retrieves the selected shell item.
+/// </summary>
+/// <param name="ppsi">Receives a pointer to the selected shell item.</param>
+///
+void GetResult(out nint ppsi);
 
+        /// <summary>
+        /// Adds a location to the dialog's navigation pane.
+        /// </summary>
+        /// <param name="psi">A pointer to the shell item representing the location.</param>
+        /// <param name="fdap">The placement of the location in the navigation pane.</param>
+        /// <returns>An HRESULT indicating whether the location was added successfully.</returns>
         [PreserveSig]
         int AddPlace(nint psi, int fdap);
 
         void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string pszDefaultExtension);
 
+        /// <summary>
+        /// Closes the dialog with the specified result code.
+        /// </summary>
+        /// <param name="hr">The result code to associate with the dialog closure.</param>
+        /// <returns>The HRESULT returned by the operation.</returns>
         [PreserveSig]
         int Close(int hr);
 
         [PreserveSig]
         int SetClientGuid(in Guid guid);
 
+        /// <summary>
+        /// Clears the dialog's client data.
+        /// </summary>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int ClearClientData();
 
+        /// <summary>
+        /// Sets the dialog's filter configuration.
+        /// </summary>
+        /// <param name="pFilter">A pointer to the filter configuration.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int SetFilter(nint pFilter);
     }
@@ -360,9 +518,19 @@ internal static partial class ShellFileDialog
     [Guid("d57c7288-d4ad-4768-be02-9d969532d960")]
     internal partial interface IFileOpenDialog : IFileDialog
     {
+        /// <summary>
+        /// Retrieves an enumerator for the selected items.
+        /// </summary>
+        /// <param name="ppenum">Receives a pointer to the selected-items enumerator.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetResults(out nint ppenum);
 
+        /// <summary>
+        /// Retrieves the items selected in the dialog.
+        /// </summary>
+        /// <param name="ppsai">Receives a pointer to the selected items collection.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetSelectedItems(out nint ppsai);
     }
@@ -372,18 +540,42 @@ internal static partial class ShellFileDialog
     [Guid("84bccd23-5fde-4cdb-aea4-af64b83d78ab")]
     internal partial interface IFileSaveDialog : IFileDialog
     {
+        /// <summary>
+        /// Sets the item to use as the save destination.
+        /// </summary>
+        /// <param name="psi">A pointer to the shell item.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int SetSaveAsItem(nint psi);
 
         [PreserveSig]
         int SetProperties(nint pStore);
 
+        /// <summary>
+        /// Configures the properties collected by the dialog.
+        /// </summary>
+        /// <param name="pList">A pointer to the property description list.</param>
+        /// <param name="fAppendDefault">A value indicating whether to append the default properties.</param>
+        /// <returns>An HRESULT indicating the operation result.</returns>
         [PreserveSig]
         int SetCollectedProperties(nint pList, int fAppendDefault);
 
+        /// <summary>
+        /// Retrieves the property store for the shell item.
+        /// </summary>
+        /// <param name="ppStore">Receives a pointer to the property store.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetProperties(out nint ppStore);
 
+        /// <summary>
+        /// Applies the specified property store to a shell item.
+        /// </summary>
+        /// <param name="psi">A pointer to the shell item.</param>
+        /// <param name="pStore">A pointer to the property store containing the properties to apply.</param>
+        /// <param name="hwnd">The handle of the parent window.</param>
+        /// <param name="pSink">A pointer to the progress notification sink.</param>
+        /// <returns>An HRESULT indicating whether the properties were applied successfully.</returns>
         [PreserveSig]
         int ApplyProperties(nint psi, nint pStore, nint hwnd, nint pSink);
     }
@@ -392,17 +584,48 @@ internal static partial class ShellFileDialog
     [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
     internal partial interface IShellItem
     {
+        /// <summary>
+        /// Binds the shell item to the specified handler and interface.
+        /// </summary>
+        /// <param name="pbc">The optional bind context.</param>
+        /// <param name="bhid">The identifier of the handler to use.</param>
+        /// <param name="riid">The identifier of the requested interface.</param>
+        /// <param name="ppv">Receives a pointer to the requested interface.</param>
+        /// <returns>An HRESULT indicating whether the binding succeeded.</returns>
         [PreserveSig]
         int BindToHandler(nint pbc, in Guid bhid, in Guid riid, out nint ppv);
 
+        /// <summary>
+        /// Retrieves the parent shell item.
+        /// </summary>
+        /// <param name="ppsi">Receives a pointer to the parent shell item.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetParent(out nint ppsi);
 
-        void GetDisplayName(uint sigdnName, out nint ppszName);
+        /// <summary>
+/// Retrieves the item's display name in the specified format.
+/// </summary>
+/// <param name="sigdnName">The display name format to retrieve.</param>
+/// <param name="ppszName">Receives a pointer to the allocated display-name string.</param>
+void GetDisplayName(uint sigdnName, out nint ppszName);
 
+        /// <summary>
+        /// Retrieves the specified attributes of the shell item.
+        /// </summary>
+        /// <param name="sfgaoMask">The attributes to retrieve.</param>
+        /// <param name="psfgaoAttribs">Receives the retrieved attributes.</param>
+        /// <returns>An HRESULT indicating whether the operation succeeded.</returns>
         [PreserveSig]
         int GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
 
+        /// <summary>
+        /// Compares this shell item with another shell item.
+        /// </summary>
+        /// <param name="psi">The shell item to compare with this item.</param>
+        /// <param name="hint">The comparison criteria.</param>
+        /// <param name="piOrder">Receives a value indicating the relative ordering of the shell items.</param>
+        /// <returns>An HRESULT indicating whether the comparison succeeded.</returns>
         [PreserveSig]
         int Compare(nint psi, uint hint, out int piOrder);
     }

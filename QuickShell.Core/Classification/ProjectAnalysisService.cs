@@ -79,6 +79,13 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         return $"Suggests: {first.Command} · also {alternates}";
     }
 
+    /// <summary>
+    /// Builds a JSON payload containing the available task type choices.
+    /// </summary>
+    /// <param name="directory">The project directory used to determine available choices.</param>
+    /// <param name="pickContext">Context used to select task type suggestions.</param>
+    /// <param name="includePlaceholder">Whether to include the choice for adding a new command row.</param>
+    /// <returns>A JSON representation of the task type choices.</returns>
     public string BuildTaskTypeChoicesJson(
         string? directory = null,
         TaskTypePickContext? pickContext = null,
@@ -110,7 +117,12 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
         return System.Text.Json.JsonSerializer.Serialize(choices, QuickShellJsonContext.Default.ListTaskTypeChoiceJson);
     }
 
-    public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
+    /// <summary>
+        /// Suggests a companion app for the specified project directory.
+        /// </summary>
+        /// <param name="directory">The project directory to inspect.</param>
+        /// <returns>A companion app suggestion, or null when no suggestion is available.</returns>
+        public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
         _companionAppDetector.TrySuggest(directory);
 
     public string? TryDetectDevServerUrl(string directory) =>
