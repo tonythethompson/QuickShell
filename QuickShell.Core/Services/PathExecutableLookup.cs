@@ -115,7 +115,9 @@ internal static class PathExecutableLookup
         }
 
         var name = Path.GetFileName(fileName.Trim());
-        // ⚡ Bolt: Performance optimization - use AsSpan().Split() to avoid allocating intermediate string array and instances
+        // Performance optimization - avoid string[] and intermediate string allocations
+        // from pathValue.Split() on long PATH variables. Using AsSpan().Split() with Range
+        // makes this hot-path executable resolution allocation-free for the segment iteration.
         foreach (var range in pathValue.AsSpan().Split(';'))
         {
             var segment = pathValue.AsSpan()[range].Trim();
