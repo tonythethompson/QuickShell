@@ -55,7 +55,16 @@ internal static partial class Win32Clipboard
                 }
 
                 int charCount = (int)(byteLen / sizeof(char));
-                return Marshal.PtrToStringUni(locked, charCount)?.TrimEnd('\0');
+                var text = Marshal.PtrToStringUni(locked, charCount);
+                if (text is null)
+                {
+                    return null;
+                }
+
+                // CF_UNICODETEXT is a single null-terminated string; drop anything after the
+                // first embedded '\0' (padding in the HGLOBAL), not trailing-only with TrimEnd.
+                var terminator = text.IndexOf('\0');
+                return terminator < 0 ? text : text[..terminator];
             }
             finally
             {

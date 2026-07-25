@@ -1,4 +1,3 @@
-using System.Threading;
 using QuickShell.Interop;
 
 namespace QuickShell.Services;
@@ -27,7 +26,7 @@ internal static class ShortcutFilePickerService
         var initialDirectory = DirectoryOrNull(services.Shortcuts.ConfigDirectory);
         var ownerHandle = NativeForegroundWindow.Get();
 
-        return RunOnStaThread(
+        return StaModalDialogRunner.Run(
             ownerHandle,
             () => ShellFileDialog.PickSaveFile(
                 ownerHandle,
@@ -35,7 +34,9 @@ internal static class ShortcutFilePickerService
                 JsonFilters,
                 defaultExt: "json",
                 defaultFileName: defaultName,
-                initialDirectory: initialDirectory));
+                initialDirectory: initialDirectory),
+            DialogTimeout,
+            JoinGracePeriod);
     }
 
     public static string? PickImportFile(IQuickShellServices services)
@@ -44,14 +45,16 @@ internal static class ShortcutFilePickerService
         var initialDirectory = DirectoryOrNull(services.Shortcuts.ConfigDirectory);
         var ownerHandle = NativeForegroundWindow.Get();
 
-        return RunOnStaThread(
+        return StaModalDialogRunner.Run(
             ownerHandle,
             () => ShellFileDialog.PickOpenFile(
                 ownerHandle,
                 $"Import {QuickShellBrand.DisplayName} workspaces",
                 JsonFilters,
                 defaultExt: "json",
-                initialDirectory: initialDirectory));
+                initialDirectory: initialDirectory),
+            DialogTimeout,
+            JoinGracePeriod);
     }
 
     public static string? PickExecutableFile()
@@ -60,45 +63,18 @@ internal static class ShortcutFilePickerService
         var initialDirectory = DirectoryOrNull(programFiles);
         var ownerHandle = NativeForegroundWindow.Get();
 
-        return RunOnStaThread(
+        return StaModalDialogRunner.Run(
             ownerHandle,
             () => ShellFileDialog.PickOpenFile(
                 ownerHandle,
                 "Choose companion app",
                 ExecutableFilters,
                 defaultExt: "exe",
-                initialDirectory: initialDirectory));
+                initialDirectory: initialDirectory),
+            DialogTimeout,
+            JoinGracePeriod);
     }
 
     private static string? DirectoryOrNull(string? path) =>
         !string.IsNullOrWhiteSpace(path) && Directory.Exists(path) ? path : null;
-
-    private static string? RunOnStaThread(nint ownerHandle, Func<string?> action)
-    {
-        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
-        {
-            return action();
-        }
-
-        string? result = null;
-        var nativeThreadId = 0;
-        var thread = new Thread(() =>
-        {
-            nativeThreadId = StaDialogCloser.CurrentNativeThreadId();
-            result = action();
-        })
-        {
-            IsBackground = true,
-        };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-
-        if (thread.Join(DialogTimeout + JoinGracePeriod))
-        {
-            return result;
-        }
-
-        StaDialogCloser.TryCloseThreadDialog(Volatile.Read(ref nativeThreadId), ownerHandle);
-        return thread.Join(JoinGracePeriod) ? result : null;
-    }
 }

@@ -64,16 +64,18 @@ internal static partial class ShellFileDialog
     public static string? PickOpenFile(nint owner, string title, (string Name, string Spec)[] filters, string? defaultExt, string? initialDirectory)
     {
         var dialog = (IFileOpenDialog)CreateInstance(CLSID_FileOpenDialog, IID_IFileOpenDialog);
+        FilterNativeMemory? filterMemory = null;
         try
         {
             dialog.SetOptions(FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
             dialog.SetTitle(title);
-            ApplyFilters(dialog, filters, defaultExt);
+            filterMemory = ApplyFilters(dialog, filters, defaultExt);
             ApplyInitialDirectory(dialog, initialDirectory);
             return ShowAndGetPath(dialog, owner);
         }
         finally
         {
+            filterMemory?.Dispose();
             Release(dialog);
         }
     }
@@ -82,11 +84,12 @@ internal static partial class ShellFileDialog
     public static string? PickSaveFile(nint owner, string title, (string Name, string Spec)[] filters, string? defaultExt, string? defaultFileName, string? initialDirectory)
     {
         var dialog = (IFileSaveDialog)CreateInstance(CLSID_FileSaveDialog, IID_IFileSaveDialog);
+        FilterNativeMemory? filterMemory = null;
         try
         {
             dialog.SetOptions(FOS_FORCEFILESYSTEM | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
             dialog.SetTitle(title);
-            ApplyFilters(dialog, filters, defaultExt);
+            filterMemory = ApplyFilters(dialog, filters, defaultExt);
             if (!string.IsNullOrEmpty(defaultFileName))
             {
                 dialog.SetFileName(defaultFileName);
@@ -97,6 +100,7 @@ internal static partial class ShellFileDialog
         }
         finally
         {
+            filterMemory?.Dispose();
             Release(dialog);
         }
     }
@@ -167,11 +171,21 @@ internal static partial class ShellFileDialog
         }
     }
 
-    private static void ApplyFilters(IFileDialog dialog, (string Name, string Spec)[] filters, string? defaultExt)
+    /// <summary>
+    /// Builds COMDLG_FILTERSPEC native memory for <see cref="IFileDialog.SetFileTypes"/>.
+    /// The returned disposable must stay alive until after <see cref="IModalWindow.Show"/>;
+    /// the dialog may keep pointers into this buffer for the lifetime of the modal call.
+    /// </summary>
+    private static FilterNativeMemory? ApplyFilters(IFileDialog dialog, (string Name, string Spec)[] filters, string? defaultExt)
     {
         if (filters.Length == 0)
         {
-            return;
+            if (!string.IsNullOrEmpty(defaultExt))
+            {
+                dialog.SetDefaultExtension(defaultExt);
+            }
+
+            return null;
         }
 
         // COMDLG_FILTERSPEC is { LPWSTR pszName; LPWSTR pszSpec; }. Build the native array
@@ -192,20 +206,55 @@ internal static partial class ShellFileDialog
 
             dialog.SetFileTypes((uint)filters.Length, block);
             dialog.SetFileTypeIndex(1);
+            if (!string.IsNullOrEmpty(defaultExt))
+            {
+                dialog.SetDefaultExtension(defaultExt);
+            }
+
+            // Ownership transfers to the caller until Show completes.
+            var memory = new FilterNativeMemory(block, strings);
+            block = 0;
+            strings = null;
+            return memory;
         }
         finally
         {
-            foreach (nint s in strings)
+            if (strings is not null)
             {
-                Marshal.FreeCoTaskMem(s);
+                foreach (nint s in strings)
+                {
+                    Marshal.FreeCoTaskMem(s);
+                }
             }
 
-            Marshal.FreeCoTaskMem(block);
+            if (block != 0)
+            {
+                Marshal.FreeCoTaskMem(block);
+            }
         }
+    }
 
-        if (!string.IsNullOrEmpty(defaultExt))
+    private sealed class FilterNativeMemory(nint block, List<nint> strings) : IDisposable
+    {
+        private nint _block = block;
+        private List<nint>? _strings = strings;
+
+        public void Dispose()
         {
-            dialog.SetDefaultExtension(defaultExt);
+            var ownedStrings = Interlocked.Exchange(ref _strings, null);
+            if (ownedStrings is not null)
+            {
+                foreach (nint s in ownedStrings)
+                {
+                    Marshal.FreeCoTaskMem(s);
+                }
+            }
+
+            var ownedBlock = Interlocked.Exchange(ref _block, 0);
+            if (ownedBlock != 0)
+            {
+                Marshal.FreeCoTaskMem(ownedBlock);
+            }
         }
     }
 
