@@ -15,7 +15,7 @@ internal static partial class NativeForegroundWindow
     /// <returns>The handle of the current foreground window.</returns>
     public static nint Get()
     {
-        // codeql[cs/call-to-unmanaged-code]: Required for IFileDialog owner hwnd; no managed API after WinForms removal.
+        // codeql[cs/call-to-unmanaged-code] Required for IFileDialog owner hwnd; no managed API after WinForms removal.
         return GetForegroundWindow();
     }
 

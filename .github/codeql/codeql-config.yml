@@ -4,9 +4,13 @@ queries:
   - uses: security-and-quality
 
 query-filters:
-  # Quality note (not a vuln). Quick Shell is a Windows shell host that must call
+  # Quality notes (not vulns). Quick Shell is a Windows shell host that must call
   # Win32/COM for folder/file dialogs, clipboard, and dialog timeout recovery after
-  # dropping WinForms for MSIX trimming. Inline codeql[] suppressions also document
-  # intentional call sites under QuickShell.Core/Interop.
+  # dropping WinForms for MSIX trimming.
+  #
+  # cs/call-to-unmanaged-code: call sites of extern methods
+  # cs/unmanaged-code: DllImport/LibraryImport declarations themselves
   - exclude:
       id: cs/call-to-unmanaged-code
+  - exclude:
+      id: cs/unmanaged-code

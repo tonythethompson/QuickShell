@@ -27,19 +27,19 @@ internal static class StaDialogCloser
 
         nint dialog = 0;
         nint fallback = 0;
-        // codeql[cs/call-to-unmanaged-code]: Enumerate picker STA thread windows to find the modal dialog HWND.
+        // codeql[cs/call-to-unmanaged-code] Enumerate picker STA thread windows to find the modal dialog HWND.
         EnumThreadWindows(
             nativeThreadId,
             (hwnd, _) =>
             {
-                // codeql[cs/call-to-unmanaged-code]: Skip invisible windows when locating the dialog.
+                // codeql[cs/call-to-unmanaged-code] Skip invisible windows when locating the dialog.
                 if (hwnd == 0 || hwnd == ownerHandle || !IsWindowVisible(hwnd))
                 {
                     return true;
                 }
 
                 // Top-level only (skip DirectUI / child chrome inside the dialog).
-                // codeql[cs/call-to-unmanaged-code]: Restrict close target to top-level HWNDs on the STA thread.
+                // codeql[cs/call-to-unmanaged-code] Restrict close target to top-level HWNDs on the STA thread.
                 if (GetAncestor(hwnd, GA_ROOT) != hwnd)
                 {
                     return true;
@@ -63,18 +63,20 @@ internal static class StaDialogCloser
         var target = dialog != 0 ? dialog : fallback;
         if (target != 0)
         {
-            // codeql[cs/call-to-unmanaged-code]: Unblock a timed-out IFileDialog by closing its HWND.
+            // codeql[cs/call-to-unmanaged-code] Unblock a timed-out IFileDialog by closing its HWND.
             PostMessage(target, WM_CLOSE, nint.Zero, nint.Zero);
         }
     }
 
     /// <summary>
-    /// Gets the native identifier of the current thread.
+    /// Gets the native Win32 identifier of the current thread.
+    /// Do not substitute <see cref="Environment.CurrentManagedThreadId"/> —
+    /// <c>EnumThreadWindows</c> requires the OS thread id.
     /// </summary>
     /// <returns>The native thread identifier.</returns>
     public static int CurrentNativeThreadId()
     {
-        // codeql[cs/call-to-unmanaged-code]: Native thread id required for EnumThreadWindows on the picker STA thread.
+        // codeql[cs/call-to-unmanaged-code] Native thread id required for EnumThreadWindows on the picker STA thread.
         return GetCurrentThreadId();
     }
 
@@ -89,7 +91,7 @@ internal static class StaDialogCloser
         int length;
         fixed (char* p = buffer)
         {
-            // codeql[cs/call-to-unmanaged-code]: Classify #32770 dialog HWNDs for timeout close.
+            // codeql[cs/call-to-unmanaged-code] Classify #32770 dialog HWNDs for timeout close.
             length = GetClassNameW(hwnd, p, buffer.Length);
         }
 

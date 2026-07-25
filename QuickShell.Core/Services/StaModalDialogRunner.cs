@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Threading;
 using QuickShell.Interop;
 
@@ -6,7 +7,7 @@ namespace QuickShell.Services;
 /// <summary>
 /// Runs a modal shell dialog on an STA thread with timeout recovery. Publishes the
 /// native thread id with <see cref="Volatile"/> so timeout close can find the dialog,
-/// and maps worker failures to a null result so they never tear down the process.
+/// and maps known picker failures to a null result so they never tear down the process.
 /// </summary>
 internal static class StaModalDialogRunner
 {
@@ -37,12 +38,17 @@ internal static class StaModalDialogRunner
         var nativeThreadId = 0;
         var thread = new Thread(() =>
         {
+            // Must be the Win32 thread id for EnumThreadWindows — not Environment.CurrentManagedThreadId.
             Volatile.Write(ref nativeThreadId, StaDialogCloser.CurrentNativeThreadId());
             try
             {
                 selected = action();
             }
-            // codeql[cs/catch-of-all-exceptions]: Background STA must not crash the host; picker failure is null.
+            catch (Exception ex) when (IsPickerFailure(ex))
+            {
+                fault = ex;
+            }
+            // codeql[cs/catch-of-all-exceptions] Background STA must not crash the host; any other failure is a canceled pick.
             catch (Exception ex)
             {
                 fault = ex;
@@ -74,10 +80,23 @@ internal static class StaModalDialogRunner
         {
             return action();
         }
-        // codeql[cs/catch-of-all-exceptions]: Same host-stability rule on the calling STA thread.
-        catch (Exception)
+        catch (Exception ex) when (IsPickerFailure(ex))
         {
             return null;
         }
     }
+
+    /// <summary>
+    /// COM/interop and allocation failures from IFileDialog / clipboard paths.
+    /// Unexpected exceptions still propagate so real bugs are not swallowed.
+    /// </summary>
+    private static bool IsPickerFailure(Exception ex) =>
+        ex is COMException
+            or ExternalException
+            or SEHException
+            or InvalidOperationException
+            or ArgumentException
+            or OutOfMemoryException
+            or NotSupportedException
+            or UnauthorizedAccessException;
 }
