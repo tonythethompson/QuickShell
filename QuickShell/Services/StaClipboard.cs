@@ -27,15 +27,9 @@ internal static class StaClipboard
         return thread.Join(ReadTimeout) && success;
     }
 
-    private static bool SetTextOnStaThread(string text)
-    {
-        try { return Win32Clipboard.SetText(text); }
-        catch { return false; }
-    }
+    // Win32Clipboard returns false/null on failure and does not throw for the clipboard
+    // failure modes we care about (open contention, empty format, alloc failure).
+    private static bool SetTextOnStaThread(string text) => Win32Clipboard.SetText(text);
 
-    private static string? ReadTextOnStaThread()
-    {
-        try { return Win32Clipboard.GetText(); }
-        catch { return null; }
-    }
+    private static string? ReadTextOnStaThread() => Win32Clipboard.GetText();
 }

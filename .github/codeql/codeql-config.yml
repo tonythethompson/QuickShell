@@ -1,0 +1,12 @@
+name: QuickShell CodeQL configuration
+
+queries:
+  - uses: security-and-quality
+
+query-filters:
+  # Quality note (not a vuln). Quick Shell is a Windows shell host that must call
+  # Win32/COM for folder/file dialogs, clipboard, and dialog timeout recovery after
+  # dropping WinForms for MSIX trimming. Inline codeql[] suppressions also document
+  # intentional call sites under QuickShell.Core/Interop.
+  - exclude:
+      id: cs/call-to-unmanaged-code

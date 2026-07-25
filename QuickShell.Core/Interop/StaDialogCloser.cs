@@ -22,16 +22,19 @@ internal static class StaDialogCloser
 
         nint dialog = 0;
         nint fallback = 0;
+        // codeql[cs/call-to-unmanaged-code]: Enumerate picker STA thread windows to find the modal dialog HWND.
         EnumThreadWindows(
             nativeThreadId,
             (hwnd, _) =>
             {
+                // codeql[cs/call-to-unmanaged-code]: Skip invisible windows when locating the dialog.
                 if (hwnd == 0 || hwnd == ownerHandle || !IsWindowVisible(hwnd))
                 {
                     return true;
                 }
 
                 // Top-level only (skip DirectUI / child chrome inside the dialog).
+                // codeql[cs/call-to-unmanaged-code]: Restrict close target to top-level HWNDs on the STA thread.
                 if (GetAncestor(hwnd, GA_ROOT) != hwnd)
                 {
                     return true;
@@ -55,8 +58,15 @@ internal static class StaDialogCloser
         var target = dialog != 0 ? dialog : fallback;
         if (target != 0)
         {
+            // codeql[cs/call-to-unmanaged-code]: Unblock a timed-out IFileDialog by closing its HWND.
             PostMessage(target, WM_CLOSE, nint.Zero, nint.Zero);
         }
+    }
+
+    public static int CurrentNativeThreadId()
+    {
+        // codeql[cs/call-to-unmanaged-code]: Native thread id required for EnumThreadWindows on the picker STA thread.
+        return GetCurrentThreadId();
     }
 
     private static unsafe bool IsDialogClass(nint hwnd)
@@ -65,6 +75,7 @@ internal static class StaDialogCloser
         int length;
         fixed (char* p = buffer)
         {
+            // codeql[cs/call-to-unmanaged-code]: Classify #32770 dialog HWNDs for timeout close.
             length = GetClassNameW(hwnd, p, buffer.Length);
         }
 
@@ -92,5 +103,5 @@ internal static class StaDialogCloser
     private static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);
 
     [DllImport("kernel32.dll")]
-    public static extern int GetCurrentThreadId();
+    private static extern int GetCurrentThreadId();
 }

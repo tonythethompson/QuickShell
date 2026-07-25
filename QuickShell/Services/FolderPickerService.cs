@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Threading;
 using QuickShell.Interop;
 
@@ -11,7 +10,7 @@ internal static class FolderPickerService
 
     public static string? PickFolder(string? initialDirectory = null)
     {
-        var ownerHandle = GetForegroundWindow();
+        var ownerHandle = NativeForegroundWindow.Get();
 
         if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
         {
@@ -22,7 +21,7 @@ internal static class FolderPickerService
         var nativeThreadId = 0;
         var thread = new Thread(() =>
         {
-            nativeThreadId = StaDialogCloser.GetCurrentThreadId();
+            nativeThreadId = StaDialogCloser.CurrentNativeThreadId();
             selected = PickFolderOnStaThread(initialDirectory, ownerHandle);
         })
         {
@@ -55,7 +54,4 @@ internal static class FolderPickerService
 
         return ShellFileDialog.PickFolder(ownerHandle, initial);
     }
-
-    [DllImport("user32.dll")]
-    private static extern nint GetForegroundWindow();
 }

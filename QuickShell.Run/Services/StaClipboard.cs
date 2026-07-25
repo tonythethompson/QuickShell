@@ -14,10 +14,7 @@ internal static class StaClipboard
         thread.Start();
         return thread.Join(TimeSpan.FromSeconds(5)) && success;
 
-        bool SetText()
-        {
-            try { return Win32Clipboard.SetText(text); }
-            catch { return false; }
-        }
+        // Win32Clipboard returns false on failure; no generic catch needed.
+        bool SetText() => Win32Clipboard.SetText(text);
     }
 }

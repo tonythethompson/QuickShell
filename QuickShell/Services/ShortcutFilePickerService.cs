@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Threading;
 using QuickShell.Interop;
 
@@ -26,7 +25,7 @@ internal static class ShortcutFilePickerService
         ArgumentNullException.ThrowIfNull(services);
         var defaultName = $"quickshell-workspaces-{DateTime.Now:yyyyMMdd-HHmmss}.json";
         var initialDirectory = DirectoryOrNull(services.Shortcuts.ConfigDirectory);
-        var ownerHandle = GetForegroundWindow();
+        var ownerHandle = NativeForegroundWindow.Get();
 
         return RunOnStaThread(
             ownerHandle,
@@ -43,7 +42,7 @@ internal static class ShortcutFilePickerService
     {
         ArgumentNullException.ThrowIfNull(services);
         var initialDirectory = DirectoryOrNull(services.Shortcuts.ConfigDirectory);
-        var ownerHandle = GetForegroundWindow();
+        var ownerHandle = NativeForegroundWindow.Get();
 
         return RunOnStaThread(
             ownerHandle,
@@ -59,7 +58,7 @@ internal static class ShortcutFilePickerService
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         var initialDirectory = DirectoryOrNull(programFiles);
-        var ownerHandle = GetForegroundWindow();
+        var ownerHandle = NativeForegroundWindow.Get();
 
         return RunOnStaThread(
             ownerHandle,
@@ -85,7 +84,7 @@ internal static class ShortcutFilePickerService
         var nativeThreadId = 0;
         var thread = new Thread(() =>
         {
-            nativeThreadId = StaDialogCloser.GetCurrentThreadId();
+            nativeThreadId = StaDialogCloser.CurrentNativeThreadId();
             result = action();
         })
         {
@@ -102,7 +101,4 @@ internal static class ShortcutFilePickerService
         StaDialogCloser.TryCloseThreadDialog(Volatile.Read(ref nativeThreadId), ownerHandle);
         return thread.Join(JoinGracePeriod) ? result : null;
     }
-
-    [DllImport("user32.dll")]
-    private static extern nint GetForegroundWindow();
 }
