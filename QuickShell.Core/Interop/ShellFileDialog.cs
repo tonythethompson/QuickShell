@@ -64,31 +64,30 @@ internal static partial class ShellFileDialog
         }
     }
 
-    /// <summary>Open-file picker. <paramref name="filters"/> pairs display name to a
     /// <summary>
     /// Displays a file selection dialog and obtains the selected file path.
     /// </summary>
     /// <param name="owner">The handle of the dialog's owner window.</param>
     /// <param name="title">The dialog title.</param>
-    /// <param name="filters">The file type filters to display.</param>
+    /// <param name="filters">The file type filters to display (display name + wildcard spec pairs).</param>
     /// <param name="defaultExt">The default file extension.</param>
     /// <param name="initialDirectory">The directory initially displayed by the dialog.</param>
     /// <returns>The selected file path, or <c>null</c> if the dialog is canceled.</returns>
     public static string? PickOpenFile(nint owner, string title, (string Name, string Spec)[] filters, string? defaultExt, string? initialDirectory)
     {
         var dialog = (IFileOpenDialog)CreateInstance(CLSID_FileOpenDialog, IID_IFileOpenDialog);
-        FilterNativeMemory? filterMemory = null;
         try
         {
             dialog.SetOptions(FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
             dialog.SetTitle(title);
-            filterMemory = ApplyFilters(dialog, filters, defaultExt);
-            ApplyInitialDirectory(dialog, initialDirectory);
-            return ShowAndGetPath(dialog, owner);
+            using (ApplyFilters(dialog, filters, defaultExt))
+            {
+                ApplyInitialDirectory(dialog, initialDirectory);
+                return ShowAndGetPath(dialog, owner);
+            }
         }
         finally
         {
-            filterMemory?.Dispose();
             Release(dialog);
         }
     }
@@ -101,23 +100,23 @@ internal static partial class ShellFileDialog
     public static string? PickSaveFile(nint owner, string title, (string Name, string Spec)[] filters, string? defaultExt, string? defaultFileName, string? initialDirectory)
     {
         var dialog = (IFileSaveDialog)CreateInstance(CLSID_FileSaveDialog, IID_IFileSaveDialog);
-        FilterNativeMemory? filterMemory = null;
         try
         {
             dialog.SetOptions(FOS_FORCEFILESYSTEM | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
             dialog.SetTitle(title);
-            filterMemory = ApplyFilters(dialog, filters, defaultExt);
-            if (!string.IsNullOrEmpty(defaultFileName))
+            using (ApplyFilters(dialog, filters, defaultExt))
             {
-                dialog.SetFileName(defaultFileName);
-            }
+                if (!string.IsNullOrEmpty(defaultFileName))
+                {
+                    dialog.SetFileName(defaultFileName);
+                }
 
-            ApplyInitialDirectory(dialog, initialDirectory);
-            return ShowAndGetPath(dialog, owner);
+                ApplyInitialDirectory(dialog, initialDirectory);
+                return ShowAndGetPath(dialog, owner);
+            }
         }
         finally
         {
-            filterMemory?.Dispose();
             Release(dialog);
         }
     }
@@ -203,13 +202,13 @@ internal static partial class ShellFileDialog
     /// Builds COMDLG_FILTERSPEC native memory for <see cref="IFileDialog.SetFileTypes"/>.
     /// The returned disposable must stay alive until after <see cref="IModalWindow.Show"/>;
     /// the dialog may keep pointers into this buffer for the lifetime of the modal call.
-    /// <summary>
-    /// Applies file type filters and an optional default extension to a file dialog.
+    /// Always returns a disposable (no-op when there are no filters).
     /// </summary>
+    /// <param name="dialog">The file dialog to configure.</param>
     /// <param name="filters">The display names and wildcard specifications for the file types.</param>
     /// <param name="defaultExt">The default file name extension.</param>
-    /// <returns>Native memory that owns the applied filter specifications, or <c>null</c> when no filters are provided.</returns>
-    private static FilterNativeMemory? ApplyFilters(IFileDialog dialog, (string Name, string Spec)[] filters, string? defaultExt)
+    /// <returns>Native memory that owns the applied filter specifications.</returns>
+    private static FilterNativeMemory ApplyFilters(IFileDialog dialog, (string Name, string Spec)[] filters, string? defaultExt)
     {
         if (filters.Length == 0)
         {
@@ -218,7 +217,7 @@ internal static partial class ShellFileDialog
                 dialog.SetDefaultExtension(defaultExt);
             }
 
-            return null;
+            return FilterNativeMemory.Empty;
         }
 
         // COMDLG_FILTERSPEC is { LPWSTR pszName; LPWSTR pszSpec; }. Build the native array
@@ -267,10 +266,18 @@ internal static partial class ShellFileDialog
         }
     }
 
-    private sealed class FilterNativeMemory(nint block, List<nint> strings) : IDisposable
+    private sealed class FilterNativeMemory : IDisposable
     {
-        private nint _block = block;
-        private List<nint>? _strings = strings;
+        public static FilterNativeMemory Empty { get; } = new(0, null);
+
+        private nint _block;
+        private List<nint>? _strings;
+
+        public FilterNativeMemory(nint block, List<nint>? strings)
+        {
+            _block = block;
+            _strings = strings;
+        }
 
         /// <summary>
         /// Releases the native memory allocated for the filter specifications.

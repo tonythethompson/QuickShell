@@ -6,7 +6,7 @@ namespace QuickShell.Services;
 /// <summary>
 /// Runs a modal shell dialog on an STA thread with timeout recovery. Publishes the
 /// native thread id with <see cref="Volatile"/> so timeout close can find the dialog,
-/// and swallows worker exceptions into a null result so they never tear down the process.
+/// and maps worker failures to a null result so they never tear down the process.
 /// </summary>
 internal static class StaModalDialogRunner
 {
@@ -29,14 +29,7 @@ internal static class StaModalDialogRunner
 
         if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
         {
-            try
-            {
-                return action();
-            }
-            catch (Exception)
-            {
-                return null;
-            }
+            return TryInvoke(action);
         }
 
         string? selected = null;
@@ -49,6 +42,7 @@ internal static class StaModalDialogRunner
             {
                 selected = action();
             }
+            // codeql[cs/catch-of-all-exceptions]: Background STA must not crash the host; picker failure is null.
             catch (Exception ex)
             {
                 fault = ex;
@@ -72,5 +66,18 @@ internal static class StaModalDialogRunner
         }
 
         return fault is null ? selected : null;
+    }
+
+    private static string? TryInvoke(Func<string?> action)
+    {
+        try
+        {
+            return action();
+        }
+        // codeql[cs/catch-of-all-exceptions]: Same host-stability rule on the calling STA thread.
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }
