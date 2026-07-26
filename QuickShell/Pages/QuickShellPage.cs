@@ -128,6 +128,9 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
     public override IListItem[] GetItems()
     {
+#if DEBUG
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
         _services.CallbackQueue.Drain();
 
         // Host FetchItems awaits this return. Build on this COM/fetch thread so the
@@ -135,7 +138,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         // the UI stuck on "Loading workspaces" (ItemsChanged from ThreadPool is dropped).
         // Same path handles post-form reloads: save only marks stale so SubmitForm can
         // return GoBack immediately; the host re-fetches here after navigation.
-        if (!_hasLoadedWorkspaces || _workspacesStale)
+        var didRefresh = !_hasLoadedWorkspaces || _workspacesStale;
+        if (didRefresh)
         {
             _hasShownInitialList = true;
             IsLoading = true;
@@ -150,6 +154,13 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         var items = _items;
+#if DEBUG
+        stopwatch.Stop();
+        SupportDiagnostics.Default.Write(
+            "QuickShellPage.cs:GetItems",
+            "timing",
+            new { elapsedMs = stopwatch.Elapsed.TotalMilliseconds, didRefresh, itemCount = items.Length });
+#endif
         WorkspaceRepositorySnapshot? warmupSnapshot;
         lock (_refreshSync)
         {

@@ -43,8 +43,19 @@ internal partial class ShortcutFormPage : ContentPage, IDisposable
 
     public override IContent[] GetContent()
     {
+#if DEBUG
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var rebuilt = _form is null || _formNeedsReset;
+#endif
         EnsureFormBuilt();
         EnsureCommandsInitialized();
+#if DEBUG
+        stopwatch.Stop();
+        SupportDiagnostics.Default.Write(
+            "ShortcutFormPage.cs:GetContent",
+            "timing",
+            new { elapsedMs = stopwatch.Elapsed.TotalMilliseconds, rebuilt, isCreate = _existing is null });
+#endif
         return [_form!];
     }
 
