@@ -564,7 +564,8 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
 
         // Bolt: Performance optimization - use IndexOfAny to avoid string array allocation from Split
         var spaceIndex = trimmed.AsSpan().IndexOfAny(' ', '\t');
-        var token = (spaceIndex >= 0 ? trimmed[..spaceIndex] : trimmed).Trim();
+        var token = spaceIndex >= 0 ? trimmed[..spaceIndex] : trimmed;
+
         if (string.IsNullOrWhiteSpace(token))
         {
             return null;
