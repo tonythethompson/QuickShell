@@ -68,9 +68,30 @@ internal static class LaunchCommandSanity
     private static bool LooksLikeTempProjectReference(string command)
     {
         // e.g. dotnet watch --project tmp_serilog_probe.csproj
-        foreach (var token in command.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        var span = command.AsSpan();
+        var index = 0;
+
+        while (index < span.Length)
         {
-            var tokenSpan = token.AsSpan().Trim();
+            // Skip whitespace
+            while (index < span.Length && span[index] == ' ')
+            {
+                index++;
+            }
+
+            if (index >= span.Length)
+            {
+                break;
+            }
+
+            // Find end of token
+            var tokenStart = index;
+            while (index < span.Length && span[index] != ' ')
+            {
+                index++;
+            }
+
+            var tokenSpan = span.Slice(tokenStart, index - tokenStart).Trim();
             if (tokenSpan.IsEmpty)
             {
                 continue;
