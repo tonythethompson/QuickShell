@@ -68,11 +68,9 @@ internal static class LaunchCommandSanity
     private static bool LooksLikeTempProjectReference(string command)
     {
         // e.g. dotnet watch --project tmp_serilog_probe.csproj
-        // Bolt: Performance optimization - use command.AsSpan().Split(' ') to avoid string array allocations
-        var commandSpan = command.AsSpan();
-        foreach (var range in commandSpan.Split(' '))
+        foreach (var token in command.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
-            var tokenSpan = commandSpan[range].Trim();
+            var tokenSpan = token.AsSpan().Trim();
             if (tokenSpan.IsEmpty)
             {
                 continue;
