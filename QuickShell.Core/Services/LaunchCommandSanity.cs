@@ -68,17 +68,29 @@ internal static class LaunchCommandSanity
     private static bool LooksLikeTempProjectReference(string command)
     {
         // e.g. dotnet watch --project tmp_serilog_probe.csproj
-        foreach (var token in command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        // Bolt: Performance optimization - use command.AsSpan().Split(' ') to avoid string array allocations
+        var commandSpan = command.AsSpan();
+        foreach (var range in commandSpan.Split(' '))
         {
-            var file = token.Trim('"', '\'');
-            if (!file.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
-                && !file.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
-                && !file.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
-                && !file.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
+            var tokenSpan = commandSpan[range].Trim();
+            if (tokenSpan.IsEmpty)
             {
                 continue;
             }
 
+            var fileSpan = tokenSpan.Trim(['"', '\'']);
+
+            // Check extensions using spans to avoid allocations
+            if (!fileSpan.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                && !fileSpan.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
+                && !fileSpan.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
+                && !fileSpan.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // Fall back to string allocation only when necessary to call IsUsableDotNetProjectFileName
+            var file = fileSpan.ToString();
             if (!IsUsableDotNetProjectFileName(file))
             {
                 return true;

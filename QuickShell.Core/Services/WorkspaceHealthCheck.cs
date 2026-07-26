@@ -562,7 +562,10 @@ internal sealed partial class WorkspaceHealthCheck : IWorkspaceHealthChecker
             return endQuote > 1 ? Path.GetFileName(trimmed[1..endQuote]) : null;
         }
 
-        var token = trimmed.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        // Bolt: Performance optimization - use IndexOfAny to avoid string array allocation from Split
+        var spaceIndex = trimmed.AsSpan().IndexOfAny(' ', '\t');
+        var token = spaceIndex >= 0 ? trimmed[..spaceIndex] : trimmed;
+
         if (string.IsNullOrWhiteSpace(token))
         {
             return null;
