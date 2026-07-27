@@ -288,6 +288,7 @@ internal readonly record struct WorkspaceRepositorySnapshot(
         return trimmed.Contains(token, StringComparison.OrdinalIgnoreCase) ? contains : 0;
     }
 
+    // Bolt: Performance optimization - avoid string[] allocations by using SplitAny over ReadOnlySpan
     private static string[] GetTaskSearchTokens(string? query)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -295,18 +296,23 @@ internal readonly record struct WorkspaceRepositorySnapshot(
             return [];
         }
 
-        return query
-            .Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(NormalizeTaskSearchToken)
-            .Where(token => token.Length > 0 && !IsTaskSearchVerb(token))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var range in query.AsSpan().SplitAny([' ', '\t', '\r', '\n']))
+        {
+            var tokenSpan = NormalizeTaskSearchToken(query.AsSpan(range).Trim());
+            if (tokenSpan.Length > 0 && !IsTaskSearchVerb(tokenSpan))
+            {
+                tokens.Add(tokenSpan.ToString());
+            }
+        }
+
+        return tokens.ToArray();
     }
 
-    private static string NormalizeTaskSearchToken(string token) =>
-        token.Trim('\'', '"', '`', ',', '.', ':', ';', '(', ')', '[', ']', '{', '}');
+    private static ReadOnlySpan<char> NormalizeTaskSearchToken(ReadOnlySpan<char> token) =>
+        token.Trim("'\"`,.:;()[]{}".AsSpan());
 
-    private static bool IsTaskSearchVerb(string token) =>
+    private static bool IsTaskSearchVerb(ReadOnlySpan<char> token) =>
         token.Equals("run", StringComparison.OrdinalIgnoreCase) ||
         token.Equals("open", StringComparison.OrdinalIgnoreCase) ||
         token.Equals("start", StringComparison.OrdinalIgnoreCase) ||
