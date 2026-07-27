@@ -104,11 +104,13 @@
     <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
     <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
     <!-- IL2081: DynamicallyAccessedMemberTypes.PublicParameterlessConstructor fallback path in
-         the Windows SDK projection. IL2104: Microsoft.Windows.SDK.NET and WinRT.Runtime are not
-         themselves annotated IsTrimmable, so ILLink reports "assembly produced trim warnings"
-         for them as a rollup diagnostic once ILLinkTreatWarningsAsErrors is on; the assemblies
-         are still trimmed (unreferenced types removed), this only suppresses the summary error. -->
-    <WarningsNotAsErrors>IL2081;IL2104;$(WarningsNotAsErrors)</WarningsNotAsErrors>
+         the Windows SDK projection. Keep as non-fatal so TreatWarningsAsErrors does not fail the build. -->
+    <WarningsNotAsErrors>IL2081;$(WarningsNotAsErrors)</WarningsNotAsErrors>
+    <!-- IL2104: Microsoft.Windows.SDK.NET and WinRT.Runtime are not fully trim-annotated; ILLink
+         emits one "assembly produced trim warnings" rollup per assembly. Cannot be fixed in-repo;
+         the assemblies are still trimmed (unreferenced types removed). Silence the noise so Release
+         MSIX publish stays clean while ILLinkTreatWarningsAsErrors remains on for our code. -->
+    <NoWarn>$(NoWarn);IL2104</NoWarn>
 
     <!-- When publishing trimmed, make sure to treat trimming warnings as build errors -->
     <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
