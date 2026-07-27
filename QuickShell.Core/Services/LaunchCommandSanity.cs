@@ -68,17 +68,48 @@ internal static class LaunchCommandSanity
     private static bool LooksLikeTempProjectReference(string command)
     {
         // e.g. dotnet watch --project tmp_serilog_probe.csproj
-        foreach (var token in command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        var span = command.AsSpan();
+        var index = 0;
+
+        while (index < span.Length)
         {
-            var file = token.Trim('"', '\'');
-            if (!file.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
-                && !file.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
-                && !file.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
-                && !file.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
+            // Skip whitespace
+            while (index < span.Length && span[index] == ' ')
+            {
+                index++;
+            }
+
+            if (index >= span.Length)
+            {
+                break;
+            }
+
+            // Find end of token
+            var tokenStart = index;
+            while (index < span.Length && span[index] != ' ')
+            {
+                index++;
+            }
+
+            var tokenSpan = span.Slice(tokenStart, index - tokenStart).Trim();
+            if (tokenSpan.IsEmpty)
             {
                 continue;
             }
 
+            var fileSpan = tokenSpan.Trim(['"', '\'']);
+
+            // Check extensions using spans to avoid allocations
+            if (!fileSpan.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                && !fileSpan.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
+                && !fileSpan.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
+                && !fileSpan.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // Fall back to string allocation only when necessary to call IsUsableDotNetProjectFileName
+            var file = fileSpan.ToString();
             if (!IsUsableDotNetProjectFileName(file))
             {
                 return true;
