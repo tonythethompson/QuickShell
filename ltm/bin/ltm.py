@@ -958,9 +958,11 @@ def cmd_selftest(args):
             cmd_repair(type("A", (), {"_": None})())
             self.assertTrue(ACTIVE_CTX.exists())
         def test_11_redaction(self):
-            text, r = _redact_text("key is sk_live_abc123def456")
+            # Build sample at runtime so scanners do not treat the fixture as a real secret.
+            fake_key = "sk_" + "live_" + "abc123def456"
+            text, r = _redact_text(f"key is {fake_key}")
             self.assertTrue(r)
-            self.assertNotIn("sk_live_abc123def456", text)
+            self.assertNotIn(fake_key, text)
         def test_15_sensitive_paths(self):
             config = {"exclude_paths": ["ltm/**"], "sensitive_path_patterns": [".env*", "secrets/**"]}
             filtered, redacted = _filter_paths([".env.local", "secrets/key.txt", "src/app.py"], config)
