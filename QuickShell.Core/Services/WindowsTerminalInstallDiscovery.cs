@@ -23,8 +23,15 @@ internal static class WindowsTerminalInstallDiscovery
             }
 
             var paths = new List<string>();
-            TryAddFromAppxPackages(paths);
+            // Probe the well-known packaged install directory first. This avoids spawning
+            // PowerShell and waiting for Get-AppxPackage in the common Store/MSIX case.
             TryAddFromWindowsApps(paths);
+            if (paths.Count == 0)
+            {
+                // Fall back to Appx discovery for non-Store or unusual install locations.
+                TryAddFromAppxPackages(paths);
+            }
+
             _cached = paths
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();

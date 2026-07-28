@@ -13,7 +13,8 @@ namespace QuickShell.Services;
 /// deduplicated by workspace id per refresh, resolved in one background
 /// batch, and applied through <see cref="IExtensionCallbackQueue"/> so the host thread
 /// owns the UI mutation. Results for an older refresh, or arriving after
-/// disposal, are discarded.
+/// disposal, are discarded. When applies are queued, an optional host wake callback
+/// is invoked so the host re-fetches and shows the upgraded icons.
 /// </summary>
 internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 {
@@ -22,6 +23,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
     private readonly ITerminalListIconCache _listIcons;
     private readonly Func<TerminalShortcut, string?> _resolveIcon;
     private readonly Action<Action> _runInBackground;
+    private readonly Action? _onApplyRequested;
     private readonly CancellationTokenSource _cts = new();
     private readonly CancellationToken _cancellationToken;
     private readonly object _sync = new();
@@ -62,13 +64,15 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
         ITerminalListIconCache listIcons,
         IRowPresentationDiagnostics? diagnostics = null,
         Func<TerminalShortcut, string?>? resolveIcon = null,
-        Action<Action>? backgroundScheduler = null)
+        Action<Action>? backgroundScheduler = null,
+        Action? onApplyRequested = null)
     {
         ArgumentNullException.ThrowIfNull(callbackQueue);
         _callbackQueue = callbackQueue;
         _listIcons = listIcons ?? throw new ArgumentNullException(nameof(listIcons));
         _diagnostics = diagnostics ?? new RowPresentationDiagnostics();
         _resolveIcon = resolveIcon ?? ResolveUpgradedIcon;
+        _onApplyRequested = onApplyRequested;
         _cancellationToken = _cts.Token;
         _runInBackground = backgroundScheduler ?? (work => _ = Task.Run(work, _cancellationToken));
     }
@@ -212,6 +216,18 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 
     private void RunBatch(EnrichmentWork[] batch)
     {
+        // Warm the profile list and install discovery once per batch so the per-row
+        // resolves can hit hot caches and avoid cold PowerShell calls under a lock.
+        try
+        {
+            _listIcons.PrewarmProfiles();
+        }
+        catch (Exception ex) when (!IsCriticalException(ex))
+        {
+            // Prewarm failing should not stop the batch; individual resolves will do
+            // their own best-effort discovery.
+        }
+
         var resolved = new List<(EnrichmentWork Work, string? Icon)>(batch.Length);
         foreach (var work in batch)
         {
@@ -219,12 +235,7 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
             {
                 resolved.Add((work, _resolveIcon(work.Shortcut)));
             }
-            catch (InvalidOperationException)
-            {
-                // One row's enrichment failing must not stop the rest of the batch.
-                resolved.Add((work, null));
-            }
-            catch (ArgumentException)
+            catch (Exception ex) when (!IsCriticalException(ex))
             {
                 // One row's enrichment failing must not stop the rest of the batch.
                 resolved.Add((work, null));
@@ -254,6 +265,19 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
 
     private void QueueApply(IReadOnlyList<EnrichmentWork> workItems)
     {
+        var hasCurrentWork = false;
+        lock (_sync)
+        {
+            foreach (var work in workItems)
+            {
+                if (!_disposed && work.Refresh == _currentRefresh)
+                {
+                    hasCurrentWork = true;
+                    break;
+                }
+            }
+        }
+
         _callbackQueue.Enqueue(() =>
         {
             var appliedAny = false;
@@ -292,11 +316,25 @@ internal sealed partial class WorkspaceRowEnrichmentCoordinator : IDisposable
                 _diagnostics.Record(RowPresentationDiagnostics.EnrichmentBatchApplied);
             }
         });
+
+        if (hasCurrentWork)
+        {
+            _onApplyRequested?.Invoke();
+        }
     }
 
     private string? ResolveUpgradedIcon(TerminalShortcut shortcut)
     {
-        _listIcons.PrewarmProfiles();
         return _listIcons.TryResolveUpgradedListIcon(shortcut);
     }
+
+    private static bool IsCriticalException(Exception ex) => ex is
+        OutOfMemoryException
+        or StackOverflowException
+        or AccessViolationException
+        or AppDomainUnloadedException
+        or BadImageFormatException
+        or CannotUnloadAppDomainException
+        or InvalidProgramException
+        or ThreadAbortException;
 }

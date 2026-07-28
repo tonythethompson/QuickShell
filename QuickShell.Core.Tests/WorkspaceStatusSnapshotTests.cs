@@ -4,6 +4,9 @@ using QuickShell.Services;
 
 namespace QuickShell.Core.Tests;
 
+// Asserts exact entry counts on WorkspaceStatusService's process-wide cache, so it cannot run
+// in parallel with anything else that captures workspace status (the perf harnesses do).
+[Collection(StartupPerfIsolation.Name)]
 public sealed class WorkspaceStatusSnapshotTests
 {
     [Fact]

@@ -55,10 +55,14 @@ internal sealed partial class BehaviorSettingsForm : FormContent
         var nextProfile = _settingsManager.DefaultProfileId;
 
         // Avoid rebuilding the large settings Adaptive Card when nothing changed.
+        // MatchesPending alone is not enough: Save & close updates the nested terminal
+        // form's BoundDataJson with notifyParent:false, so this parent card can keep a
+        // stale DataJson (old profile label) while settings already match the new pick.
         if (nextTabs == _pendingSingleWindowTabs
             && nextRecents == _pendingShowRecents
             && nextGit == _pendingBlockDirtyBranchSwitch
             && _terminalForm.MatchesPending(nextApp, nextProfile)
+            && MatchesPublishedTerminalDefaults(nextApp, nextProfile)
             && !string.IsNullOrEmpty(TemplateJson))
         {
             return;
@@ -69,6 +73,22 @@ internal sealed partial class BehaviorSettingsForm : FormContent
         _pendingShowRecents = nextRecents;
         _pendingBlockDirtyBranchSwitch = nextGit;
         RebuildTemplate();
+    }
+
+    private bool MatchesPublishedTerminalDefaults(string appId, string profileId)
+    {
+        try
+        {
+            var data = JsonNode.Parse(DataJson)?.AsObject();
+            var publishedApp = data?["terminalApplication"]?.GetValue<string>();
+            var publishedProfile = data?["defaultProfile"]?.GetValue<string>();
+            return string.Equals(publishedApp, appId, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(publishedProfile, profileId, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 
     private void SyncPendingFromSettings()
@@ -123,6 +143,7 @@ internal sealed partial class BehaviorSettingsForm : FormContent
     {
         var values = ParseValues(inputs, data);
         ApplyAllPendingFromValues(values);
+        var homeFingerprintBefore = _settingsManager.HomeListSettingsFingerprint;
 
         if (!_terminalForm.TryCommitPending(values, out var error))
         {
@@ -131,7 +152,21 @@ internal sealed partial class BehaviorSettingsForm : FormContent
         }
 
         CommitToggleSettings();
-        _services.RefreshScheduler.SchedulePostNavigationRefresh(_onReload);
+        // Parent DataJson must pick up the committed profile before we leave; otherwise the
+        // next Settings open skips SyncFromSettings (pending already matches) and keeps the
+        // previous profile label until the extension process restarts.
+        RebuildTemplate();
+
+        // Only bounce the home list when terminal defaults or Recent visibility changed.
+        // Multi-launch / dirty-branch saves must not re-enrich every row icon.
+        if (!string.Equals(
+                homeFingerprintBefore,
+                _settingsManager.HomeListSettingsFingerprint,
+                StringComparison.Ordinal))
+        {
+            _services.RefreshScheduler.SchedulePostNavigationRefresh(_onReload);
+        }
+
         _services.RefreshScheduler.ScheduleRefresh(_onSettingsChanged);
         return QuickShellNavigation.GoBack(Strings.Saved_Toast);
     }

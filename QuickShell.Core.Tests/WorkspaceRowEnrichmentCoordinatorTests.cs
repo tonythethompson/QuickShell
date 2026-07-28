@@ -11,7 +11,8 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests
     private readonly List<string> _resolvedIds = [];
 
     private WorkspaceRowEnrichmentCoordinator CreateCoordinator(
-        Func<TerminalShortcut, string?>? resolveIcon = null) =>
+        Func<TerminalShortcut, string?>? resolveIcon = null,
+        Action? onApplyRequested = null) =>
         new(
             _queue,
             new TerminalListIconCache(
@@ -26,7 +27,8 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests
             }),
             // Inline scheduler: the batch resolves synchronously inside Flush so tests
             // control exactly when the UI apply happens (queue.Drain()).
-            backgroundScheduler: work => work());
+            backgroundScheduler: work => work(),
+            onApplyRequested: onApplyRequested);
 
     private static TerminalShortcut CreateShortcut(string id = "ws-1") =>
         new()
@@ -70,6 +72,19 @@ public sealed class WorkspaceRowEnrichmentCoordinatorTests
 
         Assert.Equal(3, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentQueued));
         Assert.Equal(1, _diagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+    }
+
+    [Fact]
+    public void Flush_RaisesApplyRequested_WhenBatchResolvesCurrentWork()
+    {
+        var applyRequested = false;
+        using var coordinator = CreateCoordinator(onApplyRequested: () => applyRequested = true);
+        var generation = coordinator.BeginRefresh(1, "wt|profile-a");
+
+        coordinator.ScheduleIconUpgrade(CreateShortcut(), generation, CreateItem());
+        coordinator.Flush();
+
+        Assert.True(applyRequested);
     }
 
     [Fact]

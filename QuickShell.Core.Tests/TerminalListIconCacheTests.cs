@@ -61,4 +61,11 @@ public sealed class TerminalListIconCacheTests
 
         Assert.Equal(missing, result);
     }
+
+    [Fact]
+    public void PrewarmProfiles_DoesNotThrow_WhenProfilesEmpty()
+    {
+        var exception = Record.Exception(() => _cache.PrewarmProfiles());
+        Assert.Null(exception);
+    }
 }

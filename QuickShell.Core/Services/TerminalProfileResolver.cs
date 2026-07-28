@@ -72,14 +72,22 @@ internal sealed class TerminalProfileResolver : ITerminalProfileResolver
             return _profiles.FindDefaultProfile(hostTerminal);
         }
 
+        // Resolve by profile name first. Stored values like "PowerShell" are WT profile
+        // names; classifying them as standalone shell ids would pick the wrong icon.
+        var named = _profiles.FindProfileForLaunch(hostTerminal, defaultProfileId)
+            ?? _profiles.FindProfileByNameAcrossHosts(defaultProfileId);
+        if (named is not null)
+        {
+            return named;
+        }
+
         if (_catalog.IsStandaloneShellLaunchTarget(defaultProfileId))
         {
             return _profiles.FindProfileForStandaloneShell(defaultProfileId)
                 ?? _profiles.FindDefaultProfile(hostTerminal);
         }
 
-        return _profiles.FindProfileForLaunch(hostTerminal, defaultProfileId)
-            ?? _profiles.FindProfileByNameAcrossHosts(defaultProfileId);
+        return null;
     }
 
     private static string NormalizeHostTerminal(string terminal) =>

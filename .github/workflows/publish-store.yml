@@ -1,0 +1,71 @@
+name: Publish to Microsoft Store
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      # The Store CLI runs on the .NET 9 Desktop Runtime; Quick Shell builds with .NET 10.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Install MSStore CLI
+        shell: pwsh
+        run: |
+          dotnet tool install --global Microsoft.Store.CLI
+          Join-Path $env:USERPROFILE '.dotnet\tools' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify Store version matches release tag
+        shell: pwsh
+        run: |
+          $releaseVersion = "${{ github.event.release.tag_name }}" -replace '^v', ''
+          [xml]$manifest = Get-Content QuickShell/Package.appxmanifest
+          $manifestVersion = [string]$manifest.Package.Identity.Version
+
+          if ($manifestVersion -ne $releaseVersion) {
+            throw "Release tag version ($releaseVersion) does not match Package.appxmanifest ($manifestVersion)."
+          }
+
+      - name: Build Store upload package
+        shell: pwsh
+        run: .\scripts\build-store.ps1
+
+      - name: Configure MSStore CLI
+        shell: pwsh
+        run: |
+          msstore reconfigure `
+            --tenantId "${{ secrets.MSSTORE_TENANT_ID }}" `
+            --sellerId "${{ secrets.MSSTORE_SELLER_ID }}" `
+            --clientId "${{ secrets.MSSTORE_CLIENT_ID }}" `
+            --clientSecret "${{ secrets.MSSTORE_CLIENT_SECRET }}"
+
+      - name: Upload and publish Store package
+        shell: pwsh
+        run: |
+          $upload = Get-ChildItem QuickShell/AppPackages/Store -Recurse -Filter *.msixupload |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $upload) {
+            throw 'Store upload package was not produced.'
+          }
+
+          msstore publish "$env:GITHUB_WORKSPACE\QuickShell" `
+            --inputFile $upload.FullName `
+            --appId 9PC8S6LNRT3R

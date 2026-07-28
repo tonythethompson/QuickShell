@@ -77,7 +77,18 @@ public sealed partial class QuickShellCommandsProvider : CommandProvider, IDispo
         {
             SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "before page setup");
             _page = new QuickShellPage(_context);
-            _settingsChangedHandler = (_, _) => _page.Reload();
+            var lastHomeListFingerprint = _settingsManager.HomeListSettingsFingerprint;
+            _settingsChangedHandler = (_, _) =>
+            {
+                var next = _settingsManager.HomeListSettingsFingerprint;
+                if (string.Equals(next, lastHomeListFingerprint, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                lastHomeListFingerprint = next;
+                _page.Reload();
+            };
             _settingsManager.SettingsChanged += _settingsChangedHandler;
             SupportDiagnostics.Default.Write("QuickShellCommandsProvider.cs:ctor", "after page setup");
         }

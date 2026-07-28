@@ -28,6 +28,8 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
     private bool _disposed;
     private bool _baselineReady;
     private bool _suggestionScanComplete;
+    /// <summary>Pills the last published state carried, so a click resolves without reranking.</summary>
+    private IReadOnlyList<CommandSuggestionPill> _lastPublishedPills = [];
     private string? _originalName;
     private string? _autoFilledName;
     private bool _nameCustomized;
@@ -38,6 +40,13 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
     private FormDraft _draft = new();
     private FormDraft _baselineDraft = new();
     private bool _pendingChanged;
+
+    /// <summary>
+    /// Counts synchronous pill reranks. A rerank walks the project on disk (~100ms), so it must
+    /// never happen on a click once pills are on screen; <c>CriticalPathContractTests</c> asserts
+    /// this stays flat across a pill click.
+    /// </summary>
+    internal int PillRerankInvocations;
 
     public WorkspaceEditor(
         IShortcutRepository shortcuts,
@@ -105,6 +114,9 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
             _editHistory.Clear();
             _baselineReady = false;
             _suggestionScanComplete = false;
+            // A reopened form may target a different workspace; never resolve a click against
+            // the previous workspace's pills.
+            _lastPublishedPills = [];
             InitializeDraft(existing, createSeed);
             _baselineDraft = CloneDraft(_draft);
             _baselineReady = true;
@@ -205,13 +217,22 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         return Locked(() =>
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            // Must match BuildDataFields / BuildSelectablePills so pillIndex slots resolve the
-            // same real-command list the Adaptive Card rendered.
-            var pills = SuggestionPillPresentation.BuildSelectablePills(
-                _draft.Directory,
-                _draft.Commands.Select(c => c.Command),
-                _projectAnalysis,
-                _commandSuggestions);
+            // Resolve against the pills the Adaptive Card was actually rendered from, so
+            // pillIndex slots line up by construction. Rebuilding the list here instead cost a
+            // full project rerank (~110ms) on the click thread, because adding a command
+            // changes the used-command set the suggestion cache is keyed on.
+            var pills = _lastPublishedPills;
+            if (pills.Count == 0)
+            {
+                // Nothing rendered yet (the opening scan is still running). Falling back to a
+                // synchronous rerank is the slow path the contract test guards against.
+                PillRerankInvocations++;
+                pills = SuggestionPillPresentation.BuildSelectablePills(
+                    _draft.Directory,
+                    _draft.Commands.Select(c => c.Command),
+                    _projectAnalysis,
+                    _commandSuggestions);
+            }
 
             var pill = _commandSuggestions.TryFindPill(pills, command, taskType);
             if (pill is null && pillIndex >= 0 && pillIndex < pills.Count)
@@ -231,6 +252,11 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
 
             PushEditSnapshot();
             _ = _commandSuggestions.ApplyPill(_draft.Commands, pill, GetDefaultRowLaunchTarget());
+            // The used-command set just changed, so the remaining pills have to be reranked
+            // against the project. Route that through the background scan instead of doing it
+            // inline: BuildState reports scanning and returns no pills, so the card repaints
+            // immediately and the real pills arrive on the scan's own OnChanged.
+            InvalidateSuggestionScan();
             ApplyDraft();
             return WorkspaceEditResult.StayOpen($"Added {pill.TypeTitle} command.");
         });
@@ -255,6 +281,9 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
                     ? GetDefaultRowLaunchTarget()
                     : TerminalCatalog.SameAsPreviousLaunchTargetId,
             });
+            // No InvalidateSuggestionScan here: the new row carries no command text, so the
+            // used-command set the pills are ranked against is unchanged. Invalidating anyway
+            // opened a rerank window in which BuildState published no pills.
             ApplyDraft();
             return WorkspaceEditResult.StayOpen();
         });
@@ -1413,18 +1442,83 @@ internal sealed class WorkspaceEditor : IWorkspaceEditor
         return true;
     }
 
+    /// <summary>
+    /// Removes pills whose command is already on a launch row, so a just-added suggestion
+    /// disappears immediately instead of waiting for the background rerank to drop it.
+    /// </summary>
+    private static IReadOnlyList<CommandSuggestionPill> DropUsedPills(
+        IReadOnlyList<CommandSuggestionPill> pills,
+        List<LaunchRowDraft> commands)
+    {
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < commands.Count; i++)
+        {
+            var command = commands[i].Command?.Trim();
+            if (!string.IsNullOrEmpty(command))
+            {
+                used.Add(command);
+            }
+        }
+
+        if (used.Count == 0)
+        {
+            return pills;
+        }
+
+        List<CommandSuggestionPill>? kept = null;
+        for (var i = 0; i < pills.Count; i++)
+        {
+            if (used.Contains(pills[i].Command.Trim()))
+            {
+                kept ??= [.. pills.Take(i)];
+                continue;
+            }
+
+            kept?.Add(pills[i]);
+        }
+
+        return kept ?? pills;
+    }
+
     private WorkspaceEditState BuildState()
     {
         // Callers always hold _sync; read fields directly instead of re-entering via IsSuggestionScanning.
-        var scanning = !_suggestionScanComplete && !string.IsNullOrWhiteSpace(_draft.Directory);
+        var rescanning = !_suggestionScanComplete && !string.IsNullOrWhiteSpace(_draft.Directory);
+        var haveRenderedPills = _lastPublishedPills.Count > 0;
+
+        // Report scanning only for the first scan of a directory. SuggestionPillPresentation
+        // hides every pill while the flag is set, so raising it for a rerank blanked the whole
+        // pill row until the background scan finished.
+        var scanning = rescanning && !haveRenderedPills;
+
         // Presentation order (type-grouped) must match form render / pillIndex clicks.
-        IReadOnlyList<CommandSuggestionPill> pills = scanning
-            ? []
-            : SuggestionPillPresentation.BuildSelectablePills(
+        IReadOnlyList<CommandSuggestionPill> pills;
+        if (rescanning)
+        {
+            // Mid-rerank: keep showing what is already on screen, minus anything the user just
+            // consumed, so adding a command removes that one pill instead of clearing the row.
+            pills = haveRenderedPills
+                ? DropUsedPills(_lastPublishedPills, _draft.Commands)
+                : [];
+        }
+        else
+        {
+            PillRerankInvocations++;
+            pills = SuggestionPillPresentation.BuildSelectablePills(
                 _draft.Directory,
                 _draft.Commands.Select(c => c.Command),
                 _projectAnalysis,
                 _commandSuggestions);
+        }
+
+        // _lastPublishedPills must mirror the list the card rendered, because a pill click
+        // resolves its pillIndex against it (see TryAddSuggestedCommand). Never store the
+        // empty placeholder a rerank produces before anything has been rendered: that is
+        // sticky, and it forces the next click back onto a synchronous ~110ms rescan.
+        if (!rescanning || pills.Count > 0)
+        {
+            _lastPublishedPills = pills;
+        }
 
         return new WorkspaceEditState(
             _originalName,

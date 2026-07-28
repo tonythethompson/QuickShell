@@ -211,6 +211,14 @@ internal sealed class QuickShellSettingsManager
     /// </summary>
     public string RowPresentationFingerprint => $"{TerminalApplicationId}|{DefaultProfileId}";
 
+    /// <summary>
+    /// Settings that reshape the home list (row icons/subtitles or Recent section).
+    /// Multi-launch and dirty-branch toggles are intentionally excluded so Save &amp; close
+    /// does not thrash icon enrichment when only those change.
+    /// </summary>
+    public string HomeListSettingsFingerprint =>
+        $"{RowPresentationFingerprint}|{RecentWorkspaceCount}";
+
     public bool BlockDirtyBranchSwitch => ReadBlockDirtyBranchSwitch();
 
     public bool SeparateWindowsForMultiLaunch =>
@@ -236,6 +244,21 @@ internal sealed class QuickShellSettingsManager
         {
             app = EnsureValidTerminalApplication(app);
             profile = EnsureValidDefaultProfile(app, profile);
+
+            // Compare against the stored (normalized) values, not the validated ones. An
+            // invalid stored value may validate to the same thing as the new pick, in
+            // which case we still need to persist the corrected value.
+            var currentApp = NormalizeTerminalApplication(_settings.GetSetting<string>(TerminalApplicationSettingId));
+            var currentProfile = NormalizeStoredDefaultProfile(_settings.GetSetting<string>(DefaultProfileSettingId));
+            if (app.Equals(currentApp, StringComparison.OrdinalIgnoreCase)
+                && profile.Equals(currentProfile, StringComparison.OrdinalIgnoreCase))
+            {
+                // Same defaults: refresh choice lists if needed, but do not persist or notify.
+                _terminalApplicationSetting.Choices = _getTerminalApplicationChoices();
+                SyncDefaultProfileChoices();
+                return;
+            }
+
             _settings.Update($$"""{"{{TerminalApplicationSettingId}}":"{{EscapeJson(app)}}","{{DefaultProfileSettingId}}":"{{EscapeJson(profile)}}"}""");
             _terminalDefaultsRevision++;
             _terminalApplicationSetting.Choices = _getTerminalApplicationChoices();
@@ -370,22 +393,30 @@ internal sealed class QuickShellSettingsManager
             return TerminalHostIds.DefaultProfile;
         }
 
+        // Match against the live profile ChoiceSet first. WT profile names like "PowerShell"
+        // must win over IsStandaloneShellLaunchTarget, which normalizes that display name to
+        // the shell id "powershell" and would otherwise rewrite the dropdown value.
+        var choices = _getDefaultProfileChoices(terminalApplicationId);
+        if (TryExtractProfileName(normalized, out var profileName))
+        {
+            var prefixed = choices.FirstOrDefault(c =>
+                c.Value.Equals(profileName, StringComparison.OrdinalIgnoreCase));
+            if (prefixed is not null)
+            {
+                return prefixed.Value;
+            }
+        }
+
+        var matched = choices.FirstOrDefault(c =>
+            c.Value.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+        if (matched is not null)
+        {
+            return matched.Value;
+        }
+
         if (TerminalCatalog.IsStandaloneShellLaunchTarget(normalized))
         {
-            return normalized;
-        }
-
-        if (TryExtractProfileName(normalized, out var profileName)
-            && _getDefaultProfileChoices(terminalApplicationId)
-                .Any(c => c.Value.Equals(profileName, StringComparison.OrdinalIgnoreCase)))
-        {
-            return profileName;
-        }
-
-        if (_getDefaultProfileChoices(terminalApplicationId)
-                .Any(c => c.Value.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
-        {
-            return normalized;
+            return TerminalCatalog.NormalizeLaunchTargetId(normalized);
         }
 
         return TerminalHostIds.DefaultProfile;

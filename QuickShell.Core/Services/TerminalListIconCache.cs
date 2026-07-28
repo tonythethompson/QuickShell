@@ -106,7 +106,23 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
     {
         try
         {
-            _ = _profiles.GetProfiles();
+            var profiles = _profiles.GetProfiles();
+            if (profiles.Count == 0)
+            {
+                return;
+            }
+
+            // Only prewarm packaged install paths when there are profiles that could use
+            // ms-appx:///ProfileIcons/... resolution. Unpackaged dev builds keep their
+            // assets alongside the executable and should not force a PowerShell fallback.
+            var mayHavePackagedIcon = profiles.Any(p =>
+                p.Source != TerminalSettingsSource.Unpackaged
+                || (!string.IsNullOrWhiteSpace(p.Icon)
+                    && p.Icon.StartsWith("ms-appx", StringComparison.OrdinalIgnoreCase)));
+            if (mayHavePackagedIcon)
+            {
+                _ = WindowsTerminalInstallDiscovery.GetInstallPaths();
+            }
         }
         catch
         {

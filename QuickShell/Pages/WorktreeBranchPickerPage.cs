@@ -2,6 +2,8 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using QuickShell.Commands;
 using QuickShell.Services;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuickShell.Pages;
 
@@ -13,6 +15,9 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
     private readonly WorkspaceGitStatus? _knownStatus;
     private readonly string? _knownTargetBranch;
     private IListItem[]? _items;
+    /// <summary>Single-slot handoff from the background load to this page's fetch thread.</summary>
+    private IListItem[]? _pendingItems;
+    private int _loadStarted;
 
     public WorktreeBranchPickerPage(
         IQuickShellServices services,
@@ -35,7 +40,89 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
         // work in the constructor would run git once per visible row on every refresh.
     }
 
-    public override IListItem[] GetItems() => _items ??= BuildItems();
+    public override IListItem[] GetItems()
+    {
+        // Deliberately does not drain IExtensionCallbackQueue: that queue is process-wide, so
+        // draining it here would run other pages' callbacks (including a full home-list
+        // rebuild) on this page's fetch thread. The background load hands off through
+        // _pendingItems instead, which only this page owns.
+        if (Interlocked.Exchange(ref _pendingItems, null) is { } delivered)
+        {
+            _items = delivered;
+            IsLoading = false;
+        }
+
+        if (_items is { } published)
+        {
+            return published;
+        }
+
+        // BuildItems() runs git status + for-each-ref, ~0.5s on a real repository. Returning
+        // a placeholder and loading in the background keeps navigation into this page
+        // instant; the host refetches when the background load publishes.
+        StartLoad();
+        IsLoading = true;
+        return
+        [
+            new ListItem(new NoOpCommand())
+            {
+                Title = Strings.BranchPicker_SelectLocalBranch,
+                Subtitle = Strings.Menu_SwitchBranch,
+                Icon = Icon,
+            },
+        ];
+    }
+
+    private void StartLoad()
+    {
+        if (Interlocked.Exchange(ref _loadStarted, 1) == 1)
+        {
+            return;
+        }
+
+        var cancellationToken = _services.Lifetime.CancellationToken;
+        _ = Task.Run(
+            () =>
+            {
+                IListItem[] built;
+                try
+                {
+                    built = BuildItems();
+                }
+                catch (Exception ex) when (ex is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException)
+                {
+                    built =
+                    [
+                        new ListItem(new NoOpCommand())
+                        {
+                            Title = Strings.BranchPicker_NotAGitRepository,
+                            Subtitle = ex.Message,
+                        },
+                    ];
+                }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                // Hand off; GetItems picks this up on the fetch the notification triggers.
+                Interlocked.Exchange(ref _pendingItems, built);
+
+                try
+                {
+                    RaiseItemsChanged();
+                }
+                catch (System.Runtime.InteropServices.COMException)
+                {
+                    // Host may reject a cross-thread notification while tearing down.
+                    // The queued items still apply on the next GetItems.
+                }
+            },
+            cancellationToken);
+    }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
