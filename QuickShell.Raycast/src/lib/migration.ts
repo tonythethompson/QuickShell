@@ -160,15 +160,28 @@ function migrateSettings(raw: unknown): QuickShellSettings {
     return { ...DEFAULT_SETTINGS };
   }
 
-  const record = raw as UnknownRecord;
-  const terminalApplication = parseTerminalApplication(record.terminalApplication);
-  const defaultProfile =
-    typeof record.defaultProfile === "string" && record.defaultProfile.trim()
-      ? record.defaultProfile.trim()
-      : DEFAULT_SETTINGS.defaultProfile;
+  const {
+    defaultProfile: defaultDefaultProfile,
+    recentWorkspaceCount: defaultRecentWorkspaceCount,
+    blockDirtyBranchSwitch: defaultBlockDirtyBranchSwitch,
+  } = DEFAULT_SETTINGS;
 
-  const { recentWorkspaceCount: rawRecentWorkspaceCount } = record;
-  let recentWorkspaceCount = DEFAULT_SETTINGS.recentWorkspaceCount;
+  const record = raw as UnknownRecord;
+  const {
+    terminalApplication: rawTerminalApplication,
+    defaultProfile: rawDefaultProfile,
+    recentWorkspaceCount: rawRecentWorkspaceCount,
+    multiLaunchPresentation: rawMultiLaunchPresentation,
+    blockDirtyBranchSwitch: rawBlockDirtyBranchSwitch,
+  } = record;
+
+  const terminalApplication = parseTerminalApplication(rawTerminalApplication);
+  const defaultProfile =
+    typeof rawDefaultProfile === "string" && rawDefaultProfile.trim()
+      ? rawDefaultProfile.trim()
+      : defaultDefaultProfile;
+
+  let recentWorkspaceCount = defaultRecentWorkspaceCount;
   if (typeof rawRecentWorkspaceCount === "number") {
     recentWorkspaceCount = normalizeRecentCount(rawRecentWorkspaceCount);
   } else if (typeof rawRecentWorkspaceCount === "string") {
@@ -182,8 +195,8 @@ function migrateSettings(raw: unknown): QuickShellSettings {
     terminalApplication,
     defaultProfile,
     recentWorkspaceCount,
-    multiLaunchPresentation: parseMultiLaunchPresentation(record.multiLaunchPresentation),
-    blockDirtyBranchSwitch: parseBooleanFlag(record.blockDirtyBranchSwitch, DEFAULT_SETTINGS.blockDirtyBranchSwitch),
+    multiLaunchPresentation: parseMultiLaunchPresentation(rawMultiLaunchPresentation),
+    blockDirtyBranchSwitch: parseBooleanFlag(rawBlockDirtyBranchSwitch, defaultBlockDirtyBranchSwitch),
   };
 }
 
