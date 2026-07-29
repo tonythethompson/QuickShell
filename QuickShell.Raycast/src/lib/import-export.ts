@@ -122,9 +122,15 @@ function importCmdPalLayoutEnvelope(entries: unknown[], existing?: StoredData): 
       continue;
     }
 
+    const workspaceIds = new Set<string>();
+
     // Stable id ties layout rows to merge retention so skipped duplicates do not shift later rows.
     const rawId = typeof workspaceRecord.id === "string" ? workspaceRecord.id.trim() : "";
-    const workspaceId = isStableWorkspaceId(rawId) ? rawId.toLowerCase() : createStableId();
+    let workspaceId = isStableWorkspaceId(rawId) ? rawId.toLowerCase() : createStableId();
+    while (workspaceIds.has(workspaceId)) {
+      workspaceId = createStableId();
+    }
+    workspaceIds.add(workspaceId);
     workspaces.push({ ...workspaceRecord, id: workspaceId });
     layoutEntries.push({ type: "workspace", workspaceId });
   }
