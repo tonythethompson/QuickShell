@@ -226,7 +226,7 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
     public void LoadAll_SkipsNonStringGuid_AndProcessesRestOfFile()
     {
         WriteFragment(
-            Path.Combine(_root, "mixed", "mixed.json"),
+            Path.Join(_root, "mixed", "mixed.json"),
             """
             {
                 "profiles": [
