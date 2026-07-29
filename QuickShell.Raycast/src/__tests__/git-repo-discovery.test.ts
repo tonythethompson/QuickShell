@@ -128,14 +128,19 @@ describe("discoverGitReposForQueryAsync", () => {
 
   it("bypasses the normal result cap for typed name searches", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-search-"));
+    const repoCount = 51;
     try {
-      for (let index = 0; index < 55; index += 1) {
+      for (let index = 0; index < repoCount; index += 1) {
         mkdirSync(path.join(root, `repo-${index.toString().padStart(2, "0")}`, ".git"), { recursive: true });
       }
 
-      const repos = await discoverGitReposForQueryAsync("repo-", [], { rootDirectories: [root], concurrency: 1 });
+      // Keep this under Vitest's default 5s budget on slow Windows CI hosts.
+      const repos = await discoverGitReposForQueryAsync("repo-", [], {
+        rootDirectories: [root],
+        concurrency: 4,
+      });
 
-      expect(repos).toHaveLength(55);
+      expect(repos).toHaveLength(repoCount);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

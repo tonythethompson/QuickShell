@@ -175,7 +175,16 @@ export async function discoverGitReposAsync(
     scanned < maxScanned &&
     visited < maxVisited
   ) {
-    const waveSize = Math.min(concurrency, queue.length);
+    // Cap the wave by remaining budget so workers cannot all clear the
+    // admission check and then oversubscribe concurrent fs.stat calls.
+    const remainingScanSlots =
+      maxScanned === Number.POSITIVE_INFINITY ? concurrency : Math.max(0, maxScanned - scanned);
+    const remainingVisitSlots =
+      maxVisited === Number.POSITIVE_INFINITY ? concurrency : Math.max(0, maxVisited - visited);
+    const waveSize = Math.min(concurrency, queue.length, remainingScanSlots, remainingVisitSlots);
+    if (waveSize <= 0) {
+      break;
+    }
     await Promise.all(Array.from({ length: waveSize }, () => worker()));
   }
 
