@@ -109,13 +109,15 @@ async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | n
       if (fromStdout) {
         return fromStdout;
       }
-      // Any thrown pwsh error with no path (ENOENT or dialog/runtime failure) should fall
-      // through to Windows PowerShell 5.1. Cancel is empty stdout on success above, or empty
-      // stdout on a thrown error here — both should try the next shell before giving up.
-      if (shell === "powershell.exe") {
-        console.error("Windows transfer dialog script failed:", error);
+      const errno = (error as NodeJS.ErrnoException | undefined)?.code;
+      if (errno === "ENOENT" && shell === "pwsh") {
+        continue;
+      }
+      // A cancelled WinForms dialog exits with its established non-zero status and no output.
+      if (shell === "powershell.exe" && errno === 1) {
         return null;
       }
+      throw error;
     }
   }
 
@@ -202,7 +204,6 @@ async function pickMacTransferJsonPath(kind: DialogKind): Promise<string | null>
     if (fromStdout) {
       return fromStdout;
     }
-    console.error("macOS transfer dialog script failed:", error);
     return null;
   }
 }
