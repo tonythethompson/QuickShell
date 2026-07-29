@@ -50,6 +50,7 @@ type DiscoveryOptions = {
   maxScanned?: number;
   query?: string;
   rootDirectories?: string[];
+  signal?: AbortSignal;
 };
 
 export function discoverGitRepos(extraRoots: string[] = []): GitRepoCandidate[] {
@@ -88,9 +89,10 @@ export async function discoverGitReposAsync(
   const maxRepos = options?.maxRepos ?? MAX_REPOS;
   const maxScanned = options?.maxScanned ?? MAX_SCANNED;
   const query = normalizeDiscoveryQuery(options?.query ?? "");
+  const signal = options?.signal;
 
   async function worker(): Promise<void> {
-    while (results.length < maxRepos && scanned < maxScanned) {
+    while (!signal?.aborted && results.length < maxRepos && scanned < maxScanned) {
       const work = queue.shift();
       if (!work) {
         return;
@@ -99,6 +101,7 @@ export async function discoverGitReposAsync(
         continue;
       }
 
+      if (signal?.aborted) return;
       let isDirectory = false;
       try {
         isDirectory = (await fs.stat(work.directory)).isDirectory();
@@ -120,6 +123,7 @@ export async function discoverGitReposAsync(
         return;
       }
 
+      if (signal?.aborted) return;
       let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
       try {
         entries = await fs.readdir(work.directory, { withFileTypes: true });
@@ -128,6 +132,7 @@ export async function discoverGitReposAsync(
       }
 
       for (const entry of entries) {
+        if (signal?.aborted) return;
         if (!entry.isDirectory() || SKIP_DIRS.has(entry.name.toLowerCase())) {
           continue;
         }
@@ -154,7 +159,7 @@ export async function discoverGitReposAsync(
 export async function discoverGitReposForQueryAsync(
   searchText: string,
   extraRoots: string[] = [],
-  options?: { rootDirectories?: string[]; concurrency?: number; maxScanned?: number },
+  options?: { rootDirectories?: string[]; concurrency?: number; maxScanned?: number; signal?: AbortSignal },
 ): Promise<GitRepoCandidate[]> {
   const query = normalizeDiscoveryQuery(searchText);
   if (!query) {
@@ -172,6 +177,7 @@ export async function discoverGitReposForQueryAsync(
     maxScanned: options?.maxScanned ?? MAX_TARGETED_SCANNED,
     query,
     rootDirectories: options?.rootDirectories,
+    signal: options?.signal,
   });
 }
 
@@ -280,8 +286,12 @@ function repoCandidateFromPathQuery(value: string): GitRepoCandidate | null {
     if (!statSync(candidate).isDirectory()) {
       candidate = path.dirname(candidate);
     }
-  } catch {
-    return null;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      return null;
+    }
+    throw error;
   }
 
   while (true) {

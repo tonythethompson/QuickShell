@@ -101,6 +101,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     const timer = setTimeout(() => {
       setTargetedLoadingQuery(query);
       void (async () => {
@@ -108,15 +109,15 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
           const existing = await storage.getWorkspaces();
           const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
           const extraRoots = searchRootsFromWorkspaces(existing.map((workspace) => workspace.directory));
-          const repos = (await discoverGitReposForQueryAsync(query, extraRoots)).filter(
+          const repos = (await discoverGitReposForQueryAsync(query, extraRoots, { signal: controller.signal })).filter(
             (repo) => !existingDirs.has(repo.directory.toLowerCase()),
           );
           if (!cancelled) {
             setTargetedSearch({ query, repos });
           }
-        } catch {
-          if (!cancelled) {
-            setTargetedSearch({ query, repos: [] });
+        } catch (error) {
+          if (!cancelled && !controller.signal.aborted) {
+            throw error;
           }
         } finally {
           if (!cancelled) {
@@ -128,6 +129,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(timer);
     };
   }, [data, searchText]);
