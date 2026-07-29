@@ -58,11 +58,15 @@ jobs:
 
       - name: Get version
         id: version
+        shell: pwsh
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
-          if ("${{ github.event_name }}" -eq "push") {
-            $version = "${{ github.ref_name }}" -replace '^v', ''
-          } elseif ("${{ github.event.inputs.version }}" -ne "") {
-            $version = "${{ github.event.inputs.version }}"
+          if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $version = "$($env:REF_NAME)" -replace '^v', ''
+          } elseif (-not [string]::IsNullOrWhiteSpace($env:VERSION_INPUT)) {
+            $version = "$($env:VERSION_INPUT)".Trim()
           } else {
             $projectFile = "QuickShell/QuickShell.csproj"
             $xml = [xml](Get-Content $projectFile)
@@ -71,12 +75,13 @@ jobs:
           }
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
           Write-Host "Using version: $version"
-        shell: pwsh
 
       - name: Verify version files match
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          $version = "${{ steps.version.outputs.VERSION }}"
+          $version = $env:RELEASE_VERSION
 
           [xml]$manifest = Get-Content QuickShell/Package.appxmanifest
           $manifestVersion = [string]$manifest.Package.Identity.Version
@@ -93,9 +98,12 @@ jobs:
       - name: Extract changelog
         id: changelog
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.VERSION }}
+          RELEASE_NOTES_INPUT: ${{ github.event.inputs.release_notes }}
         run: |
-          $version = "${{ steps.version.outputs.VERSION }}"
-          $override = "${{ github.event.inputs.release_notes }}".Trim()
+          $version = $env:RELEASE_VERSION
+          $override = "$($env:RELEASE_NOTES_INPUT)".Trim()
 
           if ($override) {
             $notes = $override
@@ -223,12 +231,15 @@ jobs:
       - name: Load release notes from CHANGELOG
         id: changelog
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+          RELEASE_NOTES_INPUT: ${{ github.event.inputs.release_notes }}
         run: |
-          $override = "${{ github.event.inputs.release_notes }}".Trim()
+          $override = "$($env:RELEASE_NOTES_INPUT)".Trim()
           if ($override) {
             $notes = $override
           } else {
-            $notes = & .\scripts\extract-changelog.ps1 -Version "${{ needs.build.outputs.version }}"
+            $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
