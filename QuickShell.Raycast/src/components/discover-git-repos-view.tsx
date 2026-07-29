@@ -175,12 +175,17 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
     setTargetedSearch((current) =>
       current ? { ...current, repos: current.repos.filter((repo) => repo.directory.toLowerCase() !== addedKey) } : null,
     );
-    await revalidate();
-    setAddedDirectoryKeys((current) => {
-      const next = new Set(current);
-      next.delete(addedKey);
-      return next;
-    });
+    try {
+      await revalidate();
+    } catch (refreshError) {
+      await showStorageFailure("Refresh git repositories", refreshError);
+    } finally {
+      setAddedDirectoryKeys((current) => {
+        const next = new Set(current);
+        next.delete(addedKey);
+        return next;
+      });
+    }
     await onWorkspaceAdded?.(workspace);
     if (popOnAdd) {
       pop();
