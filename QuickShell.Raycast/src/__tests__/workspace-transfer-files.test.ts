@@ -37,9 +37,21 @@ describe("workspace-transfer-files", () => {
   });
 
   it("reactivates Raycast after Windows and macOS file dialogs", () => {
-    expect(buildWindowsTransferPowerShell("open")).toContain("AppActivate");
-    expect(buildWindowsTransferPowerShell("save")).toContain("AppActivate");
-    expect(buildMacTransferOsascript("open")).toContain('tell application "Raycast" to activate');
-    expect(buildMacTransferOsascript("save")).toContain('tell application "Raycast" to activate');
+    const windowsOpen = buildWindowsTransferPowerShell("open");
+    const windowsSave = buildWindowsTransferPowerShell("save");
+    expect(windowsOpen).toContain("AppActivate");
+    expect(windowsSave).toContain("AppActivate");
+    expect(windowsOpen).toContain("catch [System.Runtime.InteropServices.COMException]");
+    expect(windowsOpen).not.toContain("catch {}");
+
+    const macOpen = buildMacTransferOsascript("open");
+    const macSave = buildMacTransferOsascript("save");
+    expect(macOpen).toContain('tell application "Raycast" to activate');
+    expect(macSave).toContain('tell application "Raycast" to activate');
+    // Activation is best-effort and must not discard a valid selection.
+    expect(macOpen.indexOf("end try")).toBeLessThan(macOpen.lastIndexOf('tell application "Raycast" to activate'));
+    expect(macOpen.indexOf('tell application "Raycast" to activate')).toBeLessThan(
+      macOpen.lastIndexOf("return chosenPath"),
+    );
   });
 });

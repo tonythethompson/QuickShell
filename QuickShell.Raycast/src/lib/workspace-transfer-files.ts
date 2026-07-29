@@ -66,11 +66,14 @@ export function buildWindowsTransferPowerShell(kind: DialogKind): string {
 /** Best-effort: restore Raycast after an external dialog. Exported for unit tests. */
 export function reactivateRaycastPowerShellSnippet(): string {
   // Keep this free of nested Add-Type quoting; AppActivate by PID is enough to unminimize.
+  // Only swallow expected process/COM failures — unexpected errors should surface.
   return [
     "try {",
     "  $ray = Get-Process -Name Raycast -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1;",
     "  if ($ray) { $null = (New-Object -ComObject WScript.Shell).AppActivate($ray.Id) }",
-    "} catch {}",
+    "} catch [System.Runtime.InteropServices.COMException] {",
+    "} catch [System.Management.Automation.MethodInvocationException] {",
+    "}",
   ].join(" ");
 }
 
@@ -143,7 +146,10 @@ export function buildMacTransferOsascript(kind: DialogKind): string {
       "on error",
       '  set chosenPath to ""',
       "end try",
-      'tell application "Raycast" to activate',
+      // Focus restore is best-effort and must not discard a valid selection.
+      "try",
+      '  tell application "Raycast" to activate',
+      "end try",
       "return chosenPath",
     ].join("\n");
   }
@@ -154,7 +160,9 @@ export function buildMacTransferOsascript(kind: DialogKind): string {
     "on error",
     '  set chosenPath to ""',
     "end try",
-    'tell application "Raycast" to activate',
+    "try",
+    '  tell application "Raycast" to activate',
+    "end try",
     "return chosenPath",
   ].join("\n");
 }

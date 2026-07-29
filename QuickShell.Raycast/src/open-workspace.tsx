@@ -33,6 +33,7 @@ import {
 } from "./lib/failure-feedback";
 import { executeWorkspaceLaunch } from "./lib/launch-executor";
 import type { LaunchDiagnosticsReport } from "./lib/launch-diagnostics";
+import { runPostLaunchActions } from "./lib/post-launch-actions";
 import { raycastExec } from "./lib/raycast-exec";
 import { buildBrowseSections, buildSearchResults, getMostRecentlyUsedWorkspaces } from "./lib/ranking";
 import { getQuickShellStorage, workspaceSubtitle } from "./lib/raycast-storage";
@@ -68,6 +69,7 @@ import {
   matchesReviewToken,
 } from "./lib/security";
 import { evaluateGitLaunchGate, resolveWorktreeKey } from "./lib/git-launch-gate";
+import { workspaceHasConfiguredCompanions } from "./lib/validation";
 
 type LoadedData = {
   workspaces: Workspace[];
@@ -461,6 +463,45 @@ export default function OpenWorkspaceCommand({
     }
   }
 
+  async function handleOpenCompanions(workspace: Workspace) {
+    const stored = await storage.getStoredWorkspace(workspace.id);
+    if (!stored) {
+      await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
+      return;
+    }
+
+    const authorizedEffects = authorizePostLaunchEffects(stored, {
+      includeCompanion: true,
+      includeDevServer: false,
+      companionSelection: "all",
+    });
+    if (authorizedEffects.plan.companions.length === 0) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Companion apps blocked",
+        message: authorizedEffects.warnings[0] ?? "Trust this workspace and configure a valid companion app path.",
+      });
+      return;
+    }
+
+    const result = await runPostLaunchActions(authorizedEffects.plan, { phase: "companions" });
+    const warnings = [...authorizedEffects.warnings, ...result.warnings];
+    if (!result.companionOpened) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Companion apps failed",
+        message: warnings[0] ?? "Could not open companion apps.",
+      });
+      return;
+    }
+
+    await showToast({
+      style: Toast.Style.Success,
+      title: "Companion apps opened",
+      message: warnings.length > 0 ? warnings.join(" ") : workspace.name,
+    });
+  }
+
   async function handleOpenUrl(workspace: Workspace, kind: "repo" | "dev") {
     const stored = await storage.getStoredWorkspace(workspace.id);
     const url = kind === "repo" ? stored?.content.repoUrl : stored?.content.devServerUrl;
@@ -538,7 +579,6 @@ export default function OpenWorkspaceCommand({
     try {
       const filePath = await pickWorkspaceTransferJsonPath("save");
       if (!filePath) {
-        loading.hide();
         return;
       }
       loading.title = "Exporting…";
@@ -557,6 +597,8 @@ export default function OpenWorkspaceCommand({
       });
     } catch (exportError) {
       await showStorageFailure("Export workspaces", exportError);
+    } finally {
+      loading.hide();
     }
   }
 
@@ -569,7 +611,6 @@ export default function OpenWorkspaceCommand({
     try {
       const filePath = await pickWorkspaceTransferJsonPath("open");
       if (!filePath) {
-        loading.hide();
         return;
       }
       loading.title = "Importing…";
@@ -605,6 +646,8 @@ export default function OpenWorkspaceCommand({
       });
     } catch (importError) {
       await showStorageFailure("Import workspaces", importError);
+    } finally {
+      loading.hide();
     }
   }
 
@@ -1069,6 +1112,13 @@ export default function OpenWorkspaceCommand({
                 shortcut={Keyboard.Shortcut.Common.OpenWith}
                 onAction={() => handleOpenFolder(workspace)}
               />
+              {workspaceHasConfiguredCompanions(workspace) ? (
+                <Action
+                  title="Open Companion Apps"
+                  icon={Icon.AppWindow}
+                  onAction={() => handleOpenCompanions(workspace)}
+                />
+              ) : null}
               {workspace.repoUrl ? (
                 <Action title="Open Repository" icon={Icon.Globe} onAction={() => handleOpenUrl(workspace, "repo")} />
               ) : null}

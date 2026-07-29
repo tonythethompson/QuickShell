@@ -205,6 +205,9 @@ export class QuickShellStorage {
       }
 
       const restored = migrateStoredData(parsed, { defaultToTrusted: false });
+      // UI replaces the workspace list only; keep any settings changed after reset.
+      await this.ensureLoaded();
+      restored.settings = { ...this.cache!.settings };
       await this.saveUnlocked(restored, { preserveSecurity: false, allowSubmittedSecurity: true });
       return {
         success: true,

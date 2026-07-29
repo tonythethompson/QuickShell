@@ -496,6 +496,25 @@ describe("storage", () => {
     expect((await restarted.getWorkspaces())[0].name).toBe("Alpha");
   });
 
+  it("restoreFromBackup replaces workspaces but keeps current settings", async () => {
+    const adapter = createMemoryStorageAdapter();
+    const first = new QuickShellStorage(adapter);
+    await first.upsertWorkspace(createWorkspace(createStableId(), "Alpha"));
+    await first.resetAll();
+
+    const postResetSettings = {
+      ...DEFAULT_SETTINGS,
+      terminalApplication: "conhost" as const,
+      recentWorkspaceCount: 7,
+    };
+    await first.updateSettings(postResetSettings);
+
+    const restored = await first.restoreFromBackup();
+    expect(restored.outcome).toBe("restored");
+    expect(await first.getWorkspaces()).toHaveLength(1);
+    expect(await first.getSettings()).toEqual(postResetSettings);
+  });
+
   it("restoreFromBackup discards corrupt backup JSON so later calls can recover", async () => {
     const adapter = createMemoryStorageAdapter();
     await adapter.setItem(BACKUP_STORAGE_KEY, "{not-json");

@@ -154,6 +154,47 @@ describe("import-export", () => {
     ]);
   });
 
+  it("omits skipped duplicate CmdPal entries from layout without shifting later rows", () => {
+    const result = importParsedPayload({
+      version: 1,
+      entries: [
+        {
+          Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          Name: "Dup",
+          Directory: "C:\\Projects\\a",
+        },
+        { Type: "separator", Title: "Mid" },
+        {
+          Id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          Name: "Dup",
+          Directory: "C:\\Projects\\b",
+        },
+        {
+          Id: "cccccccccccccccccccccccccccccccc",
+          Name: "Dup",
+          Directory: "C:\\Projects\\c",
+        },
+        {
+          Id: "dddddddddddddddddddddddddddddddd",
+          Name: "Other",
+          Directory: "C:\\Projects\\d",
+        },
+      ],
+    });
+
+    // First kept, second renamed, third skipped, fourth kept.
+    expect(result.imported).toBe(3);
+    expect(result.skipped).toBe(1);
+    expect(result.renamed).toBe(1);
+    expect(result.data.workspaces.map((workspace) => workspace.name)).toEqual(["Dup", "Dup (imported)", "Other"]);
+    expect(result.data.layoutEntries).toEqual([
+      { type: "workspace", workspaceId: result.data.workspaces[0].id },
+      { type: "separator", id: expect.any(String), title: "Mid" },
+      { type: "workspace", workspaceId: result.data.workspaces[1].id },
+      { type: "workspace", workspaceId: result.data.workspaces[2].id },
+    ]);
+  });
+
   it("imports on-disk CmdPal shortcuts.json Workspace/Security wrappers", () => {
     const result = importParsedPayload({
       version: 1,

@@ -153,7 +153,7 @@ Also first-time import from `shortcuts.json.bak` or old product path `TerminalSh
 **Reset all / restore.** `resetAll()` writes the current cache to `BACKUP_STORAGE_KEY`, then clears workspaces / layout / security / branch targets while preserving settings, and records an undo snapshot. Recovery:
 
 1. **In-session:** Undo (same as other layout mutations; lost if the extension process restarts).
-2. **After restart:** `restoreFromBackup()` reloads the durable backup key into the live store. Corrupt backup JSON is discarded (key cleared) with a clear message rather than hard-failing forever.
+2. **After restart:** `restoreFromBackup()` reloads workspaces from the durable backup key into the live store while keeping the current settings (post-reset preference changes survive). Corrupt or malformed backup JSON is discarded (key cleared) with a clear message rather than hard-failing forever or wiping live data.
 
 UI: Transfer actions on the workspaces hub (`open-workspace.tsx`) — confirmed **Reset All Workspaces…** and **Restore Backup…** when a backup exists.
 

@@ -1,4 +1,4 @@
-import { createStableId } from "./ids";
+import { createStableId, isStableWorkspaceId } from "./ids";
 import { migrateStoredData } from "./migration";
 import type { LayoutEntry, StoredData, Workspace } from "./schema";
 import { createEmptyStoredData } from "./schema";
@@ -96,7 +96,7 @@ export function importParsedPayload(parsed: unknown, existing?: StoredData): Imp
  */
 function importCmdPalLayoutEnvelope(entries: unknown[], existing?: StoredData): ImportResult {
   const workspaces: unknown[] = [];
-  const layoutHints: Array<{ kind: "workspace" } | { kind: "separator"; title: string | null }> = [];
+  const layoutEntries: LayoutEntry[] = [];
 
   for (const raw of entries) {
     const entry = normalizeRecordKeys(raw);
@@ -107,7 +107,7 @@ function importCmdPalLayoutEnvelope(entries: unknown[], existing?: StoredData): 
     const type = typeof record.type === "string" ? record.type.trim().toLowerCase() : "";
     if (type === "separator") {
       const title = typeof record.title === "string" && record.title.trim() ? record.title.trim() : null;
-      layoutHints.push({ kind: "separator", title });
+      layoutEntries.push({ type: "separator", id: createStableId(), title });
       continue;
     }
 
@@ -115,41 +115,31 @@ function importCmdPalLayoutEnvelope(entries: unknown[], existing?: StoredData): 
     if (!payload || typeof payload !== "object") {
       continue;
     }
-    const workspaceRecord = payload as UnknownRecord;
+    const workspaceRecord = normalizeRecordKeys(payload) as UnknownRecord;
     const name = typeof workspaceRecord.name === "string" ? workspaceRecord.name.trim() : "";
     const directory = typeof workspaceRecord.directory === "string" ? workspaceRecord.directory.trim() : "";
     if (!name || !directory) {
       continue;
     }
 
-    workspaces.push(payload);
-    layoutHints.push({ kind: "workspace" });
+    // Stable id ties layout rows to merge retention so skipped duplicates do not shift later rows.
+    const rawId = typeof workspaceRecord.id === "string" ? workspaceRecord.id.trim() : "";
+    const workspaceId = isStableWorkspaceId(rawId) ? rawId.toLowerCase() : createStableId();
+    workspaces.push({ ...workspaceRecord, id: workspaceId });
+    layoutEntries.push({ type: "workspace", workspaceId });
   }
 
   if (workspaces.length === 0) {
     throw new Error("No workspaces found in import file.");
   }
 
-  const result = importShortcutArray(workspaces, existing);
-  if (!existing || existing.workspaces.length === 0) {
-    const layoutEntries: LayoutEntry[] = [];
-    let workspaceIndex = 0;
-    const importedWorkspaces = result.data.workspaces;
-    for (const hint of layoutHints) {
-      if (hint.kind === "separator") {
-        layoutEntries.push({ type: "separator", id: createStableId(), title: hint.title });
-        continue;
-      }
-      const workspace = importedWorkspaces[workspaceIndex];
-      workspaceIndex += 1;
-      if (workspace) {
-        layoutEntries.push({ type: "workspace", workspaceId: workspace.id });
-      }
-    }
-    result.data.layoutEntries = layoutEntries;
-  }
-
-  return result;
+  const migrated = migrateStoredData({
+    version: 1,
+    workspaces,
+    layoutEntries,
+    settings: existing?.settings ?? createEmptyStoredData().settings,
+  });
+  return mergeImportedData(migrated, existing);
 }
 
 function importShortcutArray(items: unknown[], existing?: StoredData): ImportResult {
@@ -252,7 +242,11 @@ function remapImportedLayout(layout: LayoutEntry[] | undefined, idRemap: Map<str
       next.push({ type: "separator", id: entry.id, title: entry.title ?? null });
       continue;
     }
-    const remapped = idRemap.get(entry.workspaceId) ?? entry.workspaceId;
+    const remapped = idRemap.get(entry.workspaceId);
+    if (!remapped) {
+      // Skipped during merge (e.g. duplicate name) — omit so later rows do not shift.
+      continue;
+    }
     next.push({ type: "workspace", workspaceId: remapped });
   }
   return next;
