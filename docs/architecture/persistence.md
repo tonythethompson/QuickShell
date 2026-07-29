@@ -141,7 +141,21 @@ Also first-time import from `shortcuts.json.bak` or old product path `TerminalSh
 
 ## Raycast
 
-`QuickShellStorage` mirrors layout/undo/recent debounce in Raycast storage API and serializes all mutations behind an in-process write queue — **does not** share the desktop JSON path unless the user imports or exports. Reset-all writes a durable, restart-safe backup snapshot under the Raycast-owned backup key (`quickshell-data.bak`); users can restore it after restart (or use in-session Undo). Nested save/flush work uses private unlocked helpers so concurrent public mutations always queue.
+`QuickShellStorage` (`QuickShell.Raycast/src/lib/storage.ts`) is the Raycast persistence spine. It mirrors desktop layout / undo / recent-write debounce over the Raycast `LocalStorage` API and **does not** share `%LOCALAPPDATA%\QuickShell\` unless the user imports or exports JSON.
+
+| Key (`schema.ts`) | Owner | Role |
+|-------------------|-------|------|
+| `quickshell-data` (`STORAGE_KEY`) | `QuickShellStorage` | Live `StoredData` blob (workspaces, layout, security, branch targets, settings mirror) |
+| `quickshell-data.bak` (`BACKUP_STORAGE_KEY`) | `QuickShellStorage` | Durable reset-all snapshot; Raycast-local only (not the desktop `.bak` beside `shortcuts.json`) |
+
+**Mutation serialization.** Public mutators (save, upsert/delete, pin/reorder, import, reset/restore, trust, flush of debounced recent writes, …) run through an in-process write queue (`withWriteLock`). Concurrent Raycast commands cannot silently clobber each other with a last-writer-wins race. Nested composition inside a held lock calls private `saveUnlocked` / `flushRecentWritesUnlocked` so callers always queue at the public boundary.
+
+**Reset all / restore.** `resetAll()` writes the current cache to `BACKUP_STORAGE_KEY`, then clears workspaces / layout / security / branch targets while preserving settings, and records an undo snapshot. Recovery:
+
+1. **In-session:** Undo (same as other layout mutations; lost if the extension process restarts).
+2. **After restart:** `restoreFromBackup()` reloads the durable backup key into the live store. Corrupt backup JSON is discarded (key cleared) with a clear message rather than hard-failing forever.
+
+UI: Transfer actions on the workspaces hub (`open-workspace.tsx`) — confirmed **Reset All Workspaces…** and **Restore Backup…** when a backup exists.
 
 ## Key files
 

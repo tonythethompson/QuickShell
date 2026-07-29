@@ -10,7 +10,7 @@ All hosts retain workspace IDs rather than trust-bearing snapshots and resolve c
 |---------|------------------------|-----------------------------------|----------------------------------|
 | **Runtime** | CmdPal extension host, MSIX | Wox plugin in PowerToys | Raycast extension (Node) |
 | **Business logic** | **QuickShell.Core** project ref | **QuickShell.Core** project ref | **TypeScript reimplementation** |
-| **Workspace store** | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Same file** | Raycast `STORAGE_KEY` blob |
+| **Workspace store** | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Same file** | Raycast `STORAGE_KEY` (`quickshell-data`) + reset backup `BACKUP_STORAGE_KEY` (`quickshell-data.bak`) |
 | **Settings** | `settings.json` via settings manager | **Same JSON** via `QuickShellSettingsReader` | Stored in Raycast data + prefs |
 | **Launch** | `ShortcutLaunchExecutor` | Same | `launch-executor.ts` + `windows-launch.ts` |
 | **Pills** | Adaptive Card / form | `RunLaunchSuggestionPanel` | `QuickShell.Suggest.exe` |
@@ -55,8 +55,8 @@ Important libs:
 
 | Lib | Desktop analogue |
 |-----|------------------|
-| `storage.ts` | `ShortcutRepository` (+ undo) |
-| `schema.ts` / `migration.ts` | layout + version |
+| `storage.ts` | `ShortcutRepository` (+ undo, reset-all, write serialization) |
+| `schema.ts` / `migration.ts` | layout + version (`STORAGE_KEY`, `BACKUP_STORAGE_KEY`) |
 | `windows-launch.ts` + `launch-grouping.ts` | `TerminalLauncher` + grouping |
 | `launch-executor.ts` | `ShortcutLaunchExecutor` |
 | `post-launch-actions.ts` | companion + dev server after terminals |
@@ -64,9 +64,9 @@ Important libs:
 | `suggest-commands.ts` | shells out to Core Suggest CLI |
 | `settings.ts` | settings prefs |
 
-Raycast `storage.ts` serializes mutations with an in-process write queue. Its reset-all flow owns a durable backup key, allowing restore after restart (with Undo available in-session).
+Raycast persistence (`storage.ts`) owns both LocalStorage keys above. Public mutations serialize on an in-process write queue (nested save/flush use unlocked helpers). Reset-all writes a restart-safe snapshot to `quickshell-data.bak` before clearing workspaces; recover with in-session Undo or **Restore Backup** after restart. See [persistence.md](./persistence.md#raycast).
 
-Parity goals: multi-launch tabs (no `-w` on tab segments), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, git worktree targets / dirty gate, full Core health (ports/process), Adaptive Card forms.
+Parity goals: multi-launch tabs (no `-w` on tab segments), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, shared git worktree target file, full Core health (ports/process), Adaptive Card forms.
 
 ## Shared Core (desktop only)
 

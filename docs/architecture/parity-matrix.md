@@ -21,7 +21,8 @@ Data stores:
 
 | Store | CmdPal | Run | Raycast |
 |-------|--------|-----|---------|
-| Workspaces | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Shared** with CmdPal | Raycast storage blob (separate) |
+| Workspaces | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Shared** with CmdPal | Raycast `quickshell-data` LocalStorage blob (separate) |
+| Reset backup | `shortcuts.json.bak` (atomic replace) | **Shared** with CmdPal | Raycast `quickshell-data.bak` (reset-all snapshot; extension-owned) |
 | Settings | `%LOCALAPPDATA%\QuickShell\settings.json` | **Shared** with CmdPal | In Raycast `StoredData.settings` (+ prefs) |
 | Edit draft | `shortcut-edit-draft.json` | Via editor (not same draft file UX) | Form-local / storage patterns |
 | Worktree branch targets | `worktree-branch-targets.json` | **Shared** (via Core on launch) | **No** dedicated file |
@@ -41,7 +42,7 @@ Data stores:
 | Import / export JSON | Full | Via settings / shared file | Full (extension import-export) | Desktop shares one file; Raycast is separate blob; import always untrusted |
 | Layout undo / redo | Full | Partial (plugin + editor) | Full (storage history) | |
 | Section separators | Full | Partial | Full (Raycast-local `layoutEntries`) | Desktop shared layout file; Raycast blob parallel |
-| Reset all / backup restore | Full | Partial | Full (durable Raycast backup) | Raycast backup is local to the extension and survives restart; mutations are serialized |
+| Reset all / backup restore | Full | Partial | Full (durable Raycast backup) | Raycast `resetAll` → `quickshell-data.bak`; restore after restart or Undo in-session; mutations serialized via write queue |
 
 ---
 
