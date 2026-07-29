@@ -361,4 +361,58 @@ describe("storage", () => {
     expect(loaded[0].name).toBe("Recents Renamed");
     expect(loaded[0].lastUsedUtc).toBe(usedAt.toISOString());
   });
+
+  it("serializes overlapping mutations so the later write cannot clobber the earlier one", async () => {
+    const storage = new QuickShellStorage(createMemoryStorageAdapter());
+    const first = createWorkspace(createStableId(), "Alpha");
+    const second = createWorkspace(createStableId(), "Beta");
+
+    await Promise.all([storage.upsertWorkspace(first), storage.upsertWorkspace(second)]);
+
+    const loaded = await storage.getWorkspaces();
+    expect(loaded).toHaveLength(2);
+    expect(loaded.map((workspace) => workspace.name).sort()).toEqual(["Alpha", "Beta"]);
+  });
+
+  it("resetAll is a no-op when empty", async () => {
+    const storage = new QuickShellStorage(createMemoryStorageAdapter());
+    const result = await storage.resetAll();
+    expect(result.success).toBe(true);
+    expect(result.message).toMatch(/no workspaces/i);
+    expect(await storage.hasBackup()).toBe(false);
+  });
+
+  it("resetAll clears workspaces, keeps undo, and writes a durable backup", async () => {
+    const adapter = createMemoryStorageAdapter();
+    const storage = new QuickShellStorage(adapter);
+    const id = createStableId();
+    await storage.upsertWorkspace(createWorkspace(id, "Alpha"));
+
+    const result = await storage.resetAll();
+    expect(result.success).toBe(true);
+    expect(await storage.getWorkspaces()).toHaveLength(0);
+    expect(await storage.hasBackup()).toBe(true);
+    expect(storage.canUndo()).toBe(true);
+
+    await storage.undo();
+    expect(await storage.getWorkspaces()).toHaveLength(1);
+    expect((await storage.getWorkspaces())[0].name).toBe("Alpha");
+  });
+
+  it("restoreFromBackup recovers after a simulated extension restart", async () => {
+    const adapter = createMemoryStorageAdapter();
+    const first = new QuickShellStorage(adapter);
+    const id = createStableId();
+    await first.upsertWorkspace(createWorkspace(id, "Alpha"));
+    await first.resetAll();
+    expect(await first.getWorkspaces()).toHaveLength(0);
+
+    // New instance has no in-memory undo, but the durable backup remains.
+    const restarted = new QuickShellStorage(adapter);
+    expect(await restarted.hasBackup()).toBe(true);
+    const restored = await restarted.restoreFromBackup();
+    expect(restored.success).toBe(true);
+    expect(await restarted.getWorkspaces()).toHaveLength(1);
+    expect((await restarted.getWorkspaces())[0].name).toBe("Alpha");
+  });
 });

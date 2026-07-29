@@ -78,6 +78,7 @@ type LoadedData = {
   healthIndex: WorkspaceHealthIndex;
   canUndo: boolean;
   canRedo: boolean;
+  hasBackup: boolean;
 };
 
 type WorkspaceRow = {
@@ -122,11 +123,12 @@ export default function OpenWorkspaceCommand({
     error,
     revalidate,
   } = usePromise(async (): Promise<Omit<LoadedData, "healthIndex">> => {
-    const [workspaces, settings, layoutEntries, branchTargets] = await Promise.all([
+    const [workspaces, settings, layoutEntries, branchTargets, hasBackup] = await Promise.all([
       storage.getWorkspaces(),
       storage.getSettings(),
       storage.getLayoutEntries(),
       storage.getBranchTargets(),
+      storage.hasBackup(),
     ]);
 
     const securityById = isWorkspaceTrustEnabled()
@@ -141,6 +143,7 @@ export default function OpenWorkspaceCommand({
       securityById,
       canUndo: storage.canUndo(),
       canRedo: storage.canRedo(),
+      hasBackup,
     };
   }, []);
 
@@ -591,6 +594,49 @@ export default function OpenWorkspaceCommand({
     }
   }
 
+  async function handleResetAll() {
+    const count = data?.workspaces.length ?? 0;
+    const itemsLabel = count === 1 ? "workspace" : "workspaces";
+    const countLine = count === 0 ? `No ${itemsLabel} are saved.` : `This will delete all ${count} ${itemsLabel}.`;
+    const confirmed = await confirmAlert({
+      title: "Reset all workspaces?",
+      message: `${countLine} A backup is saved first. You can Undo or use Restore Backup afterward.`,
+      primaryAction: { title: "Reset All", style: Alert.ActionStyle.Destructive },
+      dismissAction: { title: "Cancel" },
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await storage.resetAll();
+      await revalidate();
+      await showToast({ style: Toast.Style.Success, title: "Workspaces reset", message: result.message });
+    } catch (resetError) {
+      await showStorageFailure("Reset workspaces", resetError);
+    }
+  }
+
+  async function handleRestoreBackup() {
+    const confirmed = await confirmAlert({
+      title: "Restore workspace backup?",
+      message: "Replace the current workspace list with the last reset backup.",
+      primaryAction: { title: "Restore Backup", style: Alert.ActionStyle.Destructive },
+      dismissAction: { title: "Cancel" },
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await storage.restoreFromBackup();
+      await revalidate();
+      await showToast({ style: Toast.Style.Success, title: "Backup restored", message: result.message });
+    } catch (restoreError) {
+      await showStorageFailure("Restore backup", restoreError);
+    }
+  }
+
   async function handleUndo() {
     const changed = await storage.undo();
     if (!changed) {
@@ -760,6 +806,13 @@ export default function OpenWorkspaceCommand({
         <ActionPanel.Section title="Transfer">
           <Action title="Export Workspaces…" icon={Icon.Upload} onAction={handleExport} />
           <Action title="Import Workspaces…" icon={Icon.Download} onAction={handleImportFromFile} />
+          <Action
+            title="Reset All Workspaces…"
+            icon={Icon.Trash}
+            style={Action.Style.Destructive}
+            onAction={handleResetAll}
+          />
+          {data?.hasBackup ? <Action title="Restore Backup…" icon={Icon.Undo} onAction={handleRestoreBackup} /> : null}
         </ActionPanel.Section>
       </>
     );

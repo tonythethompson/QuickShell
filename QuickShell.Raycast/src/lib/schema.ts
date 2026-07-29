@@ -2,6 +2,9 @@ export const SCHEMA_VERSION = 1;
 
 export const STORAGE_KEY = "quickshell-data";
 
+/** Durable snapshot written before reset-all; survives extension restarts (unlike undo). */
+export const BACKUP_STORAGE_KEY = "quickshell-data.bak";
+
 export type TerminalApplication = "system" | "wt" | "conhost" | "it" | "terminal" | "iterm";
 
 export type LaunchEntry = {
