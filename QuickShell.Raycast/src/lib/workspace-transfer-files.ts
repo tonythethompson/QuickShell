@@ -30,31 +30,48 @@ export async function pickWorkspaceTransferJsonPath(kind: DialogKind): Promise<s
 /** Builds the PowerShell script for Windows file dialogs. Exported for unit tests. */
 export function buildWindowsTransferPowerShell(kind: DialogKind): string {
   const initialDirectory = "[Environment]::GetFolderPath('Desktop')";
-  if (kind === "save") {
-    return [
-      "Add-Type -AssemblyName System.Windows.Forms",
-      "$d = New-Object System.Windows.Forms.SaveFileDialog",
-      "$d.Title = 'Export Quick Shell workspaces'",
-      "$d.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'",
-      `$d.FileName = '${DEFAULT_EXPORT_FILE_NAME}'`,
-      "$d.DefaultExt = 'json'",
-      "$d.AddExtension = $true",
-      "$d.OverwritePrompt = $true",
-      `$d.InitialDirectory = ${initialDirectory}`,
-      "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($d.FileName) }",
-    ].join("; ");
-  }
+  const dialogSetup =
+    kind === "save"
+      ? [
+          "$d = New-Object System.Windows.Forms.SaveFileDialog",
+          "$d.Title = 'Export Quick Shell workspaces'",
+          "$d.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'",
+          `$d.FileName = '${DEFAULT_EXPORT_FILE_NAME}'`,
+          "$d.DefaultExt = 'json'",
+          "$d.AddExtension = $true",
+          "$d.OverwritePrompt = $true",
+          `$d.InitialDirectory = ${initialDirectory}`,
+        ]
+      : [
+          "$d = New-Object System.Windows.Forms.OpenFileDialog",
+          "$d.Title = 'Import Quick Shell workspaces'",
+          "$d.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'",
+          "$d.CheckFileExists = $true",
+          "$d.Multiselect = $false",
+          `$d.InitialDirectory = ${initialDirectory}`,
+        ];
 
+  // WinForms dialogs steal foreground focus; restore Raycast before returning so the
+  // extension UI is visible again for follow-up toasts / confirmations.
   return [
     "Add-Type -AssemblyName System.Windows.Forms",
-    "$d = New-Object System.Windows.Forms.OpenFileDialog",
-    "$d.Title = 'Import Quick Shell workspaces'",
-    "$d.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'",
-    "$d.CheckFileExists = $true",
-    "$d.Multiselect = $false",
-    `$d.InitialDirectory = ${initialDirectory}`,
-    "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($d.FileName) }",
+    ...dialogSetup,
+    "$selected = $null",
+    "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $selected = $d.FileName }",
+    reactivateRaycastPowerShellSnippet(),
+    "if ($selected) { [Console]::Out.Write($selected) }",
   ].join("; ");
+}
+
+/** Best-effort: restore Raycast after an external dialog. Exported for unit tests. */
+export function reactivateRaycastPowerShellSnippet(): string {
+  // Keep this free of nested Add-Type quoting; AppActivate by PID is enough to unminimize.
+  return [
+    "try {",
+    "  $ray = Get-Process -Name Raycast -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1;",
+    "  if ($ray) { $null = (New-Object -ComObject WScript.Shell).AppActivate($ray.Id) }",
+    "} catch {}",
+  ].join(" ");
 }
 
 async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | null> {
@@ -73,9 +90,12 @@ async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | n
           maxBuffer: 1024 * 1024,
         },
       );
+      // Dialog script already tries AppActivate; repeat from Node in case focus raced.
+      await reactivateRaycastWindow();
       const selected = stdout.trim();
       return selected.length > 0 ? path.resolve(selected) : null;
     } catch (error) {
+      await reactivateRaycastWindow();
       // pwsh may be missing; fall through to Windows PowerShell 5.1.
       if (shell === "powershell.exe") {
         return null;
@@ -91,18 +111,51 @@ async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | n
   return null;
 }
 
+/** Best-effort foreground restore after WinForms/osascript dialogs. */
+export async function reactivateRaycastWindow(): Promise<void> {
+  try {
+    if (isWindowsPlatform()) {
+      await execFileAsync(
+        "powershell.exe",
+        ["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", reactivateRaycastPowerShellSnippet()],
+        { windowsHide: true, timeout: 5_000 },
+      );
+      return;
+    }
+    if (isMacPlatform()) {
+      await execFileAsync("osascript", ["-e", 'tell application "Raycast" to activate'], {
+        timeout: 5_000,
+      });
+    }
+  } catch {
+    // Focus restore is best-effort; never fail the transfer path.
+  }
+}
+
 /** Exported for unit tests. */
 export function buildMacTransferOsascript(kind: DialogKind): string {
   if (kind === "save") {
     return [
       `set defaultName to "${DEFAULT_EXPORT_FILE_NAME}"`,
-      'set chosenFile to choose file name with prompt "Export Quick Shell workspaces" default name defaultName',
-      "return POSIX path of chosenFile",
+      "try",
+      '  set chosenFile to choose file name with prompt "Export Quick Shell workspaces" default name defaultName',
+      "  set chosenPath to POSIX path of chosenFile",
+      "on error",
+      '  set chosenPath to ""',
+      "end try",
+      'tell application "Raycast" to activate',
+      "return chosenPath",
     ].join("\n");
   }
   return [
-    'set chosenFile to choose file with prompt "Import Quick Shell workspaces" of type {"public.json", "json"}',
-    "return POSIX path of chosenFile",
+    "try",
+    '  set chosenFile to choose file with prompt "Import Quick Shell workspaces" of type {"public.json", "json"}',
+    "  set chosenPath to POSIX path of chosenFile",
+    "on error",
+    '  set chosenPath to ""',
+    "end try",
+    'tell application "Raycast" to activate',
+    "return chosenPath",
   ].join("\n");
 }
 
@@ -112,9 +165,11 @@ async function pickMacTransferJsonPath(kind: DialogKind): Promise<string | null>
       encoding: "utf8",
       timeout: 120_000,
     });
+    await reactivateRaycastWindow();
     const selected = stdout.trim();
     return selected.length > 0 ? path.resolve(selected) : null;
   } catch {
+    await reactivateRaycastWindow();
     return null;
   }
 }

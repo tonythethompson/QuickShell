@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_EXPORT_FILE_NAME,
+  buildMacTransferOsascript,
   buildWindowsTransferPowerShell,
   readWorkspaceImportFile,
   writeWorkspaceExportFile,
@@ -33,5 +34,12 @@ describe("workspace-transfer-files", () => {
   it("seeds Windows dialogs on the Desktop for faster first paint", () => {
     expect(buildWindowsTransferPowerShell("open")).toContain("GetFolderPath('Desktop')");
     expect(buildWindowsTransferPowerShell("save")).toContain("GetFolderPath('Desktop')");
+  });
+
+  it("reactivates Raycast after Windows and macOS file dialogs", () => {
+    expect(buildWindowsTransferPowerShell("open")).toContain("AppActivate");
+    expect(buildWindowsTransferPowerShell("save")).toContain("AppActivate");
+    expect(buildMacTransferOsascript("open")).toContain('tell application "Raycast" to activate');
+    expect(buildMacTransferOsascript("save")).toContain('tell application "Raycast" to activate');
   });
 });
