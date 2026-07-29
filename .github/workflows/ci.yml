@@ -35,6 +35,17 @@ jobs:
         run: dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Platform=x64 --no-build --verbosity minimal
         shell: pwsh
 
+      - name: Test PowerShell scripts
+        shell: pwsh
+        run: |
+          Install-Module Pester -MinimumVersion 5.0.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          Import-Module Pester -MinimumVersion 5.0.0
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'scripts/tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
+
   raycast-check:
     name: Raycast lint, test, and build
     # Full gate on Windows (ray CLI + dual-platform extension).
