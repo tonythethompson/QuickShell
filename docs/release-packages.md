@@ -34,7 +34,7 @@ Extract a section locally:
 ## GitHub Release artifacts (`v*` tag)
 
 | Artifact | Host | What it installs |
-|---|---|---|
+| --- | --- | --- |
 | `QuickShell-Setup-*-x64.exe` / `*-arm64.exe` | PowerToys | CmdPal extension **+** Run plugin (bundled PowerToys package) |
 | `QuickShellforCmdPal-Setup-*.exe` | PowerToys | CmdPal extension only (Store-equivalent) |
 | `QuickShellforRun-Setup-*.exe` | PowerToys | Run plugin only |
@@ -80,7 +80,7 @@ Keep **`tonythethompson.QuickShell`** as the PowerToys bundle (CmdPal + Run).
 ## CI workflow
 
 | Workflow | Trigger | Channels |
-|---|---|---|
+| --- | --- | --- |
 | [`release-extension.yml`](../.github/workflows/release-extension.yml) | `v*` tag or dispatch | GitHub Release + WinGet |
 | [`publish-store.yml`](../.github/workflows/publish-store.yml) | published `v*` release (not pre-release) or dispatch | Microsoft Store package + What's new |
 | [`release-run-plugin.yml`](../.github/workflows/release-run-plugin.yml) | `run-v*` tag | Run plugin GitHub Release only (does **not** publish to Store) |
