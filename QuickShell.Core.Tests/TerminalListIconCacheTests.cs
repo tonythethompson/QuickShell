@@ -101,6 +101,17 @@ public sealed class TerminalListIconCacheTests
         Assert.Equal(".png", Path.GetExtension(result), StringComparer.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void prepare_for_list_resizes_blank_png_instead_of_returning_source()
+    {
+        var png = CreatePng(64, 64, color: System.Drawing.Color.Transparent);
+
+        var result = _cache.PrepareForList(png);
+
+        Assert.NotEqual(png, result);
+        Assert.Equal(".png", Path.GetExtension(result), StringComparer.OrdinalIgnoreCase);
+    }
+
     private static string CreateIco(int width, int height, System.Drawing.Color? color)
     {
         var path = Path.Combine(Path.GetTempPath(), $"qs-ico-{width}-{Guid.NewGuid():N}.ico");

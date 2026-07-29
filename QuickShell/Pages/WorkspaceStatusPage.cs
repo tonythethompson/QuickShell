@@ -76,6 +76,8 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private sealed record PendingSnapshot(WorkspaceStatusSnapshot Snapshot, int Generation);
     /// <summary>Monotonic generation so an older capture cannot overwrite a newer refresh.</summary>
     private int _refreshGeneration;
+    /// <summary>Serializes generation bump, pending handoff, and apply so races cannot drop the newest snapshot.</summary>
+    private readonly object _refreshGate = new();
 
     /// <summary>
     /// Applies a completed background capture. Called from <c>GetContent</c> so the host
@@ -83,10 +85,15 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     internal void ApplyPendingSnapshot()
     {
-        var pending = Interlocked.Exchange(ref _pendingSnapshot, null);
-        if (pending is null || pending.Generation != Volatile.Read(ref _refreshGeneration))
+        PendingSnapshot? pending;
+        lock (_refreshGate)
         {
-            return;
+            pending = _pendingSnapshot;
+            _pendingSnapshot = null;
+            if (pending is null || pending.Generation != _refreshGeneration)
+            {
+                return;
+            }
         }
 
         PublishSnapshot(pending.Snapshot);
@@ -162,7 +169,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     private void ScheduleRefresh()
     {
-        var generation = Interlocked.Increment(ref _refreshGeneration);
+        int generation;
+        lock (_refreshGate)
+        {
+            generation = ++_refreshGeneration;
+        }
+
         var cancellationToken = _services.Lifetime.CancellationToken;
         _ = Task.Run(
             () =>
@@ -190,14 +202,18 @@ internal sealed partial class WorkspaceStatusForm : FormContent
                     return;
                 }
 
-                // Drop superseded captures so a slow older refresh cannot win the race.
-                if (Volatile.Read(ref _refreshGeneration) != generation)
+                // Drop superseded captures under the same gate as ApplyPendingSnapshot so a
+                // slow older refresh cannot overwrite (and then be discarded against) a newer one.
+                lock (_refreshGate)
                 {
-                    return;
+                    if (_refreshGeneration != generation)
+                    {
+                        return;
+                    }
+
+                    _pendingSnapshot = new PendingSnapshot(snapshot, generation);
                 }
 
-                // Hand off; GetContent applies it on the fetch the notification triggers.
-                Interlocked.Exchange(ref _pendingSnapshot, new PendingSnapshot(snapshot, generation));
                 _notifyContentChanged();
             },
             cancellationToken);
