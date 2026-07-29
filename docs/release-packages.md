@@ -23,6 +23,7 @@ Optional Store-only re-submit: run **Publish to Microsoft Store** with `workflow
 
 - Source of truth: root [`CHANGELOG.md`](../CHANGELOG.md) ([Keep a Changelog](https://keepachangelog.com/) style).
 - Published notes are **never** auto-generated from `git log` or GitHub auto release notes.
+- Optional `release_notes` on **Release WinGet installers** `workflow_dispatch` overrides GitHub Release / WinGet notes only. Store What's new always comes from the matching `CHANGELOG.md` section.
 - Raycast keeps its own [`QuickShell.Raycast/CHANGELOG.md`](../QuickShell.Raycast/CHANGELOG.md) for Raycast Store Version History; do not merge it into the root file.
 
 Extract a section locally:

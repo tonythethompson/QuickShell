@@ -9,11 +9,6 @@ on:
         description: Release tag to publish (e.g. v0.2.3.0)
         required: true
         type: string
-      release_notes:
-        description: Optional What's new override (leave empty to use CHANGELOG.md)
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -151,19 +146,13 @@ jobs:
         shell: pwsh
         env:
           RELEASE_VERSION: ${{ steps.meta.outputs.VERSION }}
-          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
         run: |
-          $override = "$($env:RELEASE_NOTES_INPUT)".Trim()
-          if ($override) {
-            $notes = $override
-            Write-Host 'Using workflow_dispatch release_notes override for Store What''s new.'
-          } else {
-            $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
+          # Store What's new always comes from CHANGELOG.md (no dispatch override).
+          $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           $notes | Set-Content -Path store-release-notes.txt -Encoding utf8
-          Write-Host "Prepared $($notes.Length) characters of Store release notes."
+          Write-Host "Extracted $($notes.Length) characters of Store release notes."
 
       - name: Build Store upload package
         shell: pwsh

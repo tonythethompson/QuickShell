@@ -215,12 +215,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STORE_TAG: v${{ steps.version.outputs.VERSION }}
-          RELEASE_NOTES_INPUT: ${{ github.event.inputs.release_notes }}
         run: |
           $ErrorActionPreference = 'Stop'
           $repo = $env:GITHUB_REPOSITORY
           $tag = $env:STORE_TAG
-          $notes = "$($env:RELEASE_NOTES_INPUT)".Trim()
 
           $defaultBranch = gh api "repos/$repo" --jq .default_branch
           if ($LASTEXITCODE -ne 0) {
@@ -228,11 +226,7 @@ jobs:
           }
 
           Write-Host "Dispatching publish-store.yml for tag=$tag (workflow ref=$defaultBranch)..."
-          if ($notes) {
-            gh workflow run publish-store.yml --ref $defaultBranch -f "tag=$tag" -f "release_notes=$notes"
-          } else {
-            gh workflow run publish-store.yml --ref $defaultBranch -f "tag=$tag"
-          }
+          gh workflow run publish-store.yml --ref $defaultBranch -f "tag=$tag"
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to dispatch publish-store.yml for tag=$tag (exit $LASTEXITCODE)."
           }
