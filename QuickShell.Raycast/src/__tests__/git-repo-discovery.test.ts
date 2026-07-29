@@ -166,6 +166,39 @@ describe("discoverGitReposForQueryAsync", () => {
     expect(repos).toEqual([]);
   });
 
+  it("stops a targeted scan mid-flight when cancelled", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-abort-"));
+    const repoCount = 16;
+    const controller = new AbortController();
+    const originalStat = fs.stat.bind(fs);
+    let statCalls = 0;
+    const stat = vi.spyOn(fs, "stat").mockImplementation(async (candidate) => {
+      statCalls += 1;
+      if (statCalls === 4) {
+        // Abort asynchronously after the scan has already started work.
+        queueMicrotask(() => controller.abort());
+      }
+      return originalStat(candidate);
+    });
+
+    try {
+      for (let index = 0; index < repoCount; index += 1) {
+        mkdirSync(path.join(root, `repo-${index.toString().padStart(2, "0")}`, ".git"), { recursive: true });
+      }
+
+      const repos = await discoverGitReposForQueryAsync("repo-", [], {
+        rootDirectories: [root],
+        concurrency: 1,
+        signal: controller.signal,
+      });
+
+      expect(repos.length).toBeLessThan(repoCount);
+    } finally {
+      stat.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("bounds total visited repositories without restoring the result cap", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-budget-"));
     try {
