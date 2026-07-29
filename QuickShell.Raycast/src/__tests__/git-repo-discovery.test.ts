@@ -138,4 +138,32 @@ describe("discoverGitReposForQueryAsync", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("stops a targeted scan when it is already cancelled", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const repos = await discoverGitReposForQueryAsync("repo", [], { signal: controller.signal });
+
+    expect(repos).toEqual([]);
+  });
+
+  it("bounds total visited repositories without restoring the result cap", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-budget-"));
+    try {
+      for (let index = 0; index < 20; index += 1) {
+        mkdirSync(path.join(root, `repo-${index.toString().padStart(2, "0")}`, ".git"), { recursive: true });
+      }
+
+      const repos = await discoverGitReposForQueryAsync("repo-", [], {
+        rootDirectories: [root],
+        concurrency: 1,
+        maxVisited: 11,
+      });
+
+      expect(repos).toHaveLength(10);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

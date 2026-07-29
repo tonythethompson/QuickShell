@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { createWorkspaceFromDiscoveredGitRepo } from "../lib/discovered-workspace-seed";
 
 describe("createWorkspaceFromDiscoveredGitRepo", () => {
@@ -36,5 +39,22 @@ describe("createWorkspaceFromDiscoveredGitRepo", () => {
     expect(workspace.name).toBe("empty-repo");
     expect(workspace.launches).toHaveLength(1);
     expect(workspace.launches[0].command).toBeNull();
+  });
+
+  it("reads the origin remote when discovery did not populate one", () => {
+    const directory = mkdtempSync(path.join(os.tmpdir(), "quickshell-discovered-seed-"));
+    try {
+      mkdirSync(path.join(directory, ".git"));
+      writeFileSync(
+        path.join(directory, ".git", "config"),
+        '[remote "origin"]\n\turl = git@github.com:trackdub/trackdub.git\n',
+      );
+
+      const workspace = createWorkspaceFromDiscoveredGitRepo({ directory, name: "Trackdub", tasks: [] });
+
+      expect(workspace.repoUrl).toBe("https://github.com/trackdub/trackdub");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });
