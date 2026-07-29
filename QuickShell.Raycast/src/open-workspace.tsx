@@ -680,7 +680,8 @@ export default function OpenWorkspaceCommand({
       await revalidate();
       const isNoop = result.outcome === "noop";
       await showToast({
-        style: isNoop ? Toast.Style.Animated : Toast.Style.Success,
+        // No-op is terminal; Animated would leave a forever spinner.
+        style: Toast.Style.Success,
         title: isNoop ? "Nothing to reset" : "Workspaces reset",
         message: result.message,
       });

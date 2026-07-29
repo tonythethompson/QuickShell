@@ -73,9 +73,9 @@ on failure → RestoreLastGoodLayout
 
 Used by Upsert, Delete, pin, Undo/Redo, Import, Reset:
 
-1. Normalize + serialize envelope
-2. **`WriteLayoutAtomic`**
-3. Update indexes, `_lastGoodLayout`, mtime
+1. Normalize + serialize envelope  
+2. **`WriteLayoutAtomic`**  
+3. Update indexes, `_lastGoodLayout`, mtime  
 4. Raise **`WorkspacesChanged`**
 
 ### Atomic writer
