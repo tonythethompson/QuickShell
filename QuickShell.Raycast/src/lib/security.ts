@@ -175,7 +175,10 @@ export function authorize(
     });
   } else if (
     directory &&
-    (request.kind === "terminal" || request.kind === "launchEntry" || request.kind === "grantTrust") &&
+    (request.kind === "terminal" ||
+      request.kind === "launchEntry" ||
+      request.kind === "grantTrust" ||
+      request.kind === "companion") &&
     isLocalDirectory(directory) &&
     !existsSync(directory)
   ) {

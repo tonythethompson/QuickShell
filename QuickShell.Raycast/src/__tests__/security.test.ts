@@ -318,6 +318,33 @@ describe("workspace security policy", () => {
     expect(allCompanions.plan.devServerUrl).toBeNull();
   });
 
+  it("blocks companion launch when a local workspace directory is missing", () => {
+    const content: Workspace = {
+      ...workspace,
+      directory: "Z:\\QuickShell\\DefinitelyMissingWorkspace",
+      companionApps: [
+        {
+          id: "node",
+          path: process.execPath,
+          arguments: null,
+          openOnLaunch: true,
+          order: 0,
+        },
+      ],
+    };
+    const value = { ...stored(true), content };
+
+    expect(authorize(value, { kind: "companion", companionId: "node" }).primaryIssueCode).toBe("DirectoryMissing");
+
+    const effects = authorizePostLaunchEffects(value, {
+      includeCompanion: true,
+      includeDevServer: false,
+      companionSelection: "all",
+    });
+    expect(effects.plan.companions).toEqual([]);
+    expect(effects.warnings.length).toBeGreaterThan(0);
+  });
+
   it("fails closed for ambiguous duplicate companion IDs", () => {
     const duplicate = {
       id: "duplicate",
