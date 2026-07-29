@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_EXPORT_FILE_NAME,
+  buildWindowsTransferPowerShell,
   readWorkspaceImportFile,
   writeWorkspaceExportFile,
 } from "../lib/workspace-transfer-files";
@@ -27,5 +28,10 @@ describe("workspace-transfer-files", () => {
 
     expect(readFileSync(filePath, "utf8")).toBe(json);
     expect(readWorkspaceImportFile(filePath)).toBe(json);
+  });
+
+  it("seeds Windows dialogs on the Desktop for faster first paint", () => {
+    expect(buildWindowsTransferPowerShell("open")).toContain("GetFolderPath('Desktop')");
+    expect(buildWindowsTransferPowerShell("save")).toContain("GetFolderPath('Desktop')");
   });
 });

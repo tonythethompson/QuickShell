@@ -78,11 +78,78 @@ export function importParsedPayload(parsed: unknown, existing?: StoredData): Imp
     return mergeImportedData(migrated, existing);
   }
 
+  // CmdPal / Core layout envelope: { version, entries: [ shortcut | { Workspace } | separator ] }
+  if (Array.isArray(record.entries)) {
+    return importCmdPalLayoutEnvelope(record.entries, existing);
+  }
+
   const migrated = migrateStoredData(normalizeRecordKeys(record));
   if (migrated.workspaces.length === 0) {
     throw new Error("No workspaces found in import file.");
   }
   return mergeImportedData(migrated, existing);
+}
+
+/**
+ * Imports desktop CmdPal/Run layout JSON (`entries`), including flat PascalCase
+ * shortcuts and on-disk `{ Workspace, Security }` wrappers. Separators become layout rows.
+ */
+function importCmdPalLayoutEnvelope(entries: unknown[], existing?: StoredData): ImportResult {
+  const workspaces: unknown[] = [];
+  const layoutHints: Array<{ kind: "workspace" } | { kind: "separator"; title: string | null }> = [];
+
+  for (const raw of entries) {
+    const entry = normalizeRecordKeys(raw);
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    const record = entry as UnknownRecord;
+    const type = typeof record.type === "string" ? record.type.trim().toLowerCase() : "";
+    if (type === "separator") {
+      const title = typeof record.title === "string" && record.title.trim() ? record.title.trim() : null;
+      layoutHints.push({ kind: "separator", title });
+      continue;
+    }
+
+    const payload = record.workspace && typeof record.workspace === "object" ? record.workspace : record;
+    if (!payload || typeof payload !== "object") {
+      continue;
+    }
+    const workspaceRecord = payload as UnknownRecord;
+    const name = typeof workspaceRecord.name === "string" ? workspaceRecord.name.trim() : "";
+    const directory = typeof workspaceRecord.directory === "string" ? workspaceRecord.directory.trim() : "";
+    if (!name || !directory) {
+      continue;
+    }
+
+    workspaces.push(payload);
+    layoutHints.push({ kind: "workspace" });
+  }
+
+  if (workspaces.length === 0) {
+    throw new Error("No workspaces found in import file.");
+  }
+
+  const result = importShortcutArray(workspaces, existing);
+  if (!existing || existing.workspaces.length === 0) {
+    const layoutEntries: LayoutEntry[] = [];
+    let workspaceIndex = 0;
+    const importedWorkspaces = result.data.workspaces;
+    for (const hint of layoutHints) {
+      if (hint.kind === "separator") {
+        layoutEntries.push({ type: "separator", id: createStableId(), title: hint.title });
+        continue;
+      }
+      const workspace = importedWorkspaces[workspaceIndex];
+      workspaceIndex += 1;
+      if (workspace) {
+        layoutEntries.push({ type: "workspace", workspaceId: workspace.id });
+      }
+    }
+    result.data.layoutEntries = layoutEntries;
+  }
+
+  return result;
 }
 
 function importShortcutArray(items: unknown[], existing?: StoredData): ImportResult {

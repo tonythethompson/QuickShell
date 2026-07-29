@@ -110,4 +110,80 @@ describe("import-export", () => {
     expect(result.data.layoutEntries?.[0]).toMatchObject({ type: "separator", id: separatorId, title: "Apps" });
     expect(result.data.layoutEntries?.some((entry) => entry.type === "workspace")).toBe(true);
   });
+
+  it("imports CmdPal layout envelope with flat PascalCase shortcuts", () => {
+    const result = importParsedPayload({
+      version: 1,
+      entries: [
+        {
+          Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          Name: "Frontend",
+          Directory: "C:\\Projects\\web",
+          Command: "npm run dev",
+          Terminal: "wt",
+          Launches: [
+            {
+              Id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              Label: "Web",
+              Terminal: "wt",
+              Command: "npm run dev",
+              RunAsAdmin: false,
+              IsEnabled: true,
+              Order: 0,
+              TaskType: "none",
+            },
+          ],
+        },
+        { Type: "separator", Title: "Apps" },
+        {
+          Id: "cccccccccccccccccccccccccccccccc",
+          Name: "API",
+          Directory: "C:\\Projects\\api",
+          Terminal: "default",
+        },
+      ],
+    });
+
+    expect(result.imported).toBe(2);
+    expect(result.data.workspaces.map((workspace) => workspace.name)).toEqual(["Frontend", "API"]);
+    expect(result.data.workspaces[0].launches[0]?.label).toBe("Web");
+    expect(result.data.layoutEntries).toEqual([
+      { type: "workspace", workspaceId: result.data.workspaces[0].id },
+      { type: "separator", id: expect.any(String), title: "Apps" },
+      { type: "workspace", workspaceId: result.data.workspaces[1].id },
+    ]);
+  });
+
+  it("imports on-disk CmdPal shortcuts.json Workspace/Security wrappers", () => {
+    const result = importParsedPayload({
+      version: 1,
+      entries: [
+        {
+          Workspace: {
+            Id: "dddddddddddddddddddddddddddddddd",
+            Name: "Trackdub",
+            Directory: "D:\\Dev\\Trackdub",
+            Terminal: "default",
+            Launches: [
+              {
+                Id: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                Label: "Launch",
+                Terminal: "default",
+                Command: "cline",
+                RunAsAdmin: false,
+                IsEnabled: true,
+                Order: 0,
+              },
+            ],
+          },
+          Security: { IsTrusted: true, Revision: 3 },
+        },
+      ],
+    });
+
+    expect(result.imported).toBe(1);
+    expect(result.data.workspaces[0].name).toBe("Trackdub");
+    expect(result.data.workspaces[0].directory).toBe("D:\\Dev\\Trackdub");
+    expect(result.data.workspaces[0].launches[0]?.command).toBe("cline");
+  });
 });

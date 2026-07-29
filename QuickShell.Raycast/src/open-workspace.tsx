@@ -530,11 +530,18 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleExport() {
+    const loading = await showToast({
+      style: Toast.Style.Animated,
+      title: "Opening export dialog…",
+      message: "Windows file dialogs need a short PowerShell startup.",
+    });
     try {
-      const filePath = pickWorkspaceTransferJsonPath("save");
+      const filePath = await pickWorkspaceTransferJsonPath("save");
       if (!filePath) {
+        loading.hide();
         return;
       }
+      loading.title = "Exporting…";
       const json = await storage.exportJson();
       writeWorkspaceExportFile(filePath, json);
       await showToast({
@@ -554,11 +561,18 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleImportFromFile() {
+    const loading = await showToast({
+      style: Toast.Style.Animated,
+      title: "Opening import dialog…",
+      message: "Windows file dialogs need a short PowerShell startup.",
+    });
     try {
-      const filePath = pickWorkspaceTransferJsonPath("open");
+      const filePath = await pickWorkspaceTransferJsonPath("open");
       if (!filePath) {
+        loading.hide();
         return;
       }
+      loading.title = "Importing…";
       const trimmed = readWorkspaceImportFile(filePath).trim();
       if (!trimmed) {
         await showToast({
