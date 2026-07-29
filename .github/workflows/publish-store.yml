@@ -3,19 +3,58 @@ name: Publish to Microsoft Store
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v0.2.3.0)
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+env:
+  STORE_APP_ID: 9PC8S6LNRT3R
+
 jobs:
   deploy:
+    # Product releases only: v* tags. Skip GitHub pre-releases and run-v* Run-plugin releases.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'release' &&
+        github.event.release.prerelease == false &&
+        startsWith(github.event.release.tag_name, 'v')
+      )
     runs-on: windows-latest
 
     steps:
+      - name: Resolve tag
+        id: meta
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $tag = "${{ inputs.tag }}".Trim()
+          } else {
+            $tag = "${{ github.event.release.tag_name }}".Trim()
+          }
+
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw 'Release tag is empty.'
+          }
+          if (-not $tag.StartsWith('v')) {
+            throw "Tag '$tag' must start with 'v' (for example v0.2.3.0)."
+          }
+
+          $version = $tag.Substring(1)
+          "TAG=$tag" >> $env:GITHUB_OUTPUT
+          "VERSION=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Store publish tag=$tag version=$version"
+
       - name: Checkout release tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ steps.meta.outputs.TAG }}
 
       # The Store CLI runs on the .NET 9 Desktop Runtime; Quick Shell builds with .NET 10.
       - name: Setup .NET
@@ -31,16 +70,39 @@ jobs:
           dotnet tool install --global Microsoft.Store.CLI
           Join-Path $env:USERPROFILE '.dotnet\tools' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Verify Store version matches release tag
+      - name: Verify version matches tag
         shell: pwsh
         run: |
-          $releaseVersion = "${{ github.event.release.tag_name }}" -replace '^v', ''
+          $releaseVersion = "${{ steps.meta.outputs.VERSION }}"
+
           [xml]$manifest = Get-Content QuickShell/Package.appxmanifest
           $manifestVersion = [string]$manifest.Package.Identity.Version
-
           if ($manifestVersion -ne $releaseVersion) {
             throw "Release tag version ($releaseVersion) does not match Package.appxmanifest ($manifestVersion)."
           }
+
+          [xml]$props = Get-Content Directory.Build.props
+          $appVersion = [string]($props.Project.PropertyGroup.AppVersion | Select-Object -First 1)
+          if ($appVersion -ne $releaseVersion) {
+            throw "Release tag version ($releaseVersion) does not match Directory.Build.props AppVersion ($appVersion)."
+          }
+
+          Write-Host "Version gate OK: $releaseVersion"
+
+      - name: Extract changelog
+        id: changelog
+        shell: pwsh
+        run: |
+          $notes = & .\scripts\extract-changelog.ps1 -Version "${{ steps.meta.outputs.VERSION }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # Multiline output for later steps
+          "NOTES<<EOF" >> $env:GITHUB_OUTPUT
+          $notes >> $env:GITHUB_OUTPUT
+          "EOF" >> $env:GITHUB_OUTPUT
+
+          $notes | Set-Content -Path store-release-notes.txt -Encoding utf8
+          Write-Host "Extracted $($notes.Length) characters of release notes."
 
       - name: Build Store upload package
         shell: pwsh
@@ -55,7 +117,7 @@ jobs:
             --clientId "${{ secrets.MSSTORE_CLIENT_ID }}" `
             --clientSecret "${{ secrets.MSSTORE_CLIENT_SECRET }}"
 
-      - name: Upload and publish Store package
+      - name: Upload Store package (draft)
         shell: pwsh
         run: |
           $upload = Get-ChildItem QuickShell/AppPackages/Store -Recurse -Filter *.msixupload |
@@ -66,6 +128,22 @@ jobs:
             throw 'Store upload package was not produced.'
           }
 
+          Write-Host "Uploading $($upload.FullName) without committing..."
           msstore publish "$env:GITHUB_WORKSPACE\QuickShell" `
             --inputFile $upload.FullName `
-            --appId 9PC8S6LNRT3R
+            --appId ${{ env.STORE_APP_ID }} `
+            --noCommit
+
+      - name: Set Store What's new from CHANGELOG
+        shell: pwsh
+        run: |
+          $notes = Get-Content -Raw store-release-notes.txt
+          .\scripts\set-store-release-notes.ps1 `
+            -AppId ${{ env.STORE_APP_ID }} `
+            -ReleaseNotes $notes
+
+      - name: Commit Store submission
+        shell: pwsh
+        run: |
+          msstore submission publish ${{ env.STORE_APP_ID }}
+          Write-Host 'Submission committed. Certification is asynchronous.'

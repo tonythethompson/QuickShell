@@ -11,9 +11,9 @@ on:
         required: false
         type: string
       release_notes:
-        description: Release notes
+        description: Optional notes override (leave empty to use CHANGELOG.md for this version)
         required: false
-        default: Quick Shell release for PowerToys Command Palette and Run.
+        default: ''
         type: string
       submit_winget:
         description: Open a WinGet manifest update PR after release
@@ -73,6 +73,95 @@ jobs:
           Write-Host "Using version: $version"
         shell: pwsh
 
+      - name: Verify version files match
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+
+          [xml]$manifest = Get-Content QuickShell/Package.appxmanifest
+          $manifestVersion = [string]$manifest.Package.Identity.Version
+          if ($manifestVersion -ne $version) {
+            throw "Release version ($version) does not match Package.appxmanifest ($manifestVersion)."
+          }
+
+          [xml]$props = Get-Content Directory.Build.props
+          $appVersion = [string]($props.Project.PropertyGroup.AppVersion | Select-Object -First 1)
+          if ($appVersion -ne $version) {
+            throw "Release version ($version) does not match Directory.Build.props AppVersion ($appVersion)."
+          }
+
+      - name: Extract changelog
+        id: changelog
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $override = "${{ github.event.inputs.release_notes }}".Trim()
+
+          if ($override) {
+            $notes = $override
+            Write-Host "Using workflow_dispatch release_notes override."
+          } else {
+            $notes = & .\scripts\extract-changelog.ps1 -Version $version
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+          "NOTES<<EOF" >> $env:GITHUB_OUTPUT
+          $notes >> $env:GITHUB_OUTPUT
+          "EOF" >> $env:GITHUB_OUTPUT
+
+          $notes | Set-Content -Path release-notes.txt -Encoding utf8
+
+          $wingetId = "${{ env.WINGET_PACKAGE_ID }}"
+          $wingetCmdPalId = "${{ env.WINGET_CMDPAL_PACKAGE_ID }}"
+          $wingetRunId = "${{ env.WINGET_RUN_PACKAGE_ID }}"
+
+          $sb = [System.Text.StringBuilder]::new()
+          [void]$sb.AppendLine("## Quick Shell v$version")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine($notes)
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("Package matrix: [docs/release-packages.md](https://github.com/tonythethompson/QuickShell/blob/master/docs/release-packages.md)")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("## Install")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("### PowerToys: Command Palette + Run (bundled)")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("- **x64**: ``QuickShell-Setup-$version-x64.exe``")
+          [void]$sb.AppendLine("- **ARM64**: ``QuickShell-Setup-$version-arm64.exe``")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("Restart PowerToys after install so Run picks up the plugin.")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("### PowerToys: Command Palette only (Store-equivalent)")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("- **x64**: ``QuickShellforCmdPal-Setup-$version-x64.exe``")
+          [void]$sb.AppendLine("- **ARM64**: ``QuickShellforCmdPal-Setup-$version-arm64.exe``")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("### PowerToys: Run plugin only")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("- **x64**: ``QuickShellforRun-Setup-$version-x64.exe``")
+          [void]$sb.AppendLine("- **ARM64**: ``QuickShellforRun-Setup-$version-arm64.exe``")
+          [void]$sb.AppendLine("- **ZIP**: ``QuickShell.Run-x64.zip`` / ``QuickShell.Run-ARM64.zip``")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("### Raycast")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("Install **Quick Shell** from the [Raycast Store](https://www.raycast.com/store) (Windows and macOS). GitHub Releases do not ship Raycast sideload packages.")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("After installing the Command Palette extension, run **Reload Command Palette Extension** in PowerToys Command Palette.")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine("## WinGet")
+          [void]$sb.AppendLine()
+          [void]$sb.AppendLine('```powershell')
+          [void]$sb.AppendLine("winget install $wingetId              # CmdPal + Run")
+          [void]$sb.AppendLine("winget install $wingetCmdPalId       # CmdPal only")
+          [void]$sb.AppendLine("winget install $wingetRunId          # Run only")
+          [void]$sb.AppendLine('```')
+
+          [System.IO.File]::WriteAllText(
+            (Join-Path $PWD 'release-body.md'),
+            $sb.ToString(),
+            [System.Text.UTF8Encoding]::new($false))
+          Write-Host "Wrote release-body.md ($($notes.Length) chars of notes)."
+
       - name: Build EXE installers (CmdPal variants)
         run: |
           Set-Location QuickShell
@@ -100,47 +189,8 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: Quick Shell v${{ steps.version.outputs.VERSION }}
-          generate_release_notes: true
-          body: |
-            ## Quick Shell v${{ steps.version.outputs.VERSION }}
-
-            ${{ github.event.inputs.release_notes }}
-
-            Package matrix: [docs/release-packages.md](https://github.com/tonythethompson/QuickShell/blob/master/docs/release-packages.md)
-
-            ## Install
-
-            ### PowerToys: Command Palette + Run (bundled)
-
-            - **x64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
-            - **ARM64**: `QuickShell-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
-
-            Restart PowerToys after install so Run picks up the plugin.
-
-            ### PowerToys: Command Palette only (Store-equivalent)
-
-            - **x64**: `QuickShellforCmdPal-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
-            - **ARM64**: `QuickShellforCmdPal-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
-
-            ### PowerToys: Run plugin only
-
-            - **x64**: `QuickShellforRun-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
-            - **ARM64**: `QuickShellforRun-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
-            - **ZIP**: `QuickShell.Run-x64.zip` / `QuickShell.Run-ARM64.zip`
-
-            ### Raycast
-
-            Install **Quick Shell** from the [Raycast Store](https://www.raycast.com/store) (Windows and macOS). GitHub Releases do not ship Raycast sideload packages.
-
-            After installing the Command Palette extension, run **Reload Command Palette Extension** in PowerToys Command Palette.
-
-            ## WinGet
-
-            ```powershell
-            winget install ${{ env.WINGET_PACKAGE_ID }}              # CmdPal + Run
-            winget install ${{ env.WINGET_CMDPAL_PACKAGE_ID }}       # CmdPal only
-            winget install ${{ env.WINGET_RUN_PACKAGE_ID }}          # Run only
-            ```
+          generate_release_notes: false
+          body_path: release-body.md
           files: |
             QuickShell/bin/Release/installer/*.exe
             QuickShell.Run/bin/Release/installer/*.exe
@@ -163,18 +213,27 @@ jobs:
         github.event.inputs.submit_winget != 'false'
       )
 
-    env:
-      # wingetcreate's `update` command has no flag to set the ReleaseNotes text
-      # field (only --release-notes-url), so it always drops ReleaseNotes on
-      # automated updates. Generate the manifest locally, patch the field in,
-      # then submit the patched manifest instead of using `update --submit`.
-      WINGET_RELEASE_NOTES: ${{ github.event.inputs.release_notes || 'Quick Shell release for PowerToys Command Palette and Run.' }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.build.outputs.tag }}
           persist-credentials: false
+
+      - name: Load release notes from CHANGELOG
+        id: changelog
+        shell: pwsh
+        run: |
+          $override = "${{ github.event.inputs.release_notes }}".Trim()
+          if ($override) {
+            $notes = $override
+          } else {
+            $notes = & .\scripts\extract-changelog.ps1 -Version "${{ needs.build.outputs.version }}"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+          $notes | Set-Content -Path release-notes.txt -Encoding utf8
+          Write-Host "Loaded $($notes.Length) characters of WinGet release notes."
 
       - name: Install WingetCreate
         run: |
@@ -207,6 +266,7 @@ jobs:
           $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
           $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
           $outDir = "winget-out/$packageId"
+          $notes = Get-Content -Raw release-notes.txt
 
           wingetcreate update $packageId `
             --version $version `
@@ -214,7 +274,7 @@ jobs:
             --release-notes-url $releaseNotesUrl `
             --out $outDir
 
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $env:WINGET_RELEASE_NOTES
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
 
           wingetcreate submit `
             --prtitle "$packageId version $version" `
@@ -239,6 +299,7 @@ jobs:
           $arm64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe"
           $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
           $outDir = "winget-out/$packageId"
+          $notes = Get-Content -Raw release-notes.txt
 
           wingetcreate update $packageId `
             --version $version `
@@ -246,7 +307,7 @@ jobs:
             --release-notes-url $releaseNotesUrl `
             --out $outDir
 
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $env:WINGET_RELEASE_NOTES
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
 
           wingetcreate submit `
             --prtitle "$packageId version $version" `
@@ -271,6 +332,7 @@ jobs:
           $arm64Url = "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe"
           $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
           $outDir = "winget-out/$packageId"
+          $notes = Get-Content -Raw release-notes.txt
 
           wingetcreate update $packageId `
             --version $version `
@@ -278,7 +340,7 @@ jobs:
             --release-notes-url $releaseNotesUrl `
             --out $outDir
 
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $env:WINGET_RELEASE_NOTES
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
 
           wingetcreate submit `
             --prtitle "$packageId version $version" `
