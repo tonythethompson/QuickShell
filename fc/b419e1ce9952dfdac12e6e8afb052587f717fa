@@ -1,0 +1,21 @@
+QuickShell.Raycast/src/lib/migration.ts
+  s_05c707c5a6adae::t_17df22382e05fb 170-178,180-181,198
+  s_05c707c5a6adae::t_9b11edf71db4f5 163-168,182,184
+  s_05c707c5a6adae::t_40d3f489143070 199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fcb419e1ce9952dfdac12e6e8afb052587f717fa",
+  "prompts": {},
+  "sessions": {
+    "s_05c707c5a6adae": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "c23c8e37-df3e-4415-81e8-b32c358d76c6",
+        "model": "SWE-1.7 Max"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
