@@ -1,0 +1,23 @@
+scripts/set-store-release-notes.ps1
+  s_77cadc024e7bef::t_72f13f63f9923e 60-62
+scripts/tests/ExtractChangelog.Tests.ps1
+  s_77cadc024e7bef::t_db6078eb37e481 30,37,44,57,72,89
+.github/workflows/ci.yml
+  s_77cadc024e7bef::t_2e099eab276cf3 38-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "15b1fcd278a5c33680da9efc659ae564e3fd7dd0",
+  "prompts": {},
+  "sessions": {
+    "s_77cadc024e7bef": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "54e2109c-30a5-4864-9d75-9c82ef8fcec7",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
