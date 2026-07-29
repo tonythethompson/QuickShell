@@ -202,6 +202,7 @@ async function pickMacTransferJsonPath(kind: DialogKind): Promise<string | null>
     if (fromStdout) {
       return fromStdout;
     }
+    console.error("macOS transfer dialog script failed:", error);
     return null;
   }
 }

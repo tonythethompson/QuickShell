@@ -124,9 +124,19 @@ function buildLightWorkspaceFromRepo(directory: string, name: string, remoteUrl?
 }
 
 function ReviewWorkspaceForm({ directory, name, remoteUrl, onCreated }: ReviewWorkspaceFormProps) {
-  const { data: initialWorkspace, isLoading } = usePromise(async () =>
+  const { data: initialWorkspace, isLoading, error } = usePromise(async () =>
     buildWorkspaceFromRepo(directory, name, remoteUrl),
   );
+
+  useLoadErrorToast(error, "Failed to prepare workspace");
+
+  if (error) {
+    return (
+      <List>
+        <List.EmptyView icon={Icon.ExclamationMark} title="Workspace prep failed" description={error.message} />
+      </List>
+    );
+  }
 
   if (!initialWorkspace) {
     return (
