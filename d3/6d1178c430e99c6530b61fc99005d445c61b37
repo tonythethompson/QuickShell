@@ -1,0 +1,29 @@
+QuickShell.Raycast/src/__tests__/workspace-transfer-files.test.ts
+  s_19915495c2ef49::t_9503f90c65e8f0 7,32-35
+QuickShell.Raycast/src/lib/workspace-transfer-files.ts
+  s_19915495c2ef49::t_b52d98c06aca31 1,4,11-12,16-18,20,30-46,48-61,90,109,111,115
+  s_19915495c2ef49::t_40cddc8a56e2ba 62-88,91
+QuickShell.Raycast/src/lib/import-export.ts
+  s_19915495c2ef49::t_9e3fce4c2a9fd9 81-85,93-152
+QuickShell.Raycast/src/open-workspace.tsx
+  s_19915495c2ef49::t_806e6b035a4cde 533-537,539,541,544,564-568,570,572,575
+QuickShell.Raycast/src/__tests__/import-export.test.ts
+  s_19915495c2ef49::t_268fa67ac1b100 113
+  s_19915495c2ef49::t_c34fccd39aaacd 114-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d36d1178c430e99c6530b61fc99005d445c61b37",
+  "prompts": {},
+  "sessions": {
+    "s_19915495c2ef49": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "32cce283-f926-49e2-9e39-efbc1afbbab3",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
