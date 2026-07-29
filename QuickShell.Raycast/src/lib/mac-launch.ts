@@ -98,10 +98,6 @@ export function groupMacLaunchEntries(
         ? previousHostId
         : resolveMacTerminalHostId(entry.launch.terminal, settings);
     previousHostId = hostId;
-    if (separateWindows) {
-      groups.push({ hostId, entries: [entry] });
-      continue;
-    }
     const existingIndex = groupIndexByHost.get(hostId);
     if (existingIndex !== undefined) {
       groups[existingIndex].entries.push(entry);
