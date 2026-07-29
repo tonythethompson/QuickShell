@@ -21,7 +21,7 @@ export default function SetTargetBranchForm({ directory, workspaceName, blockDir
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
 
-  const { data: branchChoices, isLoading } = usePromise(async () => {
+  const { data: branchChoices, isLoading, error, revalidate } = usePromise(async () => {
     const branches = await listLocalBranches(directory);
     const worktreeKey = await resolveWorktreeKey(directory);
     const target = worktreeKey ? await storage.getBranchTarget(worktreeKey) : null;
@@ -104,15 +104,17 @@ export default function SetTargetBranchForm({ directory, workspaceName, blockDir
       isLoading={isLoading}
       actions={
         <ActionPanel>
+          {error ? <Action title="Retry Loading Branches" onAction={revalidate} /> : null}
           <Action.SubmitForm
             title="Switch Branch"
             onSubmit={handleSubmit}
-            disabled={isLoading || (branchChoices?.branches.length ?? 0) === 0}
+            disabled={isLoading || !!error || (branchChoices?.branches.length ?? 0) === 0}
           />
         </ActionPanel>
       }
     >
       <Form.Description text={`Choose the branch Quick Shell should switch ${workspaceName} to before launch.`} />
+      {error ? <Form.Description title="Branches unavailable" text="Could not load local branches. Try again." /> : null}
       {branchChoices && branchChoices.branches.length === 0 ? (
         <Form.Description title="Branches" text="No local branches were found for this repository." />
       ) : (
