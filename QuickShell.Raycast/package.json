@@ -140,8 +140,9 @@
     "esbuild": "0.28.1",
     "postcss": "8.5.24",
     "brace-expansion": "5.0.8",
-    "minimatch@3": "10.2.6",
-    "minimatch@5": "10.2.6"
+    "filelist": {
+      "minimatch": "10.2.6"
+    }
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.0.4",
