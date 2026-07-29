@@ -38,7 +38,7 @@ jobs:
     runs-on: windows-2022
     permissions:
       contents: write
-      actions: read
+      actions: write
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
       tag: v${{ steps.version.outputs.VERSION }}
@@ -208,6 +208,20 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # GITHUB_TOKEN release events do not chain into other workflows; dispatch Store publish explicitly.
+      - name: Dispatch Store publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STORE_TAG: v${{ steps.version.outputs.VERSION }}
+        run: |
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = $env:STORE_TAG
+          $defaultBranch = gh api "repos/$repo" --jq .default_branch
+          Write-Host "Dispatching publish-store.yml for tag=$tag (workflow ref=$defaultBranch)..."
+          gh workflow run publish-store.yml --ref $defaultBranch -f "tag=$tag"
+          Write-Host 'Store publish workflow dispatched (awaits store-publish environment approval).'
 
   winget-update:
     needs: build

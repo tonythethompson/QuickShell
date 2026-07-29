@@ -12,12 +12,12 @@ One tag push updates **GitHub Release**, **WinGet**, and the **Microsoft Store**
    Write user-facing **Added** / **Fixed** / **Changed** / **Removed** notes (not commit or PR titles). Keep it short enough for Store What's new (about 5–15 bullets). Leave an empty `## [Unreleased]` section for the next cycle.
 3. Commit, tag `vX.Y.Z.W`, and push the tag (or run **Release WinGet installers** via `workflow_dispatch` with that version).
 4. Expect, in order:
-   - [`.github/workflows/release-extension.yml`](../.github/workflows/release-extension.yml) builds installers, creates the GitHub Release from `CHANGELOG.md`, and opens WinGet manifest PRs (when `WINGET_PAT` is set).
-   - [`.github/workflows/publish-store.yml`](../.github/workflows/publish-store.yml) runs on that published `v*` release (not pre-releases, not `run-v*`), builds the `.msixupload`, uploads with `--noCommit`, sets listing **ReleaseNotes** from the same changelog section, then commits the Partner Center submission. Certification is asynchronous.
+   - [`.github/workflows/release-extension.yml`](../.github/workflows/release-extension.yml) builds installers, creates the GitHub Release from `CHANGELOG.md`, opens WinGet manifest PRs (when `WINGET_PAT` is set), and **dispatches** Store publish (a `GITHUB_TOKEN` release does not chain other workflows automatically).
+   - [`.github/workflows/publish-store.yml`](../.github/workflows/publish-store.yml) runs on the `store-publish` Environment (required reviewer approval), verifies the tag is a published non-prerelease release on `master` history, builds the `.msixupload`, uploads with `--noCommit`, sets listing **ReleaseNotes** from the same changelog section, then commits the Partner Center submission. Certification is asynchronous.
 
 Release CI **fails** if the changelog section for that version is missing or empty, or if the tag version does not match both `AppVersion` and `Package.appxmanifest`.
 
-Optional Store-only re-submit: run **Publish to Microsoft Store** with `workflow_dispatch` and the tag (for example `v0.2.3.0`).
+Optional Store-only re-submit: run **Publish to Microsoft Store** with `workflow_dispatch` and the tag (for example `v0.2.3.0`). The same Environment approval and release/trust gates apply.
 
 ## Changelog rules
 
@@ -63,7 +63,9 @@ The former `tonythethompson.QuickShellforRaycast` WinGet package is retired (no 
 
 - Store ID: `9PC8S6LNRT3R` ([listing](https://apps.microsoft.com/detail/9PC8S6LNRT3R))
 - Package: unsigned `.msixupload` from [`scripts/build-store.ps1`](../scripts/build-store.ps1) (Microsoft re-signs after certification)
-- What's new: `listings.en-us.baseListing.releaseNotes`, patched from `CHANGELOG.md` via [`scripts/set-store-release-notes.ps1`](../scripts/set-store-release-notes.ps1)
+- What's new: `listings.en-us.baseListing.releaseNotes`, patched from `CHANGELOG.md` via [`scripts/set-store-release-notes.ps1`](../scripts/set-store-release-notes.ps1) (Partner Center limit: 1,500 characters)
+- Workflow Environment: `store-publish` (required reviewer before Store secrets / publish steps run)
+- Trust gates: tag must match `vX.Y.Z.W`, map to a published non-prerelease GitHub Release, and point at a commit on default-branch history
 - Secrets (already configured): `MSSTORE_TENANT_ID`, `MSSTORE_SELLER_ID`, `MSSTORE_CLIENT_ID`, `MSSTORE_CLIENT_SECRET`
 
 ## Why not one installer for all hosts?
@@ -81,6 +83,6 @@ Keep **`tonythethompson.QuickShell`** as the PowerToys bundle (CmdPal + Run).
 
 | Workflow | Trigger | Channels |
 | --- | --- | --- |
-| [`release-extension.yml`](../.github/workflows/release-extension.yml) | `v*` tag or dispatch | GitHub Release + WinGet |
-| [`publish-store.yml`](../.github/workflows/publish-store.yml) | published `v*` release (not pre-release) or dispatch | Microsoft Store package + What's new |
+| [`release-extension.yml`](../.github/workflows/release-extension.yml) | `v*` tag or dispatch | GitHub Release + WinGet + dispatches Store publish |
+| [`publish-store.yml`](../.github/workflows/publish-store.yml) | dispatch (from release workflow or manual); also `release` published | Microsoft Store package + What's new (`store-publish` Environment) |
 | [`release-run-plugin.yml`](../.github/workflows/release-run-plugin.yml) | `run-v*` tag | Run plugin GitHub Release only (does **not** publish to Store) |
