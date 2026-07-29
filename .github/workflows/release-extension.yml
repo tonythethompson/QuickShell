@@ -306,41 +306,19 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) {
-            Write-Warning "WINGET_PAT secret is not configured. Skipping WinGet submission."
-            exit 0
-          }
-
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
-          $packageId = "${{ env.WINGET_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
-          $x64Url = "$baseUrl/QuickShell-Setup-$version-x64.exe"
-          $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
-          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-          $outDir = "winget-out/$packageId"
           $notes = Get-Content -Raw release-notes.txt
 
-          wingetcreate update $packageId `
-            --version $version `
-            --urls $x64Url $arm64Url `
-            --release-notes-url $releaseNotesUrl `
-            --out $outDir
-
-          # wingetcreate 1.12 writes under out/manifests/.../<version>; submit that folder.
-          $manifestDir = Get-ChildItem -Path $outDir -Recurse -Filter '*.installer.yaml' |
-            Select-Object -First 1 |
-            ForEach-Object { $_.Directory.FullName }
-          if (-not $manifestDir) {
-            throw "No installer manifest found under $outDir after wingetcreate update."
-          }
-
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $manifestDir -ReleaseNotes $notes
-
-          wingetcreate submit `
-            --prtitle "$packageId version $version" `
-            --token $env:WINGET_PAT `
-            $manifestDir
+          .\scripts\submit-winget-package.ps1 `
+            -PackageId "${{ env.WINGET_PACKAGE_ID }}" `
+            -Version $version `
+            -Tag $tag `
+            -X64Url "$baseUrl/QuickShell-Setup-$version-x64.exe" `
+            -Arm64Url "$baseUrl/QuickShell-Setup-$version-arm64.exe" `
+            -ReleaseNotes $notes `
+            -Required
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -350,37 +328,19 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) { exit 0 }
-
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
-          $packageId = "${{ env.WINGET_CMDPAL_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
-          $x64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe"
-          $arm64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe"
-          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-          $outDir = "winget-out/$packageId"
           $notes = Get-Content -Raw release-notes.txt
 
-          wingetcreate update $packageId `
-            --version $version `
-            --urls $x64Url $arm64Url `
-            --release-notes-url $releaseNotesUrl `
-            --out $outDir
-
-          $manifestDir = Get-ChildItem -Path $outDir -Recurse -Filter '*.installer.yaml' |
-            Select-Object -First 1 |
-            ForEach-Object { $_.Directory.FullName }
-          if (-not $manifestDir) {
-            throw "No installer manifest found under $outDir after wingetcreate update."
-          }
-
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $manifestDir -ReleaseNotes $notes
-
-          wingetcreate submit `
-            --prtitle "$packageId version $version" `
-            --token $env:WINGET_PAT `
-            $manifestDir
+          # Soft-skip until an initial QuickShellforCmdPal package exists in winget-pkgs.
+          .\scripts\submit-winget-package.ps1 `
+            -PackageId "${{ env.WINGET_CMDPAL_PACKAGE_ID }}" `
+            -Version $version `
+            -Tag $tag `
+            -X64Url "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe" `
+            -Arm64Url "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe" `
+            -ReleaseNotes $notes
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -390,38 +350,19 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) { exit 0 }
-
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
-          $packageId = "${{ env.WINGET_RUN_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
-          $x64Url = "$baseUrl/QuickShellforRun-Setup-$version-x64.exe"
-          $arm64Url = "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe"
-          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-          $outDir = "winget-out/$packageId"
           $notes = Get-Content -Raw release-notes.txt
 
-          wingetcreate update $packageId `
-            --version $version `
-            --urls $x64Url $arm64Url `
-            --release-notes-url $releaseNotesUrl `
-            --out $outDir
-
-          $manifestDir = Get-ChildItem -Path $outDir -Recurse -Filter '*.installer.yaml' |
-            Select-Object -First 1 |
-            ForEach-Object { $_.Directory.FullName }
-          if (-not $manifestDir) {
-            throw "No installer manifest found under $outDir after wingetcreate update."
-          }
-
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $manifestDir -ReleaseNotes $notes
-
-          wingetcreate submit `
-            --prtitle "$packageId version $version" `
-            --token $env:WINGET_PAT `
-            $manifestDir
+          # Soft-skip until an initial QuickShellforRun package exists in winget-pkgs.
+          .\scripts\submit-winget-package.ps1 `
+            -PackageId "${{ env.WINGET_RUN_PACKAGE_ID }}" `
+            -Version $version `
+            -Tag $tag `
+            -X64Url "$baseUrl/QuickShellforRun-Setup-$version-x64.exe" `
+            -Arm64Url "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe" `
+            -ReleaseNotes $notes
         shell: pwsh
-        continue-on-error: true
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
