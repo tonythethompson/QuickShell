@@ -139,6 +139,11 @@ internal static class TerminalFragmentDiscovery
         return profiles;
     }
 
+    /// <summary>
+    /// Merges profile overrides from a fragment JSON file into the discovered profiles.
+    /// </summary>
+    /// <param name="file">The path to the fragment JSON file.</param>
+    /// <param name="profiles">The profile collection to update.</param>
     private static void MergeFile(string file, Dictionary<string, TerminalFragmentProfile> profiles)
     {
         using var stream = File.OpenRead(file);
