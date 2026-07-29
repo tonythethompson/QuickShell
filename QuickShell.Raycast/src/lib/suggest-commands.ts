@@ -164,13 +164,39 @@ export function splitPillsIntoSeedAndLeftover(
   };
 }
 
-function isSuggestionResponse(value: unknown): value is SuggestionResponse {
+function isSuggestionPill(value: unknown): value is SuggestionPill {
   if (!value || typeof value !== "object") {
     return false;
   }
 
+  const pill = value as Record<string, unknown>;
+  return (
+    typeof pill.command === "string" &&
+    typeof pill.taskType === "string" &&
+    typeof pill.typeTitle === "string" &&
+    typeof pill.displayTitle === "string" &&
+    typeof pill.tooltip === "string"
+  );
+}
+
+/** Parse Suggest CLI JSON; drop malformed pills. Returns null when the payload is unusable. */
+export function parseSuggestionResponse(value: unknown): SuggestionResponse | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
   const record = value as Record<string, unknown>;
-  return typeof record.generation === "number" && Array.isArray(record.pills);
+  if (typeof record.generation !== "number" || !Number.isFinite(record.generation) || !Array.isArray(record.pills)) {
+    return null;
+  }
+
+  const pills = record.pills.filter(isSuggestionPill);
+  // Non-empty array with zero valid pills is a corrupt payload, not "no suggestions".
+  if (record.pills.length > 0 && pills.length === 0) {
+    return null;
+  }
+
+  return { generation: record.generation, pills };
 }
 
 /** Spawn/exec failures from Suggest.exe (missing binary, non-zero exit, signals). */
@@ -247,17 +273,18 @@ export async function fetchSuggestionPills(
       return null;
     }
 
-    if (!isSuggestionResponse(parsed)) {
+    const response = parseSuggestionResponse(parsed);
+    if (!response) {
       console.warn("[quickshell] Suggest CLI returned an unexpected payload shape.");
       return null;
     }
 
-    if (parsed.generation !== generation) {
-      console.warn(`[quickshell] Suggest CLI generation mismatch (wanted ${generation}, got ${parsed.generation}).`);
+    if (response.generation !== generation) {
+      console.warn(`[quickshell] Suggest CLI generation mismatch (wanted ${generation}, got ${response.generation}).`);
       return null;
     }
 
-    return parsed;
+    return response;
   } catch (error) {
     if (isExpectedSuggestExecFailure(error)) {
       console.warn(

@@ -80,7 +80,9 @@ if (-not $SkipSmokeTest) {
         throw "Suggest.exe exited with code $LASTEXITCODE"
     }
 
-    $parsed = $stdout | ConvertFrom-Json
+    # Native stdout may be a string or a line array; always parse as one JSON document.
+    $json = if ($null -eq $stdout) { '' } elseif ($stdout -is [string]) { $stdout } else { $stdout -join "`n" }
+    $parsed = $json | ConvertFrom-Json
     $pillCount = @($parsed.pills).Count
     Write-Host "Smoke test OK: generation=$($parsed.generation), pills=$pillCount" -ForegroundColor Green
 }
@@ -91,18 +93,13 @@ if ($SkipDeploy) {
     Write-Host '  cd QuickShell.Raycast'
     Write-Host '  npm run dev'
     Write-Host ("  `$env:QUICKSHELL_SUGGEST_EXE = '{0}'" -f $assetPath) -ForegroundColor DarkGray
-    exit 0
+    return
 }
 
 Write-Host '2/3 Stopping Raycast (so the extension can reload)...' -ForegroundColor Cyan
-$stoppedRaycast = $false
-try {
-    Stop-RaycastProcesses
-    $stoppedRaycast = $true
-}
-catch {
-    Write-Warning "Could not stop Raycast: $($_.Exception.Message)"
-}
+# Stop-RaycastProcesses already uses -ErrorAction SilentlyContinue; let unexpected errors surface.
+Stop-RaycastProcesses
+$stoppedRaycast = $true
 
 Write-Host '3/3 Building and deploying QuickShell.Raycast...' -ForegroundColor Cyan
 Deploy-RaycastExtension `

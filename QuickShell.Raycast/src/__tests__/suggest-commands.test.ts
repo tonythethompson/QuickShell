@@ -4,6 +4,7 @@ import {
   buildSuggestCommandArgs,
   combineSuggestionTasksAndPills,
   LOCAL_SETUP_SEED_TASKS,
+  parseSuggestionResponse,
   pillsToSetupTasks,
   resolveSuggestExecutable,
   splitPillsIntoSeedAndLeftover,
@@ -135,5 +136,47 @@ describe("suggest-commands", () => {
     const split = splitPillsIntoSeedAndLeftover(pills, 4);
     expect(split.tasks.map((task) => task.command)).toEqual(["echo one", "echo two"]);
     expect(split.leftoverPills.map((entry) => entry.command)).toEqual(["echo three"]);
+  });
+
+  it("parses Suggest payloads and drops malformed pills", () => {
+    expect(
+      parseSuggestionResponse({
+        generation: 7,
+        pills: [
+          {
+            command: "npm run dev",
+            taskType: "frontend",
+            typeTitle: "Frontend",
+            displayTitle: "Dev",
+            tooltip: "npm run dev",
+          },
+          { command: 42, taskType: "frontend" },
+          null,
+          "bad",
+        ],
+      }),
+    ).toEqual({
+      generation: 7,
+      pills: [
+        {
+          command: "npm run dev",
+          taskType: "frontend",
+          typeTitle: "Frontend",
+          displayTitle: "Dev",
+          tooltip: "npm run dev",
+        },
+      ],
+    });
+  });
+
+  it("rejects Suggest payloads when every pill is malformed", () => {
+    expect(
+      parseSuggestionResponse({
+        generation: 1,
+        pills: [{ command: 1 }, { taskType: "frontend" }],
+      }),
+    ).toBeNull();
+    expect(parseSuggestionResponse({ generation: "1", pills: [] })).toBeNull();
+    expect(parseSuggestionResponse({ generation: 1 })).toBeNull();
   });
 });
