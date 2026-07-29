@@ -427,7 +427,7 @@ Apache 2.0. See [LICENSE](LICENSE).
 
 ## Website
 
-[quickshell.trackdub.com](https://quickshell.trackdub.com/): install steps, getting started, support, and privacy policy.
+[tonythethompson.github.io/QuickShell](https://tonythethompson.github.io/QuickShell/): install steps, getting started, support, and privacy policy.
 
 **Microsoft Store:** [Quick Shell for CmdPal](https://apps.microsoft.com/detail/9PC8S6LNRT3R) (Store ID: `9PC8S6LNRT3R`)
 
