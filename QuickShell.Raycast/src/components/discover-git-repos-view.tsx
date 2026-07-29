@@ -170,8 +170,17 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   }, [addedDirectoryKeys, data, searchText, targetedSearch]);
 
   async function finishAdd(workspace: Workspace) {
-    setAddedDirectoryKeys((current) => new Set(current).add(workspace.directory.toLowerCase()));
+    const addedKey = workspace.directory.toLowerCase();
+    setAddedDirectoryKeys((current) => new Set(current).add(addedKey));
+    setTargetedSearch((current) =>
+      current ? { ...current, repos: current.repos.filter((repo) => repo.directory.toLowerCase() !== addedKey) } : null,
+    );
     await revalidate();
+    setAddedDirectoryKeys((current) => {
+      const next = new Set(current);
+      next.delete(addedKey);
+      return next;
+    });
     await onWorkspaceAdded?.(workspace);
     if (popOnAdd) {
       pop();
