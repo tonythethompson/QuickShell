@@ -260,7 +260,9 @@ export async function fetchSuggestionPills(
     return parsed;
   } catch (error) {
     if (isExpectedSuggestExecFailure(error)) {
-      console.warn(`[quickshell] Suggest CLI failed (${formatSuggestExecFailure(error)}). Falling back to local heuristics.`);
+      console.warn(
+        `[quickshell] Suggest CLI failed (${formatSuggestExecFailure(error)}). Falling back to local heuristics.`,
+      );
       return null;
     }
     throw error;
