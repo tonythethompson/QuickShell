@@ -1,0 +1,51 @@
+QuickShell.Raycast/src/open-workspace.tsx
+  s_3959546c818d26::t_192b774745197b 36,72
+  s_19915495c2ef49::t_44e621cf08e12d 466-481,483-498,500-504
+  s_3959546c818d26::t_551cdac600a710 482
+  s_19915495c2ef49::t_428c4abac48d82 1115-1121
+  s_3959546c818d26::t_d677ccb6e225dd 649-650
+  s_19915495c2ef49::t_4b1028da4caf1c 499
+QuickShell.Raycast/src/lib/storage.ts
+  s_3959546c818d26::t_2dea28587b574e 208-210
+QuickShell.Raycast/src/__tests__/import-export.test.ts
+  s_3959546c818d26::t_551cdac600a710 189
+  s_3959546c818d26::t_48b7dcac80dfb9 157-188,190-197
+QuickShell.Raycast/src/lib/workspace-transfer-files.ts
+  s_3959546c818d26::t_f63f2acdb52e41 69,74-76
+  s_3959546c818d26::t_7b8af6cbacb61d 149-152,163-165
+QuickShell.Raycast/src/__tests__/workspace-transfer-files.test.ts
+  s_3959546c818d26::t_acb7d804f69875 40-52
+  s_3959546c818d26::t_551cdac600a710 53-55
+docs/architecture/persistence.md
+  s_3959546c818d26::t_a9e49f175f0b17 156
+QuickShell.Raycast/src/lib/import-export.ts
+  s_3959546c818d26::t_8c1e341ecb0289 245-249
+  s_3959546c818d26::t_dae7ad522d5f1c 1
+  s_3959546c818d26::t_324f6b0fb13726 99,110,118,125-129,136-142
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_3959546c818d26::t_52b60645758054 499-517
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e005e2f296e95730a28120b3d7329f2251b485b4",
+  "prompts": {},
+  "sessions": {
+    "s_19915495c2ef49": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "32cce283-f926-49e2-9e39-efbc1afbbab3",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_3959546c818d26": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "03430253-bf4a-417d-8f76-7e07a8d6aba4",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
