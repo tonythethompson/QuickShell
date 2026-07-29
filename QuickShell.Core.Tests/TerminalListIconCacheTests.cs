@@ -90,6 +90,28 @@ public sealed class TerminalListIconCacheTests
         Assert.Equal(ico, result);
     }
 
+    [Fact]
+    public void prepare_for_list_does_not_treat_non_blank_png_as_blank()
+    {
+        var png = CreatePng(64, 64, color: System.Drawing.Color.Red);
+
+        var result = _cache.PrepareForList(png);
+
+        Assert.NotEqual(png, result);
+        Assert.Equal(".png", Path.GetExtension(result), StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void prepare_for_list_resizes_blank_png_instead_of_returning_source()
+    {
+        var png = CreatePng(64, 64, color: System.Drawing.Color.Transparent);
+
+        var result = _cache.PrepareForList(png);
+
+        Assert.NotEqual(png, result);
+        Assert.Equal(".png", Path.GetExtension(result), StringComparer.OrdinalIgnoreCase);
+    }
+
     private static string CreateIco(int width, int height, System.Drawing.Color? color)
     {
         var path = Path.Combine(Path.GetTempPath(), $"qs-ico-{width}-{Guid.NewGuid():N}.ico");
@@ -105,6 +127,16 @@ public sealed class TerminalListIconCacheTests
         }
 
         bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Icon);
+        return path;
+    }
+
+    private static string CreatePng(int width, int height, System.Drawing.Color color)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"qs-png-{width}-{Guid.NewGuid():N}.png");
+        using var bitmap = new System.Drawing.Bitmap(width, height);
+        using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+        graphics.Clear(color);
+        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
         return path;
     }
 }

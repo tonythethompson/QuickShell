@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using QuickShell.Abstractions;
 
@@ -51,7 +50,7 @@ internal sealed class WtProfilesService : IWtProfilesService
     private readonly IReadOnlyList<string>? _fragmentRoots;
     private IReadOnlyDictionary<string, TerminalFragmentProfile> _fragmentProfiles =
         new Dictionary<string, TerminalFragmentProfile>(StringComparer.OrdinalIgnoreCase);
-    private string _fragmentHash = string.Empty;
+    private string _fragmentFingerprint = string.Empty;
 
     public WtProfilesService(
         IReadOnlyList<TerminalSettingsLocation>? locations = null,
@@ -205,15 +204,21 @@ internal sealed class WtProfilesService : IWtProfilesService
         var sawChanges = forceRefresh;
         var locations = GetLocations();
 
-        var newFragmentProfiles = TerminalFragmentDiscovery.LoadAll(_fragmentRoots);
-        var newFragmentHash = ComputeFragmentHash(newFragmentProfiles);
-        if (newFragmentHash != _fragmentHash)
+        var fragmentFingerprint = TerminalFragmentDiscovery.ComputeFingerprint(_fragmentRoots);
+        if (fragmentFingerprint != _fragmentFingerprint)
         {
-            _fragmentProfiles = newFragmentProfiles;
-            _fragmentHash = newFragmentHash;
-            _profilesBySettingsPath.Clear();
-            _writeTimes.Clear();
-            sawChanges = true;
+            var loadedFragments = TerminalFragmentDiscovery.LoadAll(_fragmentRoots, out var hadReadFailures);
+            // Only commit fragments + invalidate settings caches when every discovered file
+            // was readable. A transient lock must not pin an incomplete profile set or force
+            // a settings re-merge; leave caches alone so the next refresh retries LoadAll.
+            if (!hadReadFailures)
+            {
+                _fragmentProfiles = loadedFragments;
+                _fragmentFingerprint = fragmentFingerprint;
+                _profilesBySettingsPath.Clear();
+                _writeTimes.Clear();
+                sawChanges = true;
+            }
         }
 
         var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -476,27 +481,6 @@ internal sealed class WtProfilesService : IWtProfilesService
             IdPrefix = location.IdPrefix,
             SourceLabel = location.DisplayPrefix,
         };
-    }
-
-    private static string ComputeFragmentHash(IReadOnlyDictionary<string, TerminalFragmentProfile> fragments)
-    {
-        if (fragments.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder();
-        foreach (var (key, value) in fragments.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            builder.Append(key)
-                .Append(':')
-                .Append(value.Commandline)
-                .Append(':')
-                .Append(value.Icon)
-                .Append(';');
-        }
-
-        return builder.ToString();
     }
 
     private static string[] GetIdPrefixesForTerminal(string? terminal) =>

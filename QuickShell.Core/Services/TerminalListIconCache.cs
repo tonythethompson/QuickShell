@@ -152,9 +152,13 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
                 Directory.CreateDirectory(cacheDir);
 
                 using var source = Image.FromFile(sourcePath);
-                if (source is Bitmap bitmap && IsImageBlank(bitmap))
+                // Blank detection is only for .ico: some encodings decode to a fully
+                // transparent bitmap under GDI+. Scanning every PNG under _diskSync would
+                // undo the snappiness win for large custom icons.
+                if (IsIcoPath(sourcePath)
+                    && source is Bitmap bitmap
+                    && IsImageBlank(bitmap))
                 {
-                    // Some .ico encodings decode to a transparent bitmap with GDI+.
                     // Give the host the original .ico so it can use its own decoder.
                     return sourcePath;
                 }
@@ -245,6 +249,9 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
 
         return true;
     }
+
+    private static bool IsIcoPath(string path) =>
+        path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase);
 
     private static string HashKey(string path)
     {
