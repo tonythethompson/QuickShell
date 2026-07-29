@@ -512,6 +512,63 @@ describe("storage", () => {
     expect(again.message).toMatch(/no workspace backup/i);
   });
 
+  it.each([null, {}, [], { version: 1 }])("restoreFromBackup discards malformed backup %p", async (backup) => {
+    const adapter = createMemoryStorageAdapter();
+    await adapter.setItem(BACKUP_STORAGE_KEY, JSON.stringify(backup));
+    const storage = new QuickShellStorage(adapter);
+
+    const existing = await storage.upsertWorkspace(createWorkspace(createStableId(), "KeepMe"));
+
+    const result = await storage.restoreFromBackup();
+    expect(result.success).toBe(true);
+    expect(result.outcome).toBe("discarded");
+    expect(result.message).toMatch(/malformed/i);
+    expect(await storage.hasBackup()).toBe(false);
+
+    const workspaces = await storage.getWorkspaces();
+    expect(workspaces).toHaveLength(1);
+    expect(workspaces[0].id).toBe(existing.id);
+  });
+
+  it("restoreFromBackup does not rehydrate trust for workspaces without explicit backup security", async () => {
+    const adapter = createMemoryStorageAdapter();
+    const first = new QuickShellStorage(adapter);
+    const id = createStableId();
+    await first.upsertWorkspace(createWorkspace(id, "Alpha"));
+    await first.resetAll();
+
+    // Replace the backup with a syntactically valid shape that omits workspaceSecurity.
+    const backupRaw = (await adapter.getItem(BACKUP_STORAGE_KEY)) as string;
+    const backup = JSON.parse(backupRaw);
+    delete backup.workspaceSecurity;
+    await adapter.setItem(BACKUP_STORAGE_KEY, JSON.stringify(backup));
+
+    const restarted = new QuickShellStorage(adapter);
+    await restarted.restoreFromBackup();
+
+    const security = await restarted.getWorkspaceSecurityMap();
+    expect(security[id].isTrusted).toBe(false);
+  });
+
+  it("restoreFromBackup preserves explicit trusted security from the backup", async () => {
+    const adapter = createMemoryStorageAdapter();
+    const first = new QuickShellStorage(adapter);
+    const id = createStableId();
+    const workspace = createWorkspace(id, "Alpha");
+    await first.upsertWorkspace(workspace);
+    const stored = await first.getStoredWorkspace(id);
+    expect(stored).not.toBeNull();
+    await first.grantTrust(id, createReviewToken(stored!));
+    await first.resetAll();
+
+    const restarted = new QuickShellStorage(adapter);
+    await restarted.restoreFromBackup();
+
+    const security = await restarted.getWorkspaceSecurityMap();
+    expect(security[id].isTrusted).toBe(true);
+    expect(security[id].revision).toBeGreaterThanOrEqual(1);
+  });
+
   it("withWriteLock reports a timeout diagnostic when the previous writer stalls", async () => {
     vi.useFakeTimers();
     try {

@@ -190,7 +190,21 @@ export class QuickShellStorage {
         };
       }
 
-      const restored = migrateStoredData(parsed);
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed) ||
+        !Array.isArray((parsed as { workspaces?: unknown }).workspaces)
+      ) {
+        await this.adapter.setItem(BACKUP_STORAGE_KEY, "");
+        return {
+          success: true,
+          outcome: "discarded",
+          message: "Workspace backup was malformed and has been discarded.",
+        };
+      }
+
+      const restored = migrateStoredData(parsed, { defaultToTrusted: false });
       await this.saveUnlocked(restored, { preserveSecurity: false, allowSubmittedSecurity: true });
       return {
         success: true,

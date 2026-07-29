@@ -15,7 +15,16 @@ import { isSafeGitBranchName } from "./git-launch-gate";
 
 type UnknownRecord = Record<string, unknown>;
 
-export function migrateStoredData(raw: unknown): StoredData {
+type MigrateOptions = {
+  /**
+   * When false, do not default missing workspaceSecurity to trusted. Used when restoring
+   * from an external source (e.g. a reset-all backup) so missing security metadata cannot
+   * silently grant trust.
+   */
+  defaultToTrusted?: boolean;
+};
+
+export function migrateStoredData(raw: unknown, options?: MigrateOptions): StoredData {
   if (!raw || typeof raw !== "object") {
     return createEmptyStoredData();
   }
@@ -35,6 +44,8 @@ export function migrateStoredData(raw: unknown): StoredData {
 
   const settings = migrateSettings(record.settings);
 
+  const defaultToTrusted = options?.defaultToTrusted ?? true;
+
   const workspaceSecurity: Record<string, { isTrusted: boolean; revision: number }> = {};
   const rawSecurity = record.workspaceSecurity;
   if (rawSecurity && typeof rawSecurity === "object") {
@@ -44,14 +55,14 @@ export function migrateStoredData(raw: unknown): StoredData {
       }
       const security = value as UnknownRecord;
       workspaceSecurity[id] = {
-        isTrusted: security.isTrusted !== false,
+        isTrusted: defaultToTrusted ? security.isTrusted !== false : security.isTrusted === true,
         revision: typeof security.revision === "number" && security.revision > 0 ? security.revision : 1,
       };
     }
   }
 
   for (const workspace of workspaces) {
-    workspaceSecurity[workspace.id] ??= { isTrusted: true, revision: 1 };
+    workspaceSecurity[workspace.id] ??= { isTrusted: defaultToTrusted, revision: 1 };
   }
 
   const branchTargets = migrateBranchTargets(record.branchTargets);
