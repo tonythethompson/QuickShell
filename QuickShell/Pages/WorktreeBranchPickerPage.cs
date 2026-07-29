@@ -89,19 +89,20 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
                 {
                     built = BuildItems();
                 }
-                catch (Exception ex)
+                catch
                 {
-                    // Any failure must still publish a row so the page does not stick on the
-                    // loading placeholder forever. Reset _loadStarted so Refresh/re-open can retry.
+                    // Do not cache failures: the next fetch must be able to retry the load.
                     Interlocked.Exchange(ref _loadStarted, 0);
-                    built =
-                    [
-                        new ListItem(new NoOpCommand())
-                        {
-                            Title = Strings.BranchPicker_NotAGitRepository,
-                            Subtitle = ex.Message,
-                        },
-                    ];
+                    try
+                    {
+                        RaiseItemsChanged();
+                    }
+                    catch (System.Runtime.InteropServices.COMException)
+                    {
+                        // Host may reject a cross-thread notification while tearing down.
+                    }
+
+                    return;
                 }
 
                 if (cancellationToken.IsCancellationRequested)
