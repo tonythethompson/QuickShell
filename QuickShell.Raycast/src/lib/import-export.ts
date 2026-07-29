@@ -1,7 +1,7 @@
 import { createStableId, isStableWorkspaceId } from "./ids";
 import { migrateStoredData } from "./migration";
 import type { LayoutEntry, StoredData, Workspace } from "./schema";
-import { createEmptyStoredData } from "./schema";
+import { SCHEMA_VERSION, createEmptyStoredData } from "./schema";
 import { createIngressSecurity } from "./security";
 
 type UnknownRecord = Record<string, unknown>;
@@ -80,6 +80,9 @@ export function importParsedPayload(parsed: unknown, existing?: StoredData): Imp
 
   // CmdPal / Core layout envelope: { version, entries: [ shortcut | { Workspace } | separator ] }
   if (Array.isArray(record.entries)) {
+    if (typeof record.version === "number" && record.version > SCHEMA_VERSION) {
+      throw new Error(`Unsupported Quick Shell data version: ${record.version}`);
+    }
     return importCmdPalLayoutEnvelope(record.entries, existing);
   }
 
@@ -213,7 +216,7 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
         ...(base.layoutEntries ?? []),
         // Prefer remapped imported layout (keeps CmdPal separators). Fall back to
         // appending workspace rows when the payload had no layout entries.
-        ...(remappedImportLayout.length > 0
+        ...(remappedImportLayout.some((entry) => entry.type === "workspace")
           ? remappedImportLayout
           : newlyImported.map((workspace) => ({ type: "workspace" as const, workspaceId: workspace.id }))),
       ];
