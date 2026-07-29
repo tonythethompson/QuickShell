@@ -1,0 +1,26 @@
+.github/workflows/publish-store.yml
+  s_77cadc024e7bef::t_d994102cee7782 30-31,57-96,101
+.github/workflows/release-extension.yml
+  s_77cadc024e7bef::t_8d856ba52360fc 212-225
+  s_77cadc024e7bef::t_552bbec24fd901 41
+docs/release-packages.md
+  s_77cadc024e7bef::t_c6f4c500301c1d 15-16,20
+  s_77cadc024e7bef::t_2b4771dffcf23a 66-68
+  s_77cadc024e7bef::t_6d0a8024217713 86-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "08379aac01800d851bb2badd7870dd76fdea9c47",
+  "prompts": {},
+  "sessions": {
+    "s_77cadc024e7bef": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "54e2109c-30a5-4864-9d75-9c82ef8fcec7",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
