@@ -1,0 +1,19 @@
+QuickShell.Core/Services/WtProfilesService.cs
+  s_3959546c818d26::t_dbf17e01b0eed0 210-213,216,218-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e071caf5d34a4e7ded5ed5d452bd7dd14e1c39c9",
+  "prompts": {},
+  "sessions": {
+    "s_3959546c818d26": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "03430253-bf4a-417d-8f76-7e07a8d6aba4",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
