@@ -22,6 +22,19 @@ public sealed class SuggestCommandLineArgsTests
     }
 
     [Fact]
+    public void TryParse_UnixEpochGeneration_ParsesAsLong()
+    {
+        var ok = SuggestCommandLineArgs.TryParse(
+            ["suggest", "--dir", @"C:\Projects\demo", "--generation", "1785335300454"],
+            out _,
+            out _,
+            out var generation);
+
+        Assert.True(ok);
+        Assert.Equal(1785335300454L, generation);
+    }
+
+    [Fact]
     public void TryParse_WithoutUsed_ReturnsEmptyList()
     {
         var ok = SuggestCommandLineArgs.TryParse(

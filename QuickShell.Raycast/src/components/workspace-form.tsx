@@ -180,7 +180,7 @@ export default function WorkspaceForm({
       const resolved = await resolveWorkspaceSetupSuggestions(
         directory,
         seededCommands,
-        Date.now(),
+        generation,
         environment.assetsPath,
       );
       if (cancelled || generation !== suggestionGenerationRef.current) {
@@ -302,7 +302,7 @@ export default function WorkspaceForm({
       const resolved = await resolveWorkspaceSetupSuggestions(
         nextDirectory,
         usedCommands,
-        Date.now(),
+        generation,
         environment.assetsPath,
       );
       if (generation !== suggestionGenerationRef.current) {
@@ -328,7 +328,7 @@ export default function WorkspaceForm({
           tasks: [] as Array<{ label: string; command: string }>,
           pills: [] as SuggestionPill[],
         }
-      : await resolveWorkspaceSetupSuggestions(nextDirectory, usedCommands, Date.now(), environment.assetsPath);
+      : await resolveWorkspaceSetupSuggestions(nextDirectory, usedCommands, generation, environment.assetsPath);
     if (generation !== suggestionGenerationRef.current) {
       return;
     }
