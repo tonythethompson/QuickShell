@@ -1,0 +1,19 @@
+scripts/set-store-release-notes.ps1
+  s_77cadc024e7bef::t_0e14f611116a18 62,65-66,70-71,81,90-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1c7f87c5147ecaa5bbb93ea8877d695078e548c2",
+  "prompts": {},
+  "sessions": {
+    "s_77cadc024e7bef": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "54e2109c-30a5-4864-9d75-9c82ef8fcec7",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
