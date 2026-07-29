@@ -25,13 +25,13 @@ internal sealed class TerminalFragmentProfile
 internal static class TerminalFragmentDiscovery
 {
     /// <summary>
-    /// Content-sensitive fingerprint of fragment files. Used to skip a full JSON parse
-    /// when nothing on disk has changed. Returns a stable SHA-256 hex digest of the
-    /// per-file path/mtime/length/content tuples so the stored value stays small.
+    /// Cheap fingerprint of fragment file paths + mtimes + sizes. Used to skip a full
+    /// JSON parse when nothing on disk has changed. Returns a stable SHA-256 hex digest
+    /// so the stored value stays fixed-size regardless of fragment count.
     /// </summary>
     public static string ComputeFingerprint(IEnumerable<string>? roots = null)
     {
-        var builder = new StringBuilder();
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (var root in roots ?? GetDefaultRoots())
         {
             if (!Directory.Exists(root))
@@ -56,14 +56,16 @@ internal static class TerminalFragmentDiscovery
                 try
                 {
                     var info = new FileInfo(file);
-                    builder.Append(file)
-                        .Append('|')
-                        .Append(info.LastWriteTimeUtc.Ticks)
-                        .Append('|')
-                        .Append(info.Length)
-                        .Append('|')
-                        .Append(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file))))
-                        .Append(';');
+                    // Metadata only — do not read file bytes; LoadAll already parses JSON
+                    // when this fingerprint changes.
+                    var entry = string.Concat(
+                        file,
+                        "|",
+                        info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "|",
+                        info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ";");
+                    hasher.AppendData(Encoding.UTF8.GetBytes(entry));
                 }
                 catch
                 {
@@ -73,7 +75,7 @@ internal static class TerminalFragmentDiscovery
             }
         }
 
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
+        return Convert.ToHexString(hasher.GetHashAndReset());
     }
 
     public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(IEnumerable<string>? roots = null) =>

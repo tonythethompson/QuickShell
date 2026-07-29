@@ -185,7 +185,7 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
     }
 
     [Fact]
-    public void compute_fingerprint_changes_when_file_content_changes()
+    public void compute_fingerprint_changes_when_file_mtime_changes()
     {
         var path = Path.Combine(_root, "nu", "nu.json");
         WriteFragment(
@@ -202,21 +202,7 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
             """);
 
         var first = TerminalFragmentDiscovery.ComputeFingerprint([_root]);
-        // Preserve mtime so the fingerprint must notice the content rewrite itself.
-        var preservedWriteTime = File.GetLastWriteTimeUtc(path);
-        WriteFragment(
-            path,
-            """
-            {
-                "profiles": [
-                    {
-                        "guid": "{47302f9c-1ac4-566c-aa3e-8cf29889d6ab}",
-                        "icon": "b.ico"
-                    }
-                ]
-            }
-            """);
-        File.SetLastWriteTimeUtc(path, preservedWriteTime);
+        File.SetLastWriteTimeUtc(path, File.GetLastWriteTimeUtc(path).AddSeconds(2));
 
         var second = TerminalFragmentDiscovery.ComputeFingerprint([_root]);
         Assert.NotEqual(first, second);
