@@ -85,7 +85,6 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
             () =>
             {
                 IListItem[] built;
-                var failed = false;
                 try
                 {
                     built = BuildItems();
@@ -93,8 +92,9 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
                 catch (Exception ex)
                 {
                     // Keep catch-all so unexpected failures do not leave the loading
-                    // placeholder forever, but surface the message and allow retry.
-                    failed = true;
+                    // placeholder forever. Leave _loadStarted set so GetItems caches the
+                    // fallback and cannot start a duplicate BuildItems; retry is a fresh
+                    // page instance on re-open.
                     built =
                     [
                         new ListItem(new NoOpCommand())
@@ -110,13 +110,8 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
                     return;
                 }
 
-                // Hand off before clearing _loadStarted so GetItems cannot start a second
-                // BuildItems while the fallback is still unpublished.
+                // Hand off; GetItems picks this up on the fetch the notification triggers.
                 Interlocked.Exchange(ref _pendingItems, built);
-                if (failed)
-                {
-                    Interlocked.Exchange(ref _loadStarted, 0);
-                }
 
                 try
                 {
