@@ -109,7 +109,7 @@ export default function SetTargetBranchForm({ directory, workspaceName, blockDir
       isLoading={isLoading}
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Switch Branch" onSubmit={handleSubmit} disabled={isLoading} />
+          <Action.SubmitForm title="Switch Branch…" onSubmit={handleSubmit} disabled={isLoading} />
           {error ? <Action title="Retry Loading Branches" onAction={revalidate} /> : null}
         </ActionPanel>
       }

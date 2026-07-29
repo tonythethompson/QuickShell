@@ -108,6 +108,22 @@ describe("buildSearchRoots", () => {
 });
 
 describe("discoverGitReposForQueryAsync", () => {
+  it("does not probe direct paths on unsupported platforms", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-platform-"));
+    const repo = path.join(root, "repo");
+    const platform = vi.spyOn(process, "platform", "get").mockReturnValue("linux");
+    try {
+      mkdirSync(path.join(repo, ".git"), { recursive: true });
+
+      const repos = await discoverGitReposForQueryAsync(repo);
+
+      expect(repos).toEqual([]);
+    } finally {
+      platform.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("bypasses the normal result cap for typed name searches", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-search-"));
     try {

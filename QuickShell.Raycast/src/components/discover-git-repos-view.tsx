@@ -86,6 +86,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   const [searchText, setSearchText] = useState("");
   const [targetedSearch, setTargetedSearch] = useState<{ query: string; repos: GitRepoCandidate[] } | null>(null);
   const [targetedLoadingQuery, setTargetedLoadingQuery] = useState<string | null>(null);
+  const [addedDirectoryKeys, setAddedDirectoryKeys] = useState<Set<string>>(() => new Set());
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
 
@@ -158,16 +159,17 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
       ...cachedMatches,
       ...targetedMatches.filter((repo) => {
         const key = repo.directory.toLowerCase();
-        if (seen.has(key)) {
+        if (addedDirectoryKeys.has(key) || seen.has(key)) {
           return false;
         }
         seen.add(key);
         return true;
       }),
     ];
-  }, [data, searchText, targetedSearch]);
+  }, [addedDirectoryKeys, data, searchText, targetedSearch]);
 
   async function finishAdd(workspace: Workspace) {
+    setAddedDirectoryKeys((current) => new Set(current).add(workspace.directory.toLowerCase()));
     await revalidate();
     await onWorkspaceAdded?.(workspace);
     if (popOnAdd) {

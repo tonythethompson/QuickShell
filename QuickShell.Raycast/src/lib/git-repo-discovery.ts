@@ -187,6 +187,10 @@ export async function discoverGitReposForQueryAsync(
     signal?: AbortSignal;
   },
 ): Promise<GitRepoCandidate[]> {
+  if (!isWindowsPlatform() && !isMacPlatform()) {
+    return [];
+  }
+
   if (options?.signal?.aborted) {
     return [];
   }
