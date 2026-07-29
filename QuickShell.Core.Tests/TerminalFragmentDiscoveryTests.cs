@@ -223,7 +223,7 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
     }
 
     [Fact]
-    public void LoadAll_SkipsNonStringGuid_AndProcessesRestOfFile()
+    public void load_all_skips_non_string_guid_and_processes_rest_of_file()
     {
         WriteFragment(
             Path.Join(_root, "mixed", "mixed.json"),
