@@ -68,7 +68,7 @@ Capture caches ~10s; health portion often `includeGit: false` with git loaded se
 - List/search candidates  
 - Add as workspace (create seed via `WorkspaceSeedFactory`: heuristic launches + companion when layout/markers are clear)  
 
-CmdPal home and create flows link here. Raycast: `discover-git-repos.tsx` + `git-repo-discovery.ts` (TS reimplementation of scan ideas).
+CmdPal home and create flows link here. Raycast: `discover-git-repos-view.tsx` + `git-repo-discovery.ts` (TS reimplementation of scan ideas). Raycast keeps the capped scan as its fast cached baseline; typing a repository name starts a debounced query-filtered scan with no repository-result cap (and a larger directory budget), while typing an existing absolute path probes that path and its ancestors directly. Both Raycast Add Workspace and Review Before Adding use the full discovered-workspace seed (commands, companion, remote, and dev-server metadata).
 
 ## Branch picker
 
@@ -76,6 +76,8 @@ CmdPal home and create flows link here. Raycast: `discover-git-repos.tsx` + `git
 
 - Deep links: picker page, select branch, clear target (`QuickShellDeepLinkIds`)  
 - Select path uses gate (`SelectTargetBranch`) so dirty policy applies  
+
+Raycast exposes the same operation as **Switch Branch…**. Its form loads local branches immediately into a searchable native dropdown, then persists the selected worktree target and applies the existing dirty-branch gate.
 
 ## Key files
 
@@ -97,7 +99,7 @@ CmdPal home and create flows link here. Raycast: `discover-git-repos.tsx` + `git
 ## Gotchas
 
 1. Target is per **folder/worktree**, shared if two workspaces point at same path.  
-2. Discover is best-effort and capped — not a full-disk index.  
+2. Baseline discover is best-effort and capped — not a full-disk index. Raycast typed search can go beyond the result cap or probe an exact path, but still uses a finite directory-scan budget for non-path queries.
 3. Prewarm failure is silent; discover still works cold.  
 4. Raycast does not share `worktree-branch-targets.json` with desktop. It stores targets in LocalStorage `branchTargets` (worktree key → branch) and applies the same launch-gate rules via `git-launch-gate.ts` + preference `blockDirtyBranchSwitch`.
 

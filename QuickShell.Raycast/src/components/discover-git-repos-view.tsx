@@ -1,22 +1,22 @@
 import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import WorkspaceForm from "./workspace-form";
 import UnsupportedPlatformView from "./unsupported-platform-view";
 import { detectCompanionSeed } from "../lib/companion-detection";
 import { detectDevServerUrl } from "../lib/detect-dev-server-url";
+import { createWorkspaceFromDiscoveredGitRepo } from "../lib/discovered-workspace-seed";
 import { resolveWorkspaceSetupSuggestions } from "../lib/suggest-commands";
-import { discoverGitReposCached } from "../lib/git-repo-discovery";
+import {
+  discoverGitReposCached,
+  discoverGitReposForQueryAsync,
+  type GitRepoCandidate,
+} from "../lib/git-repo-discovery";
 import { searchRootsFromWorkspaces } from "../lib/git-repo-search-roots";
-import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/directory-helpers";
-import { tryGetGitRemoteUrl } from "../lib/git-remote-url";
 import { getQuickShellStorage } from "../lib/raycast-storage";
 import { showStorageFailure } from "../lib/failure-feedback";
 import { isSupportedPlatform } from "../lib/platform";
 import { useLoadErrorToast } from "../lib/use-load-error-toast";
-import { launchRowsFromSuggestions } from "../lib/workspace-form-state";
-import { normalizeWorkspace } from "../lib/validation";
-import { createStableId } from "../lib/ids";
 import type { Workspace } from "../lib/schema";
 
 type ReviewWorkspaceFormProps = {
@@ -26,100 +26,16 @@ type ReviewWorkspaceFormProps = {
   onCreated: (workspace: Workspace) => Promise<void>;
 };
 
-/** Full seed for Review: launches, companions, remotes, Suggest.exe or local heuristics. */
+/** Full seed for every repository selected from Discover Git Repos. */
 async function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Promise<Workspace> {
   const resolved = await resolveWorkspaceSetupSuggestions(directory);
-  const rows = launchRowsFromSuggestions(resolved.tasks);
-  const launchEntries =
-    rows.length > 0
-      ? rows.map((row, index) => ({
-          id: row.id,
-          label: row.label,
-          terminal: row.terminal,
-          wtProfile: row.wtProfile ?? null,
-          command: row.command || null,
-          runAsAdmin: row.runAsAdmin,
-          isEnabled: row.isEnabled,
-          order: index,
-          taskType: row.taskType || "none",
-        }))
-      : [
-          {
-            id: createStableId(),
-            label: "Launch",
-            terminal: "default" as const,
-            wtProfile: null,
-            command: null,
-            runAsAdmin: false,
-            isEnabled: true,
-            order: 0,
-            taskType: "none" as const,
-          },
-        ];
-  const derivedName = name || deriveNameFromDirectory(directory);
-  const companionSeed = detectCompanionSeed(directory);
-  const resolvedRemote = remoteUrl ?? tryGetGitRemoteUrl(directory);
-  return normalizeWorkspace({
-    id: createStableId(),
-    name: derivedName,
-    abbreviation: deriveAbbreviationFromName(derivedName),
+  return createWorkspaceFromDiscoveredGitRepo({
     directory,
-    isPinned: false,
-    pinOrder: null,
-    lastUsedUtc: null,
-    terminal: "default",
-    wtProfile: null,
-    command: null,
-    runAsAdmin: false,
-    repoUrl: resolvedRemote,
+    name,
+    remoteUrl,
     devServerUrl: detectDevServerUrl(directory),
-    launches: launchEntries,
-    companionApps: companionSeed
-      ? [
-          {
-            id: createStableId(),
-            path: companionSeed.path,
-            arguments: companionSeed.arguments || null,
-            openOnLaunch: true,
-            order: 0,
-          },
-        ]
-      : [],
-  });
-}
-
-/** One-click Quick Add: blank launch row only, no deep project/companion walk. */
-function buildLightWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Workspace {
-  const derivedName = name || deriveNameFromDirectory(directory);
-  const resolvedRemote = remoteUrl ?? tryGetGitRemoteUrl(directory);
-  return normalizeWorkspace({
-    id: createStableId(),
-    name: derivedName,
-    abbreviation: deriveAbbreviationFromName(derivedName),
-    directory,
-    isPinned: false,
-    pinOrder: null,
-    lastUsedUtc: null,
-    terminal: "default",
-    wtProfile: null,
-    command: null,
-    runAsAdmin: false,
-    repoUrl: resolvedRemote,
-    devServerUrl: null,
-    launches: [
-      {
-        id: createStableId(),
-        label: "Launch",
-        terminal: "default",
-        wtProfile: null,
-        command: null,
-        runAsAdmin: false,
-        isEnabled: true,
-        order: 0,
-        taskType: "none",
-      },
-    ],
-    companionApps: [],
+    tasks: resolved.tasks,
+    companionSeed: detectCompanionSeed(directory),
   });
 }
 
@@ -161,6 +77,8 @@ type DiscoverGitReposViewProps = {
 
 export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true }: DiscoverGitReposViewProps) {
   const [searchText, setSearchText] = useState("");
+  const [targetedSearch, setTargetedSearch] = useState<{ query: string; repos: GitRepoCandidate[] } | null>(null);
+  const [targetedLoadingQuery, setTargetedLoadingQuery] = useState<string | null>(null);
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
 
@@ -174,6 +92,46 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
   useLoadErrorToast(error, "Failed to scan git repositories");
 
+  useEffect(() => {
+    const query = searchText.trim();
+    if (!query || !data) {
+      setTargetedSearch(null);
+      setTargetedLoadingQuery(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setTargetedLoadingQuery(query);
+      void (async () => {
+        try {
+          const existing = await storage.getWorkspaces();
+          const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
+          const extraRoots = searchRootsFromWorkspaces(existing.map((workspace) => workspace.directory));
+          const repos = (await discoverGitReposForQueryAsync(query, extraRoots)).filter(
+            (repo) => !existingDirs.has(repo.directory.toLowerCase()),
+          );
+          if (!cancelled) {
+            setTargetedSearch({ query, repos });
+          }
+        } catch {
+          if (!cancelled) {
+            setTargetedSearch({ query, repos: [] });
+          }
+        } finally {
+          if (!cancelled) {
+            setTargetedLoadingQuery(null);
+          }
+        }
+      })();
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [data, searchText]);
+
   const filtered = useMemo(() => {
     if (!data) {
       return [];
@@ -182,13 +140,26 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
     if (!query) {
       return data;
     }
-    return data.filter(
+    const cachedMatches = data.filter(
       (repo) =>
         repo.name.toLowerCase().includes(query) ||
         repo.directory.toLowerCase().includes(query) ||
         (repo.remoteUrl ?? "").toLowerCase().includes(query),
     );
-  }, [data, searchText]);
+    const targetedMatches = targetedSearch?.query === searchText.trim() ? targetedSearch.repos : [];
+    const seen = new Set(cachedMatches.map((repo) => repo.directory.toLowerCase()));
+    return [
+      ...cachedMatches,
+      ...targetedMatches.filter((repo) => {
+        const key = repo.directory.toLowerCase();
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      }),
+    ];
+  }, [data, searchText, targetedSearch]);
 
   async function finishAdd(workspace: Workspace) {
     await revalidate();
@@ -200,7 +171,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
   async function handleQuickAdd(directory: string, name: string, remoteUrl?: string | null) {
     try {
-      const workspace = buildLightWorkspaceFromRepo(directory, name, remoteUrl);
+      const workspace = await buildWorkspaceFromRepo(directory, name, remoteUrl);
       await storage.upsertWorkspace(workspace);
       await showToast({
         style: Toast.Style.Success,
@@ -219,7 +190,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
   return (
     <List
-      isLoading={isLoading}
+      isLoading={isLoading || targetedLoadingQuery === searchText.trim()}
       searchText={searchText}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder="Search discovered git repositories..."
@@ -231,8 +202,10 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
       {!error && filtered.length === 0 ? (
         <List.EmptyView
-          title={isLoading ? "Scanning folders..." : "No repositories found"}
-          description="Quick Shell scans common project folders on each drive, plus folders near your saved workspaces."
+          title={
+            isLoading || targetedLoadingQuery === searchText.trim() ? "Searching folders..." : "No repositories found"
+          }
+          description="Type a repository name or an absolute path to run a targeted search beyond the cached results."
         />
       ) : null}
 

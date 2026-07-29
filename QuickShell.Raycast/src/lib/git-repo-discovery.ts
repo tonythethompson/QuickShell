@@ -40,8 +40,17 @@ const SKIP_DIRS = new Set(
 
 const MAX_REPOS = 50;
 const MAX_SCANNED = 2000;
+const MAX_TARGETED_SCANNED = 20000;
 const MAX_DEPTH = 5;
 const DEFAULT_CONCURRENCY = 4;
+
+type DiscoveryOptions = {
+  concurrency?: number;
+  maxRepos?: number;
+  maxScanned?: number;
+  query?: string;
+  rootDirectories?: string[];
+};
 
 export function discoverGitRepos(extraRoots: string[] = []): GitRepoCandidate[] {
   return discoverGitReposSync(extraRoots);
@@ -57,13 +66,13 @@ const cachedDiscoverGitRepos = withCache(async (extraRoots: string[] = []) => di
 
 export async function discoverGitReposAsync(
   extraRoots: string[] = [],
-  options?: { concurrency?: number },
+  options?: DiscoveryOptions,
 ): Promise<GitRepoCandidate[]> {
   if (!isWindowsPlatform() && !isMacPlatform()) {
     return [];
   }
 
-  const roots = buildSearchRoots(extraRoots);
+  const roots = options?.rootDirectories ?? buildSearchRoots(extraRoots);
   if (roots.length === 0) {
     return [];
   }
@@ -76,9 +85,12 @@ export async function discoverGitReposAsync(
     depth: 0,
   }));
   const concurrency = Math.max(1, options?.concurrency ?? DEFAULT_CONCURRENCY);
+  const maxRepos = options?.maxRepos ?? MAX_REPOS;
+  const maxScanned = options?.maxScanned ?? MAX_SCANNED;
+  const query = normalizeDiscoveryQuery(options?.query ?? "");
 
   async function worker(): Promise<void> {
-    while (results.length < MAX_REPOS && scanned < MAX_SCANNED) {
+    while (results.length < maxRepos && scanned < maxScanned) {
       const work = queue.shift();
       if (!work) {
         return;
@@ -98,13 +110,13 @@ export async function discoverGitReposAsync(
       }
 
       if (existsSync(path.join(work.directory, ".git"))) {
-        addRepo(work.directory, results, seen);
+        addRepo(work.directory, results, seen, query, maxRepos);
         continue;
       }
 
       // Match Core: only non-repo directories consume the scan budget.
       scanned += 1;
-      if (scanned >= MAX_SCANNED || results.length >= MAX_REPOS) {
+      if (scanned >= maxScanned || results.length >= maxRepos) {
         return;
       }
 
@@ -127,12 +139,40 @@ export async function discoverGitReposAsync(
     }
   }
 
-  while (queue.length > 0 && results.length < MAX_REPOS && scanned < MAX_SCANNED) {
+  while (queue.length > 0 && results.length < maxRepos && scanned < maxScanned) {
     const waveSize = Math.min(concurrency, queue.length);
     await Promise.all(Array.from({ length: waveSize }, () => worker()));
   }
 
   return sortCandidates(results);
+}
+
+/**
+ * Search beyond the normal 50-result discovery cap. An exact path bypasses the
+ * tree scan entirely, while a name query filters during a larger targeted scan.
+ */
+export async function discoverGitReposForQueryAsync(
+  searchText: string,
+  extraRoots: string[] = [],
+  options?: { rootDirectories?: string[]; concurrency?: number; maxScanned?: number },
+): Promise<GitRepoCandidate[]> {
+  const query = normalizeDiscoveryQuery(searchText);
+  if (!query) {
+    return [];
+  }
+
+  const pathMatch = repoCandidateFromPathQuery(searchText);
+  if (pathMatch) {
+    return [pathMatch];
+  }
+
+  return discoverGitReposAsync(extraRoots, {
+    concurrency: options?.concurrency,
+    maxRepos: Number.POSITIVE_INFINITY,
+    maxScanned: options?.maxScanned ?? MAX_TARGETED_SCANNED,
+    query,
+    rootDirectories: options?.rootDirectories,
+  });
 }
 
 function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
@@ -196,8 +236,14 @@ function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
   return sortCandidates(results);
 }
 
-function addRepo(directory: string, results: GitRepoCandidate[], seen: Set<string>): void {
-  if (results.length >= MAX_REPOS) {
+function addRepo(
+  directory: string,
+  results: GitRepoCandidate[],
+  seen: Set<string>,
+  query = "",
+  maxRepos = MAX_REPOS,
+): void {
+  if (results.length >= maxRepos) {
     return;
   }
   const normalized = path.normalize(directory);
@@ -206,11 +252,49 @@ function addRepo(directory: string, results: GitRepoCandidate[], seen: Set<strin
     return;
   }
   seen.add(key);
+  const name = path.basename(normalized);
+  if (query && !name.toLowerCase().includes(query) && !key.includes(query)) {
+    return;
+  }
   results.push({
     directory: normalized,
-    name: path.basename(normalized),
+    name,
     remoteUrl: null,
   });
+}
+
+function normalizeDiscoveryQuery(value: string): string {
+  return value
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .toLowerCase();
+}
+
+function repoCandidateFromPathQuery(value: string): GitRepoCandidate | null {
+  let candidate = value.trim().replace(/^['"]|['"]$/g, "");
+  if (!candidate || !path.isAbsolute(candidate)) {
+    return null;
+  }
+
+  try {
+    if (!statSync(candidate).isDirectory()) {
+      candidate = path.dirname(candidate);
+    }
+  } catch {
+    return null;
+  }
+
+  while (true) {
+    if (existsSync(path.join(candidate, ".git"))) {
+      const directory = path.normalize(candidate);
+      return { directory, name: path.basename(directory), remoteUrl: null };
+    }
+    const parent = path.dirname(candidate);
+    if (parent === candidate) {
+      return null;
+    }
+    candidate = parent;
+  }
 }
 
 function sortCandidates(results: GitRepoCandidate[]): GitRepoCandidate[] {

@@ -43,6 +43,7 @@ import {
   applySuggestionPillToLaunchRows,
   buildWorkspaceFromFormState,
   createEmptyCompanionFormRow,
+  encodePillKey,
   launchRowsFromSuggestions,
   terminalForAddedLaunch,
   type CompanionFormRow,
@@ -694,6 +695,44 @@ export default function WorkspaceForm({
           placeholder={index === 0 ? "npm run dev" : "dotnet watch"}
         />
       ))}
+      {unusedSuggestionPills.length > 0 ? (
+        <Form.Dropdown
+          id="command-suggestions"
+          title="Command suggestions"
+          value="choose-suggestion"
+          placeholder="Search command suggestions..."
+          onChange={(key) => {
+            if (key === "choose-suggestion") {
+              return;
+            }
+            const pill = unusedSuggestionPills.find((candidate) => encodePillKey(candidate) === key);
+            if (pill) {
+              applySuggestionPill(pill);
+            }
+          }}
+        >
+          <Form.Dropdown.Item value="choose-suggestion" title="Choose a suggestion…" />
+          {unusedSuggestionPills.map((pill) => (
+            <Form.Dropdown.Item
+              key={encodePillKey(pill)}
+              value={encodePillKey(pill)}
+              title={pill.displayTitle || pill.typeTitle || pill.command}
+              icon={suggestionPillIcon(pill.taskType)}
+            />
+          ))}
+        </Form.Dropdown>
+      ) : null}
+      {suggestionSource ? (
+        <Form.Description
+          text={
+            suggestionSource === "suggest"
+              ? "Suggestions from Quick Shell Suggest are applied to the first empty command row, or appended."
+              : isMacPlatform()
+                ? "Suggestions use local folder heuristics because the Suggest CLI is Windows-only."
+                : "Suggestions use local folder heuristics because Suggest.exe is unavailable."
+          }
+        />
+      ) : null}
       {launches.length > 1
         ? launches.map((launch, index) => (
             <Form.Dropdown
@@ -713,18 +752,6 @@ export default function WorkspaceForm({
         <Form.Description
           title="Multiple commands"
           text="Each command opens as its own launch entry. Use Actions → Remove command to delete a row."
-        />
-      ) : null}
-      {suggestionSource ? (
-        <Form.Description
-          title="Command suggestions"
-          text={
-            suggestionSource === "suggest"
-              ? "Seeded from Quick Shell Suggest. Use Actions → Suggestions to apply additional pills."
-              : isMacPlatform()
-                ? "Seeded from local folder heuristics (Suggest CLI is Windows-only). Folders are classified with Node heuristics on Mac."
-                : "Seeded from local folder heuristics (Suggest.exe unavailable). Install Suggest beside the extension or set QUICKSHELL_SUGGEST_EXE."
-          }
         />
       ) : null}
       <Form.Checkbox {...itemProps.isPinned} label="Favorite" />

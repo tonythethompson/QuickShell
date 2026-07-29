@@ -1,5 +1,17 @@
-import { describe, expect, it } from "vitest";
-import { buildSearchRoots, listDefaultRootCandidates, searchRootsFromWorkspaces } from "../lib/git-repo-search-roots";
+import { describe, expect, it, vi } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import {
+  buildSearchRoots,
+  discoverGitReposForQueryAsync,
+  listDefaultRootCandidates,
+  searchRootsFromWorkspaces,
+} from "../lib/git-repo-discovery";
+
+vi.mock("@raycast/utils", () => ({
+  withCache: <T extends (...args: never[]) => unknown>(fn: T) => fn,
+}));
 
 /** Windows-path contracts must not depend on the host OS (macOS CI uses darwin). */
 const win32Roots = { pathStyle: "win32" as const };
@@ -92,5 +104,38 @@ describe("buildSearchRoots", () => {
     expect(roots.map((root) => root.toLowerCase())).toContain("d:\\");
     expect(roots.map((root) => root.toLowerCase())).toContain("c:\\users\\tonyt\\projects");
     expect(roots.map((root) => root.toLowerCase())).not.toContain("c:\\users\\tonyt");
+  });
+});
+
+describe("discoverGitReposForQueryAsync", () => {
+  it("bypasses the normal result cap for typed name searches", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-search-"));
+    try {
+      for (let index = 0; index < 55; index += 1) {
+        mkdirSync(path.join(root, `repo-${index.toString().padStart(2, "0")}`, ".git"), { recursive: true });
+      }
+
+      const repos = await discoverGitReposForQueryAsync("repo-", [], { rootDirectories: [root], concurrency: 1 });
+
+      expect(repos).toHaveLength(55);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("finds the containing repository directly from an absolute path", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-path-"));
+    const repo = path.join(root, "Trackdub");
+    const nested = path.join(repo, "src", "features");
+    try {
+      mkdirSync(path.join(repo, ".git"), { recursive: true });
+      mkdirSync(nested, { recursive: true });
+
+      const repos = await discoverGitReposForQueryAsync(nested);
+
+      expect(repos).toEqual([{ directory: repo, name: "Trackdub", remoteUrl: null }]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
