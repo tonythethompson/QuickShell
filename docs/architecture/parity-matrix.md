@@ -21,7 +21,8 @@ Data stores:
 
 | Store | CmdPal | Run | Raycast |
 |-------|--------|-----|---------|
-| Workspaces | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Shared** with CmdPal | Raycast storage blob (separate) |
+| Workspaces | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Shared** with CmdPal | Raycast `quickshell-data` LocalStorage blob (separate) |
+| Reset backup | `shortcuts.json.bak` (atomic replace) | **Shared** with CmdPal | Raycast `quickshell-data.bak` (reset-all snapshot; extension-owned) |
 | Settings | `%LOCALAPPDATA%\QuickShell\settings.json` | **Shared** with CmdPal | In Raycast `StoredData.settings` (+ prefs) |
 | Edit draft | `shortcut-edit-draft.json` | Via editor (not same draft file UX) | Form-local / storage patterns |
 | Worktree branch targets | `worktree-branch-targets.json` | **Shared** (via Core on launch) | **No** dedicated file |
@@ -41,6 +42,7 @@ Data stores:
 | Import / export JSON | Full | Via settings / shared file | Full (extension import-export) | Desktop shares one file; Raycast is separate blob; import always untrusted |
 | Layout undo / redo | Full | Partial (plugin + editor) | Full (storage history) | |
 | Section separators | Full | Partial | Full (Raycast-local `layoutEntries`) | Desktop shared layout file; Raycast blob parallel |
+| Reset all / backup restore | Full | Partial | Full (durable Raycast backup) | Raycast `resetAll` → `quickshell-data.bak`; restore after restart or Undo in-session; mutations serialized via write queue |
 
 ---
 
@@ -83,7 +85,7 @@ See [settings.md](./settings.md).
 | Worktree target branch store | Full | Full (Core gate) | Full (Raycast-local `branchTargets` in blob) | **No shared** `worktree-branch-targets.json` |
 | Git launch gate (dirty block) | Full | Full | Full (TS `git-launch-gate`) | Same rules; Raycast-local targets |
 | Workspace status page | Full | No | No | CmdPal-only UI |
-| Discover git repos | Full | No | Full | Different scanners |
+| Discover git repos | Full | No | Full | Raycast Review uses Suggest.exe (+ heuristics fallback), same as create seed |
 | `GitRepoIndex` prewarm | Full | No | N/A | |
 
 See [git-and-discover.md](./git-and-discover.md), [launch.md](./launch.md).
@@ -95,9 +97,10 @@ See [git-and-discover.md](./git-and-discover.md), [launch.md](./launch.md).
 | Capability | CmdPal | Run | Raycast | Notes |
 |------------|--------|-----|---------|--------|
 | Project classification | Full (Core) | Full (Core) | Partial (Suggest.exe + local heuristics) | |
-| Suggestion pills | Full | Full (panel) | Full via **Suggest.exe** (local fallback) | Form seeds from Suggest when CLI present |
-| Setup seed on create/discover | Full | Partial | Full (Suggest + heuristics) | |
+| Suggestion pills | Full | Full (panel) | Full via **Suggest.exe** (local fallback) | Short preferred seed + leftover pills in Actions; `taskType` persisted |
+| Setup seed on create/discover | Full | Partial | Full (Suggest + heuristics) | Discover Review shares `resolveWorkspaceSetupSuggestions` |
 | Companion catalog / detection | Full | Full (editor/settings) | Partial (multi-row + presets + folder markers) | No JetBrains/vswhere walks |
+| Open companion apps (list action) | Full | Partial | Full | Raycast: all configured companions on demand |
 | Dev server URL + open on launch | Full | Full | Full | Companions before terminals; URL after |
 | Agent CLI PATH pills | No | No | No | Roadmap Tier 2 / PR C |
 

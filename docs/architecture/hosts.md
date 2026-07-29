@@ -6,17 +6,17 @@ All hosts retain workspace IDs rather than trust-bearing snapshots and resolve c
 
 ## Matrix
 
-| Concern | CmdPal (`QuickShell/`) | PowerToys Run (`QuickShell.Run/`) | Raycast (`QuickShell.Raycast/`) |
-|---------|------------------------|-----------------------------------|----------------------------------|
-| **Runtime** | CmdPal extension host, MSIX | Wox plugin in PowerToys | Raycast extension (Node) |
-| **Business logic** | **QuickShell.Core** project ref | **QuickShell.Core** project ref | **TypeScript reimplementation** |
-| **Workspace store** | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Same file** | Raycast `STORAGE_KEY` blob |
-| **Settings** | `settings.json` via settings manager | **Same JSON** via `QuickShellSettingsReader` | Stored in Raycast data + prefs |
-| **Launch** | `ShortcutLaunchExecutor` | Same | `launch-executor.ts` + `windows-launch.ts` |
-| **Pills** | Adaptive Card / form | `RunLaunchSuggestionPanel` | `QuickShell.Suggest.exe` |
-| **Edit UI** | Adaptive Card forms | WPF `ShortcutWorkspaceEditorWindow` | React form components |
-| **Action keyword** | Extension name + fallback | **`qs`** (+ global activation phrases) | Raycast commands |
-| **Package** | Store / WinGet CmdPal packages | Bundled with full WinGet / GH setup | Raycast store / sideload |
+| Concern             | CmdPal (`QuickShell/`)                     | PowerToys Run (`QuickShell.Run/`)            | Raycast (`QuickShell.Raycast/`)                                                                       |
+| ------------------- | ------------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Runtime**         | CmdPal extension host, MSIX                | Wox plugin in PowerToys                      | Raycast extension (Node)                                                                              |
+| **Business logic**  | **QuickShell.Core** project ref            | **QuickShell.Core** project ref              | **TypeScript reimplementation**                                                                       |
+| **Workspace store** | `%LOCALAPPDATA%\QuickShell\shortcuts.json` | **Same file**                                | Raycast `STORAGE_KEY` (`quickshell-data`) + reset backup `BACKUP_STORAGE_KEY` (`quickshell-data.bak`) |
+| **Settings**        | `settings.json` via settings manager       | **Same JSON** via `QuickShellSettingsReader` | Stored in Raycast data + prefs                                                                        |
+| **Launch**          | `ShortcutLaunchExecutor`                   | Same                                         | `launch-executor.ts` + `windows-launch.ts`                                                            |
+| **Pills**           | Adaptive Card / form                       | `RunLaunchSuggestionPanel`                   | `QuickShell.Suggest.exe`                                                                              |
+| **Edit UI**         | Adaptive Card forms                        | WPF `ShortcutWorkspaceEditorWindow`          | React form components                                                                                 |
+| **Action keyword**  | Extension name + fallback                  | **`qs`** (+ global activation phrases)       | Raycast commands                                                                                      |
+| **Package**         | Store / WinGet CmdPal packages             | Bundled with full WinGet / GH setup          | Raycast Store only (no sideload packages)                                                             |
 
 Desktop CmdPal + Run **share** Core data files. Raycast is **parallel** unless the user imports or exports JSON.
 
@@ -30,13 +30,13 @@ Strengths: full Adaptive Card UX, deep links, fallback, status pages, hover acti
 
 Entry: `QuickShell.Run/Main.cs` (`IPlugin`, context menu, settings provider, reloadable).
 
-- Loads `ShortcutRepository` + `QuickShellSettingsReader`  
-- Preloads shortcuts async  
-- Query: action keyword `qs` and optional global activation via `RunGlobalQuery` (phrases like “quick shell”)  
-- Scoring: `RunQueryScoring`  
-- Launch: same `ShortcutLaunchExecutor`  
-- Repair/missing folder UX via `ShortcutHealth`  
-- Settings UI in WPF; editor window for create/edit  
+- Loads `ShortcutRepository` + `QuickShellSettingsReader`
+- Preloads shortcuts async
+- Query: action keyword `qs` and optional global activation via `RunGlobalQuery` (phrases like “quick shell”)
+- Scoring: `RunQueryScoring`
+- Launch: same `ShortcutLaunchExecutor`
+- Repair/missing folder UX via `ShortcutHealth`
+- Settings UI in WPF; editor window for create/edit
 
 Does **not** use CmdPal Adaptive Cards or `CommandRouter` deep links.
 
@@ -44,7 +44,7 @@ Does **not** use CmdPal Adaptive Cards or `CommandRouter` deep links.
 
 Structure:
 
-```
+```text
 src/
   open-workspace.tsx, create/edit, discover, settings
   lib/   storage, schema, launch-*, health, search, suggest-commands, …
@@ -53,18 +53,20 @@ src/
 
 Important libs:
 
-| Lib | Desktop analogue |
-|-----|------------------|
-| `storage.ts` | `ShortcutRepository` (+ undo) |
-| `schema.ts` / `migration.ts` | layout + version |
-| `windows-launch.ts` + `launch-grouping.ts` | `TerminalLauncher` + grouping |
-| `launch-executor.ts` | `ShortcutLaunchExecutor` |
-| `post-launch-actions.ts` | companion + dev server after terminals |
-| `workspace-health.ts` | subset of health |
-| `suggest-commands.ts` | shells out to Core Suggest CLI |
-| `settings.ts` | settings prefs |
+| Lib                                        | Desktop analogue                                              |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| `storage.ts`                               | `ShortcutRepository` (+ undo, reset-all, write serialization) |
+| `schema.ts` / `migration.ts`               | layout + version (`STORAGE_KEY`, `BACKUP_STORAGE_KEY`)        |
+| `windows-launch.ts` + `launch-grouping.ts` | `TerminalLauncher` + grouping                                 |
+| `launch-executor.ts`                       | `ShortcutLaunchExecutor`                                      |
+| `post-launch-actions.ts`                   | companion + dev server after terminals                        |
+| `workspace-health.ts`                      | subset of health                                              |
+| `suggest-commands.ts`                      | shells out to Core Suggest CLI                                |
+| `settings.ts`                              | settings prefs                                                |
 
-Parity goals: multi-launch tabs (no `-w` on tab segments), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, git worktree targets / dirty gate, full Core health (ports/process), Adaptive Card forms.
+Raycast persistence (`storage.ts`) owns both LocalStorage keys above. Public mutations serialize on an in-process write queue (nested save/flush use unlocked helpers). Reset-all writes a restart-safe snapshot to `quickshell-data.bak` before clearing workspaces; recover with in-session Undo or **Restore Backup** after restart. See [persistence.md](./persistence.md#raycast).
+
+Parity goals: multi-launch tabs (Windows Terminal on Windows; Terminal.app / iTerm2 on macOS), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, shared git worktree target file, full Core health (ports/process), Adaptive Card forms, Suggest CLI on macOS.
 
 ## Shared Core (desktop only)
 
@@ -72,22 +74,22 @@ Anything that must stay consistent between CmdPal and Run belongs in **QuickShel
 
 ## Packaging notes
 
-- Microsoft Store / CmdPal-only WinGet: extension without Run.  
-- Bundled WinGet / GH setup: CmdPal + Run plugin (restart PowerToys for Run).  
+- Microsoft Store / CmdPal-only WinGet: extension without Run.
+- Bundled WinGet / GH setup: CmdPal + Run plugin (restart PowerToys for Run).
 - Raycast: [Raycast Store](https://www.raycast.com/store) only (no GitHub/WinGet sideload packages). Local packaging via `scripts/build-raycast-extension.ps1` for Store/dev.
 
 ## Key files
 
-| Host | Entry |
-|------|--------|
-| CmdPal | `QuickShell/QuickShellCommandsProvider.cs` |
-| Run | `QuickShell.Run/Main.cs` |
+| Host    | Entry                                              |
+| ------- | -------------------------------------------------- |
+| CmdPal  | `QuickShell/QuickShellCommandsProvider.cs`         |
+| Run     | `QuickShell.Run/Main.cs`                           |
 | Raycast | `package.json` commands + `src/open-workspace.tsx` |
-| Suggest | `QuickShell.Suggest/Program.cs` |
+| Suggest | `QuickShell.Suggest/Program.cs`                    |
 
 ## Related
 
-- [overview.md](./overview.md)  
-- [launch.md](./launch.md)  
-- [settings.md](./settings.md)  
-- [post-launch.md](./post-launch.md)  
+- [overview.md](./overview.md)
+- [launch.md](./launch.md)
+- [settings.md](./settings.md)
+- [post-launch.md](./post-launch.md)

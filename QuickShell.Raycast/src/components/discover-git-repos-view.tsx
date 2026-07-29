@@ -5,7 +5,7 @@ import WorkspaceForm from "./workspace-form";
 import UnsupportedPlatformView from "./unsupported-platform-view";
 import { detectCompanionSeed } from "../lib/companion-detection";
 import { detectDevServerUrl } from "../lib/detect-dev-server-url";
-import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
+import { resolveWorkspaceSetupSuggestions } from "../lib/suggest-commands";
 import { discoverGitReposCached } from "../lib/git-repo-discovery";
 import { searchRootsFromWorkspaces } from "../lib/git-repo-search-roots";
 import { deriveAbbreviationFromName, deriveNameFromDirectory } from "../lib/directory-helpers";
@@ -26,10 +26,10 @@ type ReviewWorkspaceFormProps = {
   onCreated: (workspace: Workspace) => Promise<void>;
 };
 
-/** Full seed for Review: launches, companions, remotes, project suggestions. */
-function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Workspace {
-  const suggestions = buildProjectSetupSuggestions(directory);
-  const rows = launchRowsFromSuggestions(suggestions);
+/** Full seed for Review: launches, companions, remotes, Suggest.exe or local heuristics. */
+async function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Promise<Workspace> {
+  const resolved = await resolveWorkspaceSetupSuggestions(directory);
+  const rows = launchRowsFromSuggestions(resolved.tasks);
   const launchEntries =
     rows.length > 0
       ? rows.map((row, index) => ({
@@ -41,7 +41,7 @@ function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: str
           runAsAdmin: row.runAsAdmin,
           isEnabled: row.isEnabled,
           order: index,
-          taskType: "none" as const,
+          taskType: row.taskType || "none",
         }))
       : [
           {
@@ -124,10 +124,29 @@ function buildLightWorkspaceFromRepo(directory: string, name: string, remoteUrl?
 }
 
 function ReviewWorkspaceForm({ directory, name, remoteUrl, onCreated }: ReviewWorkspaceFormProps) {
-  const initialWorkspace = useMemo(
-    () => buildWorkspaceFromRepo(directory, name, remoteUrl),
-    [directory, name, remoteUrl],
-  );
+  const {
+    data: initialWorkspace,
+    isLoading,
+    error,
+  } = usePromise(async () => buildWorkspaceFromRepo(directory, name, remoteUrl));
+
+  useLoadErrorToast(error, "Failed to prepare workspace");
+
+  if (error) {
+    return (
+      <List>
+        <List.EmptyView icon={Icon.ExclamationMark} title="Workspace prep failed" description={error.message} />
+      </List>
+    );
+  }
+
+  if (!initialWorkspace) {
+    return (
+      <List isLoading={isLoading}>
+        <List.EmptyView title="Preparing workspace…" description="Loading suggestions for this repository." />
+      </List>
+    );
+  }
 
   return (
     <WorkspaceForm mode="create" initialWorkspace={initialWorkspace} directorySeedMode="full" onCreated={onCreated} />
@@ -235,6 +254,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
                 icon={Icon.Pencil}
                 target={
                   <ReviewWorkspaceForm
+                    key={repo.directory}
                     directory={repo.directory}
                     name={repo.name}
                     remoteUrl={repo.remoteUrl}

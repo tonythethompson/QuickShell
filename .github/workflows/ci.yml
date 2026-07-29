@@ -85,7 +85,7 @@ jobs:
         run: npm run build
 
   raycast-check-macos:
-    name: Raycast tests (macOS)
+    name: Raycast lint, test, and build (macOS)
     runs-on: macos-latest
     defaults:
       run:
@@ -104,8 +104,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify Raycast CLI
+        run: node scripts/verify-raycast-cli.js
+
       - name: Test
         run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
 
   # Informational only: wall-clock medians vary by runner hardware. Never gate PRs on ms budgets.
   # Critical-path contracts remain in build-test. Artifacts support manual regression diffs.
