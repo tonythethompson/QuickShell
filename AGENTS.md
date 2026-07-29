@@ -4,7 +4,7 @@ Guidance for coding agents working in QuickShell. Architecture tours live in `do
 
 ## Project Overview
 
-Quick Shell is a **Windows-only .NET 10 keyboard-first workspace launcher**. A _workspace_ is a saved folder plus metadata (terminal launches, companion app, git target, dev server). The primary surface is a PowerToys Command Palette extension (`QuickShell`), packaged out-of-process as a signed MSIX COM server. Two sibling hosts reuse the same on-disk model: a PowerToys Run plugin (`QuickShell.Run`, `qs` keyword) and a TypeScript Raycast extension (`QuickShell.Raycast`, parallel storage). `QuickShell.Core` owns all domain logic (no CmdPal SDK dependency) so the hosts are swappable UI shells. `QuickShell.Suggest` is a console CLI that emits JSON suggestion pills for Raycast.
+Quick Shell's .NET desktop hosts are **Windows-only**; `QuickShell.Raycast` is a separate TypeScript host with macOS support. A _workspace_ is a saved folder plus metadata (terminal launches, companion app, git target, dev server). The primary surface is a PowerToys Command Palette extension (`QuickShell`), packaged out-of-process as a signed MSIX COM server. Two sibling hosts reuse the same on-disk model: a PowerToys Run plugin (`QuickShell.Run`, `qs` keyword) and a TypeScript Raycast extension (`QuickShell.Raycast`, parallel storage). `QuickShell.Core` owns all domain logic (no CmdPal SDK dependency) so the hosts are swappable UI shells. `QuickShell.Suggest` is a console CLI that emits JSON suggestion pills for Raycast.
 
 The UI term is **workspace**; the on-disk file is still `%LOCALAPPDATA%\QuickShell\shortcuts.json`. Keep the product term and the storage term separate in code/comments.
 
