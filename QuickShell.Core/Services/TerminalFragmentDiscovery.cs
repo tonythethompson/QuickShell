@@ -163,11 +163,16 @@ internal static class TerminalFragmentDiscovery
         foreach (var element in listNode.EnumerateArray())
         {
             // New profiles use "guid"; patch profiles use "updates" (same GUID target).
-            var guid = element.TryGetProperty("guid", out var guidNode)
-                ? guidNode.GetString()
-                : null;
+            string? guid = null;
+            if (element.TryGetProperty("guid", out var guidNode)
+                && guidNode.ValueKind == JsonValueKind.String)
+            {
+                guid = guidNode.GetString();
+            }
+
             if (string.IsNullOrWhiteSpace(guid)
-                && element.TryGetProperty("updates", out var updatesNode))
+                && element.TryGetProperty("updates", out var updatesNode)
+                && updatesNode.ValueKind == JsonValueKind.String)
             {
                 guid = updatesNode.GetString();
             }
