@@ -13,7 +13,7 @@ One tag push updates **GitHub Release**, **WinGet**, and the **Microsoft Store**
 3. Commit, tag `vX.Y.Z.W`, and push the tag (or run **Release WinGet installers** via `workflow_dispatch` with that version).
 4. Expect, in order:
    - [`.github/workflows/release-extension.yml`](../.github/workflows/release-extension.yml) builds installers, creates the GitHub Release from `CHANGELOG.md`, opens WinGet manifest PRs (when `WINGET_PAT` is set), and **dispatches** Store publish (a `GITHUB_TOKEN` release does not chain other workflows automatically).
-   - [`.github/workflows/publish-store.yml`](../.github/workflows/publish-store.yml) runs on the `store-publish` Environment (required reviewer approval), verifies the tag is a published non-prerelease release on `master` history, builds the `.msixupload`, uploads with `--noCommit`, sets listing **ReleaseNotes** from the same changelog section, then commits the Partner Center submission. Certification is asynchronous.
+   - [`.github/workflows/publish-store.yml`](../.github/workflows/publish-store.yml) runs on the `store-publish` Environment (required reviewer approval), verifies the tag is a published non-prerelease release on default-branch history, builds the `.msixupload`, uploads with `--noCommit`, sets listing **ReleaseNotes** from the same changelog section, then commits the Partner Center submission. Certification is asynchronous.
 
 Release CI **fails** if the changelog section for that version is missing or empty, or if the tag version does not match both `AppVersion` and `Package.appxmanifest`.
 

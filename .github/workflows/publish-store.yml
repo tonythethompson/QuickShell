@@ -9,6 +9,11 @@ on:
         description: Release tag to publish (e.g. v0.2.3.0)
         required: true
         type: string
+      release_notes:
+        description: Optional What's new override (leave empty to use CHANGELOG.md)
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -55,6 +60,7 @@ jobs:
           Write-Host "Store publish tag=$tag version=$version"
 
       - name: Verify tag is a trusted published release
+        id: trust
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,26 +84,32 @@ jobs:
 
           # Resolve the tag's commit object (peel annotated tags).
           $tagRef = gh api "repos/$repo/git/ref/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Failed to resolve git ref for tag '$tag'." }
           $tagSha = [string]$tagRef.object.sha
           if ($tagRef.object.type -eq 'tag') {
             $tagObj = gh api "repos/$repo/git/tags/$tagSha" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Failed to peel annotated tag '$tag'." }
             $tagSha = [string]$tagObj.object.sha
           }
 
           $defaultBranch = gh api "repos/$repo" --jq .default_branch
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to resolve repository default branch.' }
           # default...tag must be behind/identical so the tag commit is on default-branch history.
           $compare = gh api "repos/$repo/compare/${defaultBranch}...${tagSha}" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Failed to compare '$tag' against '$defaultBranch'." }
           $status = [string]$compare.status
           if ($status -notin @('behind', 'identical')) {
             throw "Tag '$tag' ($tagSha) is not on '$defaultBranch' history (compare status: $status). Refusing to run Store scripts from an untrusted ref."
           }
 
+          "SHA=$tagSha" >> $env:GITHUB_OUTPUT
           Write-Host "Trust gate OK: published release $($release.html_url); commit $tagSha is on $defaultBranch ($status)."
 
-      - name: Checkout release tag
-        uses: actions/checkout@v4
+      - name: Checkout verified release commit
+        # Pin actions/checkout@v4 (11bd71901bbe5b1630ceea73d27597364c9af683 is v4.2.2).
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ steps.meta.outputs.TAG }}
+          ref: ${{ steps.trust.outputs.SHA }}
           persist-credentials: false
 
       # The Store CLI runs on the .NET 9 Desktop Runtime; Quick Shell builds with .NET 10.
@@ -139,12 +151,19 @@ jobs:
         shell: pwsh
         env:
           RELEASE_VERSION: ${{ steps.meta.outputs.VERSION }}
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
         run: |
-          $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $override = "$($env:RELEASE_NOTES_INPUT)".Trim()
+          if ($override) {
+            $notes = $override
+            Write-Host 'Using workflow_dispatch release_notes override for Store What''s new.'
+          } else {
+            $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
           $notes | Set-Content -Path store-release-notes.txt -Encoding utf8
-          Write-Host "Extracted $($notes.Length) characters of release notes."
+          Write-Host "Prepared $($notes.Length) characters of Store release notes."
 
       - name: Build Store upload package
         shell: pwsh
