@@ -73,6 +73,8 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly Action _notifyContentChanged;
     /// <summary>Handoff from the background capture to this page's fetch thread.</summary>
     private WorkspaceStatusSnapshot? _pendingSnapshot;
+    /// <summary>Monotonic generation so an older capture cannot overwrite a newer refresh.</summary>
+    private int _refreshGeneration;
 
     /// <summary>
     /// Applies a completed background capture. Called from <c>GetContent</c> so the host
@@ -80,13 +82,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     internal void ApplyPendingSnapshot()
     {
-        var pending = Volatile.Read(ref _pendingSnapshot);
+        var pending = Interlocked.Exchange(ref _pendingSnapshot, null);
         if (pending is null)
         {
             return;
         }
 
-        Volatile.Write(ref _pendingSnapshot, null);
         PublishSnapshot(pending);
     }
 
@@ -160,6 +161,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     private void ScheduleRefresh()
     {
+        var generation = Interlocked.Increment(ref _refreshGeneration);
         var cancellationToken = _services.Lifetime.CancellationToken;
         _ = Task.Run(
             () =>
@@ -187,8 +189,14 @@ internal sealed partial class WorkspaceStatusForm : FormContent
                     return;
                 }
 
+                // Drop superseded captures so a slow older refresh cannot win the race.
+                if (Volatile.Read(ref _refreshGeneration) != generation)
+                {
+                    return;
+                }
+
                 // Hand off; GetContent applies it on the fetch the notification triggers.
-                Volatile.Write(ref _pendingSnapshot, snapshot);
+                Interlocked.Exchange(ref _pendingSnapshot, snapshot);
                 _notifyContentChanged();
             },
             cancellationToken);

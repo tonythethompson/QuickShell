@@ -24,10 +24,19 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     private readonly Dictionary<string, ListItem> _unpinnedItemCache =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly WorkspaceRowEnrichmentCoordinator _rowEnrichment;
-    private readonly ConcurrentDictionary<string, bool> _directoryRepairStates =
+    /// <summary>
+    /// Cached reachability probe results. Entries expire so an offline drive that comes
+    /// back (or a deleted folder) can be re-probed without thrashing on every Reload.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, DirectoryRepairCacheEntry> _directoryRepairStates =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, byte> _directoryRepairChecks =
         new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How long a directory-repair probe result stays authoritative.</summary>
+    internal const long DirectoryRepairCacheTtlMs = 30_000;
+
+    private readonly record struct DirectoryRepairCacheEntry(bool NeedsRepair, long ExpiresAtTick);
     private long _refreshSnapshotVersion;
     private long _refreshEnrichmentGeneration;
     private string _refreshSettingsFingerprint = string.Empty;
@@ -186,11 +195,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// </summary>
     public void Reload()
     {
-        // Keep directory-repair state across row rebuilds: a row that was known to need
-        // repair must keep its warning triangle and skip icon enrichment, and an unrelated
-        // Reload (favorite move, settings/default-terminal change) must not re-probe every
-        // directory and thrash icons. Probe state is still dropped by ProbeDirectoryRepairState
-        // when the actual directory reachability changes.
+        // Keep directory-repair cache across row rebuilds so an unrelated Reload (favorite
+        // move, settings/default-terminal change) does not re-probe every directory and
+        // thrash icons. Entries expire (see DirectoryRepairCacheTtlMs) so offline→online
+        // (and the reverse) can schedule another probe.
         Reload(preserveUnpinnedItemCache: false);
     }
 
@@ -830,25 +838,39 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         }
 
         var key = GetDirectoryRepairKey(shortcut);
-        if (_directoryRepairStates.TryGetValue(key, out var needsRepair))
+        var now = Environment.TickCount64;
+        if (_directoryRepairStates.TryGetValue(key, out var cached))
         {
-            return needsRepair;
+            if (cached.ExpiresAtTick > now)
+            {
+                return cached.NeedsRepair;
+            }
+
+            // Expired: keep showing the last answer, but allow a re-probe.
+            TryScheduleDirectoryRepairProbe(shortcut, key);
+            return cached.NeedsRepair;
         }
 
-        if (_directoryRepairChecks.TryAdd(key, 0))
-        {
-            Action probe = () => ProbeDirectoryRepairState(shortcut, key);
-            if (DirectoryRepairProbeSchedulerOverride is { } scheduleOverride)
-            {
-                scheduleOverride(probe);
-            }
-            else
-            {
-                _ = Task.Run(probe, _services.Lifetime.CancellationToken);
-            }
-        }
-
+        TryScheduleDirectoryRepairProbe(shortcut, key);
         return false;
+    }
+
+    private void TryScheduleDirectoryRepairProbe(TerminalShortcut shortcut, string key)
+    {
+        if (!_directoryRepairChecks.TryAdd(key, 0))
+        {
+            return;
+        }
+
+        Action probe = () => ProbeDirectoryRepairState(shortcut, key);
+        if (DirectoryRepairProbeSchedulerOverride is { } scheduleOverride)
+        {
+            scheduleOverride(probe);
+        }
+        else
+        {
+            _ = Task.Run(probe, _services.Lifetime.CancellationToken);
+        }
     }
 
     private void ProbeDirectoryRepairState(TerminalShortcut shortcut, string key)
@@ -865,11 +887,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         // N shortcuts. _directoryRepairStates/_directoryRepairChecks are ConcurrentDictionary,
         // so this is safe to compute and apply directly from the probe thread.
         var stateChanged = !_directoryRepairStates.TryGetValue(key, out var previous)
-            || previous != needsRepair;
-        _directoryRepairStates[key] = needsRepair;
-        // Drop the in-flight marker so a later refresh (e.g. a previously
-        // offline drive coming back) can schedule another probe instead of
-        // returning the stale cached state forever.
+            || previous.NeedsRepair != needsRepair;
+        _directoryRepairStates[key] = new DirectoryRepairCacheEntry(
+            needsRepair,
+            Environment.TickCount64 + DirectoryRepairCacheTtlMs);
+        // Drop the in-flight marker so an expired entry can schedule another probe.
         _directoryRepairChecks.TryRemove(key, out _);
 
         if (!stateChanged)

@@ -9,6 +9,7 @@ using QuickShell.Pages;
 using QuickShell.Services;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Threading;
 
 namespace QuickShell.Core.Tests;
 
@@ -98,12 +99,11 @@ public sealed class QuickShellPageSearchTests : IDisposable
             using var page = new QuickShellPage(_context);
             _ = page.GetItems();
 
-            var repairStates = GetPrivateField<ConcurrentDictionary<string, bool>>(page, "_directoryRepairStates");
-            repairStates[repairKey] = true;
+            SetDirectoryRepairState(page, repairKey, needsRepair: true);
 
             page.Reload();
 
-            Assert.True(repairStates.TryGetValue(repairKey, out var stillNeedsRepair));
+            Assert.True(TryGetDirectoryRepairNeedsRepair(page, repairKey, out var stillNeedsRepair));
             Assert.True(stillNeedsRepair);
 
             var items = page.GetItems().OfType<ListItem>().ToList();
@@ -126,17 +126,93 @@ public sealed class QuickShellPageSearchTests : IDisposable
         using var page = new QuickShellPage(_context);
         _ = page.GetItems();
 
-        var repairStates = GetPrivateField<ConcurrentDictionary<string, bool>>(page, "_directoryRepairStates");
-        repairStates[repairKey] = true;
+        SetDirectoryRepairState(page, repairKey, needsRepair: true);
 
         page.InvalidateWorkspaces();
 
-        Assert.True(repairStates.TryGetValue(repairKey, out var stillNeedsRepair));
+        Assert.True(TryGetDirectoryRepairNeedsRepair(page, repairKey, out var stillNeedsRepair));
         Assert.True(stillNeedsRepair);
+    }
+
+    [Fact]
+    public void RequiresHomeRepair_ExpiredEntry_AllowsReprobe()
+    {
+        var shortcut = _repository.GetByName("Alpha")!;
+        var repairKey = GetDirectoryRepairKey(shortcut);
+        var scheduled = 0;
+
+        var previousScheduler = QuickShellPage.DirectoryRepairProbeSchedulerOverride;
+        QuickShellPage.DirectoryRepairProbeSchedulerOverride = _ => Interlocked.Increment(ref scheduled);
+        try
+        {
+            using var page = new QuickShellPage(_context);
+            _ = page.GetItems();
+
+            // Expired "needs repair" should still paint as repair, but schedule a fresh probe.
+            SetDirectoryRepairState(page, repairKey, needsRepair: true, ttlMs: -1);
+            ClearDirectoryRepairInFlight(page, repairKey);
+
+            page.Reload();
+
+            var items = page.GetItems().OfType<ListItem>().ToList();
+            var alphaItem = items.Single(i => i.Title == "Alpha");
+            Assert.IsType<ShortcutFormPage>(alphaItem.Command);
+            Assert.True(scheduled >= 1);
+        }
+        finally
+        {
+            QuickShellPage.DirectoryRepairProbeSchedulerOverride = previousScheduler;
+        }
     }
 
     private static string GetDirectoryRepairKey(TerminalShortcut shortcut) =>
         string.Concat(shortcut.Id, "|", shortcut.Directory);
+
+    private static void SetDirectoryRepairState(
+        QuickShellPage page,
+        string key,
+        bool needsRepair,
+        long ttlMs = QuickShellPage.DirectoryRepairCacheTtlMs)
+    {
+        var dict = GetDirectoryRepairStates(page);
+        var entryType = typeof(QuickShellPage).GetNestedType(
+            "DirectoryRepairCacheEntry",
+            BindingFlags.NonPublic)!;
+        var entry = Activator.CreateInstance(
+            entryType,
+            needsRepair,
+            Environment.TickCount64 + ttlMs)!;
+        dict.GetType().GetProperty("Item")!.SetValue(dict, entry, [key]);
+    }
+
+    private static bool TryGetDirectoryRepairNeedsRepair(
+        QuickShellPage page,
+        string key,
+        out bool needsRepair)
+    {
+        needsRepair = false;
+        var dict = GetDirectoryRepairStates(page);
+        var tryGet = dict.GetType().GetMethod("TryGetValue")!;
+        var args = new object?[] { key, null };
+        if (!(bool)tryGet.Invoke(dict, args)!)
+        {
+            return false;
+        }
+
+        needsRepair = (bool)args[1]!.GetType().GetProperty("NeedsRepair")!.GetValue(args[1])!;
+        return true;
+    }
+
+    private static void ClearDirectoryRepairInFlight(QuickShellPage page, string key)
+    {
+        var checks = GetPrivateField<ConcurrentDictionary<string, byte>>(page, "_directoryRepairChecks");
+        checks.TryRemove(key, out _);
+    }
+
+    private static object GetDirectoryRepairStates(QuickShellPage page) =>
+        typeof(QuickShellPage)
+            .GetField("_directoryRepairStates", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(page)!;
 
     [Fact]
     public void DiscoverSearch_RevertingToAppliedQuery_ReplacesPendingSearch()
