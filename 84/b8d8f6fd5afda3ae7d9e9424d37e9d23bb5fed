@@ -1,0 +1,103 @@
+QuickShell.Raycast/src/__tests__/extension-preferences.test.ts
+  s_1b1f6a8ae6bec6::t_dba0aab74648da 54,61-67
+QuickShell.Raycast/src/__tests__/suggest-commands.test.ts
+  s_19915495c2ef49::t_88e745f3f17b23 2-16,66-86,88-101
+QuickShell.Raycast/src/lib/suggest-commands.ts
+  s_3959546c818d26::t_e2077fb3df587a 9-14,71,77-142,181,184-185
+  s_19915495c2ef49::t_fb5a52e0db64fa 190-198
+QuickShell.Raycast/src/lib/preferences.ts
+  s_1b1f6a8ae6bec6::t_e259eb3d1489fb 31
+QuickShell.Raycast/package.json
+  s_1b1f6a8ae6bec6::t_592ef46f6f6b08 85,89
+QuickShell.Raycast/src/__tests__/workspace-form-state.test.ts
+  s_19915495c2ef49::t_cea5a482fb86c5 5,35,46,64-88,100-101,105-106,127-128,147,153-155,161-162,193,199-200,218-234,237-238,246,249-281,330,335-336
+QuickShell.Raycast/src/__tests__/git-repo-search-roots-mac.test.ts
+  s_1b1f6a8ae6bec6::t_8a4d8cdc250aa0 24-30
+QuickShell.Raycast/src/lib/validation.ts
+  s_3959546c818d26::t_e2077fb3df587a 229-232
+docs/architecture/hosts.md
+  s_1b1f6a8ae6bec6::t_cc0dea35cd858f 69
+QuickShell.Raycast/src/__tests__/validation.test.ts
+  s_19915495c2ef49::t_ca34197fb2be11 58-76
+QuickShell.Raycast/src/lib/git-repo-search-roots.ts
+  s_1b1f6a8ae6bec6::t_ed673f4b46bc28 107-115
+  s_1b1f6a8ae6bec6::t_4bd9d778a120e0 20-22,29-35
+QuickShell.Raycast/README.md
+  s_1b1f6a8ae6bec6::t_e513f45a4fe382 9
+  s_1b1f6a8ae6bec6::t_459735e60c1e6b 20
+  s_1b1f6a8ae6bec6::t_5272326e74b747 78
+QuickShell.Raycast/src/open-workspace.tsx
+  s_1b1f6a8ae6bec6::t_d75dd6e1d02d0a 57
+  s_1b1f6a8ae6bec6::t_0f0d9aa880595a 1072,1101,1108
+QuickShell.Raycast/src/components/discover-git-repos-view.tsx
+  s_3959546c818d26::t_e2077fb3df587a 8,29-32,44,131-137
+QuickShell.Raycast/src/lib/mac-launch.ts
+  s_1b1f6a8ae6bec6::t_a9b451f475d3ab 13-17,75-107,149-193,195-197
+.github/workflows/ci.yml
+  s_1b1f6a8ae6bec6::t_56b70a5f77d16f 88,107-109,113-118
+QuickShell.Raycast/src/lib/workspace-form-state.ts
+  s_3959546c818d26::t_e2077fb3df587a 20,93,140,151,185,197,201-245
+QuickShell.Raycast/src/__tests__/launch-executor.test.ts
+  s_1b1f6a8ae6bec6::t_2456d238a9aab3 147,194-246
+docs/architecture/parity-matrix.md
+  s_19915495c2ef49::t_6cb8296351bfd0 88,103
+QuickShell.Raycast/src/lib/project-setup-suggestion.ts
+  s_3959546c818d26::t_e2077fb3df587a 7
+QuickShell.Raycast/raycast-env.d.ts
+  s_1b1f6a8ae6bec6::t_d4163f43f54e41 17
+QuickShell.Raycast/src/__tests__/mac-launch.test.ts
+  s_1b1f6a8ae6bec6::t_c1bc3c5e096f3d 5-6,12,22-38,53-64,97-169
+  s_1b1f6a8ae6bec6::t_1ae44993bd3a7c 39-52
+QuickShell.Raycast/src/lib/schema.ts
+  s_3959546c818d26::t_e2077fb3df587a 113
+QuickShell.Raycast/src/lib/terminal-options.ts
+  s_1b1f6a8ae6bec6::t_a28ebfea5243ae 126
+QuickShell.Raycast/src/lib/security.ts
+  s_1b1f6a8ae6bec6::t_5be6867f6f9959 301
+  s_3959546c818d26::t_e2077fb3df587a 331-336,343-346,351
+  s_1b1f6a8ae6bec6::t_a42cc87f5df3fd 477,479-490
+QuickShell.Raycast/src/__tests__/security.test.ts
+  s_3959546c818d26::t_fffb2e1ada592b 288-320
+  s_1b1f6a8ae6bec6::t_28477b056ff67d 362,365
+QuickShell.Raycast/CHANGELOG.md
+  s_1b1f6a8ae6bec6::t_496be702e125c4 6-9
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_1b1f6a8ae6bec6::t_5242e589c40fca 586
+  s_3959546c818d26::t_e2077fb3df587a 43,153,157-164,199-201,334,367-372,397
+  s_1b1f6a8ae6bec6::t_f4449aa14fc9ba 524-527
+  s_1b1f6a8ae6bec6::t_fb8c3ba86ddefe 783-791
+  s_1b1f6a8ae6bec6::t_42fac11a6b231c 732
+  s_1b1f6a8ae6bec6::t_096d5c40b5a2e3 797-801
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "84b8d8f6fd5afda3ae7d9e9424d37e9d23bb5fed",
+  "prompts": {},
+  "sessions": {
+    "s_19915495c2ef49": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "32cce283-f926-49e2-9e39-efbc1afbbab3",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_1b1f6a8ae6bec6": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ff440542-176d-4487-8ca2-f4710541809b",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_3959546c818d26": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "03430253-bf4a-417d-8f76-7e07a8d6aba4",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
