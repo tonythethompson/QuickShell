@@ -1147,7 +1147,7 @@ export default function OpenWorkspaceCommand({
             {!isWorkspaceTrustEnabled() || security.isTrusted ? (
               <ActionPanel.Section title="Git">
                 <Action.Push
-                  title="Set Target Branch…"
+                  title="Switch Branch…"
                   icon={Icon.Code}
                   target={
                     <SetTargetBranchForm
