@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { QuickShellStorage, createMemoryStorageAdapter } from "../lib/storage";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { QuickShellStorage, WRITE_LOCK_TIMEOUT_MS, createMemoryStorageAdapter } from "../lib/storage";
 import { createStableId } from "../lib/ids";
 import { normalizeWorkspace } from "../lib/validation";
 import { BACKUP_STORAGE_KEY, createEmptyStoredData, DEFAULT_SETTINGS } from "../lib/schema";
@@ -510,5 +510,31 @@ describe("storage", () => {
     const again = await storage.restoreFromBackup();
     expect(again.outcome).toBe("noop");
     expect(again.message).toMatch(/no workspace backup/i);
+  });
+
+  it("withWriteLock reports a timeout diagnostic when the previous writer stalls", async () => {
+    vi.useFakeTimers();
+    try {
+      const base = createMemoryStorageAdapter();
+      const adapter = {
+        getItem: base.getItem,
+        setItem: () => new Promise<void>(() => {}),
+      };
+      const storage = new QuickShellStorage(adapter);
+
+      const workspace = createWorkspace(createStableId(), "Alpha");
+      const first = storage.upsertWorkspace(workspace);
+      const second = storage.upsertWorkspace(createWorkspace(createStableId(), "Beta"));
+
+      vi.advanceTimersByTime(WRITE_LOCK_TIMEOUT_MS + 1);
+
+      await expect(second).rejects.toThrow(/lock-timeout/);
+
+      // Let the first promise hang; it has no rejection listener, but fake timers
+      // mean its wait timer will not produce an unhandled rejection in this test.
+      first.catch(() => {});
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

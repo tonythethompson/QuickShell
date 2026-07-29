@@ -44,6 +44,7 @@ const writeLockContext = new AsyncLocalStorage<true>();
 
 const MAX_HISTORY_ENTRIES = 25;
 const RECENT_WRITE_DEBOUNCE_MS = 500;
+export const WRITE_LOCK_TIMEOUT_MS = 30_000;
 
 export class QuickShellStorage {
   private cache: StoredData | null = null;
@@ -681,16 +682,41 @@ export class QuickShellStorage {
       throw new Error("Nested QuickShellStorage write lock: use saveUnlocked / flushRecentWritesUnlocked.");
     }
 
-    let release!: () => void;
+    let releaseGate!: () => void;
+    let releaseTimer: (() => void) | undefined;
     const gate = new Promise<void>((resolve) => {
-      release = resolve;
+      releaseGate = resolve;
     });
+    const release = () => {
+      releaseTimer?.();
+      releaseGate();
+    };
+
     const previous = this.writeTail;
     this.writeTail = previous.then(
       () => gate,
       () => gate,
     );
-    await previous;
+
+    const timeout = new Promise<never>((_, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error(`lock-timeout: ${WRITE_LOCK_TIMEOUT_MS}ms`)),
+        WRITE_LOCK_TIMEOUT_MS,
+      );
+      releaseTimer = () => clearTimeout(timer);
+    });
+
+    try {
+      await Promise.race([previous, timeout]);
+    } catch (error) {
+      release();
+      throw error;
+    }
+
+    // Lock acquired; cancel the wait timeout so a long-running operation does not cause
+    // an unhandled rejection when the timer eventually fires.
+    releaseTimer?.();
+
     try {
       return await writeLockContext.run(true, operation);
     } finally {
