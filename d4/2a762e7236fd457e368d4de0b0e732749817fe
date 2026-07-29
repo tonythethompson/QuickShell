@@ -1,0 +1,34 @@
+QuickShell.Raycast/src/lib/storage.ts
+  s_19915495c2ef49::t_9696417984c460 296-319,323-338
+  s_19915495c2ef49::t_17cd307722e31a 351-366,368-384,387-389,393-401,405-411,413-414,416-433
+  s_19915495c2ef49::t_5fd348f4aed7d2 204-216,218-232,235-238,240-244,247-249,251-253
+  s_19915495c2ef49::t_f389cc60c858c8 448-461,465-476
+  s_19915495c2ef49::t_779bfe8c80fa8c 485-505,509-514,518-535,539-545,547-555,557-559,564-570,572-577,579-589,591-598,600-602,604-606,610-619,623-633,641-674
+  s_19915495c2ef49::t_a140712fb6d093 10,35-39,49-51,71-75,77-81,83-85,87-90,92-95,99-103,105-107,109-112,114-117,130-188
+QuickShell.Raycast/src/open-workspace.tsx
+  s_19915495c2ef49::t_751e98bd2f610c 600,815
+  s_19915495c2ef49::t_4d701aac797c92 809-814
+  s_19915495c2ef49::t_5e432a0cc2f43c 126,131,146
+  s_19915495c2ef49::t_b3df053a1e0b49 597-599,601-639
+  s_19915495c2ef49::t_176a0853e5a411 81
+QuickShell.Raycast/src/__tests__/storage.test.ts
+  s_19915495c2ef49::t_492002d41fd354 364-417
+QuickShell.Raycast/src/lib/schema.ts
+  s_19915495c2ef49::t_d52a7d91c6ada2 5-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d42a762e7236fd457e368d4de0b0e732749817fe",
+  "prompts": {},
+  "sessions": {
+    "s_19915495c2ef49": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "32cce283-f926-49e2-9e39-efbc1afbbab3",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
