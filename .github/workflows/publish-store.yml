@@ -36,7 +36,7 @@ jobs:
           TAG_INPUT: ${{ inputs.tag }}
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          # Prefer env vars over ${{ }} interpolation so untrusted tag text stays data.
+          # Prefer environment variables over expression interpolation so untrusted tag text stays data.
           if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
             $tag = "$($env:TAG_INPUT)".Trim()
           } else {
