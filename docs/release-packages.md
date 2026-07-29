@@ -67,7 +67,8 @@ The former `tonythethompson.QuickShellforRaycast` WinGet package is retired (no 
 - What's new: `listings.en-us.baseListing.releaseNotes`, patched from `CHANGELOG.md` via [`scripts/set-store-release-notes.ps1`](../scripts/set-store-release-notes.ps1) (Partner Center limit: 1,500 characters)
 - Workflow Environment: `store-publish` (required reviewer before Store secrets / publish steps run)
 - Trust gates: tag must match `vX.Y.Z.W`, map to a published non-prerelease GitHub Release, and point at a commit on default-branch history
-- Secrets (already configured): `MSSTORE_TENANT_ID`, `MSSTORE_SELLER_ID`, `MSSTORE_CLIENT_ID`, `MSSTORE_CLIENT_SECRET`
+- Secrets (already configured on the `store-publish` Environment): `MSSTORE_TENANT_ID`, `MSSTORE_SELLER_ID`, `MSSTORE_CLIENT_ID`, `MSSTORE_CLIENT_SECRET`
+- CLI: [`microsoft/microsoft-store-apppublisher`](https://github.com/microsoft/microsoft-store-apppublisher) GitHub Action (not `dotnet tool install Microsoft.Store.CLI`)
 
 ## Why not one installer for all hosts?
 

@@ -107,19 +107,17 @@ jobs:
           ref: ${{ steps.trust.outputs.SHA }}
           persist-credentials: false
 
-      # The Store CLI runs on the .NET 9 Desktop Runtime; Quick Shell builds with .NET 10.
+      # .NET 10 builds the Store MSIX. MSStore CLI comes from microsoft-store-apppublisher below
+      # (Microsoft.Store.CLI is no longer on nuget.org).
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
-      - name: Install MSStore CLI
-        shell: pwsh
-        run: |
-          dotnet tool install --global Microsoft.Store.CLI
-          Join-Path $env:USERPROFILE '.dotnet\tools' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      # Official setup action downloads msstore and puts it on PATH (replaces dotnet tool install).
+      # Pin microsoft/microsoft-store-apppublisher@v1.2 (271384ce0e6e03162184c55b05392e8f4044aa78).
+      - name: Setup MSStore CLI
+        uses: microsoft/microsoft-store-apppublisher@271384ce0e6e03162184c55b05392e8f4044aa78 # v1.2
 
       - name: Verify version matches tag
         shell: pwsh
@@ -168,12 +166,24 @@ jobs:
 
       - name: Configure MSStore CLI
         shell: pwsh
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:MSSTORE_TENANT_ID) -or
+              [string]::IsNullOrWhiteSpace($env:MSSTORE_SELLER_ID) -or
+              [string]::IsNullOrWhiteSpace($env:MSSTORE_CLIENT_ID) -or
+              [string]::IsNullOrWhiteSpace($env:MSSTORE_CLIENT_SECRET)) {
+            throw 'MSSTORE_TENANT_ID / MSSTORE_SELLER_ID / MSSTORE_CLIENT_ID / MSSTORE_CLIENT_SECRET must be set on the store-publish Environment.'
+          }
+
           msstore reconfigure `
-            --tenantId "${{ secrets.MSSTORE_TENANT_ID }}" `
-            --sellerId "${{ secrets.MSSTORE_SELLER_ID }}" `
-            --clientId "${{ secrets.MSSTORE_CLIENT_ID }}" `
-            --clientSecret "${{ secrets.MSSTORE_CLIENT_SECRET }}"
+            --tenantId $env:MSSTORE_TENANT_ID `
+            --sellerId $env:MSSTORE_SELLER_ID `
+            --clientId $env:MSSTORE_CLIENT_ID `
+            --clientSecret $env:MSSTORE_CLIENT_SECRET
 
       - name: Upload Store package (draft)
         shell: pwsh
