@@ -464,42 +464,46 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleOpenCompanions(workspace: Workspace) {
-    const stored = await storage.getStoredWorkspace(workspace.id);
-    if (!stored) {
-      await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
-      return;
-    }
+    try {
+      const stored = await storage.getStoredWorkspace(workspace.id);
+      if (!stored) {
+        await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
+        return;
+      }
 
-    const authorizedEffects = authorizePostLaunchEffects(stored, {
-      includeCompanion: true,
-      includeDevServer: false,
-      companionSelection: "all",
-    });
-    if (authorizedEffects.plan.companions.length === 0) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Companion apps blocked",
-        message: authorizedEffects.warnings[0] ?? "Trust this workspace and configure a valid companion app path.",
+      const authorizedEffects = authorizePostLaunchEffects(stored, {
+        includeCompanion: true,
+        includeDevServer: false,
+        companionSelection: "all",
       });
-      return;
-    }
+      if (authorizedEffects.plan.companions.length === 0) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Companion apps blocked",
+          message: authorizedEffects.warnings[0] ?? "Trust this workspace and configure a valid companion app path.",
+        });
+        return;
+      }
 
-    const result = await runPostLaunchActions(authorizedEffects.plan, { phase: "companions" });
-    const warnings = [...authorizedEffects.warnings, ...result.warnings];
-    if (!result.companionOpened) {
+      const result = await runPostLaunchActions(authorizedEffects.plan, { phase: "companions" });
+      const warnings = [...authorizedEffects.warnings, ...result.warnings];
+      if (!result.companionOpened) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Companion apps failed",
+          message: warnings[0] ?? "Could not open companion apps.",
+        });
+        return;
+      }
+
       await showToast({
-        style: Toast.Style.Failure,
-        title: "Companion apps failed",
-        message: warnings[0] ?? "Could not open companion apps.",
+        style: Toast.Style.Success,
+        title: "Companion apps opened",
+        message: warnings.length > 0 ? warnings.join(" ") : workspace.name,
       });
-      return;
+    } catch (companionError) {
+      await showStorageFailure("Open companion apps", companionError);
     }
-
-    await showToast({
-      style: Toast.Style.Success,
-      title: "Companion apps opened",
-      message: warnings.length > 0 ? warnings.join(" ") : workspace.name,
-    });
   }
 
   async function handleOpenUrl(workspace: Workspace, kind: "repo" | "dev") {
