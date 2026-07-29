@@ -14,7 +14,7 @@ fails, so the next RC doesn't repeat the investigation from scratch.
 ## Matrix
 
 | Scenario | Minimum pass condition |
-|---|---|
+| --- | --- |
 | Clean Windows 11 x64 | Install, reload CmdPal, create workspace, launch |
 | Clean Windows 11 ARM64 | Same as above, on real ARM64 hardware or an ARM64 VM — do not assume x64 parity |
 | Existing Quick Shell user upgrade | Install the previous public release (`git tag` for the version before the current RC), create workspaces/favorites/recents, then upgrade in place. All of it survives; settings.json values are preserved, not reset to defaults |
