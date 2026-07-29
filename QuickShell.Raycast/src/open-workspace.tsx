@@ -595,7 +595,12 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleResetAll() {
-    const count = data?.workspaces.length ?? 0;
+    if (!data) {
+      await showToast({ style: Toast.Style.Failure, title: "Still loading workspaces" });
+      return;
+    }
+
+    const count = data.workspaces.length;
     const itemsLabel = count === 1 ? "workspace" : "workspaces";
     const countLine = count === 0 ? `No ${itemsLabel} are saved.` : `This will delete all ${count} ${itemsLabel}.`;
     const confirmed = await confirmAlert({
@@ -611,7 +616,12 @@ export default function OpenWorkspaceCommand({
     try {
       const result = await storage.resetAll();
       await revalidate();
-      await showToast({ style: Toast.Style.Success, title: "Workspaces reset", message: result.message });
+      const isNoop = result.outcome === "noop";
+      await showToast({
+        style: Toast.Style.Success,
+        title: isNoop ? "Nothing to reset" : "Workspaces reset",
+        message: result.message,
+      });
     } catch (resetError) {
       await showStorageFailure("Reset workspaces", resetError);
     }
@@ -631,7 +641,17 @@ export default function OpenWorkspaceCommand({
     try {
       const result = await storage.restoreFromBackup();
       await revalidate();
-      await showToast({ style: Toast.Style.Success, title: "Backup restored", message: result.message });
+      const title =
+        result.outcome === "restored"
+          ? "Backup restored"
+          : result.outcome === "discarded"
+            ? "Backup discarded"
+            : "No backup to restore";
+      await showToast({
+        style: result.outcome === "restored" ? Toast.Style.Success : Toast.Style.Failure,
+        title,
+        message: result.message,
+      });
     } catch (restoreError) {
       await showStorageFailure("Restore backup", restoreError);
     }
@@ -812,7 +832,14 @@ export default function OpenWorkspaceCommand({
             style={Action.Style.Destructive}
             onAction={handleResetAll}
           />
-          {data?.hasBackup ? <Action title="Restore Backup…" icon={Icon.Undo} onAction={handleRestoreBackup} /> : null}
+          {data?.hasBackup ? (
+            <Action
+              title="Restore Backup…"
+              icon={Icon.Undo}
+              style={Action.Style.Destructive}
+              onAction={handleRestoreBackup}
+            />
+          ) : null}
         </ActionPanel.Section>
       </>
     );

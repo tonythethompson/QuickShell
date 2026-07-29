@@ -400,17 +400,21 @@ describe("storage", () => {
       signalFirstWriteStarted = resolve;
     });
     let writeCount = 0;
+    const writeOrder: string[] = [];
 
     const base = createMemoryStorageAdapter();
     const adapter = {
       getItem: (key: string) => base.getItem(key),
       async setItem(key: string, value: string) {
         writeCount += 1;
-        if (writeCount === 1) {
+        const id = writeCount;
+        writeOrder.push(`start:${id}`);
+        if (id === 1) {
           signalFirstWriteStarted();
           await firstWriteGate;
         }
         await base.setItem(key, value);
+        writeOrder.push(`end:${id}`);
       },
     };
 
@@ -424,6 +428,9 @@ describe("storage", () => {
     releaseFirstWrite();
     await Promise.all([firstUpsert, secondUpsert]);
 
+    // Without the lock, the second persist would start before the first ended.
+    expect(writeOrder).toEqual(["start:1", "end:1", "start:2", "end:2"]);
+
     const loaded = await storage.getWorkspaces();
     expect(loaded).toHaveLength(2);
     expect(loaded.map((workspace) => workspace.name).sort()).toEqual(["Alpha", "Beta"]);
@@ -433,6 +440,7 @@ describe("storage", () => {
     const storage = new QuickShellStorage(createMemoryStorageAdapter());
     const result = await storage.resetAll();
     expect(result.success).toBe(true);
+    expect(result.outcome).toBe("noop");
     expect(result.message).toMatch(/no workspaces/i);
     expect(await storage.hasBackup()).toBe(false);
   });
@@ -452,6 +460,7 @@ describe("storage", () => {
 
     const result = await storage.resetAll();
     expect(result.success).toBe(true);
+    expect(result.outcome).toBe("reset");
     expect(await storage.getWorkspaces()).toHaveLength(0);
     expect(await storage.getSettings()).toEqual(initialSettings);
     expect(await storage.hasBackup()).toBe(true);
@@ -482,6 +491,7 @@ describe("storage", () => {
     expect(await restarted.hasBackup()).toBe(true);
     const restored = await restarted.restoreFromBackup();
     expect(restored.success).toBe(true);
+    expect(restored.outcome).toBe("restored");
     expect(await restarted.getWorkspaces()).toHaveLength(1);
     expect((await restarted.getWorkspaces())[0].name).toBe("Alpha");
   });
@@ -493,10 +503,12 @@ describe("storage", () => {
 
     const result = await storage.restoreFromBackup();
     expect(result.success).toBe(true);
+    expect(result.outcome).toBe("discarded");
     expect(result.message).toMatch(/not valid JSON/i);
     expect(await storage.hasBackup()).toBe(false);
 
     const again = await storage.restoreFromBackup();
+    expect(again.outcome).toBe("noop");
     expect(again.message).toMatch(/no workspace backup/i);
   });
 });

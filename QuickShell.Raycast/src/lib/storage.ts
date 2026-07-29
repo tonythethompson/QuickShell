@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type {
   LaunchEntry,
   LayoutEntry,
@@ -34,8 +35,12 @@ export type StorageAdapter = {
 
 type StorageTransferResult = {
   success: true;
+  outcome: "reset" | "restored" | "noop" | "discarded";
   message: string;
 };
+
+/** Tracks whether the current async context already holds the write lock. */
+const writeLockContext = new AsyncLocalStorage<true>();
 
 const MAX_HISTORY_ENTRIES = 25;
 const RECENT_WRITE_DEBOUNCE_MS = 500;
@@ -144,7 +149,7 @@ export class QuickShellStorage {
       await this.flushRecentWritesUnlocked();
       await this.ensureLoaded();
       if (this.cache!.workspaces.length === 0) {
-        return { success: true, message: "No workspaces to reset." };
+        return { success: true, outcome: "noop", message: "No workspaces to reset." };
       }
 
       const count = this.cache!.workspaces.length;
@@ -157,6 +162,7 @@ export class QuickShellStorage {
       const itemsLabel = count === 1 ? "workspace" : "workspaces";
       return {
         success: true,
+        outcome: "reset",
         message: `Reset ${count} ${itemsLabel}. Use Undo, or Restore Backup, if you change your mind.`,
       };
     });
@@ -168,7 +174,7 @@ export class QuickShellStorage {
       await this.flushRecentWritesUnlocked();
       const raw = await this.adapter.getItem(BACKUP_STORAGE_KEY);
       if (!raw) {
-        return { success: true, message: "No workspace backup found." };
+        return { success: true, outcome: "noop", message: "No workspace backup found." };
       }
 
       let parsed: unknown;
@@ -178,6 +184,7 @@ export class QuickShellStorage {
         await this.adapter.setItem(BACKUP_STORAGE_KEY, "");
         return {
           success: true,
+          outcome: "discarded",
           message: "Workspace backup was not valid JSON and has been discarded.",
         };
       }
@@ -186,6 +193,7 @@ export class QuickShellStorage {
       await this.saveUnlocked(restored, { preserveSecurity: false, allowSubmittedSecurity: true });
       return {
         success: true,
+        outcome: "restored",
         message: `Restored ${restored.workspaces.length} workspace${restored.workspaces.length === 1 ? "" : "s"} from backup.`,
       };
     });
@@ -262,7 +270,10 @@ export class QuickShellStorage {
       allowSubmittedSecurity?: boolean;
     },
   ): Promise<void> {
-    return this.withWriteLock(() => this.saveUnlocked(data, options));
+    return this.withWriteLock(async () => {
+      await this.flushRecentWritesUnlocked();
+      await this.saveUnlocked(data, options);
+    });
   }
 
   async getWorkspaces(): Promise<Workspace[]> {
@@ -666,6 +677,10 @@ export class QuickShellStorage {
    * public save / flushRecentWrites so concurrent callers always queue.
    */
   private async withWriteLock<T>(operation: () => Promise<T>): Promise<T> {
+    if (writeLockContext.getStore()) {
+      throw new Error("Nested QuickShellStorage write lock: use saveUnlocked / flushRecentWritesUnlocked.");
+    }
+
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
@@ -677,7 +692,7 @@ export class QuickShellStorage {
     );
     await previous;
     try {
-      return await operation();
+      return await writeLockContext.run(true, operation);
     } finally {
       release();
     }
