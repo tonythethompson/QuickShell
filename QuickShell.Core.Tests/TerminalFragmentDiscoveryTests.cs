@@ -77,7 +77,137 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
         var profiles = TerminalFragmentDiscovery.LoadAll([_root]);
 
         Assert.True(profiles.TryGetValue("47302f9c-1ac4-566c-aa3e-8cf29889d6ab", out var profile));
-        Assert.Equal("second.ico", profile.Icon);
+        Assert.EndsWith("second.ico", profile.Icon, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void load_all_updates_key_merges_onto_existing_guid()
+    {
+        WriteFragment(
+            Path.Combine(_root, "base", "base.json"),
+            """
+            {
+                "profiles": [
+                    {
+                        "guid": "{47302f9c-1ac4-566c-aa3e-8cf29889d6ab}",
+                        "icon": "base.ico"
+                    }
+                ]
+            }
+            """);
+
+        WriteFragment(
+            Path.Combine(_root, "patch", "patch.json"),
+            """
+            {
+                "profiles": [
+                    {
+                        "updates": "{47302f9c-1ac4-566c-aa3e-8cf29889d6ab}",
+                        "commandline": "C:/tools/nu.exe"
+                    }
+                ]
+            }
+            """);
+
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root]);
+
+        Assert.True(profiles.TryGetValue("47302f9c-1ac4-566c-aa3e-8cf29889d6ab", out var profile));
+        Assert.Equal("C:/tools/nu.exe", profile.Commandline);
+        Assert.EndsWith("base.ico", profile.Icon, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void load_all_resolves_relative_icon_against_fragment_directory()
+    {
+        var fragmentDir = Path.Combine(_root, "vendor");
+        WriteFragment(
+            Path.Combine(fragmentDir, "app.json"),
+            """
+            {
+                "profiles": [
+                    {
+                        "guid": "{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}",
+                        "icon": "app_icon.png"
+                    }
+                ]
+            }
+            """);
+
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root]);
+
+        Assert.True(profiles.TryGetValue("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", out var profile));
+        Assert.Equal(Path.GetFullPath(Path.Combine(fragmentDir, "app_icon.png")), profile.Icon);
+    }
+
+    [Fact]
+    public void resolve_fragment_icon_preserves_inline_glyph()
+    {
+        var fragmentDir = Path.Combine(_root, "vendor");
+        Directory.CreateDirectory(fragmentDir);
+
+        Assert.Equal("🐧", TerminalFragmentDiscovery.ResolveFragmentIcon("🐧", fragmentDir));
+        Assert.Equal("\uE756", TerminalFragmentDiscovery.ResolveFragmentIcon("\uE756", fragmentDir));
+    }
+
+    [Fact]
+    public void load_all_reports_read_failures_for_locked_files()
+    {
+        var path = Path.Combine(_root, "locked", "locked.json");
+        WriteFragment(
+            path,
+            """
+            {
+                "profiles": [
+                    {
+                        "guid": "{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}",
+                        "icon": "x.ico"
+                    }
+                ]
+            }
+            """);
+
+        using var lockStream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root], out var hadReadFailures);
+
+        Assert.True(hadReadFailures);
+        Assert.False(profiles.ContainsKey("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
+    }
+
+    [Fact]
+    public void load_all_malformed_json_is_not_a_read_failure()
+    {
+        WriteFragment(Path.Combine(_root, "broken.json"), "not json");
+
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root], out var hadReadFailures);
+
+        Assert.False(hadReadFailures);
+        Assert.Empty(profiles);
+    }
+
+    [Fact]
+    public void compute_fingerprint_changes_when_file_mtime_changes()
+    {
+        var path = Path.Combine(_root, "nu", "nu.json");
+        WriteFragment(
+            path,
+            """
+            {
+                "profiles": [
+                    {
+                        "guid": "{47302f9c-1ac4-566c-aa3e-8cf29889d6ab}",
+                        "icon": "a.ico"
+                    }
+                ]
+            }
+            """);
+
+        var first = TerminalFragmentDiscovery.ComputeFingerprint([_root]);
+        File.SetLastWriteTimeUtc(path, File.GetLastWriteTimeUtc(path).AddSeconds(2));
+
+        var second = TerminalFragmentDiscovery.ComputeFingerprint([_root]);
+        Assert.NotEqual(first, second);
+        Assert.Equal(64, first.Length);
+        Assert.Equal(64, second.Length);
     }
 
     [Fact]

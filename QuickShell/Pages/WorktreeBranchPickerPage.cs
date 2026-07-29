@@ -89,10 +89,12 @@ internal sealed partial class WorktreeBranchPickerPage : DynamicListPage
                 {
                     built = BuildItems();
                 }
-                catch (Exception ex) when (ex is IOException
-                                           or UnauthorizedAccessException
-                                           or InvalidOperationException)
+                catch (Exception ex)
                 {
+                    // Keep catch-all so unexpected failures do not leave the loading
+                    // placeholder forever. Leave _loadStarted set so GetItems caches the
+                    // fallback and cannot start a duplicate BuildItems; retry is a fresh
+                    // page instance on re-open.
                     built =
                     [
                         new ListItem(new NoOpCommand())
