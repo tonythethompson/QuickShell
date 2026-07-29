@@ -222,6 +222,44 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
         Assert.Empty(profiles);
     }
 
+    [Fact]
+    public void load_all_skips_non_string_guid_and_processes_rest_of_file()
+    {
+        WriteFragment(
+            Path.Join(_root, "mixed", "mixed.json"),
+            """
+            {
+                "profiles": [
+                    {
+                        "guid": "this-is-ok",
+                        "commandline": "bad.exe"
+                    },
+                    {
+                        "guid": 12345
+                    },
+                    {
+                        "updates": 67890
+                    },
+                    {
+                        "guid": "{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}",
+                        "commandline": "good.exe",
+                        "icon": "good.ico"
+                    }
+                ]
+            }
+            """);
+
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root]);
+
+        Assert.True(profiles.ContainsKey("this-is-ok"));
+        Assert.DoesNotContain("12345", profiles.Keys);
+        Assert.DoesNotContain("67890", profiles.Keys);
+        Assert.Equal(2, profiles.Count);
+         Assert.True(profiles.TryGetValue("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", out var profile));
+         Assert.Equal("good.exe", profile.Commandline);
+         Assert.EndsWith("good.ico", profile.Icon, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void WriteFragment(string path, string content)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
