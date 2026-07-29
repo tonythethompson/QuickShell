@@ -95,7 +95,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   useEffect(() => {
     const query = searchText.trim();
     setTargetedLoadingQuery(null);
-    if (!query || !data) {
+    if (!query) {
       setTargetedSearch(null);
       return;
     }
@@ -133,17 +133,15 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
       controller.abort();
       clearTimeout(timer);
     };
-  }, [data, searchText]);
+  }, [searchText]);
 
   const filtered = useMemo(() => {
-    if (!data) {
-      return [];
-    }
+    const cached = data ?? [];
     const query = searchText.trim().toLowerCase();
     if (!query) {
-      return data;
+      return cached;
     }
-    const cachedMatches = data.filter(
+    const cachedMatches = cached.filter(
       (repo) =>
         repo.name.toLowerCase().includes(query) ||
         repo.directory.toLowerCase().includes(query) ||
@@ -199,7 +197,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
       searchBarPlaceholder="Search discovered git repositories..."
       throttle
     >
-      {error ? (
+      {error && filtered.length === 0 ? (
         <List.EmptyView icon={Icon.ExclamationMark} title="Discovery failed" description={error.message} />
       ) : null}
 

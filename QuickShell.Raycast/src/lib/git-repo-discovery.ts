@@ -129,6 +129,9 @@ export async function discoverGitReposAsync(
       if (scanned >= maxScanned || results.length >= maxRepos) {
         return;
       }
+      if (work.depth >= MAX_DEPTH) {
+        continue;
+      }
 
       let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
       try {
@@ -246,6 +249,9 @@ function discoverGitReposSync(extraRoots: string[] = []): GitRepoCandidate[] {
     scanned += 1;
     if (scanned >= MAX_SCANNED) {
       break;
+    }
+    if (work.depth >= MAX_DEPTH) {
+      continue;
     }
 
     let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
