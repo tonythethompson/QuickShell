@@ -14,6 +14,7 @@ import {
 } from "../lib/workspace-transfer-files";
 
 const { execFileMock } = vi.hoisted(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { promisify } = require("node:util") as typeof import("node:util");
   const execFileMock = vi.fn();
   // Preserve Node's execFile promisify contract ({ stdout, stderr }) for success paths.

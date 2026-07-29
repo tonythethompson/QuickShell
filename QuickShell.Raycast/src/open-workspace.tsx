@@ -479,7 +479,8 @@ export default function OpenWorkspaceCommand({
       await showToast({
         style: Toast.Style.Failure,
         title: "Companion apps blocked",
-        message: authorizedEffects.warnings[0] ?? "Trust this workspace and use a valid local folder with a companion app.",
+        message:
+          authorizedEffects.warnings[0] ?? "Trust this workspace and use a valid local folder with a companion app.",
       });
       return;
     }

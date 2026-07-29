@@ -167,11 +167,12 @@ function migrateSettings(raw: unknown): QuickShellSettings {
       ? record.defaultProfile.trim()
       : DEFAULT_SETTINGS.defaultProfile;
 
+  const { recentWorkspaceCount: rawRecentWorkspaceCount } = record;
   let recentWorkspaceCount = DEFAULT_SETTINGS.recentWorkspaceCount;
-  if (typeof record.recentWorkspaceCount === "number") {
-    recentWorkspaceCount = normalizeRecentCount(record.recentWorkspaceCount);
-  } else if (typeof record.recentWorkspaceCount === "string") {
-    const parsed = Number.parseInt(record.recentWorkspaceCount, 10);
+  if (typeof rawRecentWorkspaceCount === "number") {
+    recentWorkspaceCount = normalizeRecentCount(rawRecentWorkspaceCount);
+  } else if (typeof rawRecentWorkspaceCount === "string") {
+    const parsed = Number.parseInt(rawRecentWorkspaceCount, 10);
     if (!Number.isNaN(parsed)) {
       recentWorkspaceCount = normalizeRecentCount(parsed);
     }

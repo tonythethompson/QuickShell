@@ -522,9 +522,7 @@ export default function WorkspaceForm({
       wtProfile: selectedTerminal?.wtProfile ?? null,
       isPinned: formValues.isPinned,
       runAsAdmin: isMacPlatform() ? false : formValues.runAsAdmin,
-      launches: isMacPlatform()
-        ? launches.map((launch) => ({ ...launch, runAsAdmin: false }))
-        : launches,
+      launches: isMacPlatform() ? launches.map((launch) => ({ ...launch, runAsAdmin: false })) : launches,
       companions,
       devServerUrl: formValues.devServerUrl,
       openDevServerOnLaunch: formValues.openDevServerOnLaunch,

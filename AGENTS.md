@@ -4,7 +4,7 @@ Guidance for coding agents working in QuickShell. Architecture tours live in `do
 
 ## Project Overview
 
-Quick Shell is a **Windows-only .NET 10 keyboard-first workspace launcher**. A *workspace* is a saved folder plus metadata (terminal launches, companion app, git target, dev server). The primary surface is a PowerToys Command Palette extension (`QuickShell`), packaged out-of-process as a signed MSIX COM server. Two sibling hosts reuse the same on-disk model: a PowerToys Run plugin (`QuickShell.Run`, `qs` keyword) and a TypeScript Raycast extension (`QuickShell.Raycast`, parallel storage). `QuickShell.Core` owns all domain logic (no CmdPal SDK dependency) so the hosts are swappable UI shells. `QuickShell.Suggest` is a console CLI that emits JSON suggestion pills for Raycast.
+Quick Shell is a **Windows-only .NET 10 keyboard-first workspace launcher**. A _workspace_ is a saved folder plus metadata (terminal launches, companion app, git target, dev server). The primary surface is a PowerToys Command Palette extension (`QuickShell`), packaged out-of-process as a signed MSIX COM server. Two sibling hosts reuse the same on-disk model: a PowerToys Run plugin (`QuickShell.Run`, `qs` keyword) and a TypeScript Raycast extension (`QuickShell.Raycast`, parallel storage). `QuickShell.Core` owns all domain logic (no CmdPal SDK dependency) so the hosts are swappable UI shells. `QuickShell.Suggest` is a console CLI that emits JSON suggestion pills for Raycast.
 
 The UI term is **workspace**; the on-disk file is still `%LOCALAPPDATA%\QuickShell\shortcuts.json`. Keep the product term and the storage term separate in code/comments.
 
@@ -21,6 +21,7 @@ The UI term is **workspace**; the on-disk file is still `%LOCALAPPDATA%\QuickShe
 **Typed command routing.** `CommandRouter` (`CommandRouting/CommandRouter.cs`) uses `ICommandIdParser` to parse a deep-link string into a `CommandDescriptor` record (`Id, Kind, WorkspaceId, LaunchId, Directory, Branch`), then dispatches by `CommandKind` to a registered `ICommandItemHandler` (`CommandRouting/ICommandItemHandler.cs` + `CommandItemHandlers.cs`). Handlers receive a `QuickShellPageContext` (Shortcuts, Settings, CreateShortcut, ReloadPages) and return an `ICommandItem` (often a Page). To add a new deep link: add a `CommandKind` + an `ICommandItemHandler`.
 
 **User command to launch flow.**
+
 1. CmdPal invokes `GetCommandItem(id)` (deep link) or shows `TopLevelCommands()`.
 2. `ICommandRouter` -> `ICommandIdParser.TryParse` -> `CommandDescriptor`.
 3. Matching `ICommandItemHandler.Create` builds a `CommandItem`/`Page`.
@@ -35,17 +36,17 @@ The UI term is **workspace**; the on-disk file is still `%LOCALAPPDATA%\QuickShe
 
 ## Key Directories
 
-| Path | Purpose |
-|------|---------|
-| `QuickShell.Core/` | Domain: models, persistence, launch, health, git, terminals, classification, suggestions, companions. **No** CmdPal SDK dependency. `Services/`, `Models/`, `Composition/`, `Classification/`, `Abstractions/`. |
-| `QuickShell/` | CmdPal extension: MSIX, Adaptive Card pages, command routing. `Pages/`, `Commands/`, `Services/CommandRouting/`, `Program.cs`, `QuickShell.cs`, `QuickShellCommandsProvider.cs`. |
-| `QuickShell.Run/` | PowerToys Run plugin (`IPlugin`, `qs` keyword); consumes Core. |
-| `QuickShell.Core.Tests/` | xUnit unit tests for Core (Windows-only TFM). |
-| `QuickShell.Raycast/` | Separate npm/TS extension; **not** in the `.sln`; mirrors product rules, shells out to `QuickShell.Suggest`. |
-| `QuickShell.Suggest/` | Console CLI emitting JSON suggestion pills for Raycast. |
-| `scripts/` | `deploy.ps1`, `run-cmdpal-dev.ps1`, `deploy-all.ps1`/`ddeploy.ps1`, `generate-assets.ps1`, `RaycastLifecycle.ps1`, `build-exe.ps1`, `setup-template.iss`, `LogoAssetGenerator/`. |
-| `docs/architecture/` | As-built tours (`overview`, `launch`, `persistence`, `cmdpal-surface`, `hosts`, `settings`, `forms`, `intelligence`, `companions`, `git-and-discover`) + ADRs `0001`-`0005`. |
-| `.github/workflows/` | `ci.yml` (build/test), `release-extension.yml` (tag-triggered release + WinGet). |
+| Path                     | Purpose                                                                                                                                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QuickShell.Core/`       | Domain: models, persistence, launch, health, git, terminals, classification, suggestions, companions. **No** CmdPal SDK dependency. `Services/`, `Models/`, `Composition/`, `Classification/`, `Abstractions/`. |
+| `QuickShell/`            | CmdPal extension: MSIX, Adaptive Card pages, command routing. `Pages/`, `Commands/`, `Services/CommandRouting/`, `Program.cs`, `QuickShell.cs`, `QuickShellCommandsProvider.cs`.                                |
+| `QuickShell.Run/`        | PowerToys Run plugin (`IPlugin`, `qs` keyword); consumes Core.                                                                                                                                                  |
+| `QuickShell.Core.Tests/` | xUnit unit tests for Core (Windows-only TFM).                                                                                                                                                                   |
+| `QuickShell.Raycast/`    | Separate npm/TS extension; **not** in the `.sln`; mirrors product rules, shells out to `QuickShell.Suggest`.                                                                                                    |
+| `QuickShell.Suggest/`    | Console CLI emitting JSON suggestion pills for Raycast.                                                                                                                                                         |
+| `scripts/`               | `deploy.ps1`, `run-cmdpal-dev.ps1`, `deploy-all.ps1`/`ddeploy.ps1`, `generate-assets.ps1`, `RaycastLifecycle.ps1`, `build-exe.ps1`, `setup-template.iss`, `LogoAssetGenerator/`.                                |
+| `docs/architecture/`     | As-built tours (`overview`, `launch`, `persistence`, `cmdpal-surface`, `hosts`, `settings`, `forms`, `intelligence`, `companions`, `git-and-discover`) + ADRs `0001`-`0005`.                                    |
+| `.github/workflows/`     | `ci.yml` (build/test), `release-extension.yml` (tag-triggered release + WinGet).                                                                                                                                |
 
 ## Development Commands
 
@@ -120,7 +121,7 @@ npm run dev     # ray develop
 ## Runtime / Tooling Preferences
 
 - **.NET 10 SDK** (no `global.json`; SDK version implied). Target frameworks differ by project: the `QuickShell` CmdPal host targets `net10.0-windows10.0.26100.0`; `QuickShell.Core`, `QuickShell.Core.Tests`, and `QuickShell.Suggest` target `net10.0-windows7.0`. All are Windows-only (CsWinRT/CsWin32, Windows App SDK, WinUI, MSIX tooling).
-- **`QuickShell.Core` has `<UseWindowsForms>true</UseWindowsForms>`** despite owning no CmdPal SDK dependency. It uses WinForms for clipboard/path pickers. So Core is only *compilable* off-Windows (via `-p:EnableWindowsTargeting=true`); it cannot *execute* on Linux. Keep Windows-only APIs in Core minimal so the swappable-host story holds.
+- **`QuickShell.Core` has `<UseWindowsForms>true</UseWindowsForms>`** despite owning no CmdPal SDK dependency. It uses WinForms for clipboard/path pickers. So Core is only _compilable_ off-Windows (via `-p:EnableWindowsTargeting=true`); it cannot _execute_ on Linux. Keep Windows-only APIs in Core minimal so the swappable-host story holds.
 - **Package manager:** NuGet with **Central Package Management** (`Directory.Packages.props`, `ManagePackageVersionsCentrally=true`). CmdPal SDK is `Microsoft.CommandPalette.Extensions` (NuGet) or a sibling local PowerToys SDK via `-p:UseLocalCmdPalSdk=true` (defines `CMDPAL_HOVER_ACTIONS`; don't assume those APIs exist otherwise).
 - **No `.editorconfig` or `global.json`.** Analyzers are on: `EnableNETAnalyzers=true`, `AnalysisMode=Recommended`, plus StyleCop. Treat analyzer warnings seriously; they can break the Windows build.
 - **Node >= 22.14** for the Raycast surface; `npm`/`ray` CLI for its build/lint/test.

@@ -621,8 +621,8 @@ describe("storage", () => {
     };
     const locked = storage as unknown as LockHost;
 
-    await expect(
-      locked.withWriteLock(async () => locked.withWriteLock(async () => "nested")),
-    ).rejects.toThrow(/Nested QuickShellStorage write lock/);
+    await expect(locked.withWriteLock(async () => locked.withWriteLock(async () => "nested"))).rejects.toThrow(
+      /Nested QuickShellStorage write lock/,
+    );
   });
 });
