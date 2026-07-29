@@ -118,12 +118,20 @@ internal static class ShortcutDisplay
             return value.Trim();
         }
 
-        // Bolt: Performance optimization - use AsSpan().SplitAny() to avoid string array allocations from string.Split()
+        // Bolt: Performance optimization - avoid string.Split() allocations; scan separators directly over the span.
         var builder = new System.Text.StringBuilder(span.Length);
         var first = true;
-        foreach (var range in span.SplitAny('\r', '\n', '\t'))
+        var segmentStart = 0;
+
+        for (var i = 0; i <= span.Length; i++)
         {
-            var part = span[range].Trim();
+            var atEnd = i == span.Length;
+            if (!atEnd && span[i] != '\r' && span[i] != '\n' && span[i] != '\t')
+            {
+                continue;
+            }
+
+            var part = span[segmentStart..i].Trim();
             if (!part.IsEmpty)
             {
                 if (!first)
@@ -134,6 +142,8 @@ internal static class ShortcutDisplay
                 builder.Append(part);
                 first = false;
             }
+
+            segmentStart = i + 1;
         }
 
         return builder.ToString();
