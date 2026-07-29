@@ -73,7 +73,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly Action _notifyContentChanged;
     /// <summary>Handoff from the background capture to this page's fetch thread.</summary>
     private PendingSnapshot? _pendingSnapshot;
-    private sealed record PendingSnapshot(WorkspaceStatusSnapshot Snapshot, int Generation);
+    private readonly record struct PendingSnapshot(WorkspaceStatusSnapshot Snapshot, int Generation);
     /// <summary>Monotonic generation so an older capture cannot overwrite a newer refresh.</summary>
     private int _refreshGeneration;
     /// <summary>Serializes generation bump, pending handoff, and apply so races cannot drop the newest snapshot.</summary>
@@ -85,18 +85,21 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     internal void ApplyPendingSnapshot()
     {
-        PendingSnapshot? pending;
+        PendingSnapshot? toPublish = null;
         lock (_refreshGate)
         {
-            pending = _pendingSnapshot;
+            var pending = _pendingSnapshot;
             _pendingSnapshot = null;
-            if (pending is null || pending.Generation != _refreshGeneration)
+            if (pending is { } ready && ready.Generation == _refreshGeneration)
             {
-                return;
+                toPublish = ready;
             }
         }
 
-        PublishSnapshot(pending.Snapshot);
+        if (toPublish is { } snapshot)
+        {
+            PublishSnapshot(snapshot.Snapshot);
+        }
     }
 
     public WorkspaceStatusForm(

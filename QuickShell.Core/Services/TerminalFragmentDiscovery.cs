@@ -39,12 +39,13 @@ internal static class TerminalFragmentDiscovery
                 continue;
             }
 
-            IEnumerable<string> files;
+            IReadOnlyList<string> files;
             try
             {
                 files = Directory
                     .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
-                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
             }
             catch
             {
@@ -100,12 +101,13 @@ internal static class TerminalFragmentDiscovery
                 continue;
             }
 
-            IEnumerable<string> files;
+            IReadOnlyList<string> files;
             try
             {
                 files = Directory
                     .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
-                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
             }
             catch
             {
