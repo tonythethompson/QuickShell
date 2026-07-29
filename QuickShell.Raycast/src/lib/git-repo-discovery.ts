@@ -106,26 +106,32 @@ export async function discoverGitReposAsync(
         continue;
       }
 
+      // Reserve capacity before yielding so concurrent workers cannot all pass
+      // the admission check and later exceed maxScanned.
+      scanned += 1;
       let isDirectory = false;
       try {
         isDirectory = (await fs.stat(work.directory)).isDirectory();
       } catch {
+        scanned -= 1;
         continue;
       }
       if (signal?.aborted) {
+        scanned -= 1;
         return;
       }
       if (!isDirectory) {
+        scanned -= 1;
         continue;
       }
 
       if (existsSync(path.join(work.directory, ".git"))) {
+        scanned -= 1;
         addRepo(work.directory, results, seen, query, maxRepos);
         continue;
       }
 
       // Match Core: only non-repo directories consume the scan budget.
-      scanned += 1;
       if (scanned >= maxScanned || results.length >= maxRepos) {
         return;
       }

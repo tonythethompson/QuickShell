@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
   buildSearchRoots,
+  discoverGitReposAsync,
   discoverGitReposForQueryAsync,
   listDefaultRootCandidates,
   searchRootsFromWorkspaces,
@@ -179,6 +181,37 @@ describe("discoverGitReposForQueryAsync", () => {
 
       expect(repos).toHaveLength(10);
     } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("discoverGitReposAsync", () => {
+  it("reserves scan capacity before concurrent stat calls", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-concurrency-"));
+    const roots = Array.from({ length: 4 }, (_, index) => path.join(root, `root-${index}`));
+    roots.forEach((directory) => mkdirSync(directory));
+
+    const originalStat = fs.stat.bind(fs);
+    let activeStats = 0;
+    let maxActiveStats = 0;
+    const stat = vi.spyOn(fs, "stat").mockImplementation(async (candidate) => {
+      activeStats += 1;
+      maxActiveStats = Math.max(maxActiveStats, activeStats);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      try {
+        return await originalStat(candidate);
+      } finally {
+        activeStats -= 1;
+      }
+    });
+
+    try {
+      await discoverGitReposAsync([], { rootDirectories: roots, concurrency: 4, maxScanned: 1 });
+
+      expect(maxActiveStats).toBe(1);
+    } finally {
+      stat.mockRestore();
       rmSync(root, { recursive: true, force: true });
     }
   });
