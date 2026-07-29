@@ -251,9 +251,13 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
 
         var profiles = TerminalFragmentDiscovery.LoadAll([_root]);
 
-        Assert.True(profiles.TryGetValue("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", out var profile));
-        Assert.Equal("good.exe", profile.Commandline);
-        Assert.EndsWith("good.ico", profile.Icon, StringComparison.OrdinalIgnoreCase);
+        Assert.True(profiles.ContainsKey("this-is-ok"));
+        Assert.DoesNotContain("12345", profiles.Keys);
+        Assert.DoesNotContain("67890", profiles.Keys);
+        Assert.Equal(2, profiles.Count);
+         Assert.True(profiles.TryGetValue("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", out var profile));
+         Assert.Equal("good.exe", profile.Commandline);
+         Assert.EndsWith("good.ico", profile.Icon, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void WriteFragment(string path, string content)
