@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import WorkspaceForm from "./workspace-form";
 import UnsupportedPlatformView from "./unsupported-platform-view";
 import { detectCompanionSeed } from "../lib/companion-detection";
@@ -87,7 +87,8 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   const [targetedSearch, setTargetedSearch] = useState<{ query: string; repos: GitRepoCandidate[] } | null>(null);
   const [targetedLoadingQuery, setTargetedLoadingQuery] = useState<string | null>(null);
   const [addedDirectoryKeys, setAddedDirectoryKeys] = useState<Set<string>>(() => new Set());
-  const [pendingQuickAddKey, setPendingQuickAddKey] = useState<string | null>(null);
+  const [pendingQuickAddKeys, setPendingQuickAddKeys] = useState<Set<string>>(() => new Set());
+  const pendingQuickAddKeysRef = useRef(new Set<string>());
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
 
@@ -200,7 +201,12 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   }
 
   async function handleQuickAdd(directory: string, name: string, remoteUrl?: string | null) {
-    setPendingQuickAddKey(directory.toLowerCase());
+    const pendingKey = directory.toLowerCase();
+    if (pendingQuickAddKeysRef.current.has(pendingKey)) {
+      return;
+    }
+    pendingQuickAddKeysRef.current.add(pendingKey);
+    setPendingQuickAddKeys((current) => new Set(current).add(pendingKey));
     try {
       const workspace = await buildWorkspaceFromRepo(directory, name, remoteUrl);
       await storage.upsertWorkspace(workspace);
@@ -213,7 +219,12 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
     } catch (addError) {
       await showStorageFailure("Add workspace", addError);
     } finally {
-      setPendingQuickAddKey(null);
+      pendingQuickAddKeysRef.current.delete(pendingKey);
+      setPendingQuickAddKeys((current) => {
+        const next = new Set(current);
+        next.delete(pendingKey);
+        return next;
+      });
     }
   }
 
@@ -254,7 +265,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
                 title="Add Workspace"
                 icon={Icon.Plus}
                 onAction={() => handleQuickAdd(repo.directory, repo.name, repo.remoteUrl)}
-                disabled={pendingQuickAddKey === repo.directory.toLowerCase()}
+                disabled={pendingQuickAddKeys.has(repo.directory.toLowerCase())}
               />
               <Action.Push
                 title="Review Before Adding"
