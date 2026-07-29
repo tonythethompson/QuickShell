@@ -187,6 +187,25 @@ describe("discoverGitReposForQueryAsync", () => {
 });
 
 describe("discoverGitReposAsync", () => {
+  it("ignores expected stat lookup failures", async () => {
+    const stat = vi.spyOn(fs, "stat").mockRejectedValue(Object.assign(new Error("missing"), { code: "ENOENT" }));
+    try {
+      await expect(discoverGitReposAsync([], { rootDirectories: ["missing"] })).resolves.toEqual([]);
+    } finally {
+      stat.mockRestore();
+    }
+  });
+
+  it("surfaces unexpected stat failures", async () => {
+    const failure = new Error("unexpected stat failure");
+    const stat = vi.spyOn(fs, "stat").mockRejectedValue(failure);
+    try {
+      await expect(discoverGitReposAsync([], { rootDirectories: ["broken"] })).rejects.toBe(failure);
+    } finally {
+      stat.mockRestore();
+    }
+  });
+
   it("reserves scan capacity before concurrent stat calls", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "quickshell-git-concurrency-"));
     const roots = Array.from({ length: 4 }, (_, index) => path.join(root, `root-${index}`));

@@ -44,6 +44,7 @@ const MAX_TARGETED_SCANNED = 20000;
 const MAX_TARGETED_VISITED = 25000;
 const MAX_DEPTH = 5;
 const DEFAULT_CONCURRENCY = 4;
+const EXPECTED_FS_LOOKUP_ERROR_CODES = new Set(["ENOENT", "ENOTDIR", "EACCES", "EPERM", "ENAMETOOLONG"]);
 
 type DiscoveryOptions = {
   concurrency?: number;
@@ -112,9 +113,12 @@ export async function discoverGitReposAsync(
       let isDirectory = false;
       try {
         isDirectory = (await fs.stat(work.directory)).isDirectory();
-      } catch {
+      } catch (error) {
         scanned -= 1;
-        continue;
+        if (isExpectedFsLookupError(error)) {
+          continue;
+        }
+        throw error;
       }
       if (signal?.aborted) {
         scanned -= 1;
@@ -330,8 +334,7 @@ function repoCandidateFromPathQuery(value: string): GitRepoCandidate | null {
       candidate = path.dirname(candidate);
     }
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT" || code === "ENOTDIR" || code === "EACCES" || code === "EPERM" || code === "ENAMETOOLONG") {
+    if (isExpectedFsLookupError(error)) {
       return null;
     }
     throw error;
@@ -348,6 +351,11 @@ function repoCandidateFromPathQuery(value: string): GitRepoCandidate | null {
     }
     candidate = parent;
   }
+}
+
+function isExpectedFsLookupError(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  return typeof code === "string" && EXPECTED_FS_LOOKUP_ERROR_CODES.has(code);
 }
 
 function sortCandidates(results: GitRepoCandidate[]): GitRepoCandidate[] {
