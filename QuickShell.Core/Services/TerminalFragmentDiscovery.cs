@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace QuickShell.Services;
@@ -22,9 +24,75 @@ internal sealed class TerminalFragmentProfile
 /// </summary>
 internal static class TerminalFragmentDiscovery
 {
-    public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(IEnumerable<string>? roots = null)
+    /// <summary>
+    /// Cheap fingerprint of fragment file paths + mtimes + sizes. Used to skip a full
+    /// JSON parse when nothing on disk has changed. Returns a stable SHA-256 hex digest
+    /// so the stored value stays fixed-size regardless of fragment count.
+    /// </summary>
+    public static string ComputeFingerprint(IEnumerable<string>? roots = null)
+    {
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (var root in roots ?? GetDefaultRoots())
+        {
+            if (!Directory.Exists(root))
+            {
+                continue;
+            }
+
+            IReadOnlyList<string> files;
+            try
+            {
+                files = Directory
+                    .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    // Metadata only — do not read file bytes; LoadAll already parses JSON
+                    // when this fingerprint changes.
+                    var entry = string.Concat(
+                        file,
+                        "|",
+                        info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "|",
+                        info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ";");
+                    hasher.AppendData(Encoding.UTF8.GetBytes(entry));
+                }
+                catch
+                {
+                    // Locked / deleted between enumerate and stat. Omitted entries mean the
+                    // next successful read changes the fingerprint and forces a reload.
+                }
+            }
+        }
+
+        return Convert.ToHexString(hasher.GetHashAndReset());
+    }
+
+    public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(IEnumerable<string>? roots = null) =>
+        LoadAll(roots, out _);
+
+    /// <summary>
+    /// Loads fragment profiles. <paramref name="hadReadFailures"/> is set when a fragment
+    /// file could not be opened (locked/unauthorized) so callers can avoid committing a
+    /// fingerprint that would skip retrying that file.
+    /// </summary>
+    public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(
+        IEnumerable<string>? roots,
+        out bool hadReadFailures)
     {
         var profiles = new Dictionary<string, TerminalFragmentProfile>(StringComparer.OrdinalIgnoreCase);
+        hadReadFailures = false;
 
         foreach (var root in roots ?? GetDefaultRoots())
         {
@@ -33,17 +101,37 @@ internal static class TerminalFragmentDiscovery
                 continue;
             }
 
-            foreach (var file in Directory
-                .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
-                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            IReadOnlyList<string> files;
+            try
+            {
+                files = Directory
+                    .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+            catch
+            {
+                hadReadFailures = true;
+                continue;
+            }
+
+            foreach (var file in files)
             {
                 try
                 {
                     MergeFile(file, profiles);
                 }
+                catch (IOException)
+                {
+                    hadReadFailures = true;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    hadReadFailures = true;
+                }
                 catch
                 {
-                    // Ignore malformed or locked fragment files.
+                    // Ignore malformed fragment JSON; the file was readable.
                 }
             }
         }
@@ -70,9 +158,20 @@ internal static class TerminalFragmentDiscovery
             return;
         }
 
+        var fragmentDirectory = Path.GetDirectoryName(file);
+
         foreach (var element in listNode.EnumerateArray())
         {
-            var guid = element.TryGetProperty("guid", out var guidNode) ? guidNode.GetString() : null;
+            // New profiles use "guid"; patch profiles use "updates" (same GUID target).
+            var guid = element.TryGetProperty("guid", out var guidNode)
+                ? guidNode.GetString()
+                : null;
+            if (string.IsNullOrWhiteSpace(guid)
+                && element.TryGetProperty("updates", out var updatesNode))
+            {
+                guid = updatesNode.GetString();
+            }
+
             if (string.IsNullOrWhiteSpace(guid))
             {
                 continue;
@@ -86,12 +185,60 @@ internal static class TerminalFragmentDiscovery
                 ? iconNode.GetString()
                 : null;
 
-            // Last writer wins, matching Windows Terminal's fragment override order.
-            profiles[normalized] = new TerminalFragmentProfile
+            icon = ResolveFragmentIcon(icon, fragmentDirectory);
+
+            // Layer non-null fields onto any earlier entry for this GUID so a later
+            // commandline-only patch does not wipe a previously discovered icon.
+            if (profiles.TryGetValue(normalized, out var existing))
             {
-                Commandline = commandline,
-                Icon = icon,
-            };
+                profiles[normalized] = new TerminalFragmentProfile
+                {
+                    Commandline = !string.IsNullOrWhiteSpace(commandline)
+                        ? commandline
+                        : existing.Commandline,
+                    Icon = !string.IsNullOrWhiteSpace(icon)
+                        ? icon
+                        : existing.Icon,
+                };
+            }
+            else
+            {
+                profiles[normalized] = new TerminalFragmentProfile
+                {
+                    Commandline = commandline,
+                    Icon = icon,
+                };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves relative fragment icons against the fragment JSON directory. Absolute paths,
+    /// ms-appx URIs, inline emoji/Segoe glyphs, and empty values are left unchanged.
+    /// </summary>
+    internal static string? ResolveFragmentIcon(string? icon, string? fragmentDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(icon))
+        {
+            return icon;
+        }
+
+        var trimmed = icon.Trim();
+        if (Path.IsPathRooted(trimmed)
+            || trimmed.Contains("://", StringComparison.Ordinal)
+            || TerminalProfileIconResolver.IsInlineGlyphIcon(trimmed)
+            || string.IsNullOrWhiteSpace(fragmentDirectory))
+        {
+            return trimmed;
+        }
+
+        try
+        {
+            return Path.GetFullPath(Path.Combine(fragmentDirectory, trimmed));
+        }
+        catch
+        {
+            return trimmed;
         }
     }
 

@@ -72,7 +72,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly Action _releaseForm;
     private readonly Action _notifyContentChanged;
     /// <summary>Handoff from the background capture to this page's fetch thread.</summary>
-    private WorkspaceStatusSnapshot? _pendingSnapshot;
+    private PendingSnapshot? _pendingSnapshot;
+    private readonly record struct PendingSnapshot(WorkspaceStatusSnapshot Snapshot, int Generation);
+    /// <summary>Monotonic generation so an older capture cannot overwrite a newer refresh.</summary>
+    private int _refreshGeneration;
+    /// <summary>Serializes generation bump, pending handoff, and apply so races cannot drop the newest snapshot.</summary>
+    private readonly object _refreshGate = new();
 
     /// <summary>
     /// Applies a completed background capture. Called from <c>GetContent</c> so the host
@@ -80,14 +85,21 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     internal void ApplyPendingSnapshot()
     {
-        var pending = Volatile.Read(ref _pendingSnapshot);
-        if (pending is null)
+        PendingSnapshot? toPublish = null;
+        lock (_refreshGate)
         {
-            return;
+            var pending = _pendingSnapshot;
+            _pendingSnapshot = null;
+            if (pending is { } ready && ready.Generation == _refreshGeneration)
+            {
+                toPublish = ready;
+            }
         }
 
-        Volatile.Write(ref _pendingSnapshot, null);
-        PublishSnapshot(pending);
+        if (toPublish is { } snapshot)
+        {
+            PublishSnapshot(snapshot.Snapshot);
+        }
     }
 
     public WorkspaceStatusForm(
@@ -160,6 +172,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     /// </summary>
     private void ScheduleRefresh()
     {
+        int generation;
+        lock (_refreshGate)
+        {
+            generation = ++_refreshGeneration;
+        }
+
         var cancellationToken = _services.Lifetime.CancellationToken;
         _ = Task.Run(
             () =>
@@ -187,8 +205,18 @@ internal sealed partial class WorkspaceStatusForm : FormContent
                     return;
                 }
 
-                // Hand off; GetContent applies it on the fetch the notification triggers.
-                Volatile.Write(ref _pendingSnapshot, snapshot);
+                // Drop superseded captures under the same gate as ApplyPendingSnapshot so a
+                // slow older refresh cannot overwrite (and then be discarded against) a newer one.
+                lock (_refreshGate)
+                {
+                    if (_refreshGeneration != generation)
+                    {
+                        return;
+                    }
+
+                    _pendingSnapshot = new PendingSnapshot(snapshot, generation);
+                }
+
                 _notifyContentChanged();
             },
             cancellationToken);
