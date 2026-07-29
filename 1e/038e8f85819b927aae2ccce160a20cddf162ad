@@ -1,0 +1,24 @@
+Directory.Build.props
+  s_cf12b09248c591::t_e3b961db470d8f 4
+CHANGELOG.md
+  s_cf12b09248c591::t_b4db95bde5df48 15-28
+  s_cf12b09248c591::t_fc4f832fc54498 13-14
+QuickShell/Package.appxmanifest
+  s_cf12b09248c591::t_4e87acff94da1c 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1e038e8f85819b927aae2ccce160a20cddf162ad",
+  "prompts": {},
+  "sessions": {
+    "s_cf12b09248c591": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "213a7cf1-73cb-48e6-a175-67f721e03acd",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
