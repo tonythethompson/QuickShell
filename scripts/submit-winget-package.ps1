@@ -27,6 +27,9 @@
 .PARAMETER ReleaseNotes
     Release notes text for the locale manifest.
 
+.PARAMETER ReleaseDate
+    Optional installer ReleaseDate (YYYY-MM-DD). Defaults to today (UTC).
+
 .PARAMETER Required
     If set, missing packages and submit failures fail the step. Default: soft-skip
     when the package is not yet in winget-pkgs.
@@ -49,6 +52,8 @@ param(
 
     [Parameter(Mandatory)]
     [string]$ReleaseNotes,
+
+    [string]$ReleaseDate = '',
 
     [switch]$Required
 )
@@ -109,6 +114,14 @@ if (-not $manifestDir) {
 & (Join-Path $PSScriptRoot 'set-winget-release-notes.ps1') -ManifestDir $manifestDir -ReleaseNotes $ReleaseNotes
 if (-not $?) {
     throw "set-winget-release-notes.ps1 failed for $PackageId."
+}
+
+if ([string]::IsNullOrWhiteSpace($ReleaseDate)) {
+    $ReleaseDate = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
+}
+& (Join-Path $PSScriptRoot 'set-winget-release-date.ps1') -ManifestDir $manifestDir -ReleaseDate $ReleaseDate
+if (-not $?) {
+    throw "set-winget-release-date.ps1 failed for $PackageId."
 }
 
 Write-Host "Submitting $PackageId from $manifestDir..."
