@@ -473,6 +473,33 @@ h2.section-label {
   &:hover { opacity: 0.88; }
 }
 
+.section-intro {
+  max-width: 42rem;
+  margin: -0.35rem 0 1rem;
+  color: $text-mid;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.section-intro a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.section-intro a:hover {
+  text-decoration: underline;
+}
+
+.home-bottom-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .home-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 // ── Typography ──────────────────────────────────────────
 
 h1, h2, h3, h4 {
