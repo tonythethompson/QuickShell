@@ -141,7 +141,7 @@ Also first-time import from `shortcuts.json.bak` or old product path `TerminalSh
 
 ## Raycast
 
-`QuickShellStorage` mirrors layout/undo/recent debounce in Raycast storage API — **does not** share the desktop JSON path unless the user imports or exports.
+`QuickShellStorage` mirrors layout/undo/recent debounce in Raycast storage API and serializes all mutations behind an in-process write queue — **does not** share the desktop JSON path unless the user imports or exports. Reset-all writes a durable, restart-safe backup snapshot under the Raycast-owned backup key (`quickshell-data.bak`); users can restore it after restart (or use in-session Undo). Nested save/flush work uses private unlocked helpers so concurrent public mutations always queue.
 
 ## Key files
 

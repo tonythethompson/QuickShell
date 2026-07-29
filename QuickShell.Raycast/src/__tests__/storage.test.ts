@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { QuickShellStorage, createMemoryStorageAdapter } from "../lib/storage";
 import { createStableId } from "../lib/ids";
 import { normalizeWorkspace } from "../lib/validation";
-import { createEmptyStoredData } from "../lib/schema";
+import { BACKUP_STORAGE_KEY, createEmptyStoredData, DEFAULT_SETTINGS } from "../lib/schema";
 import { createReviewToken, matchesReviewToken, setWorkspaceTrustEnabledForTests } from "../lib/security";
 
 beforeEach(() => {
@@ -374,6 +374,61 @@ describe("storage", () => {
     expect(loaded.map((workspace) => workspace.name).sort()).toEqual(["Alpha", "Beta"]);
   });
 
+  it("serializes overlapping mutations on the same workspace so both updates survive", async () => {
+    const storage = new QuickShellStorage(createMemoryStorageAdapter());
+    const id = createStableId();
+    const workspace = createWorkspace(id, "Alpha");
+    await storage.upsertWorkspace(workspace);
+
+    const usedAt = new Date("2026-07-01T12:00:00.000Z");
+    await Promise.all([storage.setFavorite(id, true), storage.markWorkspaceUsed(id, usedAt)]);
+    await storage.flushRecentWrites();
+
+    const loaded = await storage.getWorkspaces();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].isPinned).toBe(true);
+    expect(loaded[0].lastUsedUtc).toBe(usedAt.toISOString());
+  });
+
+  it("queues a second mutation that starts while the first writer is awaiting storage I/O", async () => {
+    let releaseFirstWrite!: () => void;
+    const firstWriteGate = new Promise<void>((resolve) => {
+      releaseFirstWrite = resolve;
+    });
+    let signalFirstWriteStarted!: () => void;
+    const firstWriteStarted = new Promise<void>((resolve) => {
+      signalFirstWriteStarted = resolve;
+    });
+    let writeCount = 0;
+
+    const base = createMemoryStorageAdapter();
+    const adapter = {
+      getItem: (key: string) => base.getItem(key),
+      async setItem(key: string, value: string) {
+        writeCount += 1;
+        if (writeCount === 1) {
+          signalFirstWriteStarted();
+          await firstWriteGate;
+        }
+        await base.setItem(key, value);
+      },
+    };
+
+    const storage = new QuickShellStorage(adapter);
+    const first = createWorkspace(createStableId(), "Alpha");
+    const second = createWorkspace(createStableId(), "Beta");
+
+    const firstUpsert = storage.upsertWorkspace(first);
+    await firstWriteStarted;
+    const secondUpsert = storage.upsertWorkspace(second);
+    releaseFirstWrite();
+    await Promise.all([firstUpsert, secondUpsert]);
+
+    const loaded = await storage.getWorkspaces();
+    expect(loaded).toHaveLength(2);
+    expect(loaded.map((workspace) => workspace.name).sort()).toEqual(["Alpha", "Beta"]);
+  });
+
   it("resetAll is a no-op when empty", async () => {
     const storage = new QuickShellStorage(createMemoryStorageAdapter());
     const result = await storage.resetAll();
@@ -382,17 +437,32 @@ describe("storage", () => {
     expect(await storage.hasBackup()).toBe(false);
   });
 
-  it("resetAll clears workspaces, keeps undo, and writes a durable backup", async () => {
+  it("resetAll clears workspaces, keeps undo, preserves settings, and writes a durable backup", async () => {
     const adapter = createMemoryStorageAdapter();
     const storage = new QuickShellStorage(adapter);
     const id = createStableId();
-    await storage.upsertWorkspace(createWorkspace(id, "Alpha"));
+    const workspace = createWorkspace(id, "Alpha");
+    const initialSettings = {
+      ...DEFAULT_SETTINGS,
+      terminalApplication: "conhost" as const,
+      recentWorkspaceCount: 3,
+    };
+    await storage.updateSettings(initialSettings);
+    await storage.upsertWorkspace(workspace);
 
     const result = await storage.resetAll();
     expect(result.success).toBe(true);
     expect(await storage.getWorkspaces()).toHaveLength(0);
+    expect(await storage.getSettings()).toEqual(initialSettings);
     expect(await storage.hasBackup()).toBe(true);
     expect(storage.canUndo()).toBe(true);
+
+    const backupRaw = await adapter.getItem(BACKUP_STORAGE_KEY);
+    expect(backupRaw).toBeTruthy();
+    const backup = JSON.parse(backupRaw as string) as { workspaces: Array<{ id: string; name: string }> };
+    expect(backup.workspaces).toHaveLength(1);
+    expect(backup.workspaces[0].id).toBe(workspace.id);
+    expect(backup.workspaces[0].name).toBe("Alpha");
 
     await storage.undo();
     expect(await storage.getWorkspaces()).toHaveLength(1);
@@ -414,5 +484,19 @@ describe("storage", () => {
     expect(restored.success).toBe(true);
     expect(await restarted.getWorkspaces()).toHaveLength(1);
     expect((await restarted.getWorkspaces())[0].name).toBe("Alpha");
+  });
+
+  it("restoreFromBackup discards corrupt backup JSON so later calls can recover", async () => {
+    const adapter = createMemoryStorageAdapter();
+    await adapter.setItem(BACKUP_STORAGE_KEY, "{not-json");
+    const storage = new QuickShellStorage(adapter);
+
+    const result = await storage.restoreFromBackup();
+    expect(result.success).toBe(true);
+    expect(result.message).toMatch(/not valid JSON/i);
+    expect(await storage.hasBackup()).toBe(false);
+
+    const again = await storage.restoreFromBackup();
+    expect(again.message).toMatch(/no workspace backup/i);
   });
 });

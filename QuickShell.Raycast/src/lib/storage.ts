@@ -32,7 +32,7 @@ export type StorageAdapter = {
   setItem: (key: string, value: string) => Promise<void>;
 };
 
-export type StorageTransferResult = {
+type StorageTransferResult = {
   success: true;
   message: string;
 };
@@ -48,7 +48,6 @@ export class QuickShellStorage {
   private recentWriteDirty = false;
   /** Serializes load-modify-save mutations so overlapping commands cannot clobber each other. */
   private writeTail: Promise<void> = Promise.resolve();
-  private writeDepth = 0;
 
   constructor(
     private readonly adapter: StorageAdapter,
@@ -75,7 +74,7 @@ export class QuickShellStorage {
 
   async undo(): Promise<boolean> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       if (this.undoHistory.length === 0) {
         return false;
       }
@@ -97,7 +96,7 @@ export class QuickShellStorage {
 
   async redo(): Promise<boolean> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       if (this.redoHistory.length === 0) {
         return false;
       }
@@ -128,10 +127,10 @@ export class QuickShellStorage {
 
   async importJson(raw: string, mode: "merge" | "replace" = "merge"): Promise<ImportResult> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const existing = mode === "merge" ? await this.load() : createEmptyStoredData();
       const result = parseImportPayload(raw, existing);
-      await this.save(result.data, { preserveSecurity: false, allowSubmittedSecurity: true });
+      await this.saveUnlocked(result.data, { preserveSecurity: false, allowSubmittedSecurity: true });
       return result;
     });
   }
@@ -142,7 +141,7 @@ export class QuickShellStorage {
    */
   async resetAll(): Promise<StorageTransferResult> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       await this.ensureLoaded();
       if (this.cache!.workspaces.length === 0) {
         return { success: true, message: "No workspaces to reset." };
@@ -153,7 +152,7 @@ export class QuickShellStorage {
 
       const emptied = createEmptyStoredData();
       emptied.settings = { ...this.cache!.settings };
-      await this.save(emptied, { preserveSecurity: false, allowSubmittedSecurity: true });
+      await this.saveUnlocked(emptied, { preserveSecurity: false, allowSubmittedSecurity: true });
 
       const itemsLabel = count === 1 ? "workspace" : "workspaces";
       return {
@@ -166,7 +165,7 @@ export class QuickShellStorage {
   /** Restores the durable reset-all backup into the live store. */
   async restoreFromBackup(): Promise<StorageTransferResult> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const raw = await this.adapter.getItem(BACKUP_STORAGE_KEY);
       if (!raw) {
         return { success: true, message: "No workspace backup found." };
@@ -176,11 +175,15 @@ export class QuickShellStorage {
       try {
         parsed = JSON.parse(raw);
       } catch {
-        throw new Error("Workspace backup is not valid JSON.");
+        await this.adapter.setItem(BACKUP_STORAGE_KEY, "");
+        return {
+          success: true,
+          message: "Workspace backup was not valid JSON and has been discarded.",
+        };
       }
 
       const restored = migrateStoredData(parsed);
-      await this.save(restored, { preserveSecurity: false, allowSubmittedSecurity: true });
+      await this.saveUnlocked(restored, { preserveSecurity: false, allowSubmittedSecurity: true });
       return {
         success: true,
         message: `Restored ${restored.workspaces.length} workspace${restored.workspaces.length === 1 ? "" : "s"} from backup.`,
@@ -193,6 +196,64 @@ export class QuickShellStorage {
     return summarizeImportConflicts(raw, existing);
   }
 
+  private async saveUnlocked(
+    data: StoredData,
+    options?: {
+      recordHistory?: boolean;
+      preserveSecurity?: boolean;
+      allowSubmittedSecurity?: boolean;
+    },
+  ): Promise<void> {
+    const recordHistory = options?.recordHistory ?? true;
+    const preserveSecurity = options?.preserveSecurity ?? true;
+    const allowSubmittedSecurity = options?.allowSubmittedSecurity ?? false;
+
+    const normalized: StoredData = {
+      version: data.version,
+      settings: { ...data.settings },
+      workspaces: data.workspaces.map((workspace) => normalizeWorkspace({ ...workspace })),
+      workspaceSecurity: {},
+      branchTargets: { ...(data.branchTargets ?? {}) },
+      layoutEntries: syncLayoutEntries(data.layoutEntries, data.workspaces),
+    };
+
+    for (const workspace of normalized.workspaces) {
+      const prior = this.cache?.workspaceSecurity?.[workspace.id];
+      const submitted = data.workspaceSecurity?.[workspace.id];
+      if (preserveSecurity && prior) {
+        const previousWorkspace = this.cache?.workspaces.find((candidate) => candidate.id === workspace.id);
+        const changed = JSON.stringify(previousWorkspace) !== JSON.stringify(workspace);
+        normalized.workspaceSecurity![workspace.id] = {
+          ...prior,
+          revision: changed ? prior.revision + 1 : prior.revision,
+        };
+      } else if (allowSubmittedSecurity && submitted) {
+        normalized.workspaceSecurity![workspace.id] = { ...submitted };
+      } else {
+        normalized.workspaceSecurity![workspace.id] = createIngressSecurity();
+      }
+    }
+
+    const countResult = validateWorkspaceCount(normalized.workspaces.length);
+    if (!countResult.ok) {
+      throw new Error(countResult.message);
+    }
+
+    for (const workspace of normalized.workspaces) {
+      const validation = validateWorkspace(workspace);
+      if (!validation.ok) {
+        throw new Error(`${workspace.name || workspace.id}: ${validation.message}`);
+      }
+    }
+
+    if (recordHistory && this.cache) {
+      this.pushUndoSnapshot(this.cache);
+    }
+
+    this.cache = normalized;
+    await this.persistCache({ recordHistory: false });
+  }
+
   async save(
     data: StoredData,
     options?: {
@@ -201,56 +262,7 @@ export class QuickShellStorage {
       allowSubmittedSecurity?: boolean;
     },
   ): Promise<void> {
-    return this.withWriteLock(async () => {
-      const recordHistory = options?.recordHistory ?? true;
-      const preserveSecurity = options?.preserveSecurity ?? true;
-      const allowSubmittedSecurity = options?.allowSubmittedSecurity ?? false;
-
-      const normalized: StoredData = {
-        version: data.version,
-        settings: { ...data.settings },
-        workspaces: data.workspaces.map((workspace) => normalizeWorkspace({ ...workspace })),
-        workspaceSecurity: {},
-        branchTargets: { ...(data.branchTargets ?? {}) },
-        layoutEntries: syncLayoutEntries(data.layoutEntries, data.workspaces),
-      };
-
-      for (const workspace of normalized.workspaces) {
-        const prior = this.cache?.workspaceSecurity?.[workspace.id];
-        const submitted = data.workspaceSecurity?.[workspace.id];
-        if (preserveSecurity && prior) {
-          const previousWorkspace = this.cache?.workspaces.find((candidate) => candidate.id === workspace.id);
-          const changed = JSON.stringify(previousWorkspace) !== JSON.stringify(workspace);
-          normalized.workspaceSecurity![workspace.id] = {
-            ...prior,
-            revision: changed ? prior.revision + 1 : prior.revision,
-          };
-        } else if (allowSubmittedSecurity && submitted) {
-          normalized.workspaceSecurity![workspace.id] = { ...submitted };
-        } else {
-          normalized.workspaceSecurity![workspace.id] = createIngressSecurity();
-        }
-      }
-
-      const countResult = validateWorkspaceCount(normalized.workspaces.length);
-      if (!countResult.ok) {
-        throw new Error(countResult.message);
-      }
-
-      for (const workspace of normalized.workspaces) {
-        const validation = validateWorkspace(workspace);
-        if (!validation.ok) {
-          throw new Error(`${workspace.name || workspace.id}: ${validation.message}`);
-        }
-      }
-
-      if (recordHistory && this.cache) {
-        this.pushUndoSnapshot(this.cache);
-      }
-
-      this.cache = normalized;
-      await this.persistCache({ recordHistory: false });
-    });
+    return this.withWriteLock(() => this.saveUnlocked(data, options));
   }
 
   async getWorkspaces(): Promise<Workspace[]> {
@@ -294,7 +306,7 @@ export class QuickShellStorage {
     reviewToken: WorkspaceReviewToken,
   ): Promise<"granted" | "already" | "changed" | "invalid" | "missing"> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const workspace = data.workspaces.find((candidate) => candidate.id === workspaceId);
       if (!workspace) {
@@ -314,14 +326,14 @@ export class QuickShellStorage {
       }
       data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
       data.workspaceSecurity[workspaceId] = { isTrusted: true, revision: security.revision + 1 };
-      await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+      await this.saveUnlocked(data, { preserveSecurity: false, allowSubmittedSecurity: true });
       return "granted";
     });
   }
 
   async revokeTrust(workspaceId: string): Promise<"revoked" | "already" | "missing"> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const workspace = data.workspaces.find((candidate) => candidate.id === workspaceId);
       if (!workspace) {
@@ -333,7 +345,7 @@ export class QuickShellStorage {
       }
       data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
       data.workspaceSecurity[workspaceId] = { isTrusted: false, revision: security.revision + 1 };
-      await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+      await this.saveUnlocked(data, { preserveSecurity: false, allowSubmittedSecurity: true });
       return "revoked";
     });
   }
@@ -349,7 +361,7 @@ export class QuickShellStorage {
 
   async upsertWorkspace(workspace: Workspace): Promise<Workspace> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const normalized = normalizeWorkspace({
         ...workspace,
@@ -384,26 +396,26 @@ export class QuickShellStorage {
         data.layoutEntries = [...(data.layoutEntries ?? []), { type: "workspace", workspaceId: normalized.id }];
       }
 
-      await this.save(data, { allowSubmittedSecurity: true });
+      await this.saveUnlocked(data, { allowSubmittedSecurity: true });
       return normalized;
     });
   }
 
   async deleteWorkspace(workspaceId: string): Promise<void> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       data.workspaces = data.workspaces.filter((workspace) => workspace.id !== workspaceId);
       data.layoutEntries = (data.layoutEntries ?? []).filter(
         (entry) => entry.type !== "workspace" || entry.workspaceId !== workspaceId,
       );
-      await this.save(data);
+      await this.saveUnlocked(data);
     });
   }
 
   async duplicateWorkspace(workspaceId: string): Promise<Workspace> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const source = data.workspaces.find((workspace) => workspace.id === workspaceId);
       if (!source) {
@@ -429,7 +441,7 @@ export class QuickShellStorage {
       data.workspaceSecurity = { ...(data.workspaceSecurity ?? {}) };
       data.workspaceSecurity[duplicate.id] = { isTrusted: sourceSecurity.isTrusted, revision: 1 };
       data.layoutEntries = [...(data.layoutEntries ?? []), { type: "workspace", workspaceId: duplicate.id }];
-      await this.save(data, { preserveSecurity: false, allowSubmittedSecurity: true });
+      await this.saveUnlocked(data, { preserveSecurity: false, allowSubmittedSecurity: true });
       return duplicate;
     });
   }
@@ -446,7 +458,7 @@ export class QuickShellStorage {
 
   async setBranchTarget(worktreeKey: string, branch: string): Promise<void> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const key = worktreeKey.trim().toLowerCase();
       const value = branch.trim();
@@ -457,13 +469,13 @@ export class QuickShellStorage {
         throw new Error("Invalid branch name.");
       }
       data.branchTargets = { ...(data.branchTargets ?? {}), [key]: value };
-      await this.save(data);
+      await this.saveUnlocked(data);
     });
   }
 
   async clearBranchTarget(worktreeKey: string): Promise<void> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const key = worktreeKey.trim().toLowerCase();
       if (!data.branchTargets || !(key in data.branchTargets)) {
@@ -472,7 +484,7 @@ export class QuickShellStorage {
       const next = { ...data.branchTargets };
       delete next[key];
       data.branchTargets = next;
-      await this.save(data);
+      await this.saveUnlocked(data);
     });
   }
 
@@ -483,7 +495,7 @@ export class QuickShellStorage {
 
   async insertSeparator(title?: string | null, beforeWorkspaceId?: string): Promise<LayoutEntry> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const separator: LayoutEntry = {
         type: "separator",
@@ -500,23 +512,23 @@ export class QuickShellStorage {
         layout.push(separator);
       }
       data.layoutEntries = layout;
-      await this.save(data);
+      await this.saveUnlocked(data);
       return separator;
     });
   }
 
   async removeLayoutEntry(entryId: string): Promise<void> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       data.layoutEntries = (data.layoutEntries ?? []).filter((entry) => !layoutEntryMatchesId(entry, entryId));
-      await this.save(data);
+      await this.saveUnlocked(data);
     });
   }
 
   async moveLayoutEntry(entryId: string, direction: "up" | "down"): Promise<void> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const layout = [...(data.layoutEntries ?? [])];
       const index = layout.findIndex((entry) => layoutEntryMatchesId(entry, entryId));
@@ -531,13 +543,13 @@ export class QuickShellStorage {
       layout[index] = layout[swapIndex];
       layout[swapIndex] = current;
       data.layoutEntries = layout;
-      await this.save(data);
+      await this.saveUnlocked(data);
     });
   }
 
   async setFavorite(workspaceId: string, isPinned: boolean): Promise<Workspace> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const workspace = data.workspaces.find((item) => item.id === workspaceId);
       if (!workspace) {
@@ -554,7 +566,7 @@ export class QuickShellStorage {
         workspace.pinOrder = null;
       }
 
-      await this.save(data);
+      await this.saveUnlocked(data);
       return { ...workspace };
     });
   }
@@ -562,7 +574,7 @@ export class QuickShellStorage {
   /** Returns the moved workspace, or `null` when the move is a boundary no-op. */
   async moveFavorite(workspaceId: string, direction: "up" | "down" | "top" | "bottom"): Promise<Workspace | null> {
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       const workspace = data.workspaces.find((item) => item.id === workspaceId);
       if (!workspace || !workspace.isPinned) {
@@ -601,7 +613,7 @@ export class QuickShellStorage {
         item.pinOrder = orderIndex + 1;
       });
 
-      await this.save(data);
+      await this.saveUnlocked(data);
       return { ...favorites[targetIndex] };
     });
   }
@@ -619,18 +631,20 @@ export class QuickShellStorage {
     });
   }
 
+  private async flushRecentWritesUnlocked(): Promise<void> {
+    if (this.recentWriteTimer) {
+      clearTimeout(this.recentWriteTimer);
+      this.recentWriteTimer = null;
+    }
+    if (!this.recentWriteDirty || !this.cache) {
+      return;
+    }
+    this.recentWriteDirty = false;
+    await this.persistCache({ recordHistory: false });
+  }
+
   async flushRecentWrites(): Promise<void> {
-    return this.withWriteLock(async () => {
-      if (this.recentWriteTimer) {
-        clearTimeout(this.recentWriteTimer);
-        this.recentWriteTimer = null;
-      }
-      if (!this.recentWriteDirty || !this.cache) {
-        return;
-      }
-      this.recentWriteDirty = false;
-      await this.persistCache({ recordHistory: false });
-    });
+    return this.withWriteLock(() => this.flushRecentWritesUnlocked());
   }
 
   async updateSettings(settings: QuickShellSettings): Promise<void> {
@@ -639,22 +653,19 @@ export class QuickShellStorage {
     }
 
     return this.withWriteLock(async () => {
-      await this.flushRecentWrites();
+      await this.flushRecentWritesUnlocked();
       const data = await this.load();
       data.settings = { ...settings };
-      await this.save(data);
+      await this.saveUnlocked(data);
     });
   }
 
   /**
    * Runs `operation` exclusively against other writers.
-   * Re-entrant so nested save/flush calls from an outer mutator do not deadlock.
+   * Nested composition must call saveUnlocked / flushRecentWritesUnlocked instead of
+   * public save / flushRecentWrites so concurrent callers always queue.
    */
   private async withWriteLock<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.writeDepth > 0) {
-      return operation();
-    }
-
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
@@ -665,11 +676,9 @@ export class QuickShellStorage {
       () => gate,
     );
     await previous;
-    this.writeDepth += 1;
     try {
       return await operation();
     } finally {
-      this.writeDepth -= 1;
       release();
     }
   }

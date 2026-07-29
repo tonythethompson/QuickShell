@@ -41,6 +41,7 @@ Data stores:
 | Import / export JSON | Full | Via settings / shared file | Full (extension import-export) | Desktop shares one file; Raycast is separate blob; import always untrusted |
 | Layout undo / redo | Full | Partial (plugin + editor) | Full (storage history) | |
 | Section separators | Full | Partial | Full (Raycast-local `layoutEntries`) | Desktop shared layout file; Raycast blob parallel |
+| Reset all / backup restore | Full | Partial | Full (durable Raycast backup) | Raycast backup is local to the extension and survives restart; mutations are serialized |
 
 ---
 
