@@ -57,8 +57,9 @@ if ([string]::IsNullOrWhiteSpace($notes)) {
     throw 'ReleaseNotes is empty.'
 }
 
-# Partner Center listing release notes are capped; keep a safe margin under 10k.
-$maxNotesLength = 9000
+# Partner Center "What's new" / ReleaseNotes is capped at 1,500 characters
+# (Description is the separate ~10k field). Truncate to the listing limit.
+$maxNotesLength = 1500
 $truncationSuffix = "`n..."
 if ($notes.Length -gt $maxNotesLength) {
     Write-Warning "Release notes exceed $maxNotesLength characters; truncating for Store listing."

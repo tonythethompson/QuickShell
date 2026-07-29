@@ -27,21 +27,21 @@ Describe 'extract-changelog.ps1' {
         }
     }
 
-    It 'throws for a malformed version' {
+    It 'throws_for_a_malformed_version' {
         Set-Content -LiteralPath $script:FixturePath -Value "## [0.2.3.0]`n`n- notes" -Encoding utf8
 
         { & $script:ScriptPath -Version 'not-a-version' -Path $script:FixturePath } |
             Should -Throw -ExpectedMessage '*Invalid version*'
     }
 
-    It 'throws when the changelog file is missing' {
+    It 'throws_when_the_changelog_file_is_missing' {
         $missing = Join-Path $script:FixtureRoot 'does-not-exist.md'
 
         { & $script:ScriptPath -Version '0.2.3.0' -Path $missing } |
             Should -Throw -ExpectedMessage '*CHANGELOG not found*'
     }
 
-    It 'throws when the version section is missing' {
+    It 'throws_when_the_version_section_is_missing' {
         Set-Content -LiteralPath $script:FixturePath -Value @"
 # Changelog
 
@@ -54,7 +54,7 @@ Describe 'extract-changelog.ps1' {
             Should -Throw -ExpectedMessage '*No CHANGELOG section*'
     }
 
-    It 'throws when the version section is empty' {
+    It 'throws_when_the_version_section_is_empty' {
         Set-Content -LiteralPath $script:FixturePath -Value @"
 # Changelog
 
@@ -69,7 +69,7 @@ Describe 'extract-changelog.ps1' {
             Should -Throw -ExpectedMessage '*is empty*'
     }
 
-    It 'throws when the version section is placeholder-only' {
+    It 'throws_when_the_version_section_is_placeholder_only' {
         Set-Content -LiteralPath $script:FixturePath -Value @"
 # Changelog
 
@@ -86,7 +86,7 @@ TBD
             Should -Throw -ExpectedMessage '*placeholder*'
     }
 
-    It 'prints the section body on successful extraction' {
+    It 'prints_the_section_body_on_successful_extraction' {
         Set-Content -LiteralPath $script:FixturePath -Value @"
 # Changelog
 
