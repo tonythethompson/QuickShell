@@ -1,0 +1,19 @@
+QuickShell.Raycast/src/components/discover-git-repos-view.tsx
+  s_312d24b259d341::t_a91e3c1736aee4 146,149,151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e181ae42dcceeebe4d3ce4c43131e6e65cd6d66c",
+  "prompts": {},
+  "sessions": {
+    "s_312d24b259d341": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fa95f-44a9-7761-9500-6c0f18b0b976",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
