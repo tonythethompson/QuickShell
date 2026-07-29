@@ -139,6 +139,11 @@ internal static class TerminalFragmentDiscovery
         return profiles;
     }
 
+    /// <summary>
+    /// Merges profile overrides from a fragment JSON file into the discovered profiles.
+    /// </summary>
+    /// <param name="file">The path to the fragment JSON file.</param>
+    /// <param name="profiles">The profile collection to update.</param>
     private static void MergeFile(string file, Dictionary<string, TerminalFragmentProfile> profiles)
     {
         using var stream = File.OpenRead(file);
@@ -163,11 +168,16 @@ internal static class TerminalFragmentDiscovery
         foreach (var element in listNode.EnumerateArray())
         {
             // New profiles use "guid"; patch profiles use "updates" (same GUID target).
-            var guid = element.TryGetProperty("guid", out var guidNode)
-                ? guidNode.GetString()
-                : null;
+            string? guid = null;
+            if (element.TryGetProperty("guid", out var guidNode)
+                && guidNode.ValueKind == JsonValueKind.String)
+            {
+                guid = guidNode.GetString();
+            }
+
             if (string.IsNullOrWhiteSpace(guid)
-                && element.TryGetProperty("updates", out var updatesNode))
+                && element.TryGetProperty("updates", out var updatesNode)
+                && updatesNode.ValueKind == JsonValueKind.String)
             {
                 guid = updatesNode.GetString();
             }

@@ -21,6 +21,7 @@ The UI term is **workspace**; the on-disk file is still `%LOCALAPPDATA%\QuickShe
 **Typed command routing.** `CommandRouter` (`CommandRouting/CommandRouter.cs`) uses `ICommandIdParser` to parse a deep-link string into a `CommandDescriptor` record (`Id, Kind, WorkspaceId, LaunchId, Directory, Branch`), then dispatches by `CommandKind` to a registered `ICommandItemHandler` (`CommandRouting/ICommandItemHandler.cs` + `CommandItemHandlers.cs`). Handlers receive a `QuickShellPageContext` (Shortcuts, Settings, CreateShortcut, ReloadPages) and return an `ICommandItem` (often a Page). To add a new deep link: add a `CommandKind` + an `ICommandItemHandler`.
 
 **User command to launch flow.**
+
 1. CmdPal invokes `GetCommandItem(id)` (deep link) or shows `TopLevelCommands()`.
 2. `ICommandRouter` -> `ICommandIdParser.TryParse` -> `CommandDescriptor`.
 3. Matching `ICommandItemHandler.Create` builds a `CommandItem`/`Page`.
@@ -36,7 +37,7 @@ The UI term is **workspace**; the on-disk file is still `%LOCALAPPDATA%\QuickShe
 ## Key Directories
 
 | Path | Purpose |
-|------|---------|
+| ------ | --------- |
 | `QuickShell.Core/` | Domain: models, persistence, launch, health, git, terminals, classification, suggestions, companions. **No** CmdPal SDK dependency. `Services/`, `Models/`, `Composition/`, `Classification/`, `Abstractions/`. |
 | `QuickShell/` | CmdPal extension: MSIX, Adaptive Card pages, command routing. `Pages/`, `Commands/`, `Services/CommandRouting/`, `Program.cs`, `QuickShell.cs`, `QuickShellCommandsProvider.cs`. |
 | `QuickShell.Run/` | PowerToys Run plugin (`IPlugin`, `qs` keyword); consumes Core. |
