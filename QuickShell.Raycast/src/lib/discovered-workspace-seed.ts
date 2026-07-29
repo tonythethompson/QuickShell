@@ -1,4 +1,5 @@
 import { deriveAbbreviationFromName, deriveNameFromDirectory } from "./directory-helpers";
+import { tryGetGitRemoteUrl } from "./git-repo-discovery";
 import { createStableId } from "./ids";
 import type { WorkspaceSetupTask } from "./project-setup-suggestion";
 import type { CompanionAppEntry, Workspace } from "./schema";
@@ -21,6 +22,7 @@ type DiscoveredWorkspaceSeed = {
 export function createWorkspaceFromDiscoveredGitRepo(seed: DiscoveredWorkspaceSeed): Workspace {
   const directory = seed.directory.trim();
   const name = seed.name.trim() || deriveNameFromDirectory(directory);
+  const repoUrl = seed.remoteUrl ?? tryGetGitRemoteUrl(directory) ?? null;
   const launches = launchRowsFromSuggestions(seed.tasks).map((row, index) => ({
     id: row.id,
     label: row.label,
@@ -45,7 +47,7 @@ export function createWorkspaceFromDiscoveredGitRepo(seed: DiscoveredWorkspaceSe
     wtProfile: null,
     command: null,
     runAsAdmin: false,
-    repoUrl: seed.remoteUrl ?? null,
+    repoUrl,
     devServerUrl: seed.devServerUrl ?? null,
     // normalizeWorkspace supplies a usable blank launch when discovery finds no tasks.
     launches,
