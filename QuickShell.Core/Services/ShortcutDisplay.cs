@@ -105,10 +105,49 @@ internal static class ShortcutDisplay
 
     private static string ShortenPath(string path) => ShortenPathForDisplay(path);
 
-    private static string CollapseToSingleLine(string? value) =>
-        string.Join(
-            ' ',
-            (value ?? string.Empty).Split(['\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    private static string CollapseToSingleLine(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var span = value.AsSpan();
+        if (span.IndexOfAny('\r', '\n', '\t') < 0)
+        {
+            return value.Trim();
+        }
+
+        // Bolt: Performance optimization - avoid string.Split() allocations; scan separators directly over the span.
+        var builder = new System.Text.StringBuilder(span.Length);
+        var first = true;
+        var segmentStart = 0;
+
+        for (var i = 0; i <= span.Length; i++)
+        {
+            var atEnd = i == span.Length;
+            if (!atEnd && span[i] != '\r' && span[i] != '\n' && span[i] != '\t')
+            {
+                continue;
+            }
+
+            var part = span[segmentStart..i].Trim();
+            if (!part.IsEmpty)
+            {
+                if (!first)
+                {
+                    builder.Append(' ');
+                }
+
+                builder.Append(part);
+                first = false;
+            }
+
+            segmentStart = i + 1;
+        }
+
+        return builder.ToString();
+    }
 
     private static string Truncate(string value, int maximumLength) =>
         value.Length <= maximumLength ? value : value[..(maximumLength - 1)] + "…";
