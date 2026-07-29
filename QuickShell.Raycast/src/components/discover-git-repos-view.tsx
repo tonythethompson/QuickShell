@@ -87,6 +87,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   const [targetedSearch, setTargetedSearch] = useState<{ query: string; repos: GitRepoCandidate[] } | null>(null);
   const [targetedLoadingQuery, setTargetedLoadingQuery] = useState<string | null>(null);
   const [addedDirectoryKeys, setAddedDirectoryKeys] = useState<Set<string>>(() => new Set());
+  const [pendingQuickAddKey, setPendingQuickAddKey] = useState<string | null>(null);
   const { pop } = useNavigation();
   const storage = getQuickShellStorage();
 
@@ -199,6 +200,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   }
 
   async function handleQuickAdd(directory: string, name: string, remoteUrl?: string | null) {
+    setPendingQuickAddKey(directory.toLowerCase());
     try {
       const workspace = await buildWorkspaceFromRepo(directory, name, remoteUrl);
       await storage.upsertWorkspace(workspace);
@@ -210,6 +212,8 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
       await finishAdd(workspace);
     } catch (addError) {
       await showStorageFailure("Add workspace", addError);
+    } finally {
+      setPendingQuickAddKey(null);
     }
   }
 
@@ -250,6 +254,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
                 title="Add Workspace"
                 icon={Icon.Plus}
                 onAction={() => handleQuickAdd(repo.directory, repo.name, repo.remoteUrl)}
+                disabled={pendingQuickAddKey === repo.directory.toLowerCase()}
               />
               <Action.Push
                 title="Review Before Adding"
