@@ -13,17 +13,20 @@ While work is in progress, add bullets under **Unreleased**. Before tagging `vX.
 ## [0.2.3.0] - 2026-07-22
 
 ### Added
+
 - Workspace trust model so untrusted folders are handled explicitly before launch.
 - Faster first paint and launch via cached workspace snapshots, deferred icon work, and a revision-keyed launch plan cache.
 - Richer root Command Palette search backed by a snapshot index.
 
 ### Fixed
+
 - Home-pin context menus and list rendering edge cases.
 - Folder picker no longer leaves an orphaned dialog after a timeout.
 - "Open to Directory" suggestion pill applies the chosen path correctly.
 - Bound shortcut-store lock waits and clearer logging when a lock is held too long.
 
 ### Changed
+
 - Core services use real DI instead of static locators for launch, health, suggestions, and project analysis.
 - Local UI strings for attention states and branch switching.
 - Installer, CI, and packaging reliability for CmdPal and Run release artifacts.
