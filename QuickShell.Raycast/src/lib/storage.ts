@@ -796,7 +796,7 @@ export class QuickShellStorage {
       clearTimeout(this.recentWriteTimer);
     }
     this.recentWriteTimer = setTimeout(() => {
-      void this.flushRecentWrites().catch(() => {
+      void writeLockContext.run(undefined, () => this.flushRecentWrites()).catch(() => {
         this.recentWriteDirty = true;
       });
     }, RECENT_WRITE_DEBOUNCE_MS);
