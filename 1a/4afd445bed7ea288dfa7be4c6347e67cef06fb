@@ -1,0 +1,44 @@
+QuickShell.Core/Services/TerminalListIconCache.cs
+  s_3959546c818d26::t_603b01655ddf77 155-160
+  s_3959546c818d26::t_a585bfb9ac1563 253-255
+QuickShell/Pages/QuickShellPage.cs
+  s_3959546c818d26::t_49b4832e24f882 198-201
+  s_3959546c818d26::t_25cf73b9233b2d 841-842,844,846,848-851,854,858-873,890-894
+  s_3959546c818d26::t_046da7fc496b2d 27-31,35-39,874-875
+QuickShell.Core.Tests/QuickShellPageSearchTests.cs
+  s_3959546c818d26::t_898e8a194aac81 216
+  s_3959546c818d26::t_fe97f00787746f 102,106,129,133,137-154,157-167,171-215
+  s_3959546c818d26::t_fbbff4bd788dde 155-156
+  s_3959546c818d26::t_19eab390b299ad 12
+QuickShell/Pages/WorkspaceStatusPage.cs
+  s_3959546c818d26::t_12fd1a57079ff9 76-77,85
+  s_3959546c818d26::t_2d393021511bdf 164,192-197,199
+QuickShell.Core.Tests/TerminalListIconCacheTests.cs
+  s_3959546c818d26::t_2c938b8c2aebf2 93-103,121-130
+QuickShell/Pages/WorktreeBranchPickerPage.cs
+  s_3959546c818d26::t_fa1cec063290c6 92,94-96
+QuickShell.Core/Services/TerminalFragmentDiscovery.cs
+  s_3959546c818d26::t_c167844a36d6ef 1,26-73,122-123,126-135,149-153,155-201
+QuickShell.Core/Services/WtProfilesService.cs
+  s_3959546c818d26::t_2f2cf4c2b78c2e 207-208,210-211
+  s_3959546c818d26::t_b40bd3f18b66ac 53
+QuickShell.Core.Tests/TerminalFragmentDiscoveryTests.cs
+  s_3959546c818d26::t_b78bfc2e914092 81-176
+  s_3959546c818d26::t_af5cbc3447cb81 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1a4afd445bed7ea288dfa7be4c6347e67cef06fb",
+  "prompts": {},
+  "sessions": {
+    "s_3959546c818d26": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "03430253-bf4a-417d-8f76-7e07a8d6aba4",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
