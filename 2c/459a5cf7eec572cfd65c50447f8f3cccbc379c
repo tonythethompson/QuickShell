@@ -1,0 +1,36 @@
+QuickShell.Core/Services/SuggestCommandLineArgs.cs
+  s_0e8cf384d92398::t_77644a8c82e986 9,37-38
+scripts/ensure-raycast-suggest.ps1
+  s_9d7eca6742e9bb::t_6097efba8a5eea 3,6-10,12,18-21,34-38,48,51-53,56-58,88-120,122-125,127
+  s_0e8cf384d92398::t_0f258d489778d8 1-2,4-5,11,13-17,22-33,39-47,49-50,54-55,59-87,121,126
+QuickShell.Core.Tests/SuggestCommandLineArgsTests.cs
+  s_0e8cf384d92398::t_7cf002c1b89009 24-36
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_0e8cf384d92398::t_d501c43ba2a8c3 331
+  s_0e8cf384d92398::t_9d16c2427a6ee0 305
+  s_0e8cf384d92398::t_a3a4685dcf13a9 183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "2c459a5cf7eec572cfd65c50447f8f3cccbc379c",
+  "prompts": {},
+  "sessions": {
+    "s_0e8cf384d92398": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "897d6e81-798e-4020-8a76-70edee1e5a37",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    },
+    "s_9d7eca6742e9bb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8602b04a-78b7-4b77-81bc-9e9f4c488101",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
