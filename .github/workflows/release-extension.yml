@@ -327,12 +327,20 @@ jobs:
             --release-notes-url $releaseNotesUrl `
             --out $outDir
 
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
+          # wingetcreate 1.12 writes under out/manifests/.../<version>; submit that folder.
+          $manifestDir = Get-ChildItem -Path $outDir -Recurse -Filter '*.installer.yaml' |
+            Select-Object -First 1 |
+            ForEach-Object { $_.Directory.FullName }
+          if (-not $manifestDir) {
+            throw "No installer manifest found under $outDir after wingetcreate update."
+          }
+
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $manifestDir -ReleaseNotes $notes
 
           wingetcreate submit `
             --prtitle "$packageId version $version" `
             --token $env:WINGET_PAT `
-            $outDir
+            $manifestDir
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -360,12 +368,19 @@ jobs:
             --release-notes-url $releaseNotesUrl `
             --out $outDir
 
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
+          $manifestDir = Get-ChildItem -Path $outDir -Recurse -Filter '*.installer.yaml' |
+            Select-Object -First 1 |
+            ForEach-Object { $_.Directory.FullName }
+          if (-not $manifestDir) {
+            throw "No installer manifest found under $outDir after wingetcreate update."
+          }
+
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $manifestDir -ReleaseNotes $notes
 
           wingetcreate submit `
             --prtitle "$packageId version $version" `
             --token $env:WINGET_PAT `
-            $outDir
+            $manifestDir
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -393,12 +408,19 @@ jobs:
             --release-notes-url $releaseNotesUrl `
             --out $outDir
 
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
+          $manifestDir = Get-ChildItem -Path $outDir -Recurse -Filter '*.installer.yaml' |
+            Select-Object -First 1 |
+            ForEach-Object { $_.Directory.FullName }
+          if (-not $manifestDir) {
+            throw "No installer manifest found under $outDir after wingetcreate update."
+          }
+
+          .\scripts\set-winget-release-notes.ps1 -ManifestDir $manifestDir -ReleaseNotes $notes
 
           wingetcreate submit `
             --prtitle "$packageId version $version" `
             --token $env:WINGET_PAT `
-            $outDir
+            $manifestDir
         shell: pwsh
         continue-on-error: true
         env:
