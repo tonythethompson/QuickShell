@@ -59,13 +59,16 @@ if ([string]::IsNullOrWhiteSpace($notes)) {
 
 # Partner Center listing release notes are capped; keep a safe margin under 10k.
 $maxNotesLength = 9000
+$truncationSuffix = "`n..."
 if ($notes.Length -gt $maxNotesLength) {
     Write-Warning "Release notes exceed $maxNotesLength characters; truncating for Store listing."
-    $notes = $notes.Substring(0, $maxNotesLength).TrimEnd() + "`n..."
+    $truncateTo = [Math]::Max(0, $maxNotesLength - $truncationSuffix.Length)
+    $notes = $notes.Substring(0, $truncateTo).TrimEnd() + $truncationSuffix
 }
 
 Write-Host "Fetching submission metadata for $AppId..."
-$raw = & msstore submission get $AppId 2>&1
+# Capture stdout only so stderr chatter cannot corrupt JSON parsing.
+$raw = & msstore submission get $AppId
 if ($LASTEXITCODE -ne 0) {
     throw "msstore submission get failed (exit $LASTEXITCODE): $raw"
 }
@@ -75,13 +78,21 @@ if ([string]::IsNullOrWhiteSpace($jsonText)) {
     throw 'msstore submission get returned empty output.'
 }
 
-# Drop CLI chatter before the JSON object if present.
+# Drop CLI chatter before/after the JSON object if present.
 $jsonStart = $jsonText.IndexOf('{')
 if ($jsonStart -lt 0) {
     throw "msstore submission get did not return JSON. Output:`n$jsonText"
 }
 if ($jsonStart -gt 0) {
     $jsonText = $jsonText.Substring($jsonStart)
+}
+
+$jsonEnd = $jsonText.LastIndexOf('}')
+if ($jsonEnd -lt 0) {
+    throw "msstore submission get JSON was missing a closing brace. Output:`n$jsonText"
+}
+if ($jsonEnd -lt $jsonText.Length - 1) {
+    $jsonText = $jsonText.Substring(0, $jsonEnd + 1)
 }
 
 $submission = $jsonText | ConvertFrom-Json -AsHashtable

@@ -90,16 +90,10 @@ jobs:
           Write-Host "Version gate OK: $releaseVersion"
 
       - name: Extract changelog
-        id: changelog
         shell: pwsh
         run: |
           $notes = & .\scripts\extract-changelog.ps1 -Version "${{ steps.meta.outputs.VERSION }}"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          # Multiline output for later steps
-          "NOTES<<EOF" >> $env:GITHUB_OUTPUT
-          $notes >> $env:GITHUB_OUTPUT
-          "EOF" >> $env:GITHUB_OUTPUT
 
           $notes | Set-Content -Path store-release-notes.txt -Encoding utf8
           Write-Host "Extracted $($notes.Length) characters of release notes."
