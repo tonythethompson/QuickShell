@@ -29,7 +29,7 @@ Browse/Paste folder on the form fills name (if unset), repo URL, and Dev Server 
 
 Suggestion pills on the form call into [intelligence.md](./intelligence.md); companion fields into [companions.md](./companions.md).
 
-In Raycast full-seed forms, unused command suggestions appear in a searchable, nonpersistent **Command suggestions** dropdown directly below the command fields. Choosing one fills the first blank command row or appends a row, then removes that choice from the dropdown. The action-panel suggestion actions remain keyboard-accessible alternatives; manual Add Workspace still uses the minimal seed and does not auto-add commands or companions.
+In Raycast full-seed forms, unused command suggestions appear in a searchable, nonpersistent **Command suggestions** dropdown directly below the command fields (hidden when there are no unused leftovers). Choosing one fills the first blank command row or appends a row, then removes that choice from the dropdown. The action-panel suggestion actions remain keyboard-accessible alternatives. Manual Add Workspace offers the same suggestions in the dropdown without auto-applying them.
 
 ## Adaptive Card loop
 

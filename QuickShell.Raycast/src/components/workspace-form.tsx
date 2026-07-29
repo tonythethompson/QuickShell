@@ -716,13 +716,12 @@ export default function WorkspaceForm({
           placeholder={index === 0 ? "npm run dev" : "dotnet watch"}
         />
       ))}
-      {suggestionSource ? (
+      {unusedSuggestionPills.length > 0 ? (
         <Form.Dropdown
           id="command-suggestions"
           title="Command suggestions"
           value="choose-suggestion"
           placeholder="Search command suggestions..."
-          disabled={unusedSuggestionPills.length === 0}
           onChange={(key) => {
             if (key === "choose-suggestion") {
               return;
@@ -733,10 +732,7 @@ export default function WorkspaceForm({
             }
           }}
         >
-          <Form.Dropdown.Item
-            value="choose-suggestion"
-            title={unusedSuggestionPills.length > 0 ? "Choose a suggestion…" : "All suggestions applied"}
-          />
+          <Form.Dropdown.Item value="choose-suggestion" title="Choose a suggestion…" />
           {unusedSuggestionPills.map((pill) => (
             <Form.Dropdown.Item
               key={encodePillKey(pill)}

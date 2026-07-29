@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSuggestCommandArgs,
   combineSuggestionTasksAndPills,
+  LOCAL_SETUP_SEED_TASKS,
   pillsToSetupTasks,
   resolveSuggestExecutable,
   splitPillsIntoSeedAndLeftover,
@@ -109,6 +110,19 @@ describe("suggest-commands", () => {
     ]);
     expect(split.tasks[1].taskType).toBe("frontend");
     expect(split.leftoverPills.map((entry) => entry.command)).toEqual(["claude", "npm run lint"]);
+  });
+
+  it("keeps local-heuristic leftovers selectable with the smaller local seed cap", () => {
+    const pills = [
+      pill({ command: "dotnet build", taskType: "none", displayTitle: "Build" }),
+      pill({ command: "dotnet test", taskType: "none", displayTitle: "Tests" }),
+      pill({ command: "dotnet watch", taskType: "none", displayTitle: "Watch" }),
+      pill({ command: "dotnet run", taskType: "none", displayTitle: "Run" }),
+    ];
+
+    const split = splitPillsIntoSeedAndLeftover(pills, LOCAL_SETUP_SEED_TASKS);
+    expect(split.tasks.map((task) => task.command)).toEqual(["dotnet build", "dotnet test"]);
+    expect(split.leftoverPills.map((entry) => entry.command)).toEqual(["dotnet watch", "dotnet run"]);
   });
 
   it("falls back to the first pills when none are preferred setup types", () => {

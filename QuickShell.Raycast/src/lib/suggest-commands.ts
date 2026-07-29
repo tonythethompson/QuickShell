@@ -2,12 +2,16 @@ import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
+import { isWindowsPlatform } from "./platform";
 import { buildProjectSetupSuggestions, type WorkspaceSetupTask } from "./project-setup-suggestion";
 
 const execFileAsync = promisify(execFile);
 
 /** Cap setup seed so leftover pills remain available in Actions (CmdPal-shaped). */
 export const MAX_SETUP_SEED_TASKS = 4;
+
+/** Local heuristics are short; keep the seed tiny so the form dropdown still has choices. */
+export const LOCAL_SETUP_SEED_TASKS = 2;
 
 const PREFERRED_SEED_TASK_TYPES = new Set(["frontend", "api", "services", "test", "build"]);
 const PREFERRED_SEED_COMMAND_HINTS = ["dev", "start", "test", "build", "watch", "run"];
@@ -166,8 +170,20 @@ export async function fetchSuggestionPills(
   generation: number,
   assetsPath?: string,
 ): Promise<SuggestionResponse | null> {
+  const fromEnv = process.env.QUICKSHELL_SUGGEST_EXE?.trim();
+  // Packaged Suggest.exe is Windows-only; allow an explicit override for local experiments.
+  if (!fromEnv && !isWindowsPlatform()) {
+    return null;
+  }
+
   const executable = resolveSuggestExecutable(assetsPath);
   if (!executable || !existsSync(executable)) {
+    if (isWindowsPlatform()) {
+      console.warn(
+        `[quickshell] Suggest CLI not found at ${executable ?? "(unresolved)"}. ` +
+          "Run `npm run build` (or deploy-all) so assets/QuickShell.Suggest.exe is published.",
+      );
+    }
     return null;
   }
 
@@ -177,11 +193,14 @@ export async function fetchSuggestionPills(
     const { stdout } = await execFileAsync(executable, args, { windowsHide: true, maxBuffer: 1024 * 1024 });
     const parsed = JSON.parse(stdout) as SuggestionResponse;
     if (parsed.generation !== generation) {
+      console.warn(`[quickshell] Suggest CLI generation mismatch (wanted ${generation}, got ${parsed.generation}).`);
       return null;
     }
 
     return parsed;
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.warn(`[quickshell] Suggest CLI failed (${executable}): ${detail}`);
     return null;
   }
 }
@@ -216,6 +235,6 @@ export async function resolveWorkspaceSetupSuggestions(
     displayTitle: task.label,
     tooltip: task.command,
   }));
-  const split = splitPillsIntoSeedAndLeftover(asPills);
+  const split = splitPillsIntoSeedAndLeftover(asPills, LOCAL_SETUP_SEED_TASKS);
   return { source: "local", tasks: split.tasks, pills: split.leftoverPills };
 }
