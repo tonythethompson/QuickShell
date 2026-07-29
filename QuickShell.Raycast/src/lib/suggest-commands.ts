@@ -164,6 +164,54 @@ export function splitPillsIntoSeedAndLeftover(
   };
 }
 
+function isSuggestionResponse(value: unknown): value is SuggestionResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return typeof record.generation === "number" && Array.isArray(record.pills);
+}
+
+/** Spawn/exec failures from Suggest.exe (missing binary, non-zero exit, signals). */
+function isExpectedSuggestExecFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const execError = error as NodeJS.ErrnoException & {
+    signal?: NodeJS.Signals | null;
+    status?: number | null;
+  };
+  return (
+    typeof execError.code === "string" ||
+    typeof execError.code === "number" ||
+    execError.signal != null ||
+    typeof execError.status === "number"
+  );
+}
+
+function formatSuggestExecFailure(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "unknown error";
+  }
+
+  const execError = error as NodeJS.ErrnoException & {
+    signal?: NodeJS.Signals | null;
+  };
+  const parts: string[] = [];
+  if (execError.code != null) {
+    parts.push(`code=${execError.code}`);
+  }
+  if (execError.signal) {
+    parts.push(`signal=${execError.signal}`);
+  }
+  if (parts.length === 0) {
+    parts.push(error.name);
+  }
+  return parts.join(" ");
+}
+
 export async function fetchSuggestionPills(
   directory: string,
   usedCommands: string[],
@@ -180,8 +228,8 @@ export async function fetchSuggestionPills(
   if (!executable || !existsSync(executable)) {
     if (isWindowsPlatform()) {
       console.warn(
-        `[quickshell] Suggest CLI not found at ${executable ?? "(unresolved)"}. ` +
-          "Run `npm run build` (or deploy-all) so assets/QuickShell.Suggest.exe is published.",
+        "[quickshell] Suggest CLI not found (QuickShell.Suggest.exe). " +
+          "Run `npm run build` or `npm run publish` so assets/QuickShell.Suggest.exe is published.",
       );
     }
     return null;
@@ -191,7 +239,19 @@ export async function fetchSuggestionPills(
 
   try {
     const { stdout } = await execFileAsync(executable, args, { windowsHide: true, maxBuffer: 1024 * 1024 });
-    const parsed = JSON.parse(stdout) as SuggestionResponse;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(stdout);
+    } catch {
+      console.warn("[quickshell] Suggest CLI returned invalid JSON.");
+      return null;
+    }
+
+    if (!isSuggestionResponse(parsed)) {
+      console.warn("[quickshell] Suggest CLI returned an unexpected payload shape.");
+      return null;
+    }
+
     if (parsed.generation !== generation) {
       console.warn(`[quickshell] Suggest CLI generation mismatch (wanted ${generation}, got ${parsed.generation}).`);
       return null;
@@ -199,9 +259,11 @@ export async function fetchSuggestionPills(
 
     return parsed;
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    console.warn(`[quickshell] Suggest CLI failed (${executable}): ${detail}`);
-    return null;
+    if (isExpectedSuggestExecFailure(error)) {
+      console.warn(`[quickshell] Suggest CLI failed (${formatSuggestExecFailure(error)}). Falling back to local heuristics.`);
+      return null;
+    }
+    throw error;
   }
 }
 

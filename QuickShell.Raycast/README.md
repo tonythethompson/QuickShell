@@ -62,7 +62,7 @@ npm run dev
 
 Run `npm run build` before submitting Store changes. Do not add a `version` field to `package.json`; Store versioning uses `CHANGELOG.md`.
 
-On Windows, `npm run build`, `npm run publish`, `npm run dev` (if the asset is missing), `scripts/deploy-all.ps1`, and `scripts/build-raycast-extension.ps1` all publish `QuickShell.Suggest.exe` into Raycast `assets/` (gitignored; generated at build time). The CLI needs the .NET 10 Desktop Runtime. macOS continues to use local folder heuristics.
+On Windows, `npm run build`, `npm run publish` (runs `ensure-suggest-asset.js` before the Raycast publish CLI), `npm run dev` (if the asset is missing), `scripts/deploy-all.ps1`, and `scripts/build-raycast-extension.ps1` all publish `QuickShell.Suggest.exe` into Raycast `assets/` (gitignored; generated at build/publish time). The CLI needs the .NET 10 Desktop Runtime. macOS continues to use local folder heuristics.
 
 **Distribution:** publish via the [Raycast Store](https://www.raycast.com/store) only. GitHub Releases and WinGet do not ship Raycast sideload packages. `scripts/build-raycast-extension.ps1` is for local/dev packaging.
 
