@@ -1,0 +1,35 @@
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_0e8cf384d92398::t_aee5c065d5664c 719,735
+QuickShell.Raycast/src/__tests__/suggest-commands.test.ts
+  s_0e8cf384d92398::t_87f9a452fdd6ee 6,115-125
+QuickShell.Raycast/package.json
+  s_0e8cf384d92398::t_45a92626c05e0f 157-158,161
+docs/architecture/forms.md
+  s_0e8cf384d92398::t_e7c818ce236d5f 32
+QuickShell.Raycast/README.md
+  s_0e8cf384d92398::t_4a3deb6f47fde0 65
+QuickShell.Raycast/src/lib/suggest-commands.ts
+  s_0e8cf384d92398::t_d095f41e2d2783 5,13-14
+  s_0e8cf384d92398::t_b557be92538be1 173-178,181-186,201-203
+  s_0e8cf384d92398::t_a265c0550da8d4 238
+QuickShell.Raycast/scripts/ensure-suggest-asset.js
+  s_0e8cf384d92398::t_4fa8590ec64f59 1-49
+docs/architecture/intelligence.md
+  s_0e8cf384d92398::t_441407903b9d2f 78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d6545c7f840b218565f807bcc2f547220880ed90",
+  "prompts": {},
+  "sessions": {
+    "s_0e8cf384d92398": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "897d6e81-798e-4020-8a76-70edee1e5a37",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
