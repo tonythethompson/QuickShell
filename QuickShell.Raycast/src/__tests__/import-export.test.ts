@@ -111,6 +111,60 @@ describe("import-export", () => {
     expect(result.data.layoutEntries?.some((entry) => entry.type === "workspace")).toBe(true);
   });
 
+  it("appends imported CmdPal separators when merging into existing layout", () => {
+    const existingId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const existing = createEmptyStoredData();
+    existing.workspaces.push(
+      normalizeWorkspace({
+        id: existingId,
+        name: "Local",
+        abbreviation: null,
+        directory: "C:\\Projects\\local",
+        isPinned: false,
+        pinOrder: null,
+        lastUsedUtc: null,
+        terminal: "default",
+        wtProfile: null,
+        command: null,
+        runAsAdmin: false,
+        launches: [],
+      }),
+    );
+    existing.layoutEntries = [
+      { type: "separator", id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", title: "Mine" },
+      { type: "workspace", workspaceId: existingId },
+    ];
+
+    const result = importParsedPayload(
+      {
+        version: 1,
+        entries: [
+          {
+            Id: "cccccccccccccccccccccccccccccccc",
+            Name: "Imported",
+            Directory: "C:\\Projects\\imported",
+          },
+          { Type: "separator", Title: "From desktop" },
+          {
+            Id: "dddddddddddddddddddddddddddddddd",
+            Name: "Other",
+            Directory: "C:\\Projects\\other",
+          },
+        ],
+      },
+      existing,
+    );
+
+    expect(result.imported).toBe(2);
+    expect(result.data.layoutEntries).toEqual([
+      { type: "separator", id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", title: "Mine" },
+      { type: "workspace", workspaceId: existingId },
+      { type: "workspace", workspaceId: result.data.workspaces[1].id },
+      { type: "separator", id: expect.any(String), title: "From desktop" },
+      { type: "workspace", workspaceId: result.data.workspaces[2].id },
+    ]);
+  });
+
   it("imports CmdPal layout envelope with flat PascalCase shortcuts", () => {
     const result = importParsedPayload({
       version: 1,

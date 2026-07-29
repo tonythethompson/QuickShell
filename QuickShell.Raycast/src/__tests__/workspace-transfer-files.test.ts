@@ -176,4 +176,41 @@ describe("workspace-transfer-files", () => {
     expect(dialogShells).toEqual(["pwsh", "powershell.exe"]);
     expect(result).toBe(path.resolve(selected));
   });
+
+  it("falls through from non-ENOENT pwsh failure to powershell.exe", async () => {
+    const selected = path.join(tmpdir(), "pwsh-runtime-fallback.json");
+    const dialogShells: string[] = [];
+    execFileMock.mockImplementation(((
+      file: string,
+      argsOrOptions: unknown,
+      optionsOrCallback: unknown,
+      maybeCallback?: (error: Error | null, stdout: string, stderr: string) => void,
+    ) => {
+      const callback =
+        typeof optionsOrCallback === "function"
+          ? (optionsOrCallback as (error: Error | null, stdout: string, stderr: string) => void)
+          : maybeCallback;
+      const args = Array.isArray(argsOrOptions) ? argsOrOptions.map(String) : [];
+      const isDialog = args.some((arg) => arg.includes("SaveFileDialog") || arg.includes("OpenFileDialog"));
+      if (!callback) {
+        throw new Error("execFile mock missing callback");
+      }
+      if (!isDialog) {
+        callback(null, "", "");
+        return {} as never;
+      }
+      dialogShells.push(file);
+      if (file === "pwsh") {
+        const error = Object.assign(new Error("Add-Type failed"), { code: 1 });
+        callback(error, "", "");
+        return {} as never;
+      }
+      callback(null, `${selected}\n`, "");
+      return {} as never;
+    }) as unknown as typeof execFile);
+
+    const result = await pickWorkspaceTransferJsonPath("open");
+    expect(dialogShells).toEqual(["pwsh", "powershell.exe"]);
+    expect(result).toBe(path.resolve(selected));
+  });
 });

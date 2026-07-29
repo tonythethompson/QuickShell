@@ -206,11 +206,16 @@ function mergeImportedData(imported: StoredData, existing?: StoredData): ImportR
 
   const isReplace = base.workspaces.length === 0;
   const newlyImported = merged.slice(base.workspaces.length);
+  const remappedImportLayout = remapImportedLayout(imported.layoutEntries, idRemap);
   const layoutEntries = isReplace
-    ? remapImportedLayout(imported.layoutEntries, idRemap)
+    ? remappedImportLayout
     : [
         ...(base.layoutEntries ?? []),
-        ...newlyImported.map((workspace) => ({ type: "workspace" as const, workspaceId: workspace.id })),
+        // Prefer remapped imported layout (keeps CmdPal separators). Fall back to
+        // appending workspace rows when the payload had no layout entries.
+        ...(remappedImportLayout.length > 0
+          ? remappedImportLayout
+          : newlyImported.map((workspace) => ({ type: "workspace" as const, workspaceId: workspace.id }))),
       ];
 
   return {

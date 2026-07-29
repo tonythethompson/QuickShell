@@ -109,15 +109,11 @@ async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | n
       if (fromStdout) {
         return fromStdout;
       }
-      // pwsh may be missing; fall through to Windows PowerShell 5.1.
+      // Any thrown pwsh error with no path (ENOENT or dialog/runtime failure) should fall
+      // through to Windows PowerShell 5.1. Cancel is empty stdout on success above, or empty
+      // stdout on a thrown error here — both should try the next shell before giving up.
       if (shell === "powershell.exe") {
         console.error("Windows transfer dialog script failed:", error);
-        return null;
-      }
-      const errno = (error as NodeJS.ErrnoException | undefined)?.code;
-      if (errno !== "ENOENT") {
-        console.error("Windows transfer dialog script failed:", error);
-        // Dialog cancel often surfaces as a non-zero exit with empty stdout; treat as cancel.
         return null;
       }
     }
