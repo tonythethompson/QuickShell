@@ -143,11 +143,12 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
   const filtered = useMemo(() => {
     const cached = data ?? [];
+    const cachedVisible = cached.filter((repo) => !addedDirectoryKeys.has(repo.directory.toLowerCase()));
     const query = searchText.trim().toLowerCase();
     if (!query) {
-      return cached;
+      return cachedVisible;
     }
-    const cachedMatches = cached.filter(
+    const cachedMatches = cachedVisible.filter(
       (repo) =>
         repo.name.toLowerCase().includes(query) ||
         repo.directory.toLowerCase().includes(query) ||
