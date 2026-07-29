@@ -1,0 +1,24 @@
+QuickShell.Raycast/src/components/workspace-form.tsx
+  s_312d24b259d341::t_8d1d7845447143 36-40,298,300-312
+QuickShell.Raycast/src/lib/suggest-commands.ts
+  s_312d24b259d341::t_e552f3f9b12330 78
+  s_312d24b259d341::t_8d1d7845447143 77,79-96
+QuickShell.Raycast/src/__tests__/suggest-commands.test.ts
+  s_312d24b259d341::t_8d1d7845447143 5,80-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "59bb57fe7327a160a4d32f4f67e6aa67eb01a4be",
+  "prompts": {},
+  "sessions": {
+    "s_312d24b259d341": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fa95f-44a9-7761-9500-6c0f18b0b976",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
