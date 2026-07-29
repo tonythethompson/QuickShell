@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -24,8 +25,8 @@ internal sealed class TerminalFragmentProfile
 internal static class TerminalFragmentDiscovery
 {
     /// <summary>
-    /// Cheap fingerprint of fragment file paths + mtimes + sizes. Used to skip a full
-    /// JSON parse when nothing on disk has changed.
+    /// Content-sensitive fingerprint of fragment files. Used to skip a full JSON parse
+    /// when nothing on disk has changed.
     /// </summary>
     public static string ComputeFingerprint(IEnumerable<string>? roots = null)
     {
@@ -59,6 +60,8 @@ internal static class TerminalFragmentDiscovery
                         .Append(info.LastWriteTimeUtc.Ticks)
                         .Append('|')
                         .Append(info.Length)
+                        .Append('|')
+                        .Append(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file))))
                         .Append(';');
                 }
                 catch
