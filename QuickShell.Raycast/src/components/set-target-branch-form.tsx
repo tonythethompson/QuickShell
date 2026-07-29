@@ -123,14 +123,14 @@ export default function SetTargetBranchForm({ directory, workspaceName, blockDir
           />
           <Form.TextField title="Branch" placeholder="main" {...itemProps.branch} />
         </>
-      ) : branchChoices && branchChoices.branches.length === 0 ? (
+      ) : !branchChoices ? null : branchChoices.branches.length === 0 ? (
         <>
           <Form.Description title="Branches" text="No local branches were found. Enter one manually." />
           <Form.TextField title="Branch" placeholder="main" {...itemProps.branch} />
         </>
       ) : (
         <Form.Dropdown title="Branch" placeholder="Search local branches..." {...itemProps.branch}>
-          {(branchChoices?.branches ?? []).map((branch) => (
+          {branchChoices.branches.map((branch) => (
             <Form.Dropdown.Item key={branch} value={branch} title={branch} />
           ))}
         </Form.Dropdown>

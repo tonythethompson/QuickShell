@@ -75,6 +75,13 @@ type DiscoverGitReposViewProps = {
   popOnAdd?: boolean;
 };
 
+function discoveryContextForWorkspaces(workspaces: Workspace[]) {
+  return {
+    existingDirs: new Set(workspaces.map((workspace) => workspace.directory.toLowerCase())),
+    extraRoots: searchRootsFromWorkspaces(workspaces.map((workspace) => workspace.directory)),
+  };
+}
+
 export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true }: DiscoverGitReposViewProps) {
   const [searchText, setSearchText] = useState("");
   const [targetedSearch, setTargetedSearch] = useState<{ query: string; repos: GitRepoCandidate[] } | null>(null);
@@ -84,9 +91,8 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
 
   const { data, isLoading, error, revalidate } = usePromise(async () => {
     const existing = await storage.getWorkspaces();
-    const extraRoots = searchRootsFromWorkspaces(existing.map((workspace) => workspace.directory));
+    const { existingDirs, extraRoots } = discoveryContextForWorkspaces(existing);
     const repos = await discoverGitReposCached(extraRoots);
-    const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
     return repos.filter((repo) => !existingDirs.has(repo.directory.toLowerCase()));
   }, []);
 
@@ -107,8 +113,7 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
       void (async () => {
         try {
           const existing = await storage.getWorkspaces();
-          const existingDirs = new Set(existing.map((workspace) => workspace.directory.toLowerCase()));
-          const extraRoots = searchRootsFromWorkspaces(existing.map((workspace) => workspace.directory));
+          const { existingDirs, extraRoots } = discoveryContextForWorkspaces(existing);
           const repos = (await discoverGitReposForQueryAsync(query, extraRoots, { signal: controller.signal })).filter(
             (repo) => !existingDirs.has(repo.directory.toLowerCase()),
           );

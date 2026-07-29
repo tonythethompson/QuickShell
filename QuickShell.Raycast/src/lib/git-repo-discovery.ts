@@ -321,7 +321,7 @@ function repoCandidateFromPathQuery(value: string): GitRepoCandidate | null {
     }
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT" || code === "ENOTDIR") {
+    if (code === "ENOENT" || code === "ENOTDIR" || code === "EACCES" || code === "EPERM" || code === "ENAMETOOLONG") {
       return null;
     }
     throw error;
