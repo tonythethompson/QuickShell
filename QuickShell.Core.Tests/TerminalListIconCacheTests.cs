@@ -91,7 +91,7 @@ public sealed class TerminalListIconCacheTests
     }
 
     [Fact]
-    public void PrepareForList_DoesNotTreatNonBlankPngAsBlank()
+    public void prepare_for_list_does_not_treat_non_blank_png_as_blank()
     {
         var png = CreatePng(64, 64, color: System.Drawing.Color.Red);
 

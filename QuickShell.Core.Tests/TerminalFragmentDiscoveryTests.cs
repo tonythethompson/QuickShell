@@ -82,7 +82,7 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
     }
 
     [Fact]
-    public void LoadAll_UpdatesKey_MergesOntoExistingGuid()
+    public void load_all_updates_key_merges_onto_existing_guid()
     {
         WriteFragment(
             Path.Combine(_root, "base", "base.json"),
@@ -118,7 +118,7 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
     }
 
     [Fact]
-    public void LoadAll_ResolvesRelativeIconAgainstFragmentDirectory()
+    public void load_all_resolves_relative_icon_against_fragment_directory()
     {
         var fragmentDir = Path.Combine(_root, "vendor");
         WriteFragment(

@@ -135,7 +135,7 @@ public sealed class QuickShellPageSearchTests : IDisposable
     }
 
     [Fact]
-    public void RequiresHomeRepair_ExpiredEntry_AllowsReprobe()
+    public void requires_home_repair_expired_entry_allows_reprobe()
     {
         var shortcut = _repository.GetByName("Alpha")!;
         var repairKey = GetDirectoryRepairKey(shortcut);
