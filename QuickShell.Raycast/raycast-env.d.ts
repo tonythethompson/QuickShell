@@ -14,7 +14,7 @@ type ExtensionPreferences = {
   "defaultProfile": string,
   /** Recent Workspaces - Show recently opened workspaces in Workspaces. */
   "showRecents": boolean,
-  /** Multi-command Launch - When supported on Windows, open multiple launch commands as tabs in one Windows Terminal window. On macOS, launches always open as separate windows. */
+  /** Multi-command Launch - Open multiple launch commands as tabs in one window (Windows Terminal on Windows; Terminal.app or iTerm2 on macOS). */
   "singleWindowTabs": boolean,
   /** Git Branch Gate - Block launch when a target branch is set and the working tree has uncommitted changes. */
   "blockDirtyBranchSwitch": boolean

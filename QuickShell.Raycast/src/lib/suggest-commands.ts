@@ -6,6 +6,12 @@ import { buildProjectSetupSuggestions, type WorkspaceSetupTask } from "./project
 
 const execFileAsync = promisify(execFile);
 
+/** Cap setup seed so leftover pills remain available in Actions (CmdPal-shaped). */
+export const MAX_SETUP_SEED_TASKS = 4;
+
+const PREFERRED_SEED_TASK_TYPES = new Set(["frontend", "api", "services", "test", "build"]);
+const PREFERRED_SEED_COMMAND_HINTS = ["dev", "start", "test", "build", "watch", "run"];
+
 export type SuggestionPill = {
   command: string;
   taskType: string;
@@ -62,9 +68,76 @@ export function pillsToSetupTasks(pills: SuggestionPill[]): WorkspaceSetupTask[]
     tasks.push({
       label: (pill.displayTitle || pill.typeTitle || command).trim() || command,
       command,
+      taskType: pill.taskType?.trim() || "none",
     });
   }
   return tasks;
+}
+
+export function isPreferredSetupSeedPill(pill: SuggestionPill): boolean {
+  const taskType = pill.taskType?.trim().toLowerCase() ?? "";
+  if (PREFERRED_SEED_TASK_TYPES.has(taskType)) {
+    return true;
+  }
+
+  const command = pill.command?.trim().toLowerCase() ?? "";
+  if (!command) {
+    return false;
+  }
+
+  return PREFERRED_SEED_COMMAND_HINTS.some(
+    (hint) =>
+      command === hint ||
+      command.endsWith(` ${hint}`) ||
+      command.includes(` run ${hint}`) ||
+      command.includes(` task ${hint}`) ||
+      command.startsWith(`${hint} `),
+  );
+}
+
+/**
+ * Split ranked Suggest pills into a short setup seed and leftover Actions pills.
+ * Preferred task types / setup-like commands are taken first, capped at MAX_SETUP_SEED_TASKS.
+ */
+export function splitPillsIntoSeedAndLeftover(
+  pills: SuggestionPill[],
+  maxSeed = MAX_SETUP_SEED_TASKS,
+): { tasks: WorkspaceSetupTask[]; leftoverPills: SuggestionPill[] } {
+  const usable = pills.filter((pill) => pill.command?.trim());
+  if (usable.length === 0) {
+    return { tasks: [], leftoverPills: [] };
+  }
+
+  const seedPills: SuggestionPill[] = [];
+  const leftover: SuggestionPill[] = [];
+  const seedCommands = new Set<string>();
+
+  for (const pill of usable) {
+    const key = pill.command.trim().toLowerCase();
+    if (seedPills.length < maxSeed && isPreferredSetupSeedPill(pill) && !seedCommands.has(key)) {
+      seedPills.push(pill);
+      seedCommands.add(key);
+      continue;
+    }
+    leftover.push(pill);
+  }
+
+  if (seedPills.length === 0) {
+    const take = Math.min(Math.max(1, Math.min(2, maxSeed)), usable.length);
+    for (let index = 0; index < take; index += 1) {
+      seedPills.push(usable[index]);
+      seedCommands.add(usable[index].command.trim().toLowerCase());
+    }
+    return {
+      tasks: pillsToSetupTasks(seedPills),
+      leftoverPills: usable.filter((pill) => !seedCommands.has(pill.command.trim().toLowerCase())),
+    };
+  }
+
+  return {
+    tasks: pillsToSetupTasks(seedPills),
+    leftoverPills: leftover.filter((pill) => !seedCommands.has(pill.command.trim().toLowerCase())),
+  };
 }
 
 export async function fetchSuggestionPills(
@@ -105,13 +178,22 @@ export async function resolveWorkspaceSetupSuggestions(
 
   const response = await fetchSuggestionPills(trimmed, usedCommands, generation);
   if (response && response.pills.length > 0) {
+    const split = splitPillsIntoSeedAndLeftover(response.pills);
     return {
       source: "suggest",
-      tasks: pillsToSetupTasks(response.pills),
-      pills: response.pills,
+      tasks: split.tasks,
+      pills: split.leftoverPills,
     };
   }
 
   const tasks = buildProjectSetupSuggestions(trimmed);
-  return { source: "local", tasks, pills: [] };
+  const asPills: SuggestionPill[] = tasks.map((task) => ({
+    command: task.command,
+    taskType: task.taskType?.trim() || "none",
+    typeTitle: task.taskType?.trim() || "Setup",
+    displayTitle: task.label,
+    tooltip: task.command,
+  }));
+  const split = splitPillsIntoSeedAndLeftover(asPills);
+  return { source: "local", tasks: split.tasks, pills: split.leftoverPills };
 }

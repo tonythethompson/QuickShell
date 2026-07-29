@@ -54,7 +54,7 @@ import {
   resolveOpenWorkspaceSearchSeed,
   type OpenWorkspaceLaunchContext,
 } from "./lib/launch-context";
-import { isSupportedPlatform } from "./lib/platform";
+import { isMacPlatform, isSupportedPlatform } from "./lib/platform";
 import { dualPlatformShortcut } from "./lib/shortcuts";
 import { useLoadErrorToast } from "./lib/use-load-error-toast";
 import { discoverWorkspaceTerminalChoices, invalidateTerminalCatalogCache } from "./lib/terminal-catalog";
@@ -1069,7 +1069,7 @@ export default function OpenWorkspaceCommand({
       accessories.push({ icon: Icon.Star, tooltip: "Favorite" });
     }
 
-    const wantsAdmin = workspace.runAsAdmin || launch?.runAsAdmin;
+    const wantsAdmin = !isMacPlatform() && (workspace.runAsAdmin || launch?.runAsAdmin);
 
     return (
       <List.Item
@@ -1098,14 +1098,14 @@ export default function OpenWorkspaceCommand({
                   onAction={() => handleOpen(workspace, launch, { runAsStandard: true })}
                 />
               ) : null}
-              {wantsAdmin ? null : (
+              {!isMacPlatform() && !wantsAdmin ? (
                 <Action
                   title="Run as Administrator"
                   icon={Icon.Shield}
                   shortcut={dualPlatformShortcut({ modifiers: ["cmd", "shift"], key: "return" })}
                   onAction={() => handleOpen(workspace, launch, { runAsAdmin: true })}
                 />
-              )}
+              ) : null}
               <Action
                 title="Open Folder"
                 icon={Icon.Folder}

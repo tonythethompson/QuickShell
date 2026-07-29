@@ -66,7 +66,7 @@ Important libs:
 
 Raycast persistence (`storage.ts`) owns both LocalStorage keys above. Public mutations serialize on an in-process write queue (nested save/flush use unlocked helpers). Reset-all writes a restart-safe snapshot to `quickshell-data.bak` before clearing workspaces; recover with in-session Undo or **Restore Backup** after restart. See [persistence.md](./persistence.md#raycast).
 
-Parity goals: multi-launch tabs (no `-w` on tab segments), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, shared git worktree target file, full Core health (ports/process), Adaptive Card forms.
+Parity goals: multi-launch tabs (Windows Terminal on Windows; Terminal.app / iTerm2 on macOS), similar settings keys, similar workspace shape, Suggest.exe pills with local heuristic fallback, multi-companion form + installed presets + folder-marker seed, trust/import contracts aligned with Core, copyable launch diagnostics, companions before terminals. Gaps: shared LocalAppData store, shared git worktree target file, full Core health (ports/process), Adaptive Card forms, Suggest CLI on macOS.
 
 ## Shared Core (desktop only)
 

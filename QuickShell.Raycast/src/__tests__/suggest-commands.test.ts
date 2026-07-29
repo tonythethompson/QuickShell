@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { buildSuggestCommandArgs, pillsToSetupTasks, type SuggestionPill } from "../lib/suggest-commands";
+import {
+  buildSuggestCommandArgs,
+  pillsToSetupTasks,
+  splitPillsIntoSeedAndLeftover,
+  type SuggestionPill,
+} from "../lib/suggest-commands";
+
+function pill(partial: Partial<SuggestionPill> & Pick<SuggestionPill, "command" | "taskType">): SuggestionPill {
+  return {
+    typeTitle: partial.typeTitle ?? partial.taskType,
+    displayTitle: partial.displayTitle ?? partial.command,
+    tooltip: partial.tooltip ?? partial.command,
+    ...partial,
+  };
+}
 
 describe("suggest-commands", () => {
   it("builds suggest CLI args with used commands", () => {
@@ -49,8 +63,41 @@ describe("suggest-commands", () => {
     ];
 
     expect(pillsToSetupTasks(pills)).toEqual([
-      { label: "Dev server", command: "npm run dev" },
-      { label: "API", command: "dotnet watch" },
+      { label: "Dev server", command: "npm run dev", taskType: "frontend" },
+      { label: "API", command: "dotnet watch", taskType: "api" },
     ]);
+  });
+
+  it("splits preferred setup pills into a short seed and leftover Actions pills", () => {
+    const pills = [
+      pill({ command: "npm run build", taskType: "build", displayTitle: "Build" }),
+      pill({ command: "npm run dev", taskType: "frontend", displayTitle: "Dev" }),
+      pill({ command: "dotnet watch", taskType: "api", displayTitle: "API" }),
+      pill({ command: "npm test", taskType: "test", displayTitle: "Test" }),
+      pill({ command: "claude", taskType: "agent", displayTitle: "Agent" }),
+      pill({ command: "npm run lint", taskType: "none", displayTitle: "Lint" }),
+    ];
+
+    const split = splitPillsIntoSeedAndLeftover(pills, 4);
+    expect(split.tasks.map((task) => task.command)).toEqual([
+      "npm run build",
+      "npm run dev",
+      "dotnet watch",
+      "npm test",
+    ]);
+    expect(split.tasks[1].taskType).toBe("frontend");
+    expect(split.leftoverPills.map((entry) => entry.command)).toEqual(["claude", "npm run lint"]);
+  });
+
+  it("falls back to the first pills when none are preferred setup types", () => {
+    const pills = [
+      pill({ command: "echo one", taskType: "none", displayTitle: "One" }),
+      pill({ command: "echo two", taskType: "none", displayTitle: "Two" }),
+      pill({ command: "echo three", taskType: "none", displayTitle: "Three" }),
+    ];
+
+    const split = splitPillsIntoSeedAndLeftover(pills, 4);
+    expect(split.tasks.map((task) => task.command)).toEqual(["echo one", "echo two"]);
+    expect(split.leftoverPills.map((entry) => entry.command)).toEqual(["echo three"]);
   });
 });

@@ -40,6 +40,7 @@ import { choiceForTerminalState, discoverWorkspaceTerminalChoices } from "../lib
 import { getTerminalApplicationChoices } from "../lib/terminal-options";
 import { isMacPlatform } from "../lib/platform";
 import {
+  applySuggestionPillToLaunchRows,
   buildWorkspaceFromFormState,
   createEmptyCompanionFormRow,
   launchRowsFromSuggestions,
@@ -149,6 +150,55 @@ export default function WorkspaceForm({
     const enriched = discoverWorkspaceTerminalChoices({ includeSlowProbes: true });
     setTerminalChoices(enriched);
   }, [mode]);
+
+  // Discover Review already seeds launches before mount. Only refresh leftover Actions
+  // pills here — do not re-run full applyDirectorySuggestions (that would pass seeded
+  // commands as --used and replace the seed rows).
+  useEffect(() => {
+    if (directorySeedMode !== "full" || mode === "edit") {
+      return;
+    }
+    const directory = initialState.directory.trim();
+    if (!directory) {
+      return;
+    }
+    const seededCommands = initialState.launches.map((launch) => launch.command.trim()).filter(Boolean);
+    if (seededCommands.length === 0) {
+      void applyDirectorySuggestions(directory);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const generation = ++suggestionGenerationRef.current;
+      const resolved = await resolveWorkspaceSetupSuggestions(directory, seededCommands);
+      if (cancelled || generation !== suggestionGenerationRef.current) {
+        return;
+      }
+      setSuggestionSource(resolved.source);
+      // Keep existing seed rows; expose Suggest leftovers (and any unused seed candidates) as pills.
+      const used = new Set(seededCommands.map((command) => command.toLowerCase()));
+      const leftoverFromSeed = resolved.tasks
+        .filter((task) => !used.has(task.command.trim().toLowerCase()))
+        .map((task) => ({
+          command: task.command,
+          taskType: task.taskType?.trim() || "none",
+          typeTitle: task.taskType?.trim() || "Setup",
+          displayTitle: task.label,
+          tooltip: task.command,
+        }));
+      setSuggestionPills([
+        ...leftoverFromSeed,
+        ...resolved.pills.filter((pill) => !used.has(pill.command.trim().toLowerCase())),
+      ]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally once on mount for pre-seeded Review/Discover create flows.
+  }, []);
+
   const initialValues = useMemo(
     () => valuesFromState(initialState, terminalChoices, draftValues),
     // terminalChoices intentionally omitted: useForm should keep the first selection id.
@@ -281,6 +331,7 @@ export default function WorkspaceForm({
               runAsAdmin: values.runAsAdmin,
               isEnabled: true,
               label: "Launch",
+              taskType: "none",
             },
           ]);
         }
@@ -313,30 +364,12 @@ export default function WorkspaceForm({
 
   function applySuggestionPill(pill: SuggestionPill) {
     commandsCustomizedRef.current = true;
-    setLaunches((current) => {
-      if (current.length === 1 && !current[0].command.trim()) {
-        return [
-          {
-            ...current[0],
-            command: pill.command,
-            label: pill.displayTitle || pill.typeTitle || pill.command,
-          },
-        ];
-      }
-      const terminal = terminalForAddedLaunch(current, "default");
-      return [
-        ...current,
-        {
-          id: createStableId(),
-          command: pill.command,
-          terminal: terminal.terminal,
-          wtProfile: terminal.wtProfile,
-          runAsAdmin: values.runAsAdmin,
-          isEnabled: true,
-          label: pill.displayTitle || pill.typeTitle || pill.command,
-        },
-      ];
-    });
+    setLaunches((current) =>
+      applySuggestionPillToLaunchRows(current, pill, {
+        runAsAdmin: values.runAsAdmin,
+        firstLaunchTerminal: selectedTerminal?.terminal ?? "default",
+      }),
+    );
     setSuggestionPills((current) =>
       current.filter((entry) => entry.command.trim().toLowerCase() !== pill.command.trim().toLowerCase()),
     );
@@ -361,6 +394,7 @@ export default function WorkspaceForm({
           runAsAdmin: values.runAsAdmin,
           isEnabled: true,
           label: `Launch ${current.length + 1}`,
+          taskType: "none",
         },
       ];
     });
@@ -487,8 +521,10 @@ export default function WorkspaceForm({
       terminal: selectedTerminal?.terminal ?? "default",
       wtProfile: selectedTerminal?.wtProfile ?? null,
       isPinned: formValues.isPinned,
-      runAsAdmin: formValues.runAsAdmin,
-      launches,
+      runAsAdmin: isMacPlatform() ? false : formValues.runAsAdmin,
+      launches: isMacPlatform()
+        ? launches.map((launch) => ({ ...launch, runAsAdmin: false }))
+        : launches,
       companions,
       devServerUrl: formValues.devServerUrl,
       openDevServerOnLaunch: formValues.openDevServerOnLaunch,
@@ -547,6 +583,7 @@ export default function WorkspaceForm({
           runAsAdmin: false,
           isEnabled: true,
           label: "Launch",
+          taskType: "none",
         },
       ]);
       nameCustomizedRef.current = false;
@@ -692,7 +729,7 @@ export default function WorkspaceForm({
         />
       ) : null}
       <Form.Checkbox {...itemProps.isPinned} label="Favorite" />
-      <Form.Checkbox {...itemProps.runAsAdmin} label="Run as administrator" />
+      {!isMacPlatform() ? <Form.Checkbox {...itemProps.runAsAdmin} label="Run as administrator" /> : null}
       <Form.Separator />
       <Form.TextField
         {...itemProps.repoUrl}
@@ -743,13 +780,25 @@ export default function WorkspaceForm({
           <Form.FilePicker
             key={`companion-exe-${companion.id}`}
             id={`companion-exe-${companion.id}`}
-            title={companions.length === 1 ? "Custom executable" : `Companion ${index + 1} executable`}
+            title={
+              companions.length === 1
+                ? isMacPlatform()
+                  ? "Custom app"
+                  : "Custom executable"
+                : isMacPlatform()
+                  ? `Companion ${index + 1} app`
+                  : `Companion ${index + 1} executable`
+            }
             value={companion.path ? [companion.path] : []}
             onChange={(paths) => handleCompanionExecutableChange(index, paths)}
             canChooseFiles
             canChooseDirectories={false}
             allowMultipleSelection={false}
-            info="Opens the file explorer to pick an .exe (or shortcut)."
+            info={
+              isMacPlatform()
+                ? "Opens Finder to pick an .app bundle or executable."
+                : "Opens the file explorer to pick an .exe (or shortcut)."
+            }
           />
         ) : null,
       )}

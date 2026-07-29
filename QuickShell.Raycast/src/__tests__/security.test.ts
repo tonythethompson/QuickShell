@@ -285,6 +285,39 @@ describe("workspace security policy", () => {
     expect(effects.warnings).toHaveLength(1);
   });
 
+  it("includes all configured companions when companionSelection is all", () => {
+    const content: Workspace = {
+      ...workspace,
+      directory: "\\\\wsl$\\Ubuntu\\home\\dev\\project",
+      companionApps: [
+        {
+          id: "on-launch",
+          path: process.execPath,
+          arguments: null,
+          openOnLaunch: true,
+          order: 0,
+        },
+        {
+          id: "on-demand",
+          path: process.execPath,
+          arguments: "--extra",
+          openOnLaunch: false,
+          order: 1,
+        },
+      ],
+    };
+
+    const openOnLaunchOnly = authorizePostLaunchEffects({ ...stored(true), content });
+    const allCompanions = authorizePostLaunchEffects(
+      { ...stored(true), content },
+      { includeCompanion: true, includeDevServer: false, companionSelection: "all" },
+    );
+
+    expect(openOnLaunchOnly.plan.companions.map((entry) => entry.companionId)).toEqual(["on-launch"]);
+    expect(allCompanions.plan.companions.map((entry) => entry.companionId)).toEqual(["on-launch", "on-demand"]);
+    expect(allCompanions.plan.devServerUrl).toBeNull();
+  });
+
   it("fails closed for ambiguous duplicate companion IDs", () => {
     const duplicate = {
       id: "duplicate",
@@ -326,16 +359,10 @@ describe("workspace trust kill switch (disabled)", () => {
     expect(authorize(value, { kind: "launchEntry", launchId: "launch-1" }).isAllowed).toBe(true);
     expect(authorize(value, { kind: "url", url: "https://example.com" }).isAllowed).toBe(true);
 
-    // Open-directory still requires an existing rooted Windows drive path (product is
-    // Windows-only). On Linux CI assert trust is not the blocker; on Windows assert allow.
+    // Open-directory allows rooted Windows drive paths and POSIX absolute paths.
     const openDirectory = authorize(value, { kind: "directory" });
     expect(openDirectory.issues.some((issue) => issue.code === "WorkspaceUntrusted")).toBe(false);
-    if (process.platform === "win32") {
-      expect(openDirectory.isAllowed).toBe(true);
-    } else {
-      expect(openDirectory.isAllowed).toBe(false);
-      expect(openDirectory.primaryIssueCode).toBe("DirectoryOpenNotAllowed");
-    }
+    expect(openDirectory.isAllowed).toBe(true);
   });
 
   it("matches the shared JSON default", () => {

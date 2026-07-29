@@ -82,11 +82,11 @@
     {
       "name": "singleWindowTabs",
       "title": "Multi-command Launch",
-      "description": "When supported on Windows, open multiple launch commands as tabs in one Windows Terminal window. On macOS, launches always open as separate windows.",
+      "description": "Open multiple launch commands as tabs in one window (Windows Terminal on Windows; Terminal.app or iTerm2 on macOS).",
       "type": "checkbox",
       "required": false,
       "default": true,
-      "label": "Open multiple commands in one Windows Terminal window"
+      "label": "Open multiple commands as tabs in one window"
     },
     {
       "name": "blockDirtyBranchSwitch",
