@@ -109,15 +109,23 @@ jobs:
             $notes = $override
             Write-Host "Using workflow_dispatch release_notes override."
           } else {
+            # Do not use `$LASTEXITCODE -ne 0` after a .ps1 call: unset LASTEXITCODE is
+            # $null, and `$null -ne 0` is $true, so `exit $LASTEXITCODE` exits 0 early.
             $notes = & .\scripts\extract-changelog.ps1 -Version $version
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if (-not $?) {
+              throw "extract-changelog.ps1 failed for version $version."
+            }
+          }
+
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "Release notes for $version are empty."
           }
 
           "NOTES<<EOF" >> $env:GITHUB_OUTPUT
           $notes >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
 
-          $notes | Set-Content -Path release-notes.txt -Encoding utf8
+          Set-Content -LiteralPath release-notes.txt -Value $notes -Encoding utf8
 
           $wingetId = "${{ env.WINGET_PACKAGE_ID }}"
           $wingetCmdPalId = "${{ env.WINGET_CMDPAL_PACKAGE_ID }}"
@@ -263,11 +271,21 @@ jobs:
           if ($override) {
             $notes = $override
           } else {
+            # See build job: unset $LASTEXITCODE after a .ps1 must not early-exit 0.
             $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if (-not $?) {
+              throw "extract-changelog.ps1 failed for version $($env:RELEASE_VERSION)."
+            }
           }
 
-          $notes | Set-Content -Path release-notes.txt -Encoding utf8
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "Release notes for $($env:RELEASE_VERSION) are empty."
+          }
+
+          Set-Content -LiteralPath release-notes.txt -Value $notes -Encoding utf8
+          if (-not (Test-Path -LiteralPath release-notes.txt)) {
+            throw 'Failed to write release-notes.txt.'
+          }
           Write-Host "Loaded $($notes.Length) characters of WinGet release notes."
 
       - name: Install WingetCreate
@@ -288,33 +306,19 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) {
-            Write-Warning "WINGET_PAT secret is not configured. Skipping WinGet submission."
-            exit 0
-          }
-
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
-          $packageId = "${{ env.WINGET_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
-          $x64Url = "$baseUrl/QuickShell-Setup-$version-x64.exe"
-          $arm64Url = "$baseUrl/QuickShell-Setup-$version-arm64.exe"
-          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-          $outDir = "winget-out/$packageId"
           $notes = Get-Content -Raw release-notes.txt
 
-          wingetcreate update $packageId `
-            --version $version `
-            --urls $x64Url $arm64Url `
-            --release-notes-url $releaseNotesUrl `
-            --out $outDir
-
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
-
-          wingetcreate submit `
-            --prtitle "$packageId version $version" `
-            --token $env:WINGET_PAT `
-            $outDir
+          .\scripts\submit-winget-package.ps1 `
+            -PackageId "${{ env.WINGET_PACKAGE_ID }}" `
+            -Version $version `
+            -Tag $tag `
+            -X64Url "$baseUrl/QuickShell-Setup-$version-x64.exe" `
+            -Arm64Url "$baseUrl/QuickShell-Setup-$version-arm64.exe" `
+            -ReleaseNotes $notes `
+            -Required
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -324,30 +328,19 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) { exit 0 }
-
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
-          $packageId = "${{ env.WINGET_CMDPAL_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
-          $x64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe"
-          $arm64Url = "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe"
-          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-          $outDir = "winget-out/$packageId"
           $notes = Get-Content -Raw release-notes.txt
 
-          wingetcreate update $packageId `
-            --version $version `
-            --urls $x64Url $arm64Url `
-            --release-notes-url $releaseNotesUrl `
-            --out $outDir
-
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
-
-          wingetcreate submit `
-            --prtitle "$packageId version $version" `
-            --token $env:WINGET_PAT `
-            $outDir
+          # Soft-skip until an initial QuickShellforCmdPal package exists in winget-pkgs.
+          .\scripts\submit-winget-package.ps1 `
+            -PackageId "${{ env.WINGET_CMDPAL_PACKAGE_ID }}" `
+            -Version $version `
+            -Tag $tag `
+            -X64Url "$baseUrl/QuickShellforCmdPal-Setup-$version-x64.exe" `
+            -Arm64Url "$baseUrl/QuickShellforCmdPal-Setup-$version-arm64.exe" `
+            -ReleaseNotes $notes
         shell: pwsh
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}
@@ -357,31 +350,19 @@ jobs:
           $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + `
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
-          if (-not $env:WINGET_PAT) { exit 0 }
-
           $version = "${{ needs.build.outputs.version }}"
           $tag = "${{ needs.build.outputs.tag }}"
-          $packageId = "${{ env.WINGET_RUN_PACKAGE_ID }}"
           $baseUrl = "https://github.com/${{ github.repository }}/releases/download/$tag"
-          $x64Url = "$baseUrl/QuickShellforRun-Setup-$version-x64.exe"
-          $arm64Url = "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe"
-          $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-          $outDir = "winget-out/$packageId"
           $notes = Get-Content -Raw release-notes.txt
 
-          wingetcreate update $packageId `
-            --version $version `
-            --urls $x64Url $arm64Url `
-            --release-notes-url $releaseNotesUrl `
-            --out $outDir
-
-          .\scripts\set-winget-release-notes.ps1 -ManifestDir $outDir -ReleaseNotes $notes
-
-          wingetcreate submit `
-            --prtitle "$packageId version $version" `
-            --token $env:WINGET_PAT `
-            $outDir
+          # Soft-skip until an initial QuickShellforRun package exists in winget-pkgs.
+          .\scripts\submit-winget-package.ps1 `
+            -PackageId "${{ env.WINGET_RUN_PACKAGE_ID }}" `
+            -Version $version `
+            -Tag $tag `
+            -X64Url "$baseUrl/QuickShellforRun-Setup-$version-x64.exe" `
+            -Arm64Url "$baseUrl/QuickShellforRun-Setup-$version-arm64.exe" `
+            -ReleaseNotes $notes
         shell: pwsh
-        continue-on-error: true
         env:
           WINGET_PAT: ${{ secrets.WINGET_PAT }}

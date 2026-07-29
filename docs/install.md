@@ -6,19 +6,24 @@ description: Install Quick Shell from the Microsoft Store, WinGet, or GitHub Rel
 
 # Install Quick Shell
 
-Before installing, ensure you have **PowerToys** with **Command Palette** enabled.  
-[Install PowerToys](https://learn.microsoft.com/windows/powertoys/install){:target="_blank"} if you haven't already.
+Pick the launcher you use. **Command Palette** and **PowerToys Run** share the same Windows installers and `%LocalAppData%\QuickShell\` data.
+**Raycast** installs from the Raycast Store and keeps its own storage (import/export JSON to bridge).
 
 ## Choose your installation method
 
 ### Microsoft Store
 
-The easiest way to install and stay updated:
+The easiest way to install Command Palette and stay updated:
 
 1. Open [**Quick Shell for CmdPal in the Microsoft Store**](https://apps.microsoft.com/detail/9PC8S6LNRT3R){:target="_blank"} (Store ID: `9PC8S6LNRT3R`)
 2. Click **Install**
 
 Or search **Quick Shell for CmdPal** in the Store app (listing title). After install, open Command Palette and search **Quick Shell**.
+
+<div class="callout">
+  <strong>Command Palette only:</strong> the Store package does not include PowerToys Run.
+  Add Run from a GitHub ZIP or use the bundled WinGet / GitHub EXE (below).
+</div>
 
 <div class="callout">
   <strong>Command Palette extensions in the Store:</strong> You can also browse related extensions with the
@@ -28,17 +33,18 @@ Or search **Quick Shell for CmdPal** in the Store app (listing title). After ins
 
 ### WinGet (Command Line)
 
-Two packages:
-
 ```powershell
 # Command Palette + PowerToys Run
 winget install tonythethompson.QuickShell
 
 # Command Palette only (Store-equivalent)
 winget install tonythethompson.QuickShellforCmdPal
+
+# PowerToys Run only
+winget install tonythethompson.QuickShellforRun
 ```
 
-Restart PowerToys after the bundled install so Run picks up the plugin.
+Restart PowerToys after the bundled or Run-only install so Run picks up the plugin.
 
 ### GitHub Releases
 
@@ -48,15 +54,22 @@ Download an installer directly:
 2. Pick the installer for your PC:
    - **Bundled:** `QuickShell-Setup-*-x64.exe` or `*-arm64.exe` (CmdPal + Run)
    - **CmdPal only:** `QuickShellforCmdPal-Setup-*-x64.exe` or `*-arm64.exe`
+   - **Run only:** `QuickShellforRun-Setup-*-x64.exe` / `*-arm64.exe`, or `QuickShell.Run-*.zip`
 3. Run the installer
 
 Choose **x64** for most PCs, **ARM64** only if you're on an ARM-based Windows device.
 
-Standalone Run-only ZIPs (`QuickShell.Run-*.zip`) are also on Releases if you already use the Store or CmdPal-only build and only want the Run plugin.
+### Raycast Store
 
-## Complete setup
+1. Install [Raycast](https://www.raycast.com/){:target="_blank"} (Windows or macOS)
+2. Install **Quick Shell** from the [Raycast Store](https://www.raycast.com/store){:target="_blank"}
+3. Search `qs`, `quickshell`, or a workspace home keyword in Raycast
 
-After installation, follow these steps:
+Raycast does not share `%LOCALAPPDATA%\QuickShell\shortcuts.json` with CmdPal/Run. Use Import/Export JSON to move workspaces between hosts.
+
+## Complete setup (PowerToys)
+
+After a PowerToys install, follow these steps:
 
 1. **Restart PowerToys** (WinGet / GitHub EXE installs the Run plugin; Store installs CmdPal only)
 2. Open **PowerToys Command Palette** (press **Win + Alt + Space**)

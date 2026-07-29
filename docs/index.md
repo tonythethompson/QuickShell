@@ -1,13 +1,14 @@
 ---
 layout: default
 title: Home
-description: Quick Shell opens saved project folders from PowerToys Command Palette in the terminal you already use.
+description: Quick Shell opens saved project folders from PowerToys Command Palette, PowerToys Run, or Raycast in the terminal you already use.
 ---
 
 <div class="hero">
   <h1>Instant access to your project folders</h1>
   <p class="lead">
-    Quick Shell is a PowerToys Command Palette extension that puts your saved folders one keystroke away.
+    Quick Shell puts your saved folders one keystroke away in
+    <strong>PowerToys Command Palette</strong>, <strong>PowerToys Run</strong>, or <strong>Raycast</strong>.
     Open any project in your terminal of choice, with custom commands running automatically.
   </p>
 
@@ -79,7 +80,11 @@ description: Quick Shell opens saved project folders from PowerToys Command Pale
   </a>
 </div>
 
-<p class="section-label">Screenshots</p>
+<p class="section-label">Command Palette</p>
+<p class="section-intro">
+  The primary PowerToys surface: browse, edit, and launch workspaces from Command Palette
+  (<kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd>). Available from the Microsoft Store, WinGet, and GitHub.
+</p>
 <p class="screenshot-hint">Click to enlarge</p>
 
 <div class="screenshot-grid">
@@ -88,16 +93,49 @@ description: Quick Shell opens saved project folders from PowerToys Command Pale
   <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_3.png" alt="Quick Shell settings and terminal profile configuration" loading="lazy">
 </div>
 
+<p class="section-label">PowerToys Run</p>
+<p class="section-intro">
+  Same workspaces from Run (<kbd>Alt</kbd>+<kbd>Space</kbd>): type <strong>qs</strong> to search and launch.
+  Bundled with the WinGet / GitHub EXE installers; native settings and editor included.
+  <a href="{{ '/install/' | relative_url }}">Install options &rarr;</a>
+</p>
+<p class="screenshot-hint">Click to enlarge</p>
+
+<div class="screenshot-grid">
+  <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_Run_1.png" alt="PowerToys Run search results for qs" loading="lazy">
+  <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_Run_2.png" alt="Quick Shell PowerToys Run settings window" loading="lazy">
+  <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_Run_3.png" alt="Create workspace in PowerToys Run, General tab" loading="lazy">
+</div>
+
+<p class="section-label">Raycast</p>
+<p class="section-intro">
+  Native Raycast extension for Windows and macOS: open, create, and manage workspaces from Raycast root search.
+  Install from the
+  <a href="https://www.raycast.com/store" target="_blank" rel="noopener">Raycast Store</a>
+  (not shipped via GitHub or WinGet). Import/export JSON to bridge with CmdPal and Run.
+</p>
+<p class="screenshot-hint">Click to enlarge</p>
+
+<div class="screenshot-grid">
+  <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_Raycast_1.png" alt="Raycast Create Workspace form with directory auto-fill" loading="lazy">
+  <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_Raycast_2.png" alt="Raycast root search showing Quick Shell commands" loading="lazy">
+  <img src="https://raw.githubusercontent.com/tonythethompson/QuickShell/master/QuickShell/Assets/Screenshot_Raycast_3.png" alt="Raycast Create Workspace form with links fields" loading="lazy">
+</div>
+
 <p class="section-label">Requirements</p>
 
 <div class="card-grid home-bottom-grid">
   <div class="card">
     <h3>Windows</h3>
-    <p>Windows 10 version 2004 or later. Windows 11 recommended.</p>
+    <p>Windows 10 version 2004 or later. Windows 11 recommended. Raycast also supports macOS.</p>
   </div>
   <div class="card">
-    <h3>PowerToys</h3>
-    <p><a href="https://learn.microsoft.com/windows/powertoys/install" target="_blank" rel="noopener">PowerToys</a> with Command Palette enabled.</p>
+    <h3>A launcher</h3>
+    <p>
+      <a href="https://learn.microsoft.com/windows/powertoys/install" target="_blank" rel="noopener">PowerToys</a>
+      (Command Palette and/or Run) or
+      <a href="https://www.raycast.com/" target="_blank" rel="noopener">Raycast</a>.
+    </p>
   </div>
   <div class="card">
     <h3>Get going</h3>
