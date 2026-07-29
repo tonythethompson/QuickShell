@@ -64,9 +64,16 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
     {
         var normalized = TaskTypeCatalog.Normalize(taskType);
         var candidates = GetCandidates(directory, normalized, pickContext);
+        return BuildChoiceTooltip(normalized, candidates);
+    }
+
+    private static string BuildChoiceTooltip(
+        string normalizedTaskType,
+        IReadOnlyList<TaskTypeCandidate> candidates)
+    {
         if (candidates.Count == 0)
         {
-            return GetStaticChoiceTooltip(normalized);
+            return GetStaticChoiceTooltip(normalizedTaskType);
         }
 
         var first = candidates[0];
@@ -101,17 +108,25 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
                 "Adds a new command row with a project-aware suggestion."));
         }
 
-        foreach (var def in TaskTypeCatalog.GetChoices())
+        // Build the suggestion context once. Calling IsTaskTypeAvailable + GetTaskTypeChoiceTooltip
+        // per choice re-ran Classify + WorkspaceSetupSuggestion.Build (both filesystem-bound)
+        // twice for every task type — ~14 project classifications per card build, and the
+        // workspace form rebuilds its card on every button press.
+        if (TryBuildSuggestionContext(directory, out var context))
         {
-            if (!IsTaskTypeAvailable(directory, def.Id, pickContext))
+            foreach (var def in TaskTypeCatalog.GetChoices())
             {
-                continue;
-            }
+                var candidates = TaskTypeCandidateBuilder.Build(def.Id, context, pickContext);
+                if (candidates.Count == 0)
+                {
+                    continue;
+                }
 
-            choices.Add(new TaskTypeChoiceJson(
-                def.Title,
-                def.Id,
-                GetTaskTypeChoiceTooltip(directory, def.Id, pickContext)));
+                choices.Add(new TaskTypeChoiceJson(
+                    def.Title,
+                    def.Id,
+                    BuildChoiceTooltip(TaskTypeCatalog.Normalize(def.Id), candidates)));
+            }
         }
 
         return System.Text.Json.JsonSerializer.Serialize(choices, QuickShellJsonContext.Default.ListTaskTypeChoiceJson);

@@ -139,7 +139,7 @@ internal static class TerminalCatalogChoices
         catalog.GetDefaultProfileIds(terminalApplicationId)
             .Select(id => id.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase)
                 ? new ChoiceSetSetting.Choice("Default profile for this app", id)
-                : id switch
+                : id.ToLowerInvariant() switch
                 {
                     "powershell" => new ChoiceSetSetting.Choice("PowerShell", id),
                     "pwsh" => new ChoiceSetSetting.Choice("PowerShell 7", id),

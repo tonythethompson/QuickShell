@@ -60,7 +60,8 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         _rowEnrichment = new WorkspaceRowEnrichmentCoordinator(
             _services.CallbackQueue,
             _services.TerminalListIcons,
-            _services.RowPresentationDiagnostics);
+            _services.RowPresentationDiagnostics,
+            onApplyRequested: RaiseIconUpgradesAvailable);
         Id = QuickShellNavigation.HomePageId;
         Icon = QuickShellBrandIcons.App;
         Title = QuickShellBrand.DisplayName;
@@ -153,6 +154,10 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
             }
         }
 
+        // Apply any icon-upgrade callbacks that completed during/after the refresh
+        // before returning, so the host gets the updated icons on this fetch.
+        _services.CallbackQueue.Drain();
+
         var items = _items;
 #if DEBUG
         stopwatch.Stop();
@@ -181,11 +186,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
     /// </summary>
     public void Reload()
     {
-        // Drop cached directory-repair state so a stale probe result
-        // (e.g. an offline drive that has come back online, or a folder
-        // that has since been deleted) does not freeze the home list.
-        _directoryRepairStates.Clear();
-        _directoryRepairChecks.Clear();
+        // Keep directory-repair state across row rebuilds: a row that was known to need
+        // repair must keep its warning triangle and skip icon enrichment, and an unrelated
+        // Reload (favorite move, settings/default-terminal change) must not re-probe every
+        // directory and thrash icons. Probe state is still dropped by ProbeDirectoryRepairState
+        // when the actual directory reachability changes.
         Reload(preserveUnpinnedItemCache: false);
     }
 
@@ -219,10 +224,9 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
 
         // Edits may change titles/subtitles — drop cached rows so next paint is fresh.
         _unpinnedItemCache.Clear();
-        // Drop directory-repair caches too: a renamed/relocated folder
-        // should be re-probed under its new key on the next paint.
-        _directoryRepairStates.Clear();
-        _directoryRepairChecks.Clear();
+        // Keep directory-repair state: the key is id|directory, so a renamed/relocated
+        // folder naturally gets a fresh probe, and we do not re-probe every row on an
+        // unrelated settings/default-terminal change that only needs a home-list reload.
         _workspacesStale = true;
         try
         {
@@ -232,6 +236,25 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
         {
             // Nested ItemsChanged during form SubmitForm can throw 0x800706BA.
             // Stale flag remains; GetItems rebuilds when the home page is shown again.
+        }
+    }
+
+    private void RaiseIconUpgradesAvailable()
+    {
+        if (Volatile.Read(ref _disposed) || Volatile.Read(ref _refreshInProgress))
+        {
+            return;
+        }
+
+        try
+        {
+            RaiseItemsChanged();
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException or ObjectDisposedException)
+        {
+            // Nested/cross-thread ItemsChanged can throw 0x800706BA or happen while the
+            // host is mid-fetch. The queued callback will still apply the icon to the
+            // next GetItems that runs for any other reason.
         }
     }
 
@@ -672,9 +695,12 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                     shortcut,
                     _refreshEnrichmentGeneration,
                     cached);
+                return cached;
             }
 
-            return cached;
+            // The cached row may carry a previously-upgraded profile icon. If the directory
+            // is now known to need repair, rebuild so the warning triangle wins.
+            _unpinnedItemCache.Remove(shortcut.Id);
         }
 
         var presentation = _services.RowPresentation.GetOrBuild(
@@ -770,6 +796,11 @@ internal sealed partial class QuickShellPage : DynamicListPage, IDisposable
                 yield return item;
             }
         }
+
+        // Start resolving icons for Favorites/Recent while the larger Workspaces section
+        // is still being built. The final Flush() at the end of RefreshItems handles the
+        // remaining workspace rows.
+        _rowEnrichment.Flush();
 
         foreach (var item in ShortcutLayoutDisplay.BuildWorkspaceItems(
                      layout,

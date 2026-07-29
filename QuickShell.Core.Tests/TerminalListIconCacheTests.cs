@@ -61,4 +61,50 @@ public sealed class TerminalListIconCacheTests
 
         Assert.Equal(missing, result);
     }
+
+    [Fact]
+    public void PrewarmProfiles_DoesNotThrow_WhenProfilesEmpty()
+    {
+        var exception = Record.Exception(() => _cache.PrewarmProfiles());
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void PrepareForList_ConvertsLargeNonBlankIcoToPng()
+    {
+        var ico = CreateIco(64, 64, color: System.Drawing.Color.Blue);
+
+        var result = _cache.PrepareForList(ico);
+
+        Assert.NotEqual(ico, result);
+        Assert.Equal(".png", Path.GetExtension(result), StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PrepareForList_ReturnsBlankIcoSourceWhenGdiDecodesBlank()
+    {
+        var ico = CreateIco(64, 64, color: null);
+
+        var result = _cache.PrepareForList(ico);
+
+        Assert.Equal(ico, result);
+    }
+
+    private static string CreateIco(int width, int height, System.Drawing.Color? color)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"qs-ico-{width}-{Guid.NewGuid():N}.ico");
+        using var bitmap = new System.Drawing.Bitmap(width, height);
+        if (color is { } c)
+        {
+            using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+            graphics.Clear(c);
+        }
+        else
+        {
+            bitmap.MakeTransparent();
+        }
+
+        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Icon);
+        return path;
+    }
 }

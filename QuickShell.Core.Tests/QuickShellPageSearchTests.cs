@@ -7,6 +7,7 @@ using QuickShell.Composition;
 using QuickShell.Models;
 using QuickShell.Pages;
 using QuickShell.Services;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace QuickShell.Core.Tests;
@@ -83,6 +84,59 @@ public sealed class QuickShellPageSearchTests : IDisposable
         Assert.Contains("Alpha", titles);
         Assert.DoesNotContain("Beta", titles);
     }
+
+    [Fact]
+    public void Reload_PreservesDirectoryRepairState_AndRebuildsCachedRowAsRepair()
+    {
+        var shortcut = _repository.GetByName("Alpha")!;
+        var repairKey = GetDirectoryRepairKey(shortcut);
+
+        var previousScheduler = QuickShellPage.DirectoryRepairProbeSchedulerOverride;
+        QuickShellPage.DirectoryRepairProbeSchedulerOverride = _ => { };
+        try
+        {
+            using var page = new QuickShellPage(_context);
+            _ = page.GetItems();
+
+            var repairStates = GetPrivateField<ConcurrentDictionary<string, bool>>(page, "_directoryRepairStates");
+            repairStates[repairKey] = true;
+
+            page.Reload();
+
+            Assert.True(repairStates.TryGetValue(repairKey, out var stillNeedsRepair));
+            Assert.True(stillNeedsRepair);
+
+            var items = page.GetItems().OfType<ListItem>().ToList();
+            var alphaItem = items.Single(i => i.Title == "Alpha");
+            // A repair row opens the edit form, not the terminal launch command.
+            Assert.IsType<ShortcutFormPage>(alphaItem.Command);
+        }
+        finally
+        {
+            QuickShellPage.DirectoryRepairProbeSchedulerOverride = previousScheduler;
+        }
+    }
+
+    [Fact]
+    public void InvalidateWorkspaces_PreservesDirectoryRepairState()
+    {
+        var shortcut = _repository.GetByName("Alpha")!;
+        var repairKey = GetDirectoryRepairKey(shortcut);
+
+        using var page = new QuickShellPage(_context);
+        _ = page.GetItems();
+
+        var repairStates = GetPrivateField<ConcurrentDictionary<string, bool>>(page, "_directoryRepairStates");
+        repairStates[repairKey] = true;
+
+        page.InvalidateWorkspaces();
+
+        Assert.True(repairStates.TryGetValue(repairKey, out var stillNeedsRepair));
+        Assert.True(stillNeedsRepair);
+    }
+
+    private static string GetDirectoryRepairKey(TerminalShortcut shortcut) =>
+        string.Concat(shortcut.Id, "|", shortcut.Directory);
 
     [Fact]
     public void DiscoverSearch_RevertingToAppliedQuery_ReplacesPendingSearch()

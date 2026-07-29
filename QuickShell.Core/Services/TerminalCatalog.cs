@@ -479,21 +479,38 @@ internal sealed class TerminalCatalog : ITerminalCatalog
             return Resolve(NormalizeLaunchTargetId(defaultProfileId));
         }
 
+        var effectiveApp = TerminalHostIds.ResolveEffectiveApplication(terminalApplicationId);
+        if (!defaultProfileId.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase))
+        {
+            // Prefer an installed WT/IT profile of this exact name before treating the value
+            // as a standalone shell id. "PowerShell" is a profile name, not "powershell".
+            foreach (var profile in _profiles.GetProfilesForApplication(effectiveApp))
+            {
+                if (profile.Name.Equals(defaultProfileId, StringComparison.OrdinalIgnoreCase))
+                {
+                    var prefix = TerminalHostIds.ProfileIdPrefix(effectiveApp);
+                    return ResolveProfileTarget(
+                        effectiveApp,
+                        profile.Name,
+                        $"{prefix}:{profile.Name}");
+                }
+            }
+        }
+
         if (IsStandaloneShellId(defaultProfileId))
         {
             return Resolve(defaultProfileId);
         }
 
-        var effectiveApp = TerminalHostIds.ResolveEffectiveApplication(terminalApplicationId);
         var profileName = defaultProfileId.Equals(TerminalHostIds.DefaultProfile, StringComparison.OrdinalIgnoreCase)
             ? null
             : defaultProfileId;
 
-        var prefix = TerminalHostIds.ProfileIdPrefix(effectiveApp);
+        var idPrefix = TerminalHostIds.ProfileIdPrefix(effectiveApp);
         return ResolveProfileTarget(
             effectiveApp,
             profileName,
-            profileName is null ? prefix : $"{prefix}:{profileName}");
+            profileName is null ? idPrefix : $"{idPrefix}:{profileName}");
     }
 
     private LaunchTarget ResolveProfileTarget(string terminalApplicationId, string? profileName, string fallbackId)

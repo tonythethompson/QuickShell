@@ -100,7 +100,10 @@ internal sealed class OpenLaunchCommandHandler : ICommandItemHandler
         var shortcutId = descriptor.WorkspaceId!;
         var launchId = descriptor.LaunchId!;
         var shortcut = context.Shortcuts.GetByIdReadOnly(shortcutId);
-        if (shortcut is null || ShortcutHealth.WouldNeedRepair(shortcut))
+        // requireDirectoryExists: false — the host calls GetCommandItem on its COM thread,
+        // and a reachability check there blocks on Directory.Exists for offline UNC paths or
+        // spawns wsl.exe (3s timeout) for WSL ones. Launch still validates the directory.
+        if (shortcut is null || ShortcutHealth.WouldNeedRepair(shortcut, requireDirectoryExists: false))
         {
             return null;
         }
@@ -171,22 +174,13 @@ internal sealed class WorktreeBranchPickerCommandHandler : ICommandItemHandler
             return null;
         }
 
-        WorkspaceGitStatus? status = null;
-        string? target = null;
-        if (context.Services.GitOperations.TryGetStatus(shortcut.Directory, out var gitStatus))
-        {
-            status = gitStatus;
-            target = context.Services.TargetStore.GetTargetForDirectory(
-                shortcut.Directory,
-                context.Services.GitOperations);
-        }
-
+        // No git status here: the host calls GetCommandItem on its COM thread, so running
+        // `git status` (plus the target-branch lookup) stalls the palette for as long as git
+        // takes. The page runs the same work itself in GetItems() once it is navigated to.
         return new CommandItem(new WorktreeBranchPickerPage(
             context.Services,
             shortcut.Id,
-            context.ReloadRootPages,
-            status,
-            target))
+            context.ReloadRootPages))
         {
             Title = Strings.Menu_SwitchBranch,
             Icon = new IconInfo("\uE8AB"),

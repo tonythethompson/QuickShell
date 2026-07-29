@@ -14,7 +14,28 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
 
     private readonly IReadOnlyList<ITaskSuggestionProvider> _providers;
     private readonly object _cacheGate = new();
-    private SuggestionResultCache? _resultCache;
+    private const int MaxCachedResults = 8;
+
+    private readonly Dictionary<(string Directory, string UsedKey), SuggestionResultCache> _resultCache =
+        new(CacheKeyComparer.Instance);
+
+    private readonly Dictionary<string, ProjectContextCache> _projectCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Directory compares case-insensitively (Windows paths); the used-command key is exact.</summary>
+    private sealed class CacheKeyComparer : IEqualityComparer<(string Directory, string UsedKey)>
+    {
+        public static readonly CacheKeyComparer Instance = new();
+
+        public bool Equals((string Directory, string UsedKey) left, (string Directory, string UsedKey) right) =>
+            string.Equals(left.Directory, right.Directory, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.UsedKey, right.UsedKey, StringComparison.Ordinal);
+
+        public int GetHashCode((string Directory, string UsedKey) value) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(value.Directory),
+                StringComparer.Ordinal.GetHashCode(value.UsedKey));
+    }
 
     private static readonly Comparison<CommandSuggestionPill> PillRankComparison = static (l, r) =>
         r.Score.CompareTo(l.Score) is var s && s != 0
@@ -63,7 +84,8 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
     {
         lock (_cacheGate)
         {
-            _resultCache = null;
+            _resultCache.Clear();
+            _projectCache.Clear();
         }
     }
 
@@ -95,11 +117,11 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
         TaskTypePickContext pick,
         IProjectAnalysisService analysis)
     {
-        var classification = analysis.Classify(directory);
+        var (classification, layout) = GetProjectContext(directory, analysis);
         var existing = BuildEntries(pick.UsedCommands);
         var ctx = new TaskSuggestionContext(
             directory,
-            ProjectLayoutAnalyzer.Default.Analyze(directory),
+            layout,
             classification,
             existing,
             analysis,
@@ -117,6 +139,72 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
         }
 
         return RankTop(merged.Values, MaxPills);
+    }
+
+    /// <summary>
+    /// Classification and layout depend only on the directory, but the ranked result is keyed
+    /// on the used-command set too. Without this, editing a command re-ran ~30 filesystem
+    /// probes plus a full classify for a project that cannot have changed in between.
+    /// </summary>
+    private (ProjectClassification Classification, ProjectLayout Layout) GetProjectContext(
+        string directory,
+        IProjectAnalysisService analysis)
+    {
+        lock (_cacheGate)
+        {
+            if (_projectCache.TryGetValue(directory, out var cached)
+                && cached.ExpiresAt > Environment.TickCount64)
+            {
+                return (cached.Classification, cached.Layout);
+            }
+        }
+
+        var classification = analysis.Classify(directory);
+        var layout = ProjectLayoutAnalyzer.Default.Analyze(directory);
+
+        lock (_cacheGate)
+        {
+            if (_projectCache.Count >= MaxCachedResults)
+            {
+                PruneProjectCacheLocked();
+            }
+
+            _projectCache[directory] = new ProjectContextCache(
+                classification,
+                layout,
+                Environment.TickCount64 + ResultCacheTtlMs);
+        }
+
+        return (classification, layout);
+    }
+
+    /// <summary>Drops expired entries, then the entry closest to expiry. Caller holds the gate.</summary>
+    private void PruneProjectCacheLocked()
+    {
+        var now = Environment.TickCount64;
+        List<string>? expired = null;
+        foreach (var pair in _projectCache)
+        {
+            if (pair.Value.ExpiresAt <= now)
+            {
+                (expired ??= []).Add(pair.Key);
+            }
+        }
+
+        if (expired is not null)
+        {
+            foreach (var key in expired)
+            {
+                _projectCache.Remove(key);
+            }
+
+            if (_projectCache.Count < MaxCachedResults)
+            {
+                return;
+            }
+        }
+
+        _projectCache.Remove(_projectCache.OrderBy(pair => pair.Value.ExpiresAt).First().Key);
     }
 
     private static WorkspaceEntry[] BuildEntries(IReadOnlySet<string> used) =>
@@ -196,11 +284,8 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
     {
         lock (_cacheGate)
         {
-            var cache = _resultCache;
-            if (cache is not null
-                && cache.ExpiresAt > Environment.TickCount64
-                && string.Equals(cache.Directory, directory, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(cache.UsedKey, usedKey, StringComparison.Ordinal))
+            if (_resultCache.TryGetValue((directory, usedKey), out var cache)
+                && cache.ExpiresAt > Environment.TickCount64)
             {
                 pills = cache.Pills;
                 return true;
@@ -215,13 +300,59 @@ internal sealed class CommandSuggestionService : ICommandSuggestionService
     {
         lock (_cacheGate)
         {
-            _resultCache = new(directory, usedKey, pills, Environment.TickCount64 + ResultCacheTtlMs);
+            // Several used-command sets are live at once while editing a workspace: the form
+            // resolves a clicked pill against the pre-add set, then rebuilds its card against
+            // the post-add set. A single-entry cache made those two evict each other, so every
+            // pill click and every following card rebuild paid a full project rescan.
+            if (_resultCache.Count >= MaxCachedResults)
+            {
+                PruneCacheLocked();
+            }
+
+            _resultCache[(directory, usedKey)] =
+                new SuggestionResultCache(pills, Environment.TickCount64 + ResultCacheTtlMs);
         }
     }
 
+    /// <summary>
+    /// Drops expired entries, then the entry closest to expiry if that was not enough.
+    /// Caller holds <see cref="_cacheGate"/>.
+    /// </summary>
+    private void PruneCacheLocked()
+    {
+        var now = Environment.TickCount64;
+        List<(string Directory, string UsedKey)>? expired = null;
+        foreach (var pair in _resultCache)
+        {
+            if (pair.Value.ExpiresAt <= now)
+            {
+                (expired ??= []).Add(pair.Key);
+            }
+        }
+
+        if (expired is not null)
+        {
+            foreach (var key in expired)
+            {
+                _resultCache.Remove(key);
+            }
+
+            if (_resultCache.Count < MaxCachedResults)
+            {
+                return;
+            }
+        }
+
+        var oldest = _resultCache.OrderBy(pair => pair.Value.ExpiresAt).First().Key;
+        _resultCache.Remove(oldest);
+    }
+
     private sealed record SuggestionResultCache(
-        string Directory,
-        string UsedKey,
         IReadOnlyList<CommandSuggestionPill> Pills,
+        long ExpiresAt);
+
+    private sealed record ProjectContextCache(
+        ProjectClassification Classification,
+        ProjectLayout Layout,
         long ExpiresAt);
 }

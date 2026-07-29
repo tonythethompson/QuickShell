@@ -221,6 +221,11 @@ internal sealed partial class TerminalDefaultsSettingsForm : FormContent
                       "style": "compact",
                       "spacing": "None",
                       "value": "${defaultProfile}",
+                      "changeAction": {
+                        "type": "Action.Submit",
+                        "associatedInputs": "auto",
+                        "data": { "action": "previewTerminalDefaults" }
+                      },
                       "choices": [
                         {{profileChoices}}
                       ]

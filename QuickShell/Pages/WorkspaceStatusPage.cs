@@ -6,6 +6,8 @@ using QuickShell.Services;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuickShell.Pages;
 
@@ -33,8 +35,33 @@ internal sealed partial class WorkspaceStatusPage : ContentPage
         Commands = [];
     }
 
-    public override IContent[] GetContent() =>
-        [_form ??= new WorkspaceStatusForm(_shortcut, _settings, _services, () => _form = null)];
+    public override IContent[] GetContent()
+    {
+        // Deliberately does not drain IExtensionCallbackQueue: that queue is process-wide, so
+        // draining it here would run other pages' callbacks (including a full home-list
+        // rebuild) on this page's fetch thread. The background capture hands off through a
+        // field this form owns instead.
+        _form?.ApplyPendingSnapshot();
+        return [_form ??= new WorkspaceStatusForm(
+            _shortcut,
+            _settings,
+            _services,
+            () => _form = null,
+            NotifyContentChanged)];
+    }
+
+    private void NotifyContentChanged()
+    {
+        try
+        {
+            RaiseItemsChanged();
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // Host may reject a notification while tearing the page down. The queued
+            // DataJson update still applies on the next GetContent.
+        }
+    }
 }
 
 internal sealed partial class WorkspaceStatusForm : FormContent
@@ -43,19 +70,45 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly QuickShellSettingsManager _settings;
     private readonly IQuickShellServices _services;
     private readonly Action _releaseForm;
+    private readonly Action _notifyContentChanged;
+    /// <summary>Handoff from the background capture to this page's fetch thread.</summary>
+    private WorkspaceStatusSnapshot? _pendingSnapshot;
+
+    /// <summary>
+    /// Applies a completed background capture. Called from <c>GetContent</c> so the host
+    /// thread owns the <see cref="FormContent.DataJson"/> write.
+    /// </summary>
+    internal void ApplyPendingSnapshot()
+    {
+        var pending = Volatile.Read(ref _pendingSnapshot);
+        if (pending is null)
+        {
+            return;
+        }
+
+        Volatile.Write(ref _pendingSnapshot, null);
+        PublishSnapshot(pending);
+    }
 
     public WorkspaceStatusForm(
         TerminalShortcut shortcut,
         QuickShellSettingsManager settings,
         IQuickShellServices services,
-        Action releaseForm)
+        Action releaseForm,
+        Action notifyContentChanged)
     {
         _shortcut = shortcut;
         _settings = settings;
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _releaseForm = releaseForm;
+        _notifyContentChanged = notifyContentChanged;
         TemplateJson = BuildTemplate();
-        Refresh(forceRefresh: true);
+
+        // Capture runs git status plus health probes — ~0.5s on a real repository. Publish
+        // whatever is already cached (or a "checking" placeholder) so navigating into this
+        // page is instant, then fill in the real values from a background capture.
+        PublishSnapshot(TryGetCachedSnapshot());
+        ScheduleRefresh();
     }
 
     public override CommandResult SubmitForm(string inputs, string data) =>
@@ -69,7 +122,8 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         switch (action)
         {
             case "refresh":
-                Refresh(forceRefresh: true);
+                PublishSnapshot(null);
+                ScheduleRefresh();
                 return CommandResult.KeepOpen();
             case "copyDiagnostics":
                 LaunchDiagnosticsState.TryCopyLastReport(out var message);
@@ -89,26 +143,76 @@ internal sealed partial class WorkspaceStatusForm : FormContent
         }
     }
 
-    private void Refresh(bool forceRefresh)
-    {
-        var snapshot = WorkspaceStatusService.Capture(
+    private WorkspaceStatusSnapshot? TryGetCachedSnapshot() =>
+        WorkspaceStatusService.TryGetCached(
             _shortcut,
             _settings.TerminalApplicationId,
             _settings.DefaultProfileId,
             _services.HealthChecker,
             _services.GitOperations,
-            _services.TargetStore,
-            forceRefresh);
+            out var cached)
+            ? cached
+            : null;
+
+    /// <summary>
+    /// Runs the full capture off the navigation thread and applies the result through the
+    /// callback queue, so the host thread owns the <see cref="FormContent.DataJson"/> write.
+    /// </summary>
+    private void ScheduleRefresh()
+    {
+        var cancellationToken = _services.Lifetime.CancellationToken;
+        _ = Task.Run(
+            () =>
+            {
+                WorkspaceStatusSnapshot snapshot;
+                try
+                {
+                    snapshot = WorkspaceStatusService.Capture(
+                        _shortcut,
+                        _settings.TerminalApplicationId,
+                        _settings.DefaultProfileId,
+                        _services.HealthChecker,
+                        _services.GitOperations,
+                        _services.TargetStore,
+                        forceRefresh: true);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    // Leave the placeholder in place; the Refresh action can retry.
+                    return;
+                }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                // Hand off; GetContent applies it on the fetch the notification triggers.
+                Volatile.Write(ref _pendingSnapshot, snapshot);
+                _notifyContentChanged();
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Renders <paramref name="snapshot"/>, or a "checking" placeholder when none is available yet.
+    /// </summary>
+    private void PublishSnapshot(WorkspaceStatusSnapshot? snapshot)
+    {
         DataJson = new JsonObject
         {
             ["Launches"] = BuildLaunchSummary(_shortcut, _services),
-            ["Git"] = BuildGitSummary(snapshot),
-            ["Runtime"] = snapshot.ActivitySummary,
-            ["Attention"] = snapshot.AttentionEvidence,
+            ["Git"] = snapshot is { } git ? BuildGitSummary(git) : Checking,
+            ["Runtime"] = snapshot?.ActivitySummary ?? Checking,
+            ["Attention"] = snapshot?.AttentionEvidence ?? Checking,
             ["HasDiagnostics"] = LaunchDiagnosticsState.LastReport is not null,
-            ["Refreshed"] = snapshot.RefreshedAt.ToLocalTime().ToString("t", CultureInfo.CurrentCulture),
+            ["Refreshed"] = snapshot is { } refreshed
+                ? refreshed.RefreshedAt.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)
+                : Checking,
         }.ToJsonString();
     }
+
+    private const string Checking = "Checking…";
 
     private static string BuildGitSummary(WorkspaceStatusSnapshot snapshot)
     {

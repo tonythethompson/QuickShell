@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using QuickShell.Abstractions;
 
@@ -47,12 +48,19 @@ internal sealed class WtProfilesService : IWtProfilesService
     private long _lastRefreshCheckTickMs;
     private int _parseCount;
 
+    private readonly IReadOnlyList<string>? _fragmentRoots;
+    private IReadOnlyDictionary<string, TerminalFragmentProfile> _fragmentProfiles =
+        new Dictionary<string, TerminalFragmentProfile>(StringComparer.OrdinalIgnoreCase);
+    private string _fragmentHash = string.Empty;
+
     public WtProfilesService(
         IReadOnlyList<TerminalSettingsLocation>? locations = null,
-        Action? onParse = null)
+        Action? onParse = null,
+        IEnumerable<string>? fragmentRoots = null)
     {
         _fixedLocations = locations;
         _onParse = onParse;
+        _fragmentRoots = fragmentRoots?.ToArray();
     }
 
     /// <summary>Number of settings files parsed since construction (tests).</summary>
@@ -196,6 +204,18 @@ internal sealed class WtProfilesService : IWtProfilesService
         _lastRefreshCheckTickMs = nowTick;
         var sawChanges = forceRefresh;
         var locations = GetLocations();
+
+        var newFragmentProfiles = TerminalFragmentDiscovery.LoadAll(_fragmentRoots);
+        var newFragmentHash = ComputeFragmentHash(newFragmentProfiles);
+        if (newFragmentHash != _fragmentHash)
+        {
+            _fragmentProfiles = newFragmentProfiles;
+            _fragmentHash = newFragmentHash;
+            _profilesBySettingsPath.Clear();
+            _writeTimes.Clear();
+            sawChanges = true;
+        }
+
         var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var location in locations)
@@ -250,7 +270,7 @@ internal sealed class WtProfilesService : IWtProfilesService
             _onParse?.Invoke();
         }
 
-        return TryReadProfiles(location).ToArray();
+        return TryReadProfiles(location, _fragmentProfiles).ToArray();
     }
 
     private bool IsActiveFixedSettingsPath(string settingsPath) =>
@@ -311,7 +331,9 @@ internal sealed class WtProfilesService : IWtProfilesService
             .ToArray();
     }
 
-    private static IEnumerable<WtProfileInfo> TryReadProfiles(TerminalSettingsLocation location)
+    private static IEnumerable<WtProfileInfo> TryReadProfiles(
+        TerminalSettingsLocation location,
+        IReadOnlyDictionary<string, TerminalFragmentProfile>? fragments = null)
     {
         if (!File.Exists(location.SettingsPath))
         {
@@ -322,7 +344,7 @@ internal sealed class WtProfilesService : IWtProfilesService
         try
         {
             using var stream = File.OpenRead(location.SettingsPath);
-            profiles = ReadProfilesFromJson(stream, location);
+            profiles = ReadProfilesFromJson(stream, location, fragments);
         }
         catch
         {
@@ -335,7 +357,10 @@ internal sealed class WtProfilesService : IWtProfilesService
         }
     }
 
-    internal static WtProfileInfo[] ReadProfilesFromJson(Stream stream, TerminalSettingsLocation location)
+    internal static WtProfileInfo[] ReadProfilesFromJson(
+        Stream stream,
+        TerminalSettingsLocation location,
+        IReadOnlyDictionary<string, TerminalFragmentProfile>? fragments = null)
     {
         using var doc = JsonDocument.Parse(stream);
 
@@ -356,7 +381,7 @@ internal sealed class WtProfilesService : IWtProfilesService
 
         return listNode
             .EnumerateArray()
-            .Select(element => ToProfile(element, defaultGuid, location))
+            .Select(element => ToProfile(element, defaultGuid, location, fragments))
             .Where(p => p is not null)
             .Cast<WtProfileInfo>()
             .ToArray();
@@ -379,7 +404,11 @@ internal sealed class WtProfilesService : IWtProfilesService
         return null;
     }
 
-    private static WtProfileInfo? ToProfile(JsonElement element, string? defaultGuid, TerminalSettingsLocation location)
+    private static WtProfileInfo? ToProfile(
+        JsonElement element,
+        string? defaultGuid,
+        TerminalSettingsLocation location,
+        IReadOnlyDictionary<string, TerminalFragmentProfile>? fragments = null)
     {
         if (!element.TryGetProperty("name", out var nameNode))
         {
@@ -414,6 +443,23 @@ internal sealed class WtProfilesService : IWtProfilesService
             ? sourceNode.GetString()
             : null;
 
+        if (!string.IsNullOrWhiteSpace(guid) && fragments is not null)
+        {
+            var normalized = NormalizeGuid(guid);
+            if (fragments.TryGetValue(normalized, out var fragment))
+            {
+                if (string.IsNullOrWhiteSpace(commandline) && !string.IsNullOrWhiteSpace(fragment.Commandline))
+                {
+                    commandline = fragment.Commandline;
+                }
+
+                if (string.IsNullOrWhiteSpace(icon) && !string.IsNullOrWhiteSpace(fragment.Icon))
+                {
+                    icon = fragment.Icon;
+                }
+            }
+        }
+
         return new WtProfileInfo
         {
             Name = name.Trim(),
@@ -430,6 +476,27 @@ internal sealed class WtProfilesService : IWtProfilesService
             IdPrefix = location.IdPrefix,
             SourceLabel = location.DisplayPrefix,
         };
+    }
+
+    private static string ComputeFragmentHash(IReadOnlyDictionary<string, TerminalFragmentProfile> fragments)
+    {
+        if (fragments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        foreach (var (key, value) in fragments.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            builder.Append(key)
+                .Append(':')
+                .Append(value.Commandline)
+                .Append(':')
+                .Append(value.Icon)
+                .Append(';');
+        }
+
+        return builder.ToString();
     }
 
     private static string[] GetIdPrefixesForTerminal(string? terminal) =>

@@ -214,22 +214,30 @@ internal sealed class QuickShellSettingsReader
             return TerminalHostIds.DefaultProfile;
         }
 
+        // Prefer an exact catalog profile id (WT/IT profile names) before standalone-shell
+        // classification. "PowerShell" is a common WT profile name and must not collapse to
+        // the shell id "powershell" or the settings dropdown cannot reselect it.
+        var profileIds = _catalog.GetDefaultProfileIds(terminalApplicationId);
+        if (TryExtractProfileName(normalized, out var profileName))
+        {
+            var prefixed = profileIds.FirstOrDefault(id =>
+                id.Equals(profileName, StringComparison.OrdinalIgnoreCase));
+            if (prefixed is not null)
+            {
+                return prefixed;
+            }
+        }
+
+        var matched = profileIds.FirstOrDefault(id =>
+            id.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+        if (matched is not null)
+        {
+            return matched;
+        }
+
         if (_catalog.IsStandaloneShellLaunchTarget(normalized))
         {
-            return normalized;
-        }
-
-        if (TryExtractProfileName(normalized, out var profileName)
-            && _catalog.GetDefaultProfileIds(terminalApplicationId)
-                .Any(id => id.Equals(profileName, StringComparison.OrdinalIgnoreCase)))
-        {
-            return profileName;
-        }
-
-        if (_catalog.GetDefaultProfileIds(terminalApplicationId)
-            .Any(id => id.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
-        {
-            return normalized;
+            return TerminalCatalog.NormalizeLaunchTargetId(normalized);
         }
 
         return TerminalHostIds.DefaultProfile;
