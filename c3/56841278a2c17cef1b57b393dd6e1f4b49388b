@@ -1,0 +1,21 @@
+.github/workflows/publish-store.yml
+  s_77cadc024e7bef::t_33375da2ca336b 35-37,39-41,43,46-47,76-77,79,97-98,100
+scripts/tests/ExtractChangelog.Tests.ps1
+  s_77cadc024e7bef::t_09f2897139a353 1-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "c356841278a2c17cef1b57b393dd6e1f4b49388b",
+  "prompts": {},
+  "sessions": {
+    "s_77cadc024e7bef": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "54e2109c-30a5-4864-9d75-9c82ef8fcec7",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
