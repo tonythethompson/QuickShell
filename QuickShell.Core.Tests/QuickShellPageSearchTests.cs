@@ -91,21 +91,30 @@ public sealed class QuickShellPageSearchTests : IDisposable
         var shortcut = _repository.GetByName("Alpha")!;
         var repairKey = GetDirectoryRepairKey(shortcut);
 
-        using var page = new QuickShellPage(_context);
-        _ = page.GetItems();
+        var previousScheduler = QuickShellPage.DirectoryRepairProbeSchedulerOverride;
+        QuickShellPage.DirectoryRepairProbeSchedulerOverride = _ => { };
+        try
+        {
+            using var page = new QuickShellPage(_context);
+            _ = page.GetItems();
 
-        var repairStates = GetPrivateField<ConcurrentDictionary<string, bool>>(page, "_directoryRepairStates");
-        repairStates[repairKey] = true;
+            var repairStates = GetPrivateField<ConcurrentDictionary<string, bool>>(page, "_directoryRepairStates");
+            repairStates[repairKey] = true;
 
-        page.Reload();
+            page.Reload();
 
-        Assert.True(repairStates.TryGetValue(repairKey, out var stillNeedsRepair));
-        Assert.True(stillNeedsRepair);
+            Assert.True(repairStates.TryGetValue(repairKey, out var stillNeedsRepair));
+            Assert.True(stillNeedsRepair);
 
-        var items = page.GetItems().OfType<ListItem>().ToList();
-        var alphaItem = items.Single(i => i.Title == "Alpha");
-        // A repair row opens the edit form, not the terminal launch command.
-        Assert.IsType<ShortcutFormPage>(alphaItem.Command);
+            var items = page.GetItems().OfType<ListItem>().ToList();
+            var alphaItem = items.Single(i => i.Title == "Alpha");
+            // A repair row opens the edit form, not the terminal launch command.
+            Assert.IsType<ShortcutFormPage>(alphaItem.Command);
+        }
+        finally
+        {
+            QuickShellPage.DirectoryRepairProbeSchedulerOverride = previousScheduler;
+        }
     }
 
     [Fact]

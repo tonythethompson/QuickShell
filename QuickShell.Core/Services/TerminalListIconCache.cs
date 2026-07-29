@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using QuickShell.Abstractions;
@@ -80,16 +81,6 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
             return trimmed;
         }
 
-        // .ico sources skip the GDI+ resize path entirely: some .ico encodings (PNG-compressed
-        // large frames in particular) decode via System.Drawing into a blank/transparent bitmap
-        // without throwing, so the catch below never catches it — the icon just silently goes
-        // blank. The host already scales whatever we hand it, so there's nothing to gain from
-        // resizing an .ico and real risk in doing it.
-        if (string.Equals(Path.GetExtension(trimmed), ".ico", StringComparison.OrdinalIgnoreCase))
-        {
-            return trimmed;
-        }
-
         try
         {
             var version = $"{File.GetLastWriteTimeUtc(trimmed).Ticks}:{new FileInfo(trimmed).Length}";
@@ -161,6 +152,13 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
                 Directory.CreateDirectory(cacheDir);
 
                 using var source = Image.FromFile(sourcePath);
+                if (source is Bitmap bitmap && IsImageBlank(bitmap))
+                {
+                    // Some .ico encodings decode to a transparent bitmap with GDI+.
+                    // Give the host the original .ico so it can use its own decoder.
+                    return sourcePath;
+                }
+
                 if (source.Width <= SkipResizeThreshold && source.Height <= SkipResizeThreshold)
                 {
                     return sourcePath;
@@ -192,6 +190,60 @@ internal sealed class TerminalListIconCache : ITerminalListIconCache
                 return sourcePath;
             }
         }
+    }
+
+    /// <summary>
+    /// Detects images that decoded as entirely transparent, which can happen with some
+    /// .ico encodings under GDI+. Returning the original path lets the host try its own loader.
+    /// </summary>
+    private static bool IsImageBlank(Bitmap bitmap)
+    {
+        if (bitmap.Width == 0 || bitmap.Height == 0)
+        {
+            return true;
+        }
+
+        if (bitmap.PixelFormat == PixelFormat.Format32bppArgb)
+        {
+            var data = bitmap.LockBits(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                ImageLockMode.ReadOnly,
+                PixelFormat.Format32bppArgb);
+            try
+            {
+                var length = data.Stride * data.Height;
+                var buffer = new byte[length];
+                Marshal.Copy(data.Scan0, buffer, 0, length);
+
+                // Alpha is the 4th byte of each ARGB pixel.
+                for (var i = 3; i < length; i += 4)
+                {
+                    if (buffer[i] != 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+            finally
+            {
+                bitmap.UnlockBits(data);
+            }
+        }
+        else
+        {
+            for (var y = 0; y < bitmap.Height; y++)
+            {
+                for (var x = 0; x < bitmap.Width; x++)
+                {
+                    if (bitmap.GetPixel(x, y).A != 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     private static string HashKey(string path)
