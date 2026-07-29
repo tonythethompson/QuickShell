@@ -74,6 +74,26 @@ export function pillsToSetupTasks(pills: SuggestionPill[]): WorkspaceSetupTask[]
   return tasks;
 }
 
+/** Present seeded tasks as selectable pills without auto-applying them (manual create flow). */
+export function combineSuggestionTasksAndPills(tasks: WorkspaceSetupTask[], pills: SuggestionPill[]): SuggestionPill[] {
+  const combined: SuggestionPill[] = tasks.map((task) => ({
+    command: task.command,
+    taskType: task.taskType?.trim() || "none",
+    typeTitle: task.taskType?.trim() || "Setup",
+    displayTitle: task.label,
+    tooltip: task.command,
+  }));
+  const seen = new Set(combined.map((pill) => pill.command.trim().toLowerCase()));
+  for (const pill of pills) {
+    const key = pill.command.trim().toLowerCase();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      combined.push(pill);
+    }
+  }
+  return combined;
+}
+
 export function isPreferredSetupSeedPill(pill: SuggestionPill): boolean {
   const taskType = pill.taskType?.trim().toLowerCase() ?? "";
   if (PREFERRED_SEED_TASK_TYPES.has(taskType)) {

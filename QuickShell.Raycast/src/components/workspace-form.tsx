@@ -33,7 +33,11 @@ import { tryGetGitRemoteUrl } from "../lib/git-remote-url";
 import { createStableId } from "../lib/ids";
 import type { OpenWorkspaceLaunchContext } from "../lib/launch-context";
 import { buildProjectSetupSuggestions } from "../lib/project-setup-suggestion";
-import { resolveWorkspaceSetupSuggestions, type SuggestionPill } from "../lib/suggest-commands";
+import {
+  combineSuggestionTasksAndPills,
+  resolveWorkspaceSetupSuggestions,
+  type SuggestionPill,
+} from "../lib/suggest-commands";
 import { getQuickShellStorage } from "../lib/raycast-storage";
 import type { Workspace } from "../lib/schema";
 import { suggestionPillIcon } from "../lib/task-type-accent";
@@ -291,10 +295,21 @@ export default function WorkspaceForm({
       }
     }
 
-    // Manual Add Workspace: stop after name / repo / dev-server.
+    // Manual Add Workspace: offer commands without auto-applying them.
     if (directorySeedMode !== "full") {
-      setSuggestionPills([]);
-      setSuggestionSource(null);
+      const generation = ++suggestionGenerationRef.current;
+      const usedCommands = launches.map((launch) => launch.command.trim()).filter(Boolean);
+      const resolved = await resolveWorkspaceSetupSuggestions(
+        nextDirectory,
+        usedCommands,
+        Date.now(),
+        environment.assetsPath,
+      );
+      if (generation !== suggestionGenerationRef.current) {
+        return;
+      }
+      setSuggestionSource(resolved.source);
+      setSuggestionPills(combineSuggestionTasksAndPills(resolved.tasks, resolved.pills));
       return;
     }
 

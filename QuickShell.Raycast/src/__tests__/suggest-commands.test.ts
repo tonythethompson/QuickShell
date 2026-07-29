@@ -2,6 +2,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildSuggestCommandArgs,
+  combineSuggestionTasksAndPills,
   pillsToSetupTasks,
   resolveSuggestExecutable,
   splitPillsIntoSeedAndLeftover,
@@ -74,6 +75,19 @@ describe("suggest-commands", () => {
       { label: "Dev server", command: "npm run dev", taskType: "frontend" },
       { label: "API", command: "dotnet watch", taskType: "api" },
     ]);
+  });
+
+  it("keeps seeded and leftover suggestions selectable for manual create", () => {
+    const combined = combineSuggestionTasksAndPills(
+      [{ label: "Dev", command: "npm run dev", taskType: "frontend" }],
+      [
+        pill({ command: "npm run dev", taskType: "frontend" }),
+        pill({ command: "npm test", taskType: "test", displayTitle: "Test" }),
+      ],
+    );
+
+    expect(combined.map((entry) => entry.command)).toEqual(["npm run dev", "npm test"]);
+    expect(combined[0].displayTitle).toBe("Dev");
   });
 
   it("splits preferred setup pills into a short seed and leftover Actions pills", () => {
