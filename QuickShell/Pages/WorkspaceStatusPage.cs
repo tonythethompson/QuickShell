@@ -72,7 +72,8 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     private readonly Action _releaseForm;
     private readonly Action _notifyContentChanged;
     /// <summary>Handoff from the background capture to this page's fetch thread.</summary>
-    private WorkspaceStatusSnapshot? _pendingSnapshot;
+    private PendingSnapshot? _pendingSnapshot;
+    private sealed record PendingSnapshot(WorkspaceStatusSnapshot Snapshot, int Generation);
     /// <summary>Monotonic generation so an older capture cannot overwrite a newer refresh.</summary>
     private int _refreshGeneration;
 
@@ -83,12 +84,12 @@ internal sealed partial class WorkspaceStatusForm : FormContent
     internal void ApplyPendingSnapshot()
     {
         var pending = Interlocked.Exchange(ref _pendingSnapshot, null);
-        if (pending is null)
+        if (pending is null || pending.Generation != Volatile.Read(ref _refreshGeneration))
         {
             return;
         }
 
-        PublishSnapshot(pending);
+        PublishSnapshot(pending.Snapshot);
     }
 
     public WorkspaceStatusForm(
@@ -196,7 +197,7 @@ internal sealed partial class WorkspaceStatusForm : FormContent
                 }
 
                 // Hand off; GetContent applies it on the fetch the notification triggers.
-                Interlocked.Exchange(ref _pendingSnapshot, snapshot);
+                Interlocked.Exchange(ref _pendingSnapshot, new PendingSnapshot(snapshot, generation));
                 _notifyContentChanged();
             },
             cancellationToken);
