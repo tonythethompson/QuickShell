@@ -51,15 +51,15 @@ export function buildWindowsTransferPowerShell(kind: DialogKind): string {
           `$d.InitialDirectory = ${initialDirectory}`,
         ];
 
-  // WinForms dialogs steal foreground focus; restore Raycast before returning so the
-  // extension UI is visible again for follow-up toasts / confirmations.
+  // WinForms dialogs steal foreground focus; restore Raycast after writing the path so a
+  // focus-restore failure cannot discard a valid selection (Node can also read error.stdout).
   return [
     "Add-Type -AssemblyName System.Windows.Forms",
     ...dialogSetup,
     "$selected = $null",
     "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $selected = $d.FileName }",
-    reactivateRaycastPowerShellSnippet(),
     "if ($selected) { [Console]::Out.Write($selected) }",
+    reactivateRaycastPowerShellSnippet(),
   ].join("; ");
 }
 
@@ -75,6 +75,12 @@ export function reactivateRaycastPowerShellSnippet(): string {
     "} catch [System.Management.Automation.MethodInvocationException] {",
     "}",
   ].join(" ");
+}
+
+/** Prefer a trimmed stdout path when the dialog shell exits non-zero after writing it. */
+export function selectedPathFromDialogStdout(stdout: string | null | undefined): string | null {
+  const selected = (stdout ?? "").trim();
+  return selected.length > 0 ? path.resolve(selected) : null;
 }
 
 async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | null> {
@@ -95,16 +101,22 @@ async function pickWindowsTransferJsonPath(kind: DialogKind): Promise<string | n
       );
       // Dialog script already tries AppActivate; repeat from Node in case focus raced.
       await reactivateRaycastWindow();
-      const selected = stdout.trim();
-      return selected.length > 0 ? path.resolve(selected) : null;
+      return selectedPathFromDialogStdout(stdout);
     } catch (error) {
       await reactivateRaycastWindow();
+      // Path is written before AppActivate; keep a valid selection if the shell still failed.
+      const fromStdout = selectedPathFromDialogStdout((error as { stdout?: string } | undefined)?.stdout);
+      if (fromStdout) {
+        return fromStdout;
+      }
       // pwsh may be missing; fall through to Windows PowerShell 5.1.
       if (shell === "powershell.exe") {
+        console.error("Windows transfer dialog script failed:", error);
         return null;
       }
       const errno = (error as NodeJS.ErrnoException | undefined)?.code;
       if (errno !== "ENOENT") {
+        console.error("Windows transfer dialog script failed:", error);
         // Dialog cancel often surfaces as a non-zero exit with empty stdout; treat as cancel.
         return null;
       }
@@ -135,8 +147,25 @@ export async function reactivateRaycastWindow(): Promise<void> {
   }
 }
 
+/**
+ * AppleScript error numbers treated as expected when activating Raycast
+ * (-600 app not running, -1728 object not found, -10810 connection invalid).
+ * Unexpected numbers are logged via `log` but must not discard chosenPath.
+ */
+const MAC_ACTIVATE_EXPECTED_ERROR_NUMBERS = "-600, -1728, -10810";
+
 /** Exported for unit tests. */
 export function buildMacTransferOsascript(kind: DialogKind): string {
+  const activateBlock = [
+    "try",
+    '  tell application "Raycast" to activate',
+    "on error errMsg number errNum",
+    `  if errNum is not in {${MAC_ACTIVATE_EXPECTED_ERROR_NUMBERS}} then`,
+    '    log ("Raycast activate unexpected error " & errNum & ": " & errMsg)',
+    "  end if",
+    "end try",
+  ];
+
   if (kind === "save") {
     return [
       `set defaultName to "${DEFAULT_EXPORT_FILE_NAME}"`,
@@ -147,9 +176,7 @@ export function buildMacTransferOsascript(kind: DialogKind): string {
       '  set chosenPath to ""',
       "end try",
       // Focus restore is best-effort and must not discard a valid selection.
-      "try",
-      '  tell application "Raycast" to activate',
-      "end try",
+      ...activateBlock,
       "return chosenPath",
     ].join("\n");
   }
@@ -160,9 +187,7 @@ export function buildMacTransferOsascript(kind: DialogKind): string {
     "on error",
     '  set chosenPath to ""',
     "end try",
-    "try",
-    '  tell application "Raycast" to activate',
-    "end try",
+    ...activateBlock,
     "return chosenPath",
   ].join("\n");
 }
@@ -174,10 +199,13 @@ async function pickMacTransferJsonPath(kind: DialogKind): Promise<string | null>
       timeout: 120_000,
     });
     await reactivateRaycastWindow();
-    const selected = stdout.trim();
-    return selected.length > 0 ? path.resolve(selected) : null;
-  } catch {
+    return selectedPathFromDialogStdout(stdout);
+  } catch (error) {
     await reactivateRaycastWindow();
+    const fromStdout = selectedPathFromDialogStdout((error as { stdout?: string } | undefined)?.stdout);
+    if (fromStdout) {
+      return fromStdout;
+    }
     return null;
   }
 }

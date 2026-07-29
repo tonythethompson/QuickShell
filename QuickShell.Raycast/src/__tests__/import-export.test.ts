@@ -195,6 +195,34 @@ describe("import-export", () => {
     ]);
   });
 
+  it("assigns unique ids when CmdPal entries repeat the same source id", () => {
+    const sharedId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const result = importParsedPayload({
+      version: 1,
+      entries: [
+        {
+          Id: sharedId,
+          Name: "First",
+          Directory: "C:\\Projects\\a",
+        },
+        { Type: "separator", Title: "Mid" },
+        {
+          Id: sharedId,
+          Name: "Second",
+          Directory: "C:\\Projects\\b",
+        },
+      ],
+    });
+
+    expect(result.imported).toBe(2);
+    expect(result.data.workspaces[0].id).not.toBe(result.data.workspaces[1].id);
+    expect(result.data.layoutEntries).toEqual([
+      { type: "workspace", workspaceId: result.data.workspaces[0].id },
+      { type: "separator", id: expect.any(String), title: "Mid" },
+      { type: "workspace", workspaceId: result.data.workspaces[1].id },
+    ]);
+  });
+
   it("imports on-disk CmdPal shortcuts.json Workspace/Security wrappers", () => {
     const result = importParsedPayload({
       version: 1,

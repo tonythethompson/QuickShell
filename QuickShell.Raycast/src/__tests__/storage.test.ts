@@ -613,4 +613,16 @@ describe("storage", () => {
       vi.useRealTimers();
     }
   });
+
+  it("rejects nested write locks instead of deadlocking", async () => {
+    const storage = new QuickShellStorage(createMemoryStorageAdapter());
+    type LockHost = {
+      withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>;
+    };
+    const locked = storage as unknown as LockHost;
+
+    await expect(
+      locked.withWriteLock(async () => locked.withWriteLock(async () => "nested")),
+    ).rejects.toThrow(/Nested QuickShellStorage write lock/);
+  });
 });
