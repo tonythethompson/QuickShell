@@ -464,27 +464,27 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleOpenCompanions(workspace: Workspace) {
-    try {
-      const stored = await storage.getStoredWorkspace(workspace.id);
-      if (!stored) {
-        await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
-        return;
-      }
+    const stored = await storage.getStoredWorkspace(workspace.id);
+    if (!stored) {
+      await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
+      return;
+    }
 
-      const authorizedEffects = authorizePostLaunchEffects(stored, {
-        includeCompanion: true,
-        includeDevServer: false,
-        companionSelection: "all",
+    const authorizedEffects = authorizePostLaunchEffects(stored, {
+      includeCompanion: true,
+      includeDevServer: false,
+      companionSelection: "all",
+    });
+    if (authorizedEffects.plan.companions.length === 0) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Companion apps blocked",
+        message: authorizedEffects.warnings[0] ?? "Trust this workspace and use a valid local folder with a companion app.",
       });
-      if (authorizedEffects.plan.companions.length === 0) {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Companion apps blocked",
-          message: authorizedEffects.warnings[0] ?? "Trust this workspace and configure a valid companion app path.",
-        });
-        return;
-      }
+      return;
+    }
 
+    try {
       const result = await runPostLaunchActions(authorizedEffects.plan, { phase: "companions" });
       const warnings = [...authorizedEffects.warnings, ...result.warnings];
       if (!result.companionOpened) {

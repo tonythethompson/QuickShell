@@ -124,23 +124,14 @@ function importCmdPalLayoutEnvelope(entries: unknown[], existing?: StoredData): 
       continue;
     }
 
-    const workspaceIds = new Set<string>();
-
     // Stable id ties layout rows to merge retention so skipped duplicates do not shift later rows.
     // Repeated source IDs get a fresh id so each layout row remaps independently.
     const rawId = typeof workspaceRecord.id === "string" ? workspaceRecord.id.trim() : "";
     let workspaceId = isStableWorkspaceId(rawId) ? rawId.toLowerCase() : createStableId();
-<<<<<<< HEAD
-    while (workspaceIds.has(workspaceId)) {
-      workspaceId = createStableId();
-    }
-    workspaceIds.add(workspaceId);
-=======
     if (usedEnvelopeIds.has(workspaceId)) {
       workspaceId = createStableId();
     }
     usedEnvelopeIds.add(workspaceId);
->>>>>>> 94035b0 (Address Qodo and CodeRabbit review feedback on PR 133.)
     workspaces.push({ ...workspaceRecord, id: workspaceId });
     layoutEntries.push({ type: "workspace", workspaceId });
   }
