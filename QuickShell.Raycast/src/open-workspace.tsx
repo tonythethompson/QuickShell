@@ -464,28 +464,28 @@ export default function OpenWorkspaceCommand({
   }
 
   async function handleOpenCompanions(workspace: Workspace) {
-    const stored = await storage.getStoredWorkspace(workspace.id);
-    if (!stored) {
-      await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
-      return;
-    }
-
-    const authorizedEffects = authorizePostLaunchEffects(stored, {
-      includeCompanion: true,
-      includeDevServer: false,
-      companionSelection: "all",
-    });
-    if (authorizedEffects.plan.companions.length === 0) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Companion apps blocked",
-        message:
-          authorizedEffects.warnings[0] ?? "Trust this workspace and use a valid local folder with a companion app.",
-      });
-      return;
-    }
-
     try {
+      const stored = await storage.getStoredWorkspace(workspace.id);
+      if (!stored) {
+        await showToast({ style: Toast.Style.Failure, title: "Workspace not found" });
+        return;
+      }
+
+      const authorizedEffects = authorizePostLaunchEffects(stored, {
+        includeCompanion: true,
+        includeDevServer: false,
+        companionSelection: "all",
+      });
+      if (authorizedEffects.plan.companions.length === 0) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Companion apps blocked",
+          message:
+            authorizedEffects.warnings[0] ?? "Trust this workspace and use a valid local folder with a companion app.",
+        });
+        return;
+      }
+
       const result = await runPostLaunchActions(authorizedEffects.plan, { phase: "companions" });
       const warnings = [...authorizedEffects.warnings, ...result.warnings];
       if (!result.companionOpened) {
@@ -680,7 +680,7 @@ export default function OpenWorkspaceCommand({
       await revalidate();
       const isNoop = result.outcome === "noop";
       await showToast({
-        style: Toast.Style.Success,
+        style: isNoop ? Toast.Style.Animated : Toast.Style.Success,
         title: isNoop ? "Nothing to reset" : "Workspaces reset",
         message: result.message,
       });

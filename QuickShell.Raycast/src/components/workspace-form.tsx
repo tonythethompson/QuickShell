@@ -521,8 +521,9 @@ export default function WorkspaceForm({
       terminal: selectedTerminal?.terminal ?? "default",
       wtProfile: selectedTerminal?.wtProfile ?? null,
       isPinned: formValues.isPinned,
-      runAsAdmin: isMacPlatform() ? false : formValues.runAsAdmin,
-      launches: isMacPlatform() ? launches.map((launch) => ({ ...launch, runAsAdmin: false })) : launches,
+      runAsAdmin: isMacPlatform() ? initialWorkspace.runAsAdmin : formValues.runAsAdmin,
+      // Keep elevation metadata on macOS saves so Windows re-import still elevates.
+      launches,
       companions,
       devServerUrl: formValues.devServerUrl,
       openDevServerOnLaunch: formValues.openDevServerOnLaunch,

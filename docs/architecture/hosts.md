@@ -16,7 +16,7 @@ All hosts retain workspace IDs rather than trust-bearing snapshots and resolve c
 | **Pills**           | Adaptive Card / form                       | `RunLaunchSuggestionPanel`                   | `QuickShell.Suggest.exe`                                                                              |
 | **Edit UI**         | Adaptive Card forms                        | WPF `ShortcutWorkspaceEditorWindow`          | React form components                                                                                 |
 | **Action keyword**  | Extension name + fallback                  | **`qs`** (+ global activation phrases)       | Raycast commands                                                                                      |
-| **Package**         | Store / WinGet CmdPal packages             | Bundled with full WinGet / GH setup          | Raycast store / sideload                                                                              |
+| **Package**         | Store / WinGet CmdPal packages             | Bundled with full WinGet / GH setup          | Raycast Store only (no sideload packages)                                                             |
 
 Desktop CmdPal + Run **share** Core data files. Raycast is **parallel** unless the user imports or exports JSON.
 

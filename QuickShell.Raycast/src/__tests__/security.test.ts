@@ -250,9 +250,10 @@ describe("workspace security policy", () => {
   });
 
   it("resolves each open-on-launch companion by ID and suppresses invalid effects", () => {
+    const directory = createTempDirectory();
     const content: Workspace = {
       ...workspace,
-      directory: "\\\\wsl$\\Ubuntu\\home\\dev\\project",
+      directory,
       devServerUrl: "https://localhost:5173/?next=a&mode=b",
       openDevServerOnLaunch: true,
       companionApps: [
@@ -286,9 +287,10 @@ describe("workspace security policy", () => {
   });
 
   it("includes all configured companions when companionSelection is all", () => {
+    const directory = createTempDirectory();
     const content: Workspace = {
       ...workspace,
-      directory: "\\\\wsl$\\Ubuntu\\home\\dev\\project",
+      directory,
       companionApps: [
         {
           id: "on-launch",
@@ -345,7 +347,28 @@ describe("workspace security policy", () => {
     expect(effects.warnings.length).toBeGreaterThan(0);
   });
 
+  it("blocks companion launch when a WSL workspace directory is missing", () => {
+    const content: Workspace = {
+      ...workspace,
+      directory: "\\\\wsl$\\Ubuntu\\home\\dev\\QuickShellMissingCompanionDir",
+      companionApps: [
+        {
+          id: "node",
+          path: process.execPath,
+          arguments: null,
+          openOnLaunch: true,
+          order: 0,
+        },
+      ],
+    };
+    const value = { ...stored(true), content };
+
+    expect(authorize(value, { kind: "companion", companionId: "node" }).primaryIssueCode).toBe("DirectoryMissing");
+    expect(authorize(value, { kind: "terminal" }).isAllowed).toBe(true);
+  });
+
   it("fails closed for ambiguous duplicate companion IDs", () => {
+    const directory = createTempDirectory();
     const duplicate = {
       id: "duplicate",
       path: process.execPath,
@@ -355,7 +378,7 @@ describe("workspace security policy", () => {
     };
     const content: Workspace = {
       ...workspace,
-      directory: "\\\\wsl$\\Ubuntu\\home\\dev\\project",
+      directory,
       companionApps: [duplicate, { ...duplicate, arguments: "--second", order: 1 }],
     };
     const value = { ...stored(true), content };
@@ -390,6 +413,31 @@ describe("workspace trust kill switch (disabled)", () => {
     const openDirectory = authorize(value, { kind: "directory" });
     expect(openDirectory.issues.some((issue) => issue.code === "WorkspaceUntrusted")).toBe(false);
     expect(openDirectory.isAllowed).toBe(true);
+  });
+
+  it("open-directory allows rooted Windows drive paths and rejects double-slash paths", () => {
+    setWorkspaceTrustEnabledForTests(false);
+    const driveRoot = createTempDirectory();
+    const allowed = authorize(
+      {
+        content: { ...workspace, directory: driveRoot },
+        security: { isTrusted: false, revision: 1 },
+        revision: 1,
+      },
+      { kind: "directory" },
+    );
+    expect(allowed.isAllowed).toBe(true);
+
+    const rejected = authorize(
+      {
+        content: { ...workspace, directory: "//unc-style/share/project" },
+        security: { isTrusted: false, revision: 1 },
+        revision: 1,
+      },
+      { kind: "directory" },
+    );
+    expect(rejected.isAllowed).toBe(false);
+    expect(["InvalidDirectory", "DirectoryOpenNotAllowed"]).toContain(rejected.primaryIssueCode);
   });
 
   it("matches the shared JSON default", () => {

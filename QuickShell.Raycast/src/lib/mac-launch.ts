@@ -10,7 +10,7 @@ export type MacLaunchInvocation = {
   displayName: string;
 };
 
-export type MacLaunchEntryGroup = {
+type MacLaunchEntryGroup = {
   hostId: MacTerminalHostId;
   entries: LaunchPlanEntry[];
 };
@@ -90,9 +90,14 @@ export function groupMacLaunchEntries(
 
   const groups: MacLaunchEntryGroup[] = [];
   const groupIndexByHost = new Map<MacTerminalHostId, number>();
+  let previousHostId: MacTerminalHostId | undefined;
 
   for (const entry of entries) {
-    const hostId = resolveMacTerminalHostId(entry.launch.terminal, settings);
+    const hostId =
+      entry.launch.terminal?.trim().toLowerCase() === "same-as-previous" && previousHostId
+        ? previousHostId
+        : resolveMacTerminalHostId(entry.launch.terminal, settings);
+    previousHostId = hostId;
     const existingIndex = groupIndexByHost.get(hostId);
     if (existingIndex !== undefined) {
       groups[existingIndex].entries.push(entry);

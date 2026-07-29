@@ -179,8 +179,7 @@ export function authorize(
       request.kind === "launchEntry" ||
       request.kind === "grantTrust" ||
       request.kind === "companion") &&
-    isLocalDirectory(directory) &&
-    !existsSync(directory)
+    isMissingRequiredDirectory(directory, request.kind)
   ) {
     issues.push({ code: "DirectoryMissing", message: "Workspace directory does not exist.", blocking: true });
   }
@@ -489,6 +488,25 @@ function isLocalDirectory(directory: string): boolean {
   // POSIX absolute (macOS / Linux): /Users/…, /tmp/…, etc. Reject // unc-style.
   if (directory.startsWith("/") && !directory.startsWith("//")) {
     return true;
+  }
+  return false;
+}
+
+/**
+ * Local directories must exist for launch/trust/companion. WSL UNC is format-checked for
+ * terminal/launch (can still hand off to wt/wsl), but companions require the path to exist.
+ */
+function isMissingRequiredDirectory(
+  directory: string,
+  kind: "terminal" | "launchEntry" | "grantTrust" | "companion" | string,
+): boolean {
+  if (!existsSync(directory)) {
+    if (isLocalDirectory(directory)) {
+      return true;
+    }
+    if (kind === "companion" && /^\\\\wsl\$/i.test(directory)) {
+      return true;
+    }
   }
   return false;
 }
