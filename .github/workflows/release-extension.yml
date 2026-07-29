@@ -109,15 +109,23 @@ jobs:
             $notes = $override
             Write-Host "Using workflow_dispatch release_notes override."
           } else {
+            # Do not use `$LASTEXITCODE -ne 0` after a .ps1 call: unset LASTEXITCODE is
+            # $null, and `$null -ne 0` is $true, so `exit $LASTEXITCODE` exits 0 early.
             $notes = & .\scripts\extract-changelog.ps1 -Version $version
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if (-not $?) {
+              throw "extract-changelog.ps1 failed for version $version."
+            }
+          }
+
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "Release notes for $version are empty."
           }
 
           "NOTES<<EOF" >> $env:GITHUB_OUTPUT
           $notes >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
 
-          $notes | Set-Content -Path release-notes.txt -Encoding utf8
+          Set-Content -LiteralPath release-notes.txt -Value $notes -Encoding utf8
 
           $wingetId = "${{ env.WINGET_PACKAGE_ID }}"
           $wingetCmdPalId = "${{ env.WINGET_CMDPAL_PACKAGE_ID }}"
@@ -263,11 +271,21 @@ jobs:
           if ($override) {
             $notes = $override
           } else {
+            # See build job: unset $LASTEXITCODE after a .ps1 must not early-exit 0.
             $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if (-not $?) {
+              throw "extract-changelog.ps1 failed for version $($env:RELEASE_VERSION)."
+            }
           }
 
-          $notes | Set-Content -Path release-notes.txt -Encoding utf8
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "Release notes for $($env:RELEASE_VERSION) are empty."
+          }
+
+          Set-Content -LiteralPath release-notes.txt -Value $notes -Encoding utf8
+          if (-not (Test-Path -LiteralPath release-notes.txt)) {
+            throw 'Failed to write release-notes.txt.'
+          }
           Write-Host "Loaded $($notes.Length) characters of WinGet release notes."
 
       - name: Install WingetCreate

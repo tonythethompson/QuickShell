@@ -148,10 +148,18 @@ jobs:
           RELEASE_VERSION: ${{ steps.meta.outputs.VERSION }}
         run: |
           # Store What's new always comes from CHANGELOG.md (no dispatch override).
+          # Do not use `$LASTEXITCODE -ne 0` after a .ps1 call: unset LASTEXITCODE is
+          # $null, and `$null -ne 0` is $true, so `exit $LASTEXITCODE` exits 0 early.
           $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not $?) {
+            throw "extract-changelog.ps1 failed for version $($env:RELEASE_VERSION)."
+          }
 
-          $notes | Set-Content -Path store-release-notes.txt -Encoding utf8
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "Store release notes for $($env:RELEASE_VERSION) are empty."
+          }
+
+          Set-Content -LiteralPath store-release-notes.txt -Value $notes -Encoding utf8
           Write-Host "Extracted $($notes.Length) characters of Store release notes."
 
       - name: Build Store upload package
