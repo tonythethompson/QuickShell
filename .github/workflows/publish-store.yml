@@ -32,18 +32,19 @@ jobs:
       - name: Resolve tag
         id: meta
         shell: pwsh
+        env:
+          TAG_INPUT: ${{ inputs.tag }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            $tag = "${{ inputs.tag }}".Trim()
+          # Prefer env vars over ${{ }} interpolation so untrusted tag text stays data.
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            $tag = "$($env:TAG_INPUT)".Trim()
           } else {
-            $tag = "${{ github.event.release.tag_name }}".Trim()
+            $tag = "$($env:RELEASE_TAG_NAME)".Trim()
           }
 
-          if ([string]::IsNullOrWhiteSpace($tag)) {
-            throw 'Release tag is empty.'
-          }
-          if (-not $tag.StartsWith('v')) {
-            throw "Tag '$tag' must start with 'v' (for example v0.2.3.0)."
+          if ($tag -notmatch '^v\d+\.\d+\.\d+\.\d+$') {
+            throw "Tag '$tag' must match vX.Y.Z.W (for example v0.2.3.0)."
           }
 
           $version = $tag.Substring(1)
@@ -72,8 +73,10 @@ jobs:
 
       - name: Verify version matches tag
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.VERSION }}
         run: |
-          $releaseVersion = "${{ steps.meta.outputs.VERSION }}"
+          $releaseVersion = $env:RELEASE_VERSION
 
           [xml]$manifest = Get-Content QuickShell/Package.appxmanifest
           $manifestVersion = [string]$manifest.Package.Identity.Version
@@ -91,8 +94,10 @@ jobs:
 
       - name: Extract changelog
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.VERSION }}
         run: |
-          $notes = & .\scripts\extract-changelog.ps1 -Version "${{ steps.meta.outputs.VERSION }}"
+          $notes = & .\scripts\extract-changelog.ps1 -Version $env:RELEASE_VERSION
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           $notes | Set-Content -Path store-release-notes.txt -Encoding utf8
