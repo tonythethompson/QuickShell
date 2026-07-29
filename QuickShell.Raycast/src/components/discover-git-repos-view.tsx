@@ -100,6 +100,18 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
   useLoadErrorToast(error, "Failed to scan git repositories");
 
   useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    const cachedKeys = new Set(data.map((repo) => repo.directory.toLowerCase()));
+    setAddedDirectoryKeys((current) => {
+      const next = new Set([...current].filter((key) => cachedKeys.has(key)));
+      return next.size === current.size ? current : next;
+    });
+  }, [data]);
+
+  useEffect(() => {
     const query = searchText.trim();
     setTargetedLoadingQuery(null);
     if (!query) {
@@ -179,12 +191,6 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
       await revalidate();
     } catch (refreshError) {
       await showStorageFailure("Refresh git repositories", refreshError);
-    } finally {
-      setAddedDirectoryKeys((current) => {
-        const next = new Set(current);
-        next.delete(addedKey);
-        return next;
-      });
     }
     await onWorkspaceAdded?.(workspace);
     if (popOnAdd) {
