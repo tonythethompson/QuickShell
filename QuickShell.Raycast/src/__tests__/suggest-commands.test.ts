@@ -1,7 +1,9 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildSuggestCommandArgs,
   pillsToSetupTasks,
+  resolveSuggestExecutable,
   splitPillsIntoSeedAndLeftover,
   type SuggestionPill,
 } from "../lib/suggest-commands";
@@ -16,6 +18,12 @@ function pill(partial: Partial<SuggestionPill> & Pick<SuggestionPill, "command" 
 }
 
 describe("suggest-commands", () => {
+  it("resolves the packaged CLI from Raycast assets", () => {
+    expect(resolveSuggestExecutable("C:\\Raycast\\assets")).toBe(
+      path.join("C:\\Raycast\\assets", "QuickShell.Suggest.exe"),
+    );
+  });
+
   it("builds suggest CLI args with used commands", () => {
     expect(buildSuggestCommandArgs("C:\\Projects\\app", ["npm run dev", "  ", "dotnet watch"], 42)).toEqual([
       "suggest",

@@ -75,7 +75,7 @@ GetPills(directory, usedCommands, maxCount = MaxPills)
 |------|-------------|
 | CmdPal | Adaptive Card pill actions on form (4 per row, 3 rows collapsed; template rebuilt for visible count; same-type pills grouped by `TypeTitle`, groups ordered by best score) |
 | Run | `RunLaunchSuggestionPanel` |
-| Raycast | `QuickShell.Suggest.exe` → JSON pills via `suggest-commands.ts` (form seeds + Actions). Falls back to `project-setup-suggestion.ts` heuristics when Suggest.exe is missing. `QUICKSHELL_SUGGEST_EXE` overrides the path in development. |
+| Raycast | `QuickShell.Suggest.exe` → JSON pills via `suggest-commands.ts` (form seeds + Actions/dropdown). Windows deploy/package scripts publish the CLI into Raycast assets and runtime resolution uses `environment.assetsPath`. Falls back to `project-setup-suggestion.ts` heuristics when Suggest.exe is missing (including macOS). `QUICKSHELL_SUGGEST_EXE` overrides the path in development. |
 
 ## Related helpers
 

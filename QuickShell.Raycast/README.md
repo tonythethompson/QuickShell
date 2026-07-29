@@ -15,7 +15,7 @@ Create, Discover, and Edit are Actions / pushed views inside Quick Shell (not se
 ## Requirements
 
 - **Raycast** for Windows or macOS
-- **Node.js 22.14+** (development only)
+- **Node.js 22.14+** and the **.NET 10 SDK** (development only)
 - Windows: Windows Terminal, PowerShell, or WSL
 - macOS: Terminal.app and/or iTerm2 (multi-launch can open as tabs in one window)
 
@@ -61,6 +61,8 @@ npm run dev
 ```
 
 Run `npm run build` before submitting Store changes. Do not add a `version` field to `package.json`; Store versioning uses `CHANGELOG.md`.
+
+On Windows, `scripts/deploy-all.ps1` and `scripts/build-raycast-extension.ps1` publish the Core-backed suggestion CLI into Raycast assets automatically. The packaged CLI uses the .NET 10 Desktop Runtime; macOS continues to use local folder heuristics.
 
 **Distribution:** publish via the [Raycast Store](https://www.raycast.com/store) only. GitHub Releases and WinGet do not ship Raycast sideload packages. `scripts/build-raycast-extension.ps1` is for local/dev packaging.
 

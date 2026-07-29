@@ -31,13 +31,13 @@ export type WorkspaceSuggestionResult = {
   pills: SuggestionPill[];
 };
 
-export function resolveSuggestExecutable(): string | null {
+export function resolveSuggestExecutable(assetsPath?: string): string | null {
   const fromEnv = process.env.QUICKSHELL_SUGGEST_EXE?.trim();
   if (fromEnv) {
     return fromEnv;
   }
 
-  const packaged = path.join(__dirname, "..", "..", "bin", "QuickShell.Suggest.exe");
+  const packaged = path.join(assetsPath ?? path.join(__dirname, "..", "..", "assets"), "QuickShell.Suggest.exe");
   return packaged;
 }
 
@@ -144,8 +144,9 @@ export async function fetchSuggestionPills(
   directory: string,
   usedCommands: string[],
   generation: number,
+  assetsPath?: string,
 ): Promise<SuggestionResponse | null> {
-  const executable = resolveSuggestExecutable();
+  const executable = resolveSuggestExecutable(assetsPath);
   if (!executable || !existsSync(executable)) {
     return null;
   }
@@ -170,13 +171,14 @@ export async function resolveWorkspaceSetupSuggestions(
   directory: string,
   usedCommands: string[] = [],
   generation = Date.now(),
+  assetsPath?: string,
 ): Promise<WorkspaceSuggestionResult> {
   const trimmed = directory.trim();
   if (!trimmed) {
     return { source: "local", tasks: [], pills: [] };
   }
 
-  const response = await fetchSuggestionPills(trimmed, usedCommands, generation);
+  const response = await fetchSuggestionPills(trimmed, usedCommands, generation, assetsPath);
   if (response && response.pills.length > 0) {
     const split = splitPillsIntoSeedAndLeftover(response.pills);
     return {

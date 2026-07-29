@@ -1,6 +1,7 @@
 import {
   Action,
   ActionPanel,
+  environment,
   Form,
   Icon,
   launchCommand,
@@ -172,7 +173,12 @@ export default function WorkspaceForm({
     let cancelled = false;
     void (async () => {
       const generation = ++suggestionGenerationRef.current;
-      const resolved = await resolveWorkspaceSetupSuggestions(directory, seededCommands);
+      const resolved = await resolveWorkspaceSetupSuggestions(
+        directory,
+        seededCommands,
+        Date.now(),
+        environment.assetsPath,
+      );
       if (cancelled || generation !== suggestionGenerationRef.current) {
         return;
       }
@@ -307,7 +313,7 @@ export default function WorkspaceForm({
           tasks: [] as Array<{ label: string; command: string }>,
           pills: [] as SuggestionPill[],
         }
-      : await resolveWorkspaceSetupSuggestions(nextDirectory, usedCommands);
+      : await resolveWorkspaceSetupSuggestions(nextDirectory, usedCommands, Date.now(), environment.assetsPath);
     if (generation !== suggestionGenerationRef.current) {
       return;
     }
@@ -695,12 +701,13 @@ export default function WorkspaceForm({
           placeholder={index === 0 ? "npm run dev" : "dotnet watch"}
         />
       ))}
-      {unusedSuggestionPills.length > 0 ? (
+      {suggestionSource ? (
         <Form.Dropdown
           id="command-suggestions"
           title="Command suggestions"
           value="choose-suggestion"
           placeholder="Search command suggestions..."
+          disabled={unusedSuggestionPills.length === 0}
           onChange={(key) => {
             if (key === "choose-suggestion") {
               return;
@@ -711,7 +718,10 @@ export default function WorkspaceForm({
             }
           }}
         >
-          <Form.Dropdown.Item value="choose-suggestion" title="Choose a suggestion…" />
+          <Form.Dropdown.Item
+            value="choose-suggestion"
+            title={unusedSuggestionPills.length > 0 ? "Choose a suggestion…" : "All suggestions applied"}
+          />
           {unusedSuggestionPills.map((pill) => (
             <Form.Dropdown.Item
               key={encodePillKey(pill)}
