@@ -1,5 +1,4 @@
 using QuickShell.Services;
-using System.Threading;
 
 namespace QuickShell.Core.Tests;
 
@@ -141,7 +140,52 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
     }
 
     [Fact]
-    public void ComputeFingerprint_ChangesWhenFileIsRewritten()
+    public void resolve_fragment_icon_preserves_inline_glyph()
+    {
+        var fragmentDir = Path.Combine(_root, "vendor");
+        Directory.CreateDirectory(fragmentDir);
+
+        Assert.Equal("🐧", TerminalFragmentDiscovery.ResolveFragmentIcon("🐧", fragmentDir));
+        Assert.Equal("\uE756", TerminalFragmentDiscovery.ResolveFragmentIcon("\uE756", fragmentDir));
+    }
+
+    [Fact]
+    public void load_all_reports_read_failures_for_locked_files()
+    {
+        var path = Path.Combine(_root, "locked", "locked.json");
+        WriteFragment(
+            path,
+            """
+            {
+                "profiles": [
+                    {
+                        "guid": "{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}",
+                        "icon": "x.ico"
+                    }
+                ]
+            }
+            """);
+
+        using var lockStream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root], out var hadReadFailures);
+
+        Assert.True(hadReadFailures);
+        Assert.False(profiles.ContainsKey("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
+    }
+
+    [Fact]
+    public void load_all_malformed_json_is_not_a_read_failure()
+    {
+        WriteFragment(Path.Combine(_root, "broken.json"), "not json");
+
+        var profiles = TerminalFragmentDiscovery.LoadAll([_root], out var hadReadFailures);
+
+        Assert.False(hadReadFailures);
+        Assert.Empty(profiles);
+    }
+
+    [Fact]
+    public void compute_fingerprint_changes_when_file_content_changes()
     {
         var path = Path.Combine(_root, "nu", "nu.json");
         WriteFragment(
@@ -158,7 +202,8 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
             """);
 
         var first = TerminalFragmentDiscovery.ComputeFingerprint([_root]);
-        Thread.Sleep(20);
+        // Preserve mtime so the fingerprint must notice the content rewrite itself.
+        var preservedWriteTime = File.GetLastWriteTimeUtc(path);
         WriteFragment(
             path,
             """
@@ -171,9 +216,12 @@ public sealed class TerminalFragmentDiscoveryTests : IDisposable
                 ]
             }
             """);
+        File.SetLastWriteTimeUtc(path, preservedWriteTime);
 
         var second = TerminalFragmentDiscovery.ComputeFingerprint([_root]);
         Assert.NotEqual(first, second);
+        Assert.Equal(64, first.Length);
+        Assert.Equal(64, second.Length);
     }
 
     [Fact]

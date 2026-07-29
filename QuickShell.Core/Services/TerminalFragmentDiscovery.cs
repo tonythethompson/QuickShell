@@ -26,7 +26,8 @@ internal static class TerminalFragmentDiscovery
 {
     /// <summary>
     /// Content-sensitive fingerprint of fragment files. Used to skip a full JSON parse
-    /// when nothing on disk has changed.
+    /// when nothing on disk has changed. Returns a stable SHA-256 hex digest of the
+    /// per-file path/mtime/length/content tuples so the stored value stays small.
     /// </summary>
     public static string ComputeFingerprint(IEnumerable<string>? roots = null)
     {
@@ -66,17 +67,29 @@ internal static class TerminalFragmentDiscovery
                 }
                 catch
                 {
-                    // Locked / deleted between enumerate and stat.
+                    // Locked / deleted between enumerate and stat. Omitted entries mean the
+                    // next successful read changes the fingerprint and forces a reload.
                 }
             }
         }
 
-        return builder.ToString();
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
     }
 
-    public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(IEnumerable<string>? roots = null)
+    public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(IEnumerable<string>? roots = null) =>
+        LoadAll(roots, out _);
+
+    /// <summary>
+    /// Loads fragment profiles. <paramref name="hadReadFailures"/> is set when a fragment
+    /// file could not be opened (locked/unauthorized) so callers can avoid committing a
+    /// fingerprint that would skip retrying that file.
+    /// </summary>
+    public static IReadOnlyDictionary<string, TerminalFragmentProfile> LoadAll(
+        IEnumerable<string>? roots,
+        out bool hadReadFailures)
     {
         var profiles = new Dictionary<string, TerminalFragmentProfile>(StringComparer.OrdinalIgnoreCase);
+        hadReadFailures = false;
 
         foreach (var root in roots ?? GetDefaultRoots())
         {
@@ -85,17 +98,36 @@ internal static class TerminalFragmentDiscovery
                 continue;
             }
 
-            foreach (var file in Directory
-                .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
-                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            IEnumerable<string> files;
+            try
+            {
+                files = Directory
+                    .EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                hadReadFailures = true;
+                continue;
+            }
+
+            foreach (var file in files)
             {
                 try
                 {
                     MergeFile(file, profiles);
                 }
+                catch (IOException)
+                {
+                    hadReadFailures = true;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    hadReadFailures = true;
+                }
                 catch
                 {
-                    // Ignore malformed or locked fragment files.
+                    // Ignore malformed fragment JSON; the file was readable.
                 }
             }
         }
@@ -178,7 +210,7 @@ internal static class TerminalFragmentDiscovery
 
     /// <summary>
     /// Resolves relative fragment icons against the fragment JSON directory. Absolute paths,
-    /// ms-appx URIs, and empty values are left unchanged.
+    /// ms-appx URIs, inline emoji/Segoe glyphs, and empty values are left unchanged.
     /// </summary>
     internal static string? ResolveFragmentIcon(string? icon, string? fragmentDirectory)
     {
@@ -190,6 +222,7 @@ internal static class TerminalFragmentDiscovery
         var trimmed = icon.Trim();
         if (Path.IsPathRooted(trimmed)
             || trimmed.Contains("://", StringComparison.Ordinal)
+            || TerminalProfileIconResolver.IsInlineGlyphIcon(trimmed)
             || string.IsNullOrWhiteSpace(fragmentDirectory))
         {
             return trimmed;
