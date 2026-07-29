@@ -207,17 +207,18 @@ internal sealed class WtProfilesService : IWtProfilesService
         var fragmentFingerprint = TerminalFragmentDiscovery.ComputeFingerprint(_fragmentRoots);
         if (fragmentFingerprint != _fragmentFingerprint)
         {
-            _fragmentProfiles = TerminalFragmentDiscovery.LoadAll(_fragmentRoots, out var hadReadFailures);
-            // Only commit the fingerprint when every discovered file was readable. Otherwise a
-            // transient lock would pin an incomplete profile set until mtime/size/content change.
+            var loadedFragments = TerminalFragmentDiscovery.LoadAll(_fragmentRoots, out var hadReadFailures);
+            // Only commit fragments + invalidate settings caches when every discovered file
+            // was readable. A transient lock must not pin an incomplete profile set or force
+            // a settings re-merge; leave caches alone so the next refresh retries LoadAll.
             if (!hadReadFailures)
             {
+                _fragmentProfiles = loadedFragments;
                 _fragmentFingerprint = fragmentFingerprint;
+                _profilesBySettingsPath.Clear();
+                _writeTimes.Clear();
+                sawChanges = true;
             }
-
-            _profilesBySettingsPath.Clear();
-            _writeTimes.Clear();
-            sawChanges = true;
         }
 
         var activePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
