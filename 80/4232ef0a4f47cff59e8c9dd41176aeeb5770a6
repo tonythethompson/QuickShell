@@ -1,0 +1,21 @@
+QuickShell.Raycast/src/lib/suggest-commands.ts
+  s_9d7eca6742e9bb::t_956aaee5708129 311-324
+scripts/ensure-raycast-suggest.ps1
+  s_9d7eca6742e9bb::t_67a63b7f27e67d 86-97,103,107-108,112-117,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "804232ef0a4f47cff59e8c9dd41176aeeb5770a6",
+  "prompts": {},
+  "sessions": {
+    "s_9d7eca6742e9bb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8602b04a-78b7-4b77-81bc-9e9f4c488101",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
