@@ -83,23 +83,38 @@ if (-not $SkipSmokeTest) {
     # Native stdout may be a string or a line array; always parse as one JSON document.
     $json = if ($null -eq $stdout) { '' } elseif ($stdout -is [string]) { $stdout } else { $stdout -join "`n" }
     $parsed = $json | ConvertFrom-Json
+    if ($null -eq $parsed -or $parsed -is [System.Array] -or $parsed -is [string] -or $parsed -is [ValueType]) {
+        throw 'Suggest.exe returned a non-object JSON payload.'
+    }
+    if ($null -eq $parsed.PSObject.Properties['generation'] -or $null -eq $parsed.PSObject.Properties['pills']) {
+        throw 'Suggest.exe response missing generation or pills.'
+    }
+    if ([long]$parsed.generation -ne 1) {
+        throw "Suggest.exe generation mismatch (wanted 1, got $($parsed.generation))."
+    }
+    if ($null -eq $parsed.pills -or $parsed.pills -isnot [System.Array]) {
+        throw 'Suggest.exe response pills must be an array.'
+    }
     $pillCount = @($parsed.pills).Count
     Write-Host "Smoke test OK: generation=$($parsed.generation), pills=$pillCount" -ForegroundColor Green
 }
 
 if ($SkipDeploy) {
+    $raycastRoot = Join-Path $ProjectRoot 'QuickShell.Raycast'
     Write-Host ''
     Write-Host 'Suggest ready (-SkipDeploy). Start Raycast yourself:' -ForegroundColor Yellow
-    Write-Host '  cd QuickShell.Raycast'
-    Write-Host '  npm run dev'
     Write-Host ("  `$env:QUICKSHELL_SUGGEST_EXE = '{0}'" -f $assetPath) -ForegroundColor DarkGray
+    Write-Host ("  Set-Location -LiteralPath '{0}'" -f $raycastRoot)
+    Write-Host '  npm run dev'
     return
 }
 
-Write-Host '2/3 Stopping Raycast (so the extension can reload)...' -ForegroundColor Cyan
-# Stop-RaycastProcesses already uses -ErrorAction SilentlyContinue; let unexpected errors surface.
-Stop-RaycastProcesses
-$stoppedRaycast = $true
+# -BuildOnly should not stop or launch Raycast; only package/build.
+if (-not $BuildOnly) {
+    Write-Host '2/3 Stopping Raycast (so the extension can reload)...' -ForegroundColor Cyan
+    # Stop-RaycastProcesses already uses -ErrorAction SilentlyContinue; let unexpected errors surface.
+    Stop-RaycastProcesses
+}
 
 Write-Host '3/3 Building and deploying QuickShell.Raycast...' -ForegroundColor Cyan
 Deploy-RaycastExtension `
@@ -108,7 +123,7 @@ Deploy-RaycastExtension `
     -BuildOnly:$BuildOnly `
     -StartDevServer:(-not $BuildOnly)
 
-if (-not $NoRestart -and $stoppedRaycast) {
+if (-not $BuildOnly -and -not $NoRestart) {
     Write-Host 'Restarting Raycast...' -ForegroundColor Cyan
     if (-not (Start-RaycastApp)) {
         Write-Warning 'Raycast deploy finished but Raycast could not be restarted.'

@@ -308,14 +308,20 @@ export async function resolveWorkspaceSetupSuggestions(
     return { source: "local", tasks: [], pills: [] };
   }
 
-  const response = await fetchSuggestionPills(trimmed, usedCommands, generation, assetsPath);
-  if (response && response.pills.length > 0) {
-    const split = splitPillsIntoSeedAndLeftover(response.pills);
-    return {
-      source: "suggest",
-      tasks: split.tasks,
-      pills: split.leftoverPills,
-    };
+  // Fire-and-forget form callers must not see unhandled rejections from unexpected Suggest failures.
+  try {
+    const response = await fetchSuggestionPills(trimmed, usedCommands, generation, assetsPath);
+    if (response && response.pills.length > 0) {
+      const split = splitPillsIntoSeedAndLeftover(response.pills);
+      return {
+        source: "suggest",
+        tasks: split.tasks,
+        pills: split.leftoverPills,
+      };
+    }
+  } catch (error) {
+    const kind = error instanceof Error ? error.name : "unknown";
+    console.warn(`[quickshell] Suggest resolution failed unexpectedly (${kind}); using local heuristics.`);
   }
 
   const tasks = buildProjectSetupSuggestions(trimmed);
