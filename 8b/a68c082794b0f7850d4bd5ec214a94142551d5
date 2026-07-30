@@ -1,0 +1,19 @@
+scripts/ensure-raycast-suggest.ps1
+  s_9d7eca6742e9bb::t_f383e7bb288cf0 47-52,74,79-116,137,143-147,153,184-189,191-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8ba68c082794b0f7850d4bd5ec214a94142551d5",
+  "prompts": {},
+  "sessions": {
+    "s_9d7eca6742e9bb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8602b04a-78b7-4b77-81bc-9e9f4c488101",
+        "model": "default"
+      },
+      "human_author": "tonythethompson <github@trackdub.com>"
+    }
+  }
+}
