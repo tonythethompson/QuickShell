@@ -56,7 +56,7 @@ winget install tonythethompson.QuickShellforCmdPal
 winget install tonythethompson.QuickShellforRun
 ```
 
-Initial manifests for `QuickShellforCmdPal` and `QuickShellforRun` must be created in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) before CI can auto-submit updates for those IDs. Until then, release CI updates **`tonythethompson.QuickShell`** (bundled) and soft-skips the missing packages. The release workflow submits updates when `WINGET_PAT` is configured.
+`tonythethompson.QuickShell` (bundled) and `tonythethompson.QuickShellforCmdPal` are published in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs); release CI submits version bumps for both when `WINGET_PAT` is configured. `tonythethompson.QuickShellforRun` still needs its initial package merge before CI can auto-update that ID (soft-skip until then).
 
 The former `tonythethompson.QuickShellforRaycast` WinGet package is retired (no further CI updates). Prefer the Raycast Store.
 

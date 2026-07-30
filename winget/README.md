@@ -13,12 +13,12 @@ Both installers register the same Command Palette extension (shared Inno `AppId`
 
 Template manifests for the repo copy. Release CI runs `wingetcreate update` against both IDs after each GitHub Release.
 
-## First-time setup for `tonythethompson.QuickShellforCmdPal`
+## Package status
 
-`wingetcreate update` only works after the package exists in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs). Before the first release that ships `QuickShellforCmdPal-Setup-*.exe`:
+| Package ID | Status |
+| --- | --- |
+| `tonythethompson.QuickShell` | Published; CI submits version bumps |
+| `tonythethompson.QuickShellforCmdPal` | Published (initial `0.2.3.0`); CI submits version bumps |
+| `tonythethompson.QuickShellforRun` | Initial package PR must merge once before CI can `wingetcreate update` |
 
-1. Cut a GitHub Release that includes the CmdPal-only installers.
-2. Update SHA256 values in `tonythethompson.QuickShellforCmdPal.installer.yaml`.
-3. Open a PR to winget-pkgs with the three manifest files (or run `wingetcreate new` / `wingetcreate submit`).
-
-Subsequent releases are updated automatically by `.github/workflows/release-extension.yml`.
+`wingetcreate update` only works after the package exists in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs). Subsequent releases for published IDs are submitted by `.github/workflows/release-extension.yml`.
