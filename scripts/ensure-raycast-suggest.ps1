@@ -99,6 +99,23 @@ function Test-SuggestGenerationEqualsOne {
     return $Generation -eq 1
 }
 
+function Get-ExactJsonProperty {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Object,
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    # PSObject.Properties[$name] is case-insensitive; match JSON key casing exactly.
+    foreach ($prop in $Object.PSObject.Properties) {
+        if ($prop.Name -ceq $Name) {
+            return $prop
+        }
+    }
+    return $null
+}
+
 function Test-SuggestPillShape {
     param([object]$Pill)
 
@@ -106,7 +123,7 @@ function Test-SuggestPillShape {
         return $false
     }
     foreach ($field in @('command', 'taskType', 'typeTitle', 'displayTitle', 'tooltip')) {
-        $prop = $Pill.PSObject.Properties[$field]
+        $prop = Get-ExactJsonProperty -Object $Pill -Name $field
         if ($null -eq $prop -or $prop.Value -isnot [string]) {
             return $false
         }
@@ -131,22 +148,24 @@ if (-not $SkipSmokeTest) {
     if ($null -eq $parsed -or $parsed -is [System.Array] -or $parsed -is [string] -or $parsed -is [ValueType]) {
         throw 'Suggest.exe returned a non-object JSON payload.'
     }
-    if ($null -eq $parsed.PSObject.Properties['generation'] -or $null -eq $parsed.PSObject.Properties['pills']) {
+    $generationProp = Get-ExactJsonProperty -Object $parsed -Name 'generation'
+    $pillsProp = Get-ExactJsonProperty -Object $parsed -Name 'pills'
+    if ($null -eq $generationProp -or $null -eq $pillsProp) {
         throw 'Suggest.exe response missing generation or pills.'
     }
-    if (-not (Test-SuggestGenerationEqualsOne -Generation $parsed.generation)) {
-        throw "Suggest.exe generation mismatch (wanted 1, got $($parsed.generation))."
+    if (-not (Test-SuggestGenerationEqualsOne -Generation $generationProp.Value)) {
+        throw "Suggest.exe generation mismatch (wanted 1, got $($generationProp.Value))."
     }
-    if ($null -eq $parsed.pills -or $parsed.pills -isnot [System.Array]) {
+    if ($null -eq $pillsProp.Value -or $pillsProp.Value -isnot [System.Array]) {
         throw 'Suggest.exe response pills must be an array.'
     }
-    foreach ($pill in @($parsed.pills)) {
+    foreach ($pill in @($pillsProp.Value)) {
         if (-not (Test-SuggestPillShape -Pill $pill)) {
             throw 'Suggest.exe returned a malformed pill.'
         }
     }
-    $pillCount = @($parsed.pills).Count
-    Write-Host "Smoke test OK: generation=$($parsed.generation), pills=$pillCount" -ForegroundColor Green
+    $pillCount = @($pillsProp.Value).Count
+    Write-Host "Smoke test OK: generation=$($generationProp.Value), pills=$pillCount" -ForegroundColor Green
 }
 
 if ($SkipDeploy) {
@@ -169,6 +188,7 @@ if (-not $BuildOnly) {
 Write-Host '3/3 Building and deploying QuickShell.Raycast...' -ForegroundColor Cyan
 Deploy-RaycastExtension `
     -ProjectRoot $ProjectRoot `
+    -Configuration $Configuration `
     -SkipTests:$SkipTests `
     -BuildOnly:$BuildOnly `
     -StartDevServer:(-not $BuildOnly)
