@@ -6,7 +6,7 @@ internal static class SuggestCommandLineArgs
         string[] args,
         out string? directory,
         out IReadOnlyList<string> usedCommands,
-        out int generation)
+        out long generation)
     {
         directory = null;
         usedCommands = [];
@@ -34,7 +34,8 @@ internal static class SuggestCommandLineArgs
 
             if (string.Equals(args[i], "--generation", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
             {
-                _ = int.TryParse(args[++i], out generation);
+                // Raycast passes Date.now() (ms since epoch), which exceeds Int32.
+                _ = long.TryParse(args[++i], out generation);
             }
         }
 

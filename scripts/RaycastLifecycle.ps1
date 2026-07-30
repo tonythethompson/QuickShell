@@ -137,6 +137,8 @@ function Invoke-NpmCommand {
 function Deploy-RaycastExtension {
     param(
         [string]$ProjectRoot,
+        [ValidateSet('Debug', 'Release')]
+        [string]$Configuration = 'Release',
         [switch]$SkipTests,
         [switch]$BuildOnly,
         [switch]$StartDevServer
@@ -153,6 +155,17 @@ function Deploy-RaycastExtension {
 
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
         throw 'Node.js/npm is required to build QuickShell.Raycast.'
+    }
+
+    if ($env:OS -eq 'Windows_NT') {
+        $suggestBuildScript = Join-Path $ProjectRoot 'scripts\build-raycast-suggest.ps1'
+        if (-not (Test-Path -LiteralPath $suggestBuildScript)) {
+            throw "QuickShell.Suggest build script not found at $suggestBuildScript"
+        }
+        & $suggestBuildScript -ProjectRoot $ProjectRoot -Configuration $Configuration -Platform x64
+        if ($LASTEXITCODE -ne 0) {
+            throw "QuickShell.Suggest publish failed with exit code $LASTEXITCODE"
+        }
     }
 
     Push-Location $raycastRoot

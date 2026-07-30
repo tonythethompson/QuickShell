@@ -22,6 +22,14 @@ if (-not (Test-Path $raycastRoot)) {
 }
 
 Write-Host "Building Quick Shell for Raycast v$Version..." -ForegroundColor Cyan
+& (Join-Path $PSScriptRoot 'build-raycast-suggest.ps1') `
+    -ProjectRoot $repoRoot `
+    -Configuration $Configuration `
+    -Platform x64
+if ($LASTEXITCODE -ne 0) {
+    throw "QuickShell.Suggest publish failed with exit code $LASTEXITCODE"
+}
+
 Push-Location $raycastRoot
 try {
     if (Get-Command npm -ErrorAction SilentlyContinue) {

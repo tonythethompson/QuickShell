@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
+import { Action, ActionPanel, environment, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import WorkspaceForm from "./workspace-form";
@@ -28,7 +28,7 @@ type ReviewWorkspaceFormProps = {
 
 /** Full seed for every repository selected from Discover Git Repos. */
 async function buildWorkspaceFromRepo(directory: string, name: string, remoteUrl?: string | null): Promise<Workspace> {
-  const resolved = await resolveWorkspaceSetupSuggestions(directory);
+  const resolved = await resolveWorkspaceSetupSuggestions(directory, [], Date.now(), environment.assetsPath);
   return createWorkspaceFromDiscoveredGitRepo({
     directory,
     name,
