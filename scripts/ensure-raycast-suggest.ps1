@@ -44,6 +44,12 @@ if ($env:OS -ne 'Windows_NT') {
     throw 'ensure-raycast-suggest.ps1 is Windows-only (Suggest.exe is not used on macOS).'
 }
 
+if (-not (Test-Path -LiteralPath $ProjectRoot)) {
+    throw "ProjectRoot not found: $ProjectRoot"
+}
+# Absolute paths so printed SkipDeploy commands stay valid after Set-Location.
+$ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).ProviderPath
+
 $buildScript = Join-Path $PSScriptRoot 'build-raycast-suggest.ps1'
 $lifecycleScript = Join-Path $PSScriptRoot 'RaycastLifecycle.ps1'
 if (-not (Test-Path -LiteralPath $buildScript)) {
@@ -65,9 +71,48 @@ $assetPath = Join-Path $ProjectRoot 'QuickShell.Raycast\assets\QuickShell.Sugges
 if (-not (Test-Path -LiteralPath $assetPath)) {
     throw "Expected asset missing after publish: $assetPath"
 }
+$assetPath = (Resolve-Path -LiteralPath $assetPath).ProviderPath
 
 $item = Get-Item -LiteralPath $assetPath
 Write-Host ("Published: {0} ({1:N1} KB)" -f $item.FullName, ($item.Length / 1KB)) -ForegroundColor Green
+
+function Test-SuggestGenerationEqualsOne {
+    param([object]$Generation)
+
+    # Reject strings/bools so "1" is not coerced to 1.
+    if ($null -eq $Generation -or $Generation -is [string] -or $Generation -is [bool] -or $Generation -is [char]) {
+        return $false
+    }
+    if (-not (
+        $Generation -is [byte] -or $Generation -is [sbyte] -or
+        $Generation -is [int16] -or $Generation -is [uint16] -or
+        $Generation -is [int] -or $Generation -is [uint32] -or
+        $Generation -is [long] -or $Generation -is [uint64] -or
+        $Generation -is [float] -or $Generation -is [double] -or
+        $Generation -is [decimal]
+    )) {
+        return $false
+    }
+    if (($Generation -is [float] -or $Generation -is [double]) -and -not [double]::IsFinite([double]$Generation)) {
+        return $false
+    }
+    return $Generation -eq 1
+}
+
+function Test-SuggestPillShape {
+    param([object]$Pill)
+
+    if ($null -eq $Pill -or $Pill -is [string] -or $Pill -is [ValueType] -or $Pill -is [System.Array]) {
+        return $false
+    }
+    foreach ($field in @('command', 'taskType', 'typeTitle', 'displayTitle', 'tooltip')) {
+        $prop = $Pill.PSObject.Properties[$field]
+        if ($null -eq $prop -or $prop.Value -isnot [string]) {
+            return $false
+        }
+    }
+    return $true
+}
 
 if (-not $SkipSmokeTest) {
     if (-not (Test-Path -LiteralPath $Directory)) {
@@ -89,18 +134,23 @@ if (-not $SkipSmokeTest) {
     if ($null -eq $parsed.PSObject.Properties['generation'] -or $null -eq $parsed.PSObject.Properties['pills']) {
         throw 'Suggest.exe response missing generation or pills.'
     }
-    if ([long]$parsed.generation -ne 1) {
+    if (-not (Test-SuggestGenerationEqualsOne -Generation $parsed.generation)) {
         throw "Suggest.exe generation mismatch (wanted 1, got $($parsed.generation))."
     }
     if ($null -eq $parsed.pills -or $parsed.pills -isnot [System.Array]) {
         throw 'Suggest.exe response pills must be an array.'
+    }
+    foreach ($pill in @($parsed.pills)) {
+        if (-not (Test-SuggestPillShape -Pill $pill)) {
+            throw 'Suggest.exe returned a malformed pill.'
+        }
     }
     $pillCount = @($parsed.pills).Count
     Write-Host "Smoke test OK: generation=$($parsed.generation), pills=$pillCount" -ForegroundColor Green
 }
 
 if ($SkipDeploy) {
-    $raycastRoot = Join-Path $ProjectRoot 'QuickShell.Raycast'
+    $raycastRoot = (Resolve-Path -LiteralPath (Join-Path $ProjectRoot 'QuickShell.Raycast')).ProviderPath
     Write-Host ''
     Write-Host 'Suggest ready (-SkipDeploy). Start Raycast yourself:' -ForegroundColor Yellow
     Write-Host ("  `$env:QUICKSHELL_SUGGEST_EXE = '{0}'" -f $assetPath) -ForegroundColor DarkGray
@@ -131,9 +181,13 @@ if (-not $BuildOnly -and -not $NoRestart) {
 }
 
 Write-Host ''
-Write-Host 'Raycast Suggest + deploy complete.' -ForegroundColor Green
-if (-not $BuildOnly) {
-    Write-Host 'Use the new develop terminal (npm run dev) or search Quick Shell in Raycast.'
+if ($BuildOnly) {
+    Write-Host 'Raycast Suggest build complete (-BuildOnly).' -ForegroundColor Green
+    Write-Host ("Asset: {0}" -f $assetPath) -ForegroundColor DarkGray
 }
-Write-Host 'In the workspace form, expect Suggest copy (not "Suggest.exe is unavailable").' -ForegroundColor DarkGray
-Write-Host ("Asset: {0}" -f $assetPath) -ForegroundColor DarkGray
+else {
+    Write-Host 'Raycast Suggest + deploy complete.' -ForegroundColor Green
+    Write-Host 'Use the new develop terminal (npm run dev) or search Quick Shell in Raycast.'
+    Write-Host 'In the workspace form, expect Suggest copy (not "Suggest.exe is unavailable").' -ForegroundColor DarkGray
+    Write-Host ("Asset: {0}" -f $assetPath) -ForegroundColor DarkGray
+}
