@@ -43,7 +43,7 @@ winget install tonythethompson.QuickShell
 # Command Palette only (same scope as Microsoft Store)
 winget install tonythethompson.QuickShellforCmdPal
 
-# PowerToys Run only (when that package is listed)
+# PowerToys Run only (awaits initial package listing)
 winget install tonythethompson.QuickShellforRun
 ```
 

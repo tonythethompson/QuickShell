@@ -58,7 +58,7 @@ try {
     $dest = Join-Path $workDir 'extensions\tonythethompson\quickshell'
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     # Replace listing contents so renamed/removed screenshots do not linger.
-    Get-ChildItem -Force $dest | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Force $dest | Remove-Item -Recurse -Force
     Copy-Item -Recurse -Force (Join-Path $source '*') $dest
     git add -A extensions/tonythethompson/quickshell
     git status --short
@@ -84,7 +84,7 @@ Describe only what this PR changes (for example logo, screenshots, copy, or inst
 - [ ] CI schema validation passes
 - [ ] Store / WinGet install source IDs resolve
 - [ ] Icon under 100 KB; screenshots under 1 MB each (when media changed)
-- [ ] Tags ≤ 5
+- [ ] Tags: at most 5
 "@
     }
 

@@ -19,6 +19,6 @@ Template manifests for the repo copy. Release CI runs `wingetcreate update` agai
 | --- | --- |
 | `tonythethompson.QuickShell` | Published; CI submits version bumps |
 | `tonythethompson.QuickShellforCmdPal` | Published (initial `0.2.3.0`); CI submits version bumps |
-| `tonythethompson.QuickShellforRun` | Initial package PR must merge once before CI can `wingetcreate update` |
+| `tonythethompson.QuickShellforRun` | Awaits initial package merge before CI can `wingetcreate update` |
 
 `wingetcreate update` only works after the package exists in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs). Subsequent releases for published IDs are submitted by `.github/workflows/release-extension.yml`.
