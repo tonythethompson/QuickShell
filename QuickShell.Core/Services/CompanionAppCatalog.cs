@@ -166,14 +166,14 @@ internal static class CompanionAppCatalog
     }
 
     /// <summary>
-            /// Serializes form choices into the JSON representation used by the companion app selector.
-            /// </summary>
-            /// <param name="choices">The form choice identifiers and display titles.</param>
-            /// <returns>The serialized form choices.</returns>
-            private static string SerializeFormChoices(IReadOnlyList<(string Id, string Title)> choices) =>
-        JsonSerializer.Serialize(
-            choices.Select(choice => new FormChoiceJson(choice.Title, choice.Id)).ToList(),
-            QuickShellJsonContext.Default.ListFormChoiceJson);
+    /// Serializes form choices into the JSON representation used by the companion app selector.
+    /// </summary>
+    /// <param name="choices">The form choice identifiers and display titles.</param>
+    /// <returns>The serialized form choices.</returns>
+    private static string SerializeFormChoices(IReadOnlyList<(string Id, string Title)> choices) =>
+JsonSerializer.Serialize(
+    choices.Select(choice => new FormChoiceJson(choice.Title, choice.Id)).ToList(),
+    QuickShellJsonContext.Default.ListFormChoiceJson);
 
     /// <summary>
     /// Builds the form choices for installed companion apps, including the options for no companion app and a custom app.

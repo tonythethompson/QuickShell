@@ -142,16 +142,39 @@ internal static class WslPathResolver
     private static bool TryParseUncRemainder(string remainder, string fullUnc, out WslLocation location)
     {
         location = null!;
-        var parts = remainder.Split('\\', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2)
+        // Bolt: Performance optimization - avoid string.Split(), Linq Skip(), and string.Join() allocations.
+        var span = remainder.AsSpan();
+        string? distro = null;
+        var linuxPathBuilder = new System.Text.StringBuilder();
+
+        foreach (var range in span.Split('\\'))
+        {
+            var part = span[range];
+            if (part.IsEmpty)
+            {
+                continue;
+            }
+
+            if (distro is null)
+            {
+                distro = part.ToString();
+            }
+            else
+            {
+                linuxPathBuilder.Append('/');
+                linuxPathBuilder.Append(part);
+            }
+        }
+
+        if (linuxPathBuilder.Length == 0 || distro is null)
         {
             return false;
         }
 
         location = new WslLocation
         {
-            Distro = parts[0],
-            LinuxPath = "/" + string.Join('/', parts.Skip(1)),
+            Distro = distro,
+            LinuxPath = linuxPathBuilder.ToString(),
             UncPath = fullUnc,
         };
 
