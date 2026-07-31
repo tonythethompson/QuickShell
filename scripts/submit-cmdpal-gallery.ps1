@@ -1,8 +1,12 @@
 # Submit or update Quick Shell in the Command Palette Extension Gallery.
 # Requires: gh auth login, fork of microsoft/CmdPal-Extensions
+#
+# Always creates a fresh branch from upstream main and a normal push (no force).
 param(
     [switch]$DryRun,
-    [string]$Branch = 'update-tonythethompson-quickshell'
+    [string]$Branch = '',
+    [string]$Title = 'Update tonythethompson.quickshell gallery listing',
+    [string]$Body = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,8 +19,12 @@ if (-not (Test-Path $source)) {
     throw "Missing gallery source at $source"
 }
 
+if ([string]::IsNullOrWhiteSpace($Branch)) {
+    $Branch = 'update-tonythethompson-quickshell-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
+}
+
 if ($DryRun) {
-    Write-Host "Would sync fork $upstream, copy $source, and open PR on branch $Branch"
+    Write-Host "Would sync fork $upstream, copy $source, push branch $Branch (no force), and open a PR"
     exit 0
 }
 
@@ -41,36 +49,55 @@ if (-not $forkExists) {
 }
 
 Write-Host "Using fork: $forkRepo"
+# Sync the fork's default branch from upstream (not a branch force-push).
 gh repo sync $forkRepo --source $upstream --force 2>$null
 gh repo clone $forkRepo $workDir -- --depth=1
 Push-Location $workDir
-git checkout -b $Branch
-$dest = Join-Path $workDir 'extensions\tonythethompson\quickshell'
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# Replace listing contents so renamed/removed screenshots do not linger.
-Get-ChildItem -Force $dest | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item -Recurse -Force (Join-Path $source '*') $dest
-git add -A extensions/tonythethompson/quickshell
-git status --short
-git commit -m "Update tonythethompson.quickshell gallery listing"
-git push -u origin $Branch --force-with-lease
-$bodyFile = Join-Path $env:TEMP 'cmdpal-gallery-pr-body.md'
-@'
+try {
+    git checkout -b $Branch
+    $dest = Join-Path $workDir 'extensions\tonythethompson\quickshell'
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    # Replace listing contents so renamed/removed screenshots do not linger.
+    Get-ChildItem -Force $dest | Remove-Item -Recurse -Force
+    Copy-Item -Recurse -Force (Join-Path $source '*') $dest
+    git add -A extensions/tonythethompson/quickshell
+    git status --short
+
+    if (-not (git status --porcelain)) {
+        throw 'No gallery listing changes to commit.'
+    }
+
+    git commit -m $Title
+    git push -u origin $Branch
+    if ($LASTEXITCODE -ne 0) {
+        throw "git push failed for branch $Branch (refusing to force-push)."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Body)) {
+        $Body = @"
 ## Summary
 Updates the **Quick Shell** Command Palette Extension Gallery listing.
 
-- New product logo (`icon.png`, Store AppTile)
-- Screenshots refreshed for current workspace UI (list, create, settings, detail)
-- Description/tags aligned with current product language
-- Install sources unchanged: Microsoft Store `9PC8S6LNRT3R`, WinGet `tonythethompson.QuickShell`
+Describe only what this PR changes (for example logo, screenshots, copy, or install sources). Do not reuse stale bullets from a prior submission.
 
 ## Test plan
 - [ ] CI schema validation passes
-- [ ] Store product ID resolves
-- [ ] Icon under 100 KB; screenshots under 1 MB each
-- [ ] Tags ≤ 5
-'@ | Set-Content -Path $bodyFile -Encoding utf8
-$prUrl = gh pr create --repo $upstream --head "${login}:$Branch" --title 'Update tonythethompson.quickshell gallery listing' --body-file $bodyFile
-Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
-Pop-Location
-Write-Host "PR opened: $prUrl"
+- [ ] Store / WinGet install source IDs resolve
+- [ ] Icon under 100 KB; screenshots under 1 MB each (when media changed)
+- [ ] Tags: at most 5
+"@
+    }
+
+    $bodyFile = Join-Path $env:TEMP 'cmdpal-gallery-pr-body.md'
+    Set-Content -Path $bodyFile -Value $Body -Encoding utf8
+    $prUrl = gh pr create --repo $upstream --head "${login}:$Branch" --title $Title --body-file $bodyFile
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($prUrl)) {
+        Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
+        throw 'gh pr create failed; no PR was opened.'
+    }
+    Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
+    Write-Host "PR opened: $prUrl"
+}
+finally {
+    Pop-Location
+}

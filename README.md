@@ -281,7 +281,7 @@ The Store package is **Command Palette only**. For PowerToys Run, see [PowerToys
 
 ### Option 2: WinGet
 
-Two packages, same extension, different extras:
+Same extension, choose bundled (CmdPal + Run) or CmdPal only:
 
 | Package | What you get |
 | --- | --- |
@@ -292,7 +292,7 @@ Two packages, same extension, different extras:
 # Bundled (CmdPal + Run)
 winget install tonythethompson.QuickShell
 
-# CmdPal only
+# CmdPal only (Store-equivalent)
 winget install tonythethompson.QuickShellforCmdPal
 ```
 
