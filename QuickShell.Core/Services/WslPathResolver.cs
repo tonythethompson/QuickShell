@@ -145,7 +145,7 @@ internal static class WslPathResolver
         // Bolt: Performance optimization - avoid string.Split(), Linq Skip(), and string.Join() allocations.
         var span = remainder.AsSpan();
         string? distro = null;
-        var linuxPathBuilder = new System.Text.StringBuilder();
+        var linuxPathBuilder = new System.Text.StringBuilder(span.Length);
 
         foreach (var range in span.Split('\\'))
         {
