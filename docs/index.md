@@ -14,18 +14,10 @@ description: Quick Shell opens saved project folders from PowerToys Command Pale
 
   <div class="button-row">
     <a class="button button-primary" href="https://apps.microsoft.com/detail/9PC8S6LNRT3R" target="_blank" rel="noopener">Microsoft Store</a>
-    <a class="button button-secondary" href="{{ '/install/' | relative_url }}#winget-command-line">WinGet</a>
     <a class="button button-secondary" href="{{ '/install/' | relative_url }}">Get Started</a>
     <a class="button button-secondary" href="{{ '/getting-started/' | relative_url }}">Learn More</a>
     <a class="button button-secondary" href="https://github.com/tonythethompson/QuickShell/releases">View Releases</a>
   </div>
-
-  <pre class="install-snippet" aria-label="WinGet install commands"><code>winget install tonythethompson.QuickShell
-winget install tonythethompson.QuickShellforCmdPal</code></pre>
-  <p class="install-snippet-note">
-    Bundled (Command Palette + PowerToys Run), or CmdPal only (Store-equivalent).
-    <a href="{{ '/install/' | relative_url }}#winget-command-line">More install options</a>
-  </p>
 
   <div class="sponsor-row">
     <span class="sponsor-label">Support development</span>

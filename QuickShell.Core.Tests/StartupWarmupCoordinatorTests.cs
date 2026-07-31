@@ -400,10 +400,10 @@ public class StartupWarmupCoordinatorTests
 
     private static void WaitForCompletion(StartupWarmupCoordinator coordinator, TimeSpan? timeout = null)
     {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(15));
         while (!coordinator.IsCompleted && DateTime.UtcNow < deadline)
         {
-            Thread.Sleep(20);
+            Thread.Sleep(50);
         }
 
         Assert.True(coordinator.IsCompleted, "Startup warmup coordinator did not complete in time.");

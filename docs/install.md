@@ -32,18 +32,15 @@ Or search **Quick Shell for CmdPal** in the Store app (listing title). After ins
 </div>
 
 ### WinGet (Command Line)
-{: #winget-command-line}
-
-Both Command Palette packages are live on WinGet. Prefer the bundled ID if you also want PowerToys Run (`qs`).
 
 ```powershell
-# Command Palette + PowerToys Run (recommended for most users)
+# Command Palette + PowerToys Run
 winget install tonythethompson.QuickShell
 
-# Command Palette only (same scope as Microsoft Store)
+# Command Palette only (Store-equivalent)
 winget install tonythethompson.QuickShellforCmdPal
 
-# PowerToys Run only (awaits initial package listing)
+# PowerToys Run only
 winget install tonythethompson.QuickShellforRun
 ```
 

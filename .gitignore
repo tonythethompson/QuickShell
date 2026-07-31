@@ -10,7 +10,6 @@ _nupkg/
 _winget-pkgs/
 _winget-pr/
 _winget-test/
-winget-out/
 
 # Shared Claude hooks/settings; ignore the rest of the tree.
 .claude/*

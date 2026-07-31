@@ -126,6 +126,8 @@ public sealed class RowPresentationMeasurementTests : IDisposable
         Assert.Equal(
             0,
             qsServices.RowPresentationDiagnostics.GetCount(RowPresentationDiagnostics.EnrichmentBatchApplied));
+
+        repository.Dispose();
     }
 
     private static (double Milliseconds, long AllocatedBytes) MeasureOnce(Action action)
