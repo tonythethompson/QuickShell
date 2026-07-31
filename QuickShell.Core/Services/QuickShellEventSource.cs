@@ -18,10 +18,10 @@ internal sealed class QuickShellEventSource : EventSource, IQuickShellEventSourc
     }
 
     /// <summary>
-    /// Determines whether the event source is enabled for listeners.
-    /// </summary>
-    /// <returns><c>true</c> if the event source is enabled; <c>false</c> otherwise.</returns>
-    bool IQuickShellEventSource.IsEnabled() => IsEnabled();
+/// Determines whether the event source is enabled for listeners.
+/// </summary>
+/// <returns><c>true</c> if the event source is enabled; <c>false</c> otherwise.</returns>
+bool IQuickShellEventSource.IsEnabled() => IsEnabled();
 
     /// <summary>
     /// Records a row cache diagnostic event.
@@ -38,23 +38,23 @@ internal sealed class QuickShellEventSource : EventSource, IQuickShellEventSourc
     public void WritePlanCache(string kind) => PlanCache(kind ?? string.Empty);
 
     /// <summary>
-    /// Records the elapsed time for a startup span.
-    /// </summary>
-    /// <param name="name">The name of the startup span.</param>
-    /// <param name="elapsedMs">The elapsed time in milliseconds.</param>
-    [NonEvent]
+        /// Records the elapsed time for a startup span.
+        /// </summary>
+        /// <param name="name">The name of the startup span.</param>
+        /// <param name="elapsedMs">The elapsed time in milliseconds.</param>
+        [NonEvent]
     public void WriteStartupSpan(string name, double elapsedMs) =>
-    StartupSpan(name ?? string.Empty, elapsedMs);
+        StartupSpan(name ?? string.Empty, elapsedMs);
 
     /// <summary>
-    /// Records a repository diagnostic event.
-    /// </summary>
-    /// <param name="location">The repository location.</param>
-    /// <param name="eventName">The name of the event.</param>
-    /// <param name="elapsedMs">The elapsed time in milliseconds, or null when unavailable.</param>
-    [NonEvent]
+        /// Records a repository diagnostic event.
+        /// </summary>
+        /// <param name="location">The repository location.</param>
+        /// <param name="eventName">The name of the event.</param>
+        /// <param name="elapsedMs">The elapsed time in milliseconds, or null when unavailable.</param>
+        [NonEvent]
     public void WriteRepository(string location, string eventName, long? elapsedMs = null) =>
-    Repository(location ?? string.Empty, eventName ?? string.Empty, elapsedMs ?? -1);
+        Repository(location ?? string.Empty, eventName ?? string.Empty, elapsedMs ?? -1);
 
     /// <summary>
     /// Records a support event using the specified event code.
@@ -64,12 +64,12 @@ internal sealed class QuickShellEventSource : EventSource, IQuickShellEventSourc
     public void WriteSupportEvent(string eventCode) => SupportEvent(eventCode ?? string.Empty);
 
     /// <summary>
-    /// Records a support write failure event.
-    /// </summary>
-    /// <param name="exceptionType">The type of exception associated with the failure.</param>
-    [NonEvent]
+        /// Records a support write failure event.
+        /// </summary>
+        /// <param name="exceptionType">The type of exception associated with the failure.</param>
+        [NonEvent]
     public void WriteSupportWriteFailure(string exceptionType) =>
-    SupportWriteFailure(exceptionType ?? string.Empty);
+        SupportWriteFailure(exceptionType ?? string.Empty);
 
     /// <summary>
     /// Records completion of Git repository discovery.
@@ -101,14 +101,14 @@ internal sealed class QuickShellEventSource : EventSource, IQuickShellEventSourc
     public void StartupSpan(string name, double elapsedMs) => WriteEvent(3, name, elapsedMs);
 
     /// <summary>
-    /// Records the elapsed time for a repository event.
-    /// </summary>
-    /// <param name="location">The repository location.</param>
-    /// <param name="eventName">The name of the repository event.</param>
-    /// <param name="elapsedMs">The elapsed time in milliseconds.</param>
-    [Event(4, Level = EventLevel.Informational, Message = "Repository {0} {1} elapsedMs={2}")]
+        /// Records the elapsed time for a repository event.
+        /// </summary>
+        /// <param name="location">The repository location.</param>
+        /// <param name="eventName">The name of the repository event.</param>
+        /// <param name="elapsedMs">The elapsed time in milliseconds.</param>
+        [Event(4, Level = EventLevel.Informational, Message = "Repository {0} {1} elapsedMs={2}")]
     public void Repository(string location, string eventName, long elapsedMs) =>
-    WriteEvent(4, location, eventName, elapsedMs);
+        WriteEvent(4, location, eventName, elapsedMs);
 
     /// <summary>
     /// Records a support diagnostic event.

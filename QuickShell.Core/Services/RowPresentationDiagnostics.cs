@@ -48,10 +48,10 @@ internal sealed class RowPresentationDiagnostics : IRowPresentationDiagnostics
     }
 
     /// <summary>
-    /// Retrieves the recorded count for an event name.
-    /// </summary>
-    /// <param name="eventName">The name of the event to count.</param>
-    /// <returns>The recorded count, or zero if the event has not been recorded.</returns>
-    public long GetCount(string eventName) =>
-    _counters.TryGetValue(eventName, out var count) ? count : 0;
+        /// Retrieves the recorded count for an event name.
+        /// </summary>
+        /// <param name="eventName">The name of the event to count.</param>
+        /// <returns>The recorded count, or zero if the event has not been recorded.</returns>
+        public long GetCount(string eventName) =>
+        _counters.TryGetValue(eventName, out var count) ? count : 0;
 }

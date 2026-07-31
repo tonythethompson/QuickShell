@@ -133,12 +133,12 @@ internal sealed class ProjectAnalysisService : IProjectAnalysisService
     }
 
     /// <summary>
-    /// Suggests a companion app for the specified project directory.
-    /// </summary>
-    /// <param name="directory">The project directory to inspect.</param>
-    /// <returns>A companion app suggestion, or null when no suggestion is available.</returns>
-    public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
-    _companionAppDetector.TrySuggest(directory);
+        /// Suggests a companion app for the specified project directory.
+        /// </summary>
+        /// <param name="directory">The project directory to inspect.</param>
+        /// <returns>A companion app suggestion, or null when no suggestion is available.</returns>
+        public CompanionAppSuggestion? TrySuggestCompanionApp(string directory) =>
+        _companionAppDetector.TrySuggest(directory);
 
     public string? TryDetectDevServerUrl(string directory) =>
         _devServerDetector.TryDetectDevServerUrl(directory);

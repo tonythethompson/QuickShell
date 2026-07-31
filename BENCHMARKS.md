@@ -11,15 +11,12 @@ they are reproducible as code changes land.
 | Provider ctor | `QuickShellCommandsProvider` ctor | Background git prewarm + settings prewarm are fire-and-forget and do not block the ctor |
 | List reload | `QuickShellPage.Reload()` | Builds the home-list rows from the workspace snapshot |
 | List `GetItems` | `QuickShellPage.GetItems()` | Cached read after a reload |
-| WSL UNC parsing | `WslPathResolver.TryParse` | Compares old string.Split+LINQ vs new AsSpan+StringBuilder implementation for UNC path parsing (wall time, allocations, Gen0 collections) |
 
 Each number is the **warm** figure: the harness runs the path once to pay JIT / first-call
 costs, then times a second invocation. The provider ctor also prints its internal breakdown
 via the existing `QUICKSHELL_STARTUP_TRACE=1` instrumentation.
 
 ## How to run
-
-### Startup performance measurements
 
 ```powershell
 dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Platform=x64 `
@@ -33,21 +30,6 @@ dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Pla
   profile / drives for git repos and loads a read-only copy of `%LOCALAPPDATA%\QuickShell\shortcuts.json`).
   User configuration is not mutated. Performance artifacts (including `real-machine-workspace-count.json`)
   are written to the configured output directory (override with `QUICKSHELL_PERF_OUTPUT_DIR`).
-
-### WSL UNC path parsing performance
-
-```powershell
-dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Platform=x64 `
-  --filter "FullyQualifiedName~WslPathResolverPerformanceMeasurementsTests" `
-  --logger "console;verbosity=detailed"
-```
-
-- `Measure_UncParsing_OldVsNew_StringSplitLinqVsSpanStringBuilder` — compares the original
-  `string.Split` + LINQ (`Skip`, `Where`) + `string.Join` implementation against the optimized
-  `AsSpan` + `StringBuilder` implementation for parsing WSL UNC paths like `\\wsl$\Ubuntu\home\user\project`.
-  Measures wall-clock time, allocated bytes (`GC.GetAllocatedBytesForCurrentThread`), and Gen0
-  collection counts over 10,000 iterations with realistic UNC path inputs. Informational only;
-  no hard assertions on timing thresholds.
 
 Add new numbers below after meaningful merges. Capture `dotnet --version`, the TF, and a
 one-line machine note (CPU / SSD) so comparisons stay honest.

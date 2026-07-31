@@ -364,17 +364,17 @@ internal static partial class ShellFileDialog
     internal partial interface IFileDialog : IModalWindow
     {
         /// <summary>
-        /// Configures the file types displayed by the dialog.
-        /// </summary>
-        /// <param name="cFileTypes">The number of file type specifications.</param>
-        /// <param name="rgFilterSpec">A pointer to the array of file type specifications.</param>
-        void SetFileTypes(uint cFileTypes, nint rgFilterSpec);
+/// Configures the file types displayed by the dialog.
+/// </summary>
+/// <param name="cFileTypes">The number of file type specifications.</param>
+/// <param name="rgFilterSpec">A pointer to the array of file type specifications.</param>
+void SetFileTypes(uint cFileTypes, nint rgFilterSpec);
 
         /// <summary>
-        /// Selects the default file type in the dialog's file type list.
-        /// </summary>
-        /// <param name="iFileType">The one-based index of the file type to select.</param>
-        void SetFileTypeIndex(uint iFileType);
+/// Selects the default file type in the dialog's file type list.
+/// </summary>
+/// <param name="iFileType">The one-based index of the file type to select.</param>
+void SetFileTypeIndex(uint iFileType);
 
         /// <summary>
         /// Retrieves the index of the currently selected file type.
@@ -396,10 +396,10 @@ internal static partial class ShellFileDialog
         int Unadvise(uint dwCookie);
 
         /// <summary>
-        /// Configures the file dialog options.
-        /// </summary>
-        /// <param name="fos">The bitwise combination of file dialog option flags.</param>
-        void SetOptions(uint fos);
+/// Configures the file dialog options.
+/// </summary>
+/// <param name="fos">The bitwise combination of file dialog option flags.</param>
+void SetOptions(uint fos);
 
         /// <summary>
         /// Retrieves the current options configured for the file dialog.
@@ -418,10 +418,10 @@ internal static partial class ShellFileDialog
         int SetDefaultFolder(nint psi);
 
         /// <summary>
-        /// Sets the folder displayed by the file dialog.
-        /// </summary>
-        /// <param name="psi">The shell item representing the folder to display.</param>
-        void SetFolder(IShellItem psi);
+/// Sets the folder displayed by the file dialog.
+/// </summary>
+/// <param name="psi">The shell item representing the folder to display.</param>
+void SetFolder(IShellItem psi);
 
         /// <summary>
         /// Retrieves the dialog's current folder.
@@ -440,10 +440,10 @@ internal static partial class ShellFileDialog
         int GetCurrentSelection(out nint ppsi);
 
         /// <summary>
-        /// Sets the file name displayed in the dialog.
-        /// </summary>
-        /// <param name="pszName">The file name to display.</param>
-        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+/// Sets the file name displayed in the dialog.
+/// </summary>
+/// <param name="pszName">The file name to display.</param>
+void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
 
         /// <summary>
         /// Retrieves the current file name displayed by the dialog.
@@ -454,9 +454,9 @@ internal static partial class ShellFileDialog
         int GetFileName(out nint pszName);
 
         /// <summary>
-        /// Sets the dialog title.
-        /// </summary>
-        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
+/// Sets the dialog title.
+/// </summary>
+void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
 
         /// <summary>
         /// Sets the label of the dialog's OK button.
@@ -475,11 +475,11 @@ internal static partial class ShellFileDialog
         int SetFileNameLabel(nint pszLabel);
 
         /// <summary>
-        /// Retrieves the selected shell item.
-        /// </summary>
-        /// <param name="ppsi">Receives a pointer to the selected shell item.</param>
-        ///
-        void GetResult(out nint ppsi);
+/// Retrieves the selected shell item.
+/// </summary>
+/// <param name="ppsi">Receives a pointer to the selected shell item.</param>
+///
+void GetResult(out nint ppsi);
 
         /// <summary>
         /// Adds a location to the dialog's navigation pane.
@@ -611,11 +611,11 @@ internal static partial class ShellFileDialog
         int GetParent(out nint ppsi);
 
         /// <summary>
-        /// Retrieves the item's display name in the specified format.
-        /// </summary>
-        /// <param name="sigdnName">The display name format to retrieve.</param>
-        /// <param name="ppszName">Receives a pointer to the allocated display-name string.</param>
-        void GetDisplayName(uint sigdnName, out nint ppszName);
+/// Retrieves the item's display name in the specified format.
+/// </summary>
+/// <param name="sigdnName">The display name format to retrieve.</param>
+/// <param name="ppszName">Receives a pointer to the allocated display-name string.</param>
+void GetDisplayName(uint sigdnName, out nint ppszName);
 
         /// <summary>
         /// Retrieves the specified attributes of the shell item.
