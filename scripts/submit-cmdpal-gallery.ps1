@@ -91,6 +91,10 @@ Describe only what this PR changes (for example logo, screenshots, copy, or inst
     $bodyFile = Join-Path $env:TEMP 'cmdpal-gallery-pr-body.md'
     Set-Content -Path $bodyFile -Value $Body -Encoding utf8
     $prUrl = gh pr create --repo $upstream --head "${login}:$Branch" --title $Title --body-file $bodyFile
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($prUrl)) {
+        Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
+        throw 'gh pr create failed; no PR was opened.'
+    }
     Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
     Write-Host "PR opened: $prUrl"
 }
