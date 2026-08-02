@@ -174,6 +174,22 @@ internal static class WorkspaceSecurityPolicy
                 break;
         }
 
+        AssessAdditionalRisks(content, action, risks);
+        ValidateDirectoryTrust(workspace, action, normalizedDirectory, issues);
+
+        var primary = GetPrimaryIssue(issues, action);
+        var allowed = action switch
+        {
+            WorkspaceAction.CopyPath => !issues.Any(issue => issue.Code == WorkspaceIssueCode.InvalidDirectory),
+            WorkspaceAction.RevokeTrust => true,
+            WorkspaceAction.GrantTrust => issues.Count == 0,
+            _ => issues.Count == 0,
+        };
+        return BuildResult(allowed, primary, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
+    }
+
+    private static void AssessAdditionalRisks(TerminalShortcut content, WorkspaceAction action, List<WorkspaceRisk> risks)
+    {
         var configuredCompanionCount = CompanionAppNormalization.GetConfigured(content).Count;
         if (configuredCompanionCount > 0 && action is not WorkspaceAction.StartCompanion and not WorkspaceAction.GrantTrust)
         {
@@ -184,7 +200,10 @@ internal static class WorkspaceSecurityPolicy
         {
             risks.Add(new("dev-server", "This workspace opens a configured URL after launch."));
         }
+    }
 
+    private static void ValidateDirectoryTrust(StoredWorkspace workspace, WorkspaceAction action, string? normalizedDirectory, List<WorkspaceIssue> issues)
+    {
         if (WorkspaceTrustFeatures.Enabled && !workspace.Security.IsTrusted && RequiresTrust(action))
         {
             issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
@@ -201,16 +220,6 @@ internal static class WorkspaceSecurityPolicy
                 issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Only existing rooted local drive directories can be opened in Explorer."));
             }
         }
-
-        var primary = GetPrimaryIssue(issues, action);
-        var allowed = action switch
-        {
-            WorkspaceAction.CopyPath => !issues.Any(issue => issue.Code == WorkspaceIssueCode.InvalidDirectory),
-            WorkspaceAction.RevokeTrust => true,
-            WorkspaceAction.GrantTrust => issues.Count == 0,
-            _ => issues.Count == 0,
-        };
-        return BuildResult(allowed, primary, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
     }
 
     private static bool RequiresDirectory(WorkspaceAction action) =>
