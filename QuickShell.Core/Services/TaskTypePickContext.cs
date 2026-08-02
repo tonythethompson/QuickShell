@@ -6,14 +6,23 @@ internal sealed class TaskTypePickContext
 
     public IReadOnlySet<string> UsedCommands { get; init; } = EmptyUsedCommands.Instance;
 
-    public static TaskTypePickContext FromCommands(IEnumerable<string?> commands) =>
-        new()
+    public static TaskTypePickContext FromCommands(IEnumerable<string?> commands)
+    {
+        // Bolt: Performance optimization - avoid LINQ iterator allocations for parsing existing commands
+        var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var command in commands)
         {
-            UsedCommands = commands
-                .Where(command => !string.IsNullOrWhiteSpace(command))
-                .Select(command => command!)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase),
+            if (!string.IsNullOrWhiteSpace(command))
+            {
+                usedCommands.Add(command!);
+            }
+        }
+
+        return new TaskTypePickContext
+        {
+            UsedCommands = usedCommands,
         };
+    }
 
     private sealed class EmptyUsedCommands : IReadOnlySet<string>
     {

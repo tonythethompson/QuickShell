@@ -81,6 +81,26 @@ internal sealed record TrustTransitionResult(TrustTransitionStatus Status, strin
 
 internal static class WorkspaceSecurityPolicy
 {
+    private static readonly WorkspaceIssueCode[] DefaultPrecedence =
+    [
+        WorkspaceIssueCode.WorkspaceNotFound,
+        WorkspaceIssueCode.InvalidDirectory,
+        WorkspaceIssueCode.DirectoryMissing,
+        WorkspaceIssueCode.InvalidCommand,
+        WorkspaceIssueCode.InvalidLaunch,
+        WorkspaceIssueCode.InvalidUrl,
+        WorkspaceIssueCode.InvalidCompanion,
+        WorkspaceIssueCode.CompanionExecutableUnavailable,
+        WorkspaceIssueCode.WorkspaceUntrusted,
+        WorkspaceIssueCode.DirectoryOpenNotAllowed,
+        WorkspaceIssueCode.ActionNotAllowed,
+    ];
+
+    private static readonly WorkspaceIssueCode[] CopyPathPrecedence =
+    [
+        WorkspaceIssueCode.InvalidDirectory
+    ];
+
     public static WorkspaceAuthorizationResult NotFoundResult() =>
         BuildResult(
             false,
@@ -379,24 +399,22 @@ internal static class WorkspaceSecurityPolicy
         }
 
         var precedence = action == WorkspaceAction.CopyPath
-            ? new[] { WorkspaceIssueCode.InvalidDirectory }
-            : new[]
-            {
-                WorkspaceIssueCode.WorkspaceNotFound,
-                WorkspaceIssueCode.InvalidDirectory,
-                WorkspaceIssueCode.DirectoryMissing,
-                WorkspaceIssueCode.InvalidCommand,
-                WorkspaceIssueCode.InvalidLaunch,
-                WorkspaceIssueCode.InvalidUrl,
-                WorkspaceIssueCode.InvalidCompanion,
-                WorkspaceIssueCode.CompanionExecutableUnavailable,
-                WorkspaceIssueCode.WorkspaceUntrusted,
-                WorkspaceIssueCode.DirectoryOpenNotAllowed,
-                WorkspaceIssueCode.ActionNotAllowed,
-            };
+            ? CopyPathPrecedence
+            : DefaultPrecedence;
 
-        var issueCodes = issues.Select(issue => issue.Code).ToHashSet();
-        return precedence.FirstOrDefault(issueCodes.Contains);
+        // Bolt: Performance optimization - avoid LINQ and HashSet allocations for a small list.
+        foreach (var code in precedence)
+        {
+            foreach (var issue in issues)
+            {
+                if (issue.Code == code)
+                {
+                    return code;
+                }
+            }
+        }
+
+        return default(WorkspaceIssueCode?);
     }
 
     public static WorkspaceReviewToken CreateReviewToken(StoredWorkspace workspace) =>

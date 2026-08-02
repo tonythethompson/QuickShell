@@ -9,7 +9,17 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
 
     public IReadOnlyList<CommandSuggestionPill> GetSuggestions(TaskSuggestionContext context)
     {
-        var usedCommands = context.ExistingLaunches.Select(e => e.Command).Where(c => !string.IsNullOrWhiteSpace(c)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Bolt: Performance optimization - avoid LINQ iterator allocations for parsing existing launches
+        var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var launch in context.ExistingLaunches)
+        {
+            var command = launch.Command;
+            if (!string.IsNullOrWhiteSpace(command))
+            {
+                usedCommands.Add(command!);
+            }
+        }
+
         var pills = new List<CommandSuggestionPill>();
         foreach (var def in AgentCliCatalog.Definitions)
         {
