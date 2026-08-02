@@ -81,26 +81,6 @@ internal sealed record TrustTransitionResult(TrustTransitionStatus Status, strin
 
 internal static class WorkspaceSecurityPolicy
 {
-    private static readonly WorkspaceIssueCode[] DefaultPrecedence =
-    [
-        WorkspaceIssueCode.WorkspaceNotFound,
-        WorkspaceIssueCode.InvalidDirectory,
-        WorkspaceIssueCode.DirectoryMissing,
-        WorkspaceIssueCode.InvalidCommand,
-        WorkspaceIssueCode.InvalidLaunch,
-        WorkspaceIssueCode.InvalidUrl,
-        WorkspaceIssueCode.InvalidCompanion,
-        WorkspaceIssueCode.CompanionExecutableUnavailable,
-        WorkspaceIssueCode.WorkspaceUntrusted,
-        WorkspaceIssueCode.DirectoryOpenNotAllowed,
-        WorkspaceIssueCode.ActionNotAllowed,
-    ];
-
-    private static readonly WorkspaceIssueCode[] CopyPathPrecedence =
-    [
-        WorkspaceIssueCode.InvalidDirectory
-    ];
-
     public static WorkspaceAuthorizationResult NotFoundResult() =>
         BuildResult(
             false,
@@ -399,22 +379,24 @@ internal static class WorkspaceSecurityPolicy
         }
 
         var precedence = action == WorkspaceAction.CopyPath
-            ? CopyPathPrecedence
-            : DefaultPrecedence;
-
-        // Bolt: Performance optimization - avoid LINQ and HashSet allocations for a small list.
-        foreach (var code in precedence)
-        {
-            foreach (var issue in issues)
+            ? new[] { WorkspaceIssueCode.InvalidDirectory }
+            : new[]
             {
-                if (issue.Code == code)
-                {
-                    return code;
-                }
-            }
-        }
+                WorkspaceIssueCode.WorkspaceNotFound,
+                WorkspaceIssueCode.InvalidDirectory,
+                WorkspaceIssueCode.DirectoryMissing,
+                WorkspaceIssueCode.InvalidCommand,
+                WorkspaceIssueCode.InvalidLaunch,
+                WorkspaceIssueCode.InvalidUrl,
+                WorkspaceIssueCode.InvalidCompanion,
+                WorkspaceIssueCode.CompanionExecutableUnavailable,
+                WorkspaceIssueCode.WorkspaceUntrusted,
+                WorkspaceIssueCode.DirectoryOpenNotAllowed,
+                WorkspaceIssueCode.ActionNotAllowed,
+            };
 
-        return default(WorkspaceIssueCode?);
+        var issueCodes = issues.Select(issue => issue.Code).ToHashSet();
+        return precedence.FirstOrDefault(issueCodes.Contains);
     }
 
     public static WorkspaceReviewToken CreateReviewToken(StoredWorkspace workspace) =>
