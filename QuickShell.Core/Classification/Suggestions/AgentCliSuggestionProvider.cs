@@ -9,11 +9,10 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
 
     public IReadOnlyList<CommandSuggestionPill> GetSuggestions(TaskSuggestionContext context)
     {
-        // Bolt: Performance optimization - avoid LINQ iterator allocations for parsing existing launches
+        // Parse existing launches and track used commands.
         var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var launch in context.ExistingLaunches)
+        foreach (var command in context.ExistingLaunches.Select(launch => launch.Command))
         {
-            var command = launch.Command;
             if (!string.IsNullOrWhiteSpace(command))
             {
                 usedCommands.Add(command!);
