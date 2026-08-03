@@ -10,12 +10,9 @@ internal sealed class TaskTypePickContext
     {
         // Bolt: Performance optimization - avoid LINQ iterator allocations for parsing existing commands
         var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var command in commands)
+        foreach (var command in commands.Where(static command => !string.IsNullOrWhiteSpace(command)))
         {
-            if (!string.IsNullOrWhiteSpace(command))
-            {
-                usedCommands.Add(command!);
-            }
+            usedCommands.Add(command!);
         }
 
         return new TaskTypePickContext
