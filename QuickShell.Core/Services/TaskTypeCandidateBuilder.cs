@@ -478,7 +478,10 @@ internal static class TaskTypeCandidateBuilder
     {
         var sourceTasks = tasks as IReadOnlyList<WorkspaceSetupTask> ?? tasks.ToList();
         var suggestionContext = new SuggestionContext(context.WorkspaceDirectory, sourceTasks, context.ProjectClassification, context.ProjectAnalysis);
-        var pickContext = TaskTypePickContext.FromCommands(context.ExistingLaunches.Select(e => e.Command));
+        var pickContext = new TaskTypePickContext
+        {
+            UsedCommands = TaskTypePickContext.CreateUsedCommandSet(context.ExistingLaunches),
+        };
         var choices = TaskTypeCatalog.GetChoices();
         var bestByCmd = new Dictionary<string, (string Type, int Score, string Source)>(StringComparer.OrdinalIgnoreCase);
 

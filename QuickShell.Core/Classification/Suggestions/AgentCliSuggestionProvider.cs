@@ -9,15 +9,7 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
 
     public IReadOnlyList<CommandSuggestionPill> GetSuggestions(TaskSuggestionContext context)
     {
-        // Parse existing launches and track used commands.
-        var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var command in context.ExistingLaunches.Select(launch => launch.Command))
-        {
-            if (!string.IsNullOrWhiteSpace(command))
-            {
-                usedCommands.Add(command!);
-            }
-        }
+        var usedCommands = TaskTypePickContext.CreateUsedCommandSet(context.ExistingLaunches);
 
         var pills = new List<CommandSuggestionPill>();
         foreach (var def in AgentCliCatalog.Definitions)
@@ -40,11 +32,19 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
     private static CommandSuggestionPill? TryCreateSuggestionPill(AgentCliDefinition def, TaskSuggestionContext context, HashSet<string> usedCommands)
     {
         string? detected = null;
+<<<<<<< HEAD
         foreach (var path in def.PathNames)
         {
             if (AgentCliCatalog.IsCommandOnPath(path))
             {
                 detected = path;
+=======
+        foreach (var pathName in def.PathNames)
+        {
+            if (AgentCliCatalog.IsCommandOnPath(pathName))
+            {
+                detected = pathName;
+>>>>>>> 653b0d0 (fix: address review feedback on primary issue and used-command sets)
                 break;
             }
         }

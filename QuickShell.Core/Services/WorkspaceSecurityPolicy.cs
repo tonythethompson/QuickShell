@@ -81,6 +81,26 @@ internal sealed record TrustTransitionResult(TrustTransitionStatus Status, strin
 
 internal static class WorkspaceSecurityPolicy
 {
+    private static readonly WorkspaceIssueCode[] DefaultPrecedence =
+    [
+        WorkspaceIssueCode.WorkspaceNotFound,
+        WorkspaceIssueCode.InvalidDirectory,
+        WorkspaceIssueCode.DirectoryMissing,
+        WorkspaceIssueCode.InvalidCommand,
+        WorkspaceIssueCode.InvalidLaunch,
+        WorkspaceIssueCode.InvalidUrl,
+        WorkspaceIssueCode.InvalidCompanion,
+        WorkspaceIssueCode.CompanionExecutableUnavailable,
+        WorkspaceIssueCode.WorkspaceUntrusted,
+        WorkspaceIssueCode.DirectoryOpenNotAllowed,
+        WorkspaceIssueCode.ActionNotAllowed,
+    ];
+
+    private static readonly WorkspaceIssueCode[] CopyPathPrecedence =
+    [
+        WorkspaceIssueCode.InvalidDirectory,
+    ];
+
     public static WorkspaceAuthorizationResult NotFoundResult() =>
         BuildResult(
             false,
@@ -378,6 +398,13 @@ internal static class WorkspaceSecurityPolicy
             action);
     }
 
+    /// <summary>
+    /// Picks the highest-precedence issue for messaging. Returns null when
+    /// there are no issues, or when none of the issues appear in the action's
+    /// precedence list. Callers must treat <see cref="WorkspaceAuthorizationResult.PrimaryIssueCode"/>
+    /// as optional; authorization itself is driven by <see cref="WorkspaceAuthorizationResult.IsAllowed"/>
+    /// and the full Issues list, not by a fake enum-zero sentinel.
+    /// </summary>
     private static WorkspaceIssueCode? GetPrimaryIssue(
         List<WorkspaceIssue> issues,
         WorkspaceAction action)
@@ -388,24 +415,22 @@ internal static class WorkspaceSecurityPolicy
         }
 
         var precedence = action == WorkspaceAction.CopyPath
-            ? new[] { WorkspaceIssueCode.InvalidDirectory }
-            : new[]
-            {
-                WorkspaceIssueCode.WorkspaceNotFound,
-                WorkspaceIssueCode.InvalidDirectory,
-                WorkspaceIssueCode.DirectoryMissing,
-                WorkspaceIssueCode.InvalidCommand,
-                WorkspaceIssueCode.InvalidLaunch,
-                WorkspaceIssueCode.InvalidUrl,
-                WorkspaceIssueCode.InvalidCompanion,
-                WorkspaceIssueCode.CompanionExecutableUnavailable,
-                WorkspaceIssueCode.WorkspaceUntrusted,
-                WorkspaceIssueCode.DirectoryOpenNotAllowed,
-                WorkspaceIssueCode.ActionNotAllowed,
-            };
+            ? CopyPathPrecedence
+            : DefaultPrecedence;
 
-        var issueCodes = issues.Select(issue => issue.Code).ToHashSet();
-        return precedence.FirstOrDefault(issueCodes.Contains);
+        // Allocation-free nested scan; lists are small (a few issue codes).
+        foreach (var code in precedence)
+        {
+            foreach (var issue in issues)
+            {
+                if (issue.Code == code)
+                {
+                    return code;
+                }
+            }
+        }
+
+        return null;
     }
 
     public static WorkspaceReviewToken CreateReviewToken(StoredWorkspace workspace) =>
