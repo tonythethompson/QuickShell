@@ -1,3 +1,5 @@
+using QuickShell.Models;
+
 namespace QuickShell.Services;
 
 internal sealed class TaskTypePickContext
@@ -7,13 +9,44 @@ internal sealed class TaskTypePickContext
     public IReadOnlySet<string> UsedCommands { get; init; } = EmptyUsedCommands.Instance;
 
     public static TaskTypePickContext FromCommands(IEnumerable<string?> commands) =>
-        new()
+        new() { UsedCommands = CreateUsedCommandSet(commands) };
+
+    /// <summary>
+    /// Builds a case-insensitive set of non-blank commands for suggestion dedupe.
+    /// Shared by <see cref="FromCommands"/> and agent/CLI suggestion providers.
+    /// </summary>
+    public static HashSet<string> CreateUsedCommandSet(IEnumerable<string?> commands)
+    {
+        var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var command in commands)
         {
-            UsedCommands = commands
-                .Where(command => !string.IsNullOrWhiteSpace(command))
-                .Select(command => command!)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase),
-        };
+            if (!string.IsNullOrWhiteSpace(command))
+            {
+                usedCommands.Add(command);
+            }
+        }
+
+        return usedCommands;
+    }
+
+    /// <summary>
+    /// Same as <see cref="CreateUsedCommandSet(IEnumerable{string?})"/> but walks launch
+    /// entries directly to avoid an intermediate Select iterator allocation.
+    /// </summary>
+    public static HashSet<string> CreateUsedCommandSet(IReadOnlyList<WorkspaceEntry> launches)
+    {
+        var usedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var launch in launches)
+        {
+            var command = launch.Command;
+            if (!string.IsNullOrWhiteSpace(command))
+            {
+                usedCommands.Add(command);
+            }
+        }
+
+        return usedCommands;
+    }
 
     private sealed class EmptyUsedCommands : IReadOnlySet<string>
     {

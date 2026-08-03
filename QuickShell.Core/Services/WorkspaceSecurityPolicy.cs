@@ -81,6 +81,26 @@ internal sealed record TrustTransitionResult(TrustTransitionStatus Status, strin
 
 internal static class WorkspaceSecurityPolicy
 {
+    private static readonly WorkspaceIssueCode[] DefaultPrecedence =
+    [
+        WorkspaceIssueCode.WorkspaceNotFound,
+        WorkspaceIssueCode.InvalidDirectory,
+        WorkspaceIssueCode.DirectoryMissing,
+        WorkspaceIssueCode.InvalidCommand,
+        WorkspaceIssueCode.InvalidLaunch,
+        WorkspaceIssueCode.InvalidUrl,
+        WorkspaceIssueCode.InvalidCompanion,
+        WorkspaceIssueCode.CompanionExecutableUnavailable,
+        WorkspaceIssueCode.WorkspaceUntrusted,
+        WorkspaceIssueCode.DirectoryOpenNotAllowed,
+        WorkspaceIssueCode.ActionNotAllowed,
+    ];
+
+    private static readonly WorkspaceIssueCode[] CopyPathPrecedence =
+    [
+        WorkspaceIssueCode.InvalidDirectory,
+    ];
+
     public static WorkspaceAuthorizationResult NotFoundResult() =>
         BuildResult(
             false,
@@ -174,6 +194,22 @@ internal static class WorkspaceSecurityPolicy
                 break;
         }
 
+        AssessAdditionalRisks(content, action, risks);
+        ValidateDirectoryTrust(workspace, action, normalizedDirectory, issues);
+
+        var primary = GetPrimaryIssue(issues, action);
+        var allowed = action switch
+        {
+            WorkspaceAction.CopyPath => !issues.Any(issue => issue.Code == WorkspaceIssueCode.InvalidDirectory),
+            WorkspaceAction.RevokeTrust => true,
+            WorkspaceAction.GrantTrust => issues.Count == 0,
+            _ => issues.Count == 0,
+        };
+        return BuildResult(allowed, primary, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
+    }
+
+    private static void AssessAdditionalRisks(TerminalShortcut content, WorkspaceAction action, List<WorkspaceRisk> risks)
+    {
         var configuredCompanionCount = CompanionAppNormalization.GetConfigured(content).Count;
         if (configuredCompanionCount > 0 && action is not WorkspaceAction.StartCompanion and not WorkspaceAction.GrantTrust)
         {
@@ -184,7 +220,10 @@ internal static class WorkspaceSecurityPolicy
         {
             risks.Add(new("dev-server", "This workspace opens a configured URL after launch."));
         }
+    }
 
+    private static void ValidateDirectoryTrust(StoredWorkspace workspace, WorkspaceAction action, string? normalizedDirectory, List<WorkspaceIssue> issues)
+    {
         if (WorkspaceTrustFeatures.Enabled && !workspace.Security.IsTrusted && RequiresTrust(action))
         {
             issues.Add(new(WorkspaceIssueCode.WorkspaceUntrusted, "Trust this workspace before starting external processes or opening it."));
@@ -201,16 +240,6 @@ internal static class WorkspaceSecurityPolicy
                 issues.Add(new(WorkspaceIssueCode.DirectoryOpenNotAllowed, "Only existing rooted local drive directories can be opened in Explorer."));
             }
         }
-
-        var primary = GetPrimaryIssue(issues, action);
-        var allowed = action switch
-        {
-            WorkspaceAction.CopyPath => !issues.Any(issue => issue.Code == WorkspaceIssueCode.InvalidDirectory),
-            WorkspaceAction.RevokeTrust => true,
-            WorkspaceAction.GrantTrust => issues.Count == 0,
-            _ => issues.Count == 0,
-        };
-        return BuildResult(allowed, primary, issues, risks, normalizedDirectory, normalizedUrl, executablePath, arguments, content.Command, workspace.Revision);
     }
 
     private static bool RequiresDirectory(WorkspaceAction action) =>
@@ -369,6 +398,13 @@ internal static class WorkspaceSecurityPolicy
             action);
     }
 
+    /// <summary>
+    /// Picks the highest-precedence issue for messaging. Returns null when
+    /// there are no issues, or when none of the issues appear in the action's
+    /// precedence list. Callers must treat <see cref="WorkspaceAuthorizationResult.PrimaryIssueCode"/>
+    /// as optional; authorization itself is driven by <see cref="WorkspaceAuthorizationResult.IsAllowed"/>
+    /// and the full Issues list, not by a fake enum-zero sentinel.
+    /// </summary>
     private static WorkspaceIssueCode? GetPrimaryIssue(
         List<WorkspaceIssue> issues,
         WorkspaceAction action)
@@ -379,24 +415,22 @@ internal static class WorkspaceSecurityPolicy
         }
 
         var precedence = action == WorkspaceAction.CopyPath
-            ? new[] { WorkspaceIssueCode.InvalidDirectory }
-            : new[]
-            {
-                WorkspaceIssueCode.WorkspaceNotFound,
-                WorkspaceIssueCode.InvalidDirectory,
-                WorkspaceIssueCode.DirectoryMissing,
-                WorkspaceIssueCode.InvalidCommand,
-                WorkspaceIssueCode.InvalidLaunch,
-                WorkspaceIssueCode.InvalidUrl,
-                WorkspaceIssueCode.InvalidCompanion,
-                WorkspaceIssueCode.CompanionExecutableUnavailable,
-                WorkspaceIssueCode.WorkspaceUntrusted,
-                WorkspaceIssueCode.DirectoryOpenNotAllowed,
-                WorkspaceIssueCode.ActionNotAllowed,
-            };
+            ? CopyPathPrecedence
+            : DefaultPrecedence;
 
-        var issueCodes = issues.Select(issue => issue.Code).ToHashSet();
-        return precedence.FirstOrDefault(issueCodes.Contains);
+        // Allocation-free nested scan; lists are small (a few issue codes).
+        foreach (var code in precedence)
+        {
+            foreach (var issue in issues)
+            {
+                if (issue.Code == code)
+                {
+                    return code;
+                }
+            }
+        }
+
+        return null;
     }
 
     public static WorkspaceReviewToken CreateReviewToken(StoredWorkspace workspace) =>

@@ -9,16 +9,16 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
 
     public IReadOnlyList<CommandSuggestionPill> GetSuggestions(TaskSuggestionContext context)
     {
-        var usedCommands = context.ExistingLaunches.Select(e => e.Command).Where(c => !string.IsNullOrWhiteSpace(c)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var usedCommands = TaskTypePickContext.CreateUsedCommandSet(context.ExistingLaunches);
+
         var pills = new List<CommandSuggestionPill>();
         foreach (var def in AgentCliCatalog.Definitions)
         {
-            var detected = def.PathNames.FirstOrDefault(AgentCliCatalog.IsCommandOnPath);
-            if (detected is null && !AgentCliCatalog.HasProjectMarker(context.WorkspaceDirectory, def)) continue;
-            var cmd = detected ?? def.Command;
-            if (usedCommands.Contains(cmd) || usedCommands.Contains(def.Command)) continue;
-            var score = detected is not null ? AgentCliCatalog.PathDetectedScore : AgentCliCatalog.MarkerFallbackScore;
-            pills.Add(new CommandSuggestionPill(cmd, TaskTypeCatalog.Agent, "Agent", SuggestionPillPresentation.FormatDisplayTitle(cmd), SuggestionPillPresentation.FormatTooltip("Agent", cmd, productName: def.Title), score, detected is not null ? "agent-path" : "agent-marker"));
+            var pill = TryCreateSuggestionPill(def, context, usedCommands);
+            if (pill is not null)
+            {
+                pills.Add(pill);
+            }
         }
 
         // Do not Take() here: a provider-level cap hid the rest behind silent replacement
@@ -27,5 +27,39 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
             .OrderByDescending(p => p.Score)
             .ThenBy(p => p.DisplayTitle, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static CommandSuggestionPill? TryCreateSuggestionPill(AgentCliDefinition def, TaskSuggestionContext context, HashSet<string> usedCommands)
+    {
+        string? detected = null;
+        foreach (var pathName in def.PathNames)
+        {
+            if (AgentCliCatalog.IsCommandOnPath(pathName))
+            {
+                detected = pathName;
+                break;
+            }
+        }
+
+        if (detected is null && !AgentCliCatalog.HasProjectMarker(context.WorkspaceDirectory, def))
+        {
+            return null;
+        }
+
+        var cmd = detected ?? def.Command;
+        if (usedCommands.Contains(cmd) || usedCommands.Contains(def.Command))
+        {
+            return null;
+        }
+
+        var score = detected is not null ? AgentCliCatalog.PathDetectedScore : AgentCliCatalog.MarkerFallbackScore;
+        return new CommandSuggestionPill(
+            cmd,
+            TaskTypeCatalog.Agent,
+            "Agent",
+            SuggestionPillPresentation.FormatDisplayTitle(cmd),
+            SuggestionPillPresentation.FormatTooltip("Agent", cmd, productName: def.Title),
+            score,
+            detected is not null ? "agent-path" : "agent-marker");
     }
 }
