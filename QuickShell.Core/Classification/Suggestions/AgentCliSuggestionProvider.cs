@@ -32,19 +32,11 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
     private static CommandSuggestionPill? TryCreateSuggestionPill(AgentCliDefinition def, TaskSuggestionContext context, HashSet<string> usedCommands)
     {
         string? detected = null;
-<<<<<<< HEAD
-        foreach (var path in def.PathNames)
-        {
-            if (AgentCliCatalog.IsCommandOnPath(path))
-            {
-                detected = path;
-=======
         foreach (var pathName in def.PathNames)
         {
             if (AgentCliCatalog.IsCommandOnPath(pathName))
             {
                 detected = pathName;
->>>>>>> 653b0d0 (fix: address review feedback on primary issue and used-command sets)
                 break;
             }
         }
