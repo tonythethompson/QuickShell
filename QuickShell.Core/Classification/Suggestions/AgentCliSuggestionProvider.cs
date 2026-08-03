@@ -39,7 +39,16 @@ internal sealed class AgentCliSuggestionProvider : ITaskSuggestionProvider
 
     private static CommandSuggestionPill? TryCreateSuggestionPill(AgentCliDefinition def, TaskSuggestionContext context, HashSet<string> usedCommands)
     {
-        var detected = def.PathNames.FirstOrDefault(AgentCliCatalog.IsCommandOnPath);
+        string? detected = null;
+        foreach (var path in def.PathNames)
+        {
+            if (AgentCliCatalog.IsCommandOnPath(path))
+            {
+                detected = path;
+                break;
+            }
+        }
+
         if (detected is null && !AgentCliCatalog.HasProjectMarker(context.WorkspaceDirectory, def))
         {
             return null;
