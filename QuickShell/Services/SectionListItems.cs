@@ -15,26 +15,20 @@ internal static class SectionListItems
         var materialized = items.ToList();
         if (materialized.Count == 0)
         {
-            return materialized;
-        }
+            return materialized;        }
 
         if (string.IsNullOrWhiteSpace(sectionTitle))
         {
-            return materialized;
-        }
+            return materialized;        }
 
-        return PrependHeader(sectionTitle, materialized);
-    }
+        return PrependHeader(sectionTitle, materialized);    }
 
     public static IEnumerable<IListItem> PrependHeader(string sectionTitle, IReadOnlyList<IListItem> items)
     {
         yield return CreateHeader(sectionTitle);
         foreach (var item in items)
         {
-            yield return item;
-        }
-    }
+            yield return item;        }    }
 
-    public static Separator CreateHeader(string sectionTitle) => new(sectionTitle);
-}
+    public static Separator CreateHeader(string sectionTitle) => new(sectionTitle);}
 

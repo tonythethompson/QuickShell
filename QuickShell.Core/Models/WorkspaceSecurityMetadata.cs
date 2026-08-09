@@ -10,7 +10,6 @@ internal sealed record WorkspaceSecurityMetadata
     public bool IsTrusted { get; init; } = true;
 
     public long Revision { get; init; } = 1;
-
 }
 
 internal sealed record StoredWorkspace(

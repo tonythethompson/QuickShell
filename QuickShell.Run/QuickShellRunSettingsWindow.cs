@@ -101,7 +101,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             SelectedValuePath = "Id",
 
             Margin = new Thickness(0, 0, 0, 8),
-
         };
 
         root.Children.Add(_defaultProfileBox);
@@ -117,7 +116,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             Content = "Block launch when dirty and branch would change",
 
             Margin = new Thickness(0, 0, 0, 8),
-
         };
 
         root.Children.Add(_blockDirtyBranchBox);
@@ -137,7 +135,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             Content = "Show recent workspaces",
 
             Margin = new Thickness(0, 0, 0, 8),
-
         };
 
         root.Children.Add(_showRecentsBox);
@@ -153,7 +150,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             Content = "Open multiple commands in one Windows Terminal window",
 
             Margin = new Thickness(0, 0, 0, 8),
-
         };
 
         root.Children.Add(_singleWindowTabsBox);
@@ -223,7 +219,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             Margin = new Thickness(0, 12, 0, 12),
 
             Foreground = System.Windows.Media.Brushes.Gray,
-
         };
 
         root.Children.Add(_statusText);
@@ -269,7 +264,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         LoadCurrentValues();
 
         _baseline = CaptureSnapshot();
-
     }
 
 
@@ -289,7 +283,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _showRecentsBox.IsChecked = QuickShellRecentSettings.IsEnabled(_settings.ReadRecentWorkspaceCount());
 
         _singleWindowTabsBox.IsChecked = !_settings.ReadSeparateWindowsForMultiLaunch();
-
     }
 
 
@@ -305,7 +298,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _settings.SaveRecentWorkspaceCount(_baseline.RecentCount);
 
         _settings.SaveMultiLaunchPresentation(_baseline.SingleWindowTabs);
-
     }
 
 
@@ -341,7 +333,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         {
 
             _defaultProfileBox.Items.Add(new { choice.Id, choice.Label });
-
         }
 
 
@@ -353,7 +344,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             ? selected
 
             : TerminalHostIds.DefaultProfile;
-
     }
 
 
@@ -389,7 +379,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _baseline = CaptureSnapshot();
 
         return true;
-
     }
 
 
@@ -403,9 +392,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
         {
 
             SetStatus(message);
-
         }
-
     }
 
 
@@ -421,9 +408,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
         {
 
             SetStatus(message);
-
         }
-
     }
 
 
@@ -441,7 +426,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         FontWeight = FontWeights.SemiBold,
 
         Margin = new Thickness(0, 12, 0, 8),
-
     };
 
 
@@ -453,7 +437,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         Text = text,
 
         Margin = new Thickness(0, 0, 0, 4),
-
     };
 
 
@@ -471,7 +454,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         Foreground = System.Windows.Media.Brushes.Gray,
 
         FontSize = 12,
-
     };
 
 
@@ -489,7 +471,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             SelectedValuePath = "Id",
 
             Margin = new Thickness(0, 0, 0, 8),
-
         };
 
         foreach (var choice in choices)
@@ -497,13 +478,11 @@ internal sealed class QuickShellRunSettingsWindow : Window
         {
 
             box.Items.Add(new { choice.Id, choice.Label });
-
         }
 
 
 
         return box;
-
     }
 
 
@@ -525,13 +504,11 @@ internal sealed class QuickShellRunSettingsWindow : Window
             MinWidth = 220,
 
             ToolTip = tooltip,
-
         };
 
         button.Click += (_, _) => action();
 
         return button;
-
     }
 
 
@@ -547,7 +524,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         int RecentCount,
 
         bool SingleWindowTabs);
-
 }
 
 
@@ -571,7 +547,6 @@ internal static class QuickShellRunSettingsDialog
             var window = new QuickShellRunSettingsWindow(settings, shortcuts, projectAnalysis, catalog);
 
             window.ShowDialog();
-
         }
 
 
@@ -583,7 +558,6 @@ internal static class QuickShellRunSettingsDialog
         {
 
             ShowWindow();
-
         }
 
         else
@@ -591,11 +565,8 @@ internal static class QuickShellRunSettingsDialog
         {
 
             app?.Dispatcher.Invoke(ShowWindow);
-
         }
-
     }
-
 }
 
 

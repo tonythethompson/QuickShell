@@ -16,11 +16,9 @@ internal static class TerminalHostIds
     {
         if (terminalApplicationId.Equals(LetWindowsChoose, StringComparison.OrdinalIgnoreCase))
         {
-            return WindowsDefaultTerminalReader.ReadApplicationId();
-        }
+            return WindowsDefaultTerminalReader.ReadApplicationId();        }
 
-        return terminalApplicationId;
-    }
+        return terminalApplicationId;    }
 
     public static bool UsesWindowsTerminalProfiles(string terminalApplicationId) =>
         !ResolveEffectiveApplication(terminalApplicationId)
@@ -40,31 +38,25 @@ internal static class TerminalHostIds
         var effective = ResolveEffectiveApplication(terminalApplicationId);
         return effective.Equals(IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
             ? "wtai.exe"
-            : "wt.exe";
-    }
+            : "wt.exe";    }
 
     public static string ProfileIdPrefix(string terminalApplicationId)
     {
         var effective = ResolveEffectiveApplication(terminalApplicationId);
         return effective.Equals(IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
             ? IntelligentTerminal
-            : WindowsTerminal;
-    }
+            : WindowsTerminal;    }
 
     public static string SourceLabel(string terminalApplicationId)
     {
         if (terminalApplicationId.Equals(LetWindowsChoose, StringComparison.OrdinalIgnoreCase))
         {
-            return "Let Windows choose";
-        }
+            return "Let Windows choose";        }
 
         if (terminalApplicationId.Equals(WindowsConsoleHost, StringComparison.OrdinalIgnoreCase))
         {
-            return "Windows Console Host";
-        }
+            return "Windows Console Host";        }
 
         return ResolveEffectiveApplication(terminalApplicationId).Equals(IntelligentTerminal, StringComparison.OrdinalIgnoreCase)
             ? "Intelligent Terminal"
-            : "Windows Terminal";
-    }
-}
+            : "Windows Terminal";    }}

@@ -27,7 +27,6 @@ public sealed class RunGlobalQueryTests
         Assert.True(RunGlobalQuery.TryActivate(query, rawQuery: null, out var remaining));
 
         Assert.Equal(string.Empty, remaining);
-
     }
 
 
@@ -41,7 +40,6 @@ public sealed class RunGlobalQueryTests
         Assert.True(RunGlobalQuery.TryActivate("quick shell api", rawQuery: null, out var remaining));
 
         Assert.Equal("api", remaining);
-
     }
 
 
@@ -55,7 +53,6 @@ public sealed class RunGlobalQueryTests
         Assert.True(RunGlobalQuery.TryActivate(string.Empty, "Quick Shell", out var remaining));
 
         Assert.Equal(string.Empty, remaining);
-
     }
 
 
@@ -69,7 +66,6 @@ public sealed class RunGlobalQueryTests
         Assert.False(RunGlobalQuery.TryActivate("my api project", rawQuery: null, out var remaining));
 
         Assert.Equal("my api project", remaining);
-
     }
 
 
@@ -83,7 +79,6 @@ public sealed class RunGlobalQueryTests
         var context = new QueryActivationContext(HasActionKeyword: false, Search: string.Empty);
 
         Assert.True(RunGlobalQuery.ShouldSuppressEmptyGlobalQuery(context));
-
     }
 
 
@@ -97,9 +92,7 @@ public sealed class RunGlobalQueryTests
         var context = new QueryActivationContext(HasActionKeyword: true, Search: string.Empty);
 
         Assert.False(RunGlobalQuery.ShouldSuppressEmptyGlobalQuery(context));
-
     }
-
 }
 
 

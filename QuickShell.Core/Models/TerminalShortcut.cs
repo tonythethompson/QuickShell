@@ -103,7 +103,6 @@ internal sealed class TerminalShortcut
     /// for the workspace directory. Mirrored from the first <see cref="CompanionApps"/> entry.
     /// </summary>
     public string? CompanionAppArguments { get; set; }
-
 }
 
 

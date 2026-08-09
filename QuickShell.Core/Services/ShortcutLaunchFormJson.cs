@@ -37,7 +37,6 @@ internal static partial class ShortcutLaunchFormJson
 
 
         public bool IsEnabled { get; set; } = true;
-
     }
 
 
@@ -122,7 +121,6 @@ internal static partial class ShortcutLaunchFormJson
         blocks.Add("""{ "type": "Container", "spacing": "Medium", "items": [] }""");
 
         return string.Join(',', blocks);
-
     }
 
 
@@ -166,7 +164,6 @@ internal static partial class ShortcutLaunchFormJson
         {
 
             return string.Empty;
-
         }
 
 
@@ -518,13 +515,11 @@ internal static partial class ShortcutLaunchFormJson
             }
 
             """);
-
         }
 
 
 
         return string.Join(',', blocks);
-
     }
 
 
@@ -538,5 +533,4 @@ internal static partial class ShortcutLaunchFormJson
     private static string Escape(string? value) =>
 
         (value ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
-
 }
