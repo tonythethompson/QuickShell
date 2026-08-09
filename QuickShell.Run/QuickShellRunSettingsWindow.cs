@@ -6,11 +6,7 @@ using System.Windows;
 
 using System.Windows.Controls;
 
-
-
 namespace QuickShell.Run;
-
-
 
 internal sealed class QuickShellRunSettingsWindow : Window
 
@@ -37,8 +33,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
     private readonly TextBlock _statusText;
 
     private SettingsSnapshot _baseline;
-
-
 
     public QuickShellRunSettingsWindow(
 
@@ -72,13 +66,9 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         ResizeMode = ResizeMode.NoResize;
 
-
-
         var root = new StackPanel { Margin = new Thickness(16) };
 
         root.Children.Add(Heading("Terminal defaults"));
-
-
 
         root.Children.Add(Label("Terminal application"));
 
@@ -87,8 +77,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _terminalAppBox.SelectionChanged += (_, _) => ReloadProfileChoices();
 
         root.Children.Add(_terminalAppBox);
-
-
 
         root.Children.Add(Label("Default profile"));
 
@@ -105,8 +93,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         };
 
         root.Children.Add(_defaultProfileBox);
-
-
 
         root.Children.Add(Heading("Git launch"));
 
@@ -126,8 +112,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
             "When a worktree target branch differs from HEAD, block launch if the working tree has uncommitted changes."));
 
-
-
         root.Children.Add(Heading("Home list"));
 
         _showRecentsBox = new CheckBox
@@ -141,8 +125,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         };
 
         root.Children.Add(_showRecentsBox);
-
-
 
         root.Children.Add(Heading("Multiple commands"));
 
@@ -161,8 +143,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         root.Children.Add(Help(
 
             "When supported, extra commands open as tabs in the same window. Mixed elevation or Console Host still opens separate windows."));
-
-
 
         root.Children.Add(Heading("Shortcuts"));
 
@@ -190,11 +170,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
             () => ImportShortcuts(replace: true)));
 
-
-
         root.Children.Add(new Separator { Margin = new Thickness(0, 8, 0, 8) });
-
-
 
         root.Children.Add(TooltipButton(
 
@@ -212,8 +188,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
             () => RunFileDialogs.OpenFolder(_shortcuts.ConfigDirectory)));
 
-
-
         _statusText = new TextBlock
 
         {
@@ -227,8 +201,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         };
 
         root.Children.Add(_statusText);
-
-
 
         var buttons = new StackPanel
         {
@@ -262,8 +234,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         buttons.Children.Add(done);
         root.Children.Add(buttons);
 
-
-
         Content = root;
 
         LoadCurrentValues();
@@ -271,8 +241,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         _baseline = CaptureSnapshot();
 
     }
-
-
 
     private void LoadCurrentValues()
 
@@ -292,8 +260,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     }
 
-
-
     private void RestoreBaseline()
 
     {
@@ -308,8 +274,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     }
 
-
-
     private SettingsSnapshot CaptureSnapshot() =>
 
         new(
@@ -323,8 +287,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             QuickShellRecentSettings.FromEnabled(_showRecentsBox.IsChecked == true),
 
             _singleWindowTabsBox.IsChecked == true);
-
-
 
     private void ReloadProfileChoices()
 
@@ -344,8 +306,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         }
 
-
-
         _defaultProfileBox.SelectedValue = RunTerminalChoices.GetDefaultProfileChoices(_catalog, app)
 
             .Any(choice => choice.Id.Equals(selected, StringComparison.OrdinalIgnoreCase))
@@ -355,8 +315,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
             : TerminalHostIds.DefaultProfile;
 
     }
-
-
 
     private bool HasUnsavedChanges()
     {
@@ -392,8 +350,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     }
 
-
-
     private void ExportShortcuts()
 
     {
@@ -407,8 +363,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         }
 
     }
-
-
 
     private void ImportShortcuts(bool replace)
 
@@ -426,11 +380,7 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     }
 
-
-
     private void SetStatus(string message) => _statusText.Text = message;
-
-
 
     private static TextBlock Heading(string text) => new()
 
@@ -444,8 +394,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     };
 
-
-
     private static TextBlock Label(string text) => new()
 
     {
@@ -455,8 +403,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         Margin = new Thickness(0, 0, 0, 4),
 
     };
-
-
 
     private static TextBlock Help(string text) => new()
 
@@ -473,8 +419,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         FontSize = 12,
 
     };
-
-
 
     private static ComboBox Combo(IReadOnlyList<(string Id, string Label)> choices)
 
@@ -500,13 +444,9 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
         }
 
-
-
         return box;
 
     }
-
-
 
     private static Button TooltipButton(string text, string tooltip, Action action)
 
@@ -534,8 +474,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
 
     }
 
-
-
     private readonly record struct SettingsSnapshot(
 
         string TerminalApp,
@@ -549,8 +487,6 @@ internal sealed class QuickShellRunSettingsWindow : Window
         bool SingleWindowTabs);
 
 }
-
-
 
 internal static class QuickShellRunSettingsDialog
 
@@ -573,8 +509,6 @@ internal static class QuickShellRunSettingsDialog
             window.ShowDialog();
 
         }
-
-
 
         var app = Application.Current;
 

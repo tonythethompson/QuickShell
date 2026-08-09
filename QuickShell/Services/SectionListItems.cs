@@ -1,8 +1,6 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-
 namespace QuickShell.Services;
-
 /// <summary>
 /// Emits CmdPal section headers per PowerToys PR #43952: a <see cref="Separator"/> row
 /// (no command, non-empty section/title) renders the visible header; stamping
@@ -17,15 +15,12 @@ internal static class SectionListItems
         {
             return materialized;
         }
-
         if (string.IsNullOrWhiteSpace(sectionTitle))
         {
             return materialized;
         }
-
         return PrependHeader(sectionTitle, materialized);
     }
-
     public static IEnumerable<IListItem> PrependHeader(string sectionTitle, IReadOnlyList<IListItem> items)
     {
         yield return CreateHeader(sectionTitle);
@@ -34,7 +29,6 @@ internal static class SectionListItems
             yield return item;
         }
     }
-
     public static Separator CreateHeader(string sectionTitle) => new(sectionTitle);
 }
 

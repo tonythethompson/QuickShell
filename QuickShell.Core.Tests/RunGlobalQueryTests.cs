@@ -1,10 +1,6 @@
 using QuickShell.Services;
 
-
-
 namespace QuickShell.Core.Tests;
-
-
 
 public sealed class RunGlobalQueryTests
 
@@ -30,8 +26,6 @@ public sealed class RunGlobalQueryTests
 
     }
 
-
-
     [Fact]
 
     public void TryActivate_PluginNameWithFilter_StripsPrefix()
@@ -43,8 +37,6 @@ public sealed class RunGlobalQueryTests
         Assert.Equal("api", remaining);
 
     }
-
-
 
     [Fact]
 
@@ -58,8 +50,6 @@ public sealed class RunGlobalQueryTests
 
     }
 
-
-
     [Fact]
 
     public void TryActivate_UnrelatedQuery_DoesNotActivate()
@@ -72,8 +62,6 @@ public sealed class RunGlobalQueryTests
 
     }
 
-
-
     [Fact]
 
     public void ShouldSuppressEmptyGlobalQuery_BlocksBareGlobalSearch()
@@ -85,8 +73,6 @@ public sealed class RunGlobalQueryTests
         Assert.True(RunGlobalQuery.ShouldSuppressEmptyGlobalQuery(context));
 
     }
-
-
 
     [Fact]
 

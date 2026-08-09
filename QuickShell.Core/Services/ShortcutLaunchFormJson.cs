@@ -2,8 +2,6 @@ using QuickShell.Core.Services;
 
 namespace QuickShell.Services;
 
-
-
 internal static partial class ShortcutLaunchFormJson
 
 {
@@ -14,33 +12,21 @@ internal static partial class ShortcutLaunchFormJson
 
     private const string AdminColumnWidth = "auto";
 
-
-
     public sealed class LaunchRowDraft
 
     {
 
         public string Label { get; set; } = string.Empty;
 
-
-
         public string Command { get; set; } = string.Empty;
-
-
 
         public string LaunchTarget { get; set; } = "default";
 
-
-
         public bool RunAsAdmin { get; set; }
-
-
 
         public bool IsEnabled { get; set; } = true;
 
     }
-
-
 
     public static string BuildCommandRowsJson(
         IReadOnlyList<QuickShell.Services.LaunchRowDraft> rows,
@@ -125,8 +111,6 @@ internal static partial class ShortcutLaunchFormJson
 
     }
 
-
-
     public static string BuildCommandsSectionHeaderJson(LaunchEditorText text) =>
         $$"""
         {
@@ -169,8 +153,6 @@ internal static partial class ShortcutLaunchFormJson
 
         }
 
-
-
         var blocks = new List<string>();
 
         for (var i = 0; i < launches.Count; i++)
@@ -189,8 +171,6 @@ internal static partial class ShortcutLaunchFormJson
 
             var enabledValue = launch.IsEnabled ? "true" : "false";
 
-
-
             var labelInput = $$"""
 
             {
@@ -207,11 +187,7 @@ internal static partial class ShortcutLaunchFormJson
 
             """;
 
-
-
             var commandInput = BuildCommandInputWithClear(i, literalValue: escapedCommand, removeTooltip: FormActionGlyphs.ClearCommandTooltip);
-
-
 
             var adminInput = $$"""
 
@@ -233,8 +209,6 @@ internal static partial class ShortcutLaunchFormJson
 
             """;
 
-
-
             var enabledInput = $$"""
 
             {
@@ -254,8 +228,6 @@ internal static partial class ShortcutLaunchFormJson
             }
 
             """;
-
-
 
             blocks.Add($$"""
 
@@ -521,19 +493,13 @@ internal static partial class ShortcutLaunchFormJson
 
         }
 
-
-
         return string.Join(',', blocks);
 
     }
 
-
-
     public static string WrapLaunchRowsForTest(string launchRows) =>
 
         $$"""{ "type": "AdaptiveCard", "version": "1.6", "body": [{{launchRows}}] }""";
-
-
 
     private static string Escape(string? value) =>
 

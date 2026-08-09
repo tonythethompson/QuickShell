@@ -106,7 +106,6 @@ public sealed class WorkspaceTrustCommandTests : IDisposable
         return (services, lifetime, drafts);
     }
 
-
     private static TerminalShortcut CreateWorkspace() =>
         new()
         {
