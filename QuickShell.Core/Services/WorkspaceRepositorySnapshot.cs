@@ -245,7 +245,6 @@ internal readonly record struct WorkspaceRepositorySnapshot(
                 ScoreToken(profileLabel, token, exact: 250, prefix: 175, contains: 90) +
                 ScoreToken(launch.WtProfile, token, exact: 220, prefix: 160, contains: 80);
 
-
             if (workspaceScore + launchScore == 0)
             {
                 return 0;
