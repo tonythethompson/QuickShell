@@ -99,6 +99,20 @@ internal readonly record struct WorkspaceRepositorySnapshot(
             return [];
         }
 
+        var matches = CollectMatchingTaskActions(tokens, catalog);
+        if (matches.Count == 0)
+        {
+            return [];
+        }
+
+        matches.Sort(CompareTaskActions);
+        return matches.ToArray();
+    }
+
+    private List<WorkspaceTaskAction> CollectMatchingTaskActions(
+        IReadOnlyList<string> tokens,
+        ITerminalCatalog catalog)
+    {
         List<WorkspaceTaskAction>? matches = null;
         foreach (var shortcut in Shortcuts)
         {
@@ -107,53 +121,58 @@ internal readonly record struct WorkspaceRepositorySnapshot(
                 continue;
             }
 
-            bool? requiresRepair = null;
-            foreach (var launch in shortcut.Launches)
-            {
-                if (!launch.IsEnabled)
-                {
-                    continue;
-                }
-
-                var score = ComputeTaskActionScore(shortcut, launch, tokens, catalog);
-                if (score <= 0)
-                {
-                    continue;
-                }
-
-                requiresRepair ??= ShortcutHealth.WouldNeedRepair(
-                    shortcut,
-                    requireDirectoryExists: false);
-                if (requiresRepair.Value)
-                {
-                    break;
-                }
-
-                matches ??= [];
-                matches.Add(CreateTaskAction(shortcut, launch, score));
-            }
+            AppendMatchingTaskActions(shortcut, tokens, catalog, ref matches);
         }
 
-        if (matches is null)
-        {
-            return [];
-        }
+        return matches ?? [];
+    }
 
-        matches.Sort(static (left, right) =>
+    private static void AppendMatchingTaskActions(
+        TerminalShortcut shortcut,
+        IReadOnlyList<string> tokens,
+        ITerminalCatalog catalog,
+        ref List<WorkspaceTaskAction>? matches)
+    {
+        bool? requiresRepair = null;
+        foreach (var launch in shortcut.Launches)
         {
-            var byScore = right.Score.CompareTo(left.Score);
-            if (byScore != 0)
+            if (!launch.IsEnabled)
             {
-                return byScore;
+                continue;
             }
 
-            var byName = string.Compare(
-                left.Workspace.Name,
-                right.Workspace.Name,
-                StringComparison.OrdinalIgnoreCase);
-            return byName != 0 ? byName : left.Launch.Order.CompareTo(right.Launch.Order);
-        });
-        return matches.ToArray();
+            var score = ComputeTaskActionScore(shortcut, launch, tokens, catalog);
+            if (score <= 0)
+            {
+                continue;
+            }
+
+            requiresRepair ??= ShortcutHealth.WouldNeedRepair(
+                shortcut,
+                requireDirectoryExists: false);
+            if (requiresRepair.Value)
+            {
+                break;
+            }
+
+            matches ??= [];
+            matches.Add(CreateTaskAction(shortcut, launch, score));
+        }
+    }
+
+    private static int CompareTaskActions(WorkspaceTaskAction left, WorkspaceTaskAction right)
+    {
+        var byScore = right.Score.CompareTo(left.Score);
+        if (byScore != 0)
+        {
+            return byScore;
+        }
+
+        var byName = string.Compare(
+            left.Workspace.Name,
+            right.Workspace.Name,
+            StringComparison.OrdinalIgnoreCase);
+        return byName != 0 ? byName : left.Launch.Order.CompareTo(right.Launch.Order);
     }
 
     private static bool Matches(TerminalShortcut shortcut, string query, int queryStart, int queryLength)
