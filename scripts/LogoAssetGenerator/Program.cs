@@ -239,8 +239,8 @@ static void RenderPosterLogoFromBitmap(string outDir, string fileName, SKBitmap 
     DrawPosterKicker(canvas, renderWidth, kickerY, kickerSize);
     DrawPosterBranding(canvas, renderWidth, titleY, taglineY, titleSize, taglineSize);
 
-    var iconBandTop = textBlockBottom + height * 0.02f * ss;
-    var iconBandBottom = contentBottom - height * 0.11f * ss;
+    var iconBandTop = textBlockBottom + (height * 0.02f * ss);
+    var iconBandBottom = contentBottom - (height * 0.11f * ss);
     var iconBandHeight = iconBandBottom - iconBandTop;
     var iconWidthTarget = width * 0.68f * ss;
     var scaleByWidth = iconWidthTarget / bounds.Width;
@@ -260,7 +260,7 @@ static void RenderPosterLogoFromBitmap(string outDir, string fileName, SKBitmap 
 
     var badgeSize = width * 0.021f * ss;
     var badgeBlockHeight = height * 0.088f * ss;
-    var badgeRowY = iconTop + scaledHeight + height * 0.02f * ss + (badgeBlockHeight / 2f);
+    var badgeRowY = iconTop + scaledHeight + (height * 0.02f * ss) + (badgeBlockHeight / 2f);
     DrawPosterFeatureBadges(canvas, renderWidth, badgeRowY, badgeSize);
 
     DrawPosterPaletteMockup(canvas, renderWidth, renderHeight, contentBottom);
@@ -297,8 +297,8 @@ static void RenderPosterLogoFromPicture(string outDir, string fileName, SKPictur
     DrawPosterBranding(canvas, renderWidth, titleY, taglineY, titleSize, taglineSize);
 
     // Size icon to fill the band between headline and badge row.
-    var iconBandTop = textBlockBottom + height * 0.02f * ss;
-    var iconBandBottom = contentBottom - height * 0.11f * ss;
+    var iconBandTop = textBlockBottom + (height * 0.02f * ss);
+    var iconBandBottom = contentBottom - (height * 0.11f * ss);
     var iconBandHeight = iconBandBottom - iconBandTop;
     var iconWidthTarget = width * 0.68f * ss;
     var scaleByWidth = iconWidthTarget / bounds.Width;
@@ -324,7 +324,7 @@ static void RenderPosterLogoFromPicture(string outDir, string fileName, SKPictur
 
     var badgeSize = width * 0.021f * ss;
     var badgeBlockHeight = height * 0.088f * ss;
-    var badgeRowY = iconTop + scaledHeight + height * 0.02f * ss + (badgeBlockHeight / 2f);
+    var badgeRowY = iconTop + scaledHeight + (height * 0.02f * ss) + (badgeBlockHeight / 2f);
     DrawPosterFeatureBadges(canvas, renderWidth, badgeRowY, badgeSize);
 
     DrawPosterPaletteMockup(canvas, renderWidth, renderHeight, contentBottom);
@@ -472,8 +472,8 @@ static void DrawPosterBadgeRow(
 
 static void DrawPosterPaletteMockup(SKCanvas canvas, int width, int height, float contentBottom)
 {
-    var mockTop = contentBottom + height * 0.018f;
-    var mockHeight = height - mockTop - height * 0.035f;
+    var mockTop = contentBottom + (height * 0.018f);
+    var mockHeight = height - mockTop - (height * 0.035f);
     var mockWidth = width * 0.86f;
     var mockLeft = (width - mockWidth) / 2f;
     var corner = mockHeight * 0.07f;
@@ -483,7 +483,7 @@ static void DrawPosterPaletteMockup(SKCanvas canvas, int width, int height, floa
     {
         IsAntialias = true,
         Shader = SKShader.CreateRadialGradient(
-            new SKPoint(width * 0.42f, mockTop + mockHeight * 0.55f),
+            new SKPoint(width * 0.42f, mockTop + (mockHeight * 0.55f)),
             mockWidth * 0.42f,
             new[] { new SKColor(0x2F, 0x96, 0xE8, 0x28), SKColors.Transparent },
             null,
@@ -493,7 +493,7 @@ static void DrawPosterPaletteMockup(SKCanvas canvas, int width, int height, floa
     {
         IsAntialias = true,
         Shader = SKShader.CreateRadialGradient(
-            new SKPoint(width * 0.62f, mockTop + mockHeight * 0.72f),
+            new SKPoint(width * 0.62f, mockTop + (mockHeight * 0.72f)),
             mockWidth * 0.32f,
             new[] { new SKColor(0xF0, 0xC0, 0x38, 0x1A), SKColors.Transparent },
             null,
@@ -539,15 +539,15 @@ static void DrawPosterPaletteMockup(SKCanvas canvas, int width, int height, floa
         TextSize = width * 0.022f,
         TextAlign = SKTextAlign.Left,
     };
-    var chromeX = mockLeft + mockWidth * 0.06f;
+    var chromeX = mockLeft + (mockWidth * 0.06f);
     var chromeMetrics = titlePaint.FontMetrics;
-    var chromeBaseline = mockTop + titleBarHeight * 0.62f - ((chromeMetrics.Ascent + chromeMetrics.Descent) / 2f);
+    var chromeBaseline = mockTop + (titleBarHeight * 0.62f) - ((chromeMetrics.Ascent + chromeMetrics.Descent) / 2f);
     canvas.DrawText("Command Palette", chromeX, chromeBaseline, titlePaint);
-    canvas.DrawText("Win+Alt+Space", mockLeft + mockWidth * 0.94f - hintPaint.MeasureText("Win+Alt+Space"), chromeBaseline, hintPaint);
+    canvas.DrawText("Win+Alt+Space", mockLeft + (mockWidth * 0.94f) - hintPaint.MeasureText("Win+Alt+Space"), chromeBaseline, hintPaint);
 
-    var searchTop = mockTop + titleBarHeight + mockHeight * 0.04f;
+    var searchTop = mockTop + titleBarHeight + (mockHeight * 0.04f);
     var searchHeight = mockHeight * 0.11f;
-    var searchLeft = mockLeft + mockWidth * 0.06f;
+    var searchLeft = mockLeft + (mockWidth * 0.06f);
     var searchWidth = mockWidth * 0.88f;
     var searchRect = new SKRect(searchLeft, searchTop, searchLeft + searchWidth, searchTop + searchHeight);
     using var searchFill = new SKPaint
@@ -576,13 +576,13 @@ static void DrawPosterPaletteMockup(SKCanvas canvas, int width, int height, floa
     };
     var searchMetrics = searchTextPaint.FontMetrics;
     var searchBaseline = searchRect.MidY - ((searchMetrics.Ascent + searchMetrics.Descent) / 2f);
-    canvas.DrawText("api", searchLeft + searchWidth * 0.05f, searchBaseline, searchTextPaint);
+    canvas.DrawText("api", searchLeft + (searchWidth * 0.05f), searchBaseline, searchTextPaint);
 
-    var listTop = searchTop + searchHeight + mockHeight * 0.05f;
+    var listTop = searchTop + searchHeight + (mockHeight * 0.05f);
     var rowHeight = mockHeight * 0.19f;
     DrawPaletteListRow(
         canvas,
-        mockLeft + mockWidth * 0.06f,
+        mockLeft + (mockWidth * 0.06f),
         listTop,
         mockWidth * 0.88f,
         rowHeight,
@@ -591,8 +591,8 @@ static void DrawPosterPaletteMockup(SKCanvas canvas, int width, int height, floa
         selected: true);
     DrawPaletteListRow(
         canvas,
-        mockLeft + mockWidth * 0.06f,
-        listTop + rowHeight + mockHeight * 0.02f,
+        mockLeft + (mockWidth * 0.06f),
+        listTop + rowHeight + (mockHeight * 0.02f),
         mockWidth * 0.88f,
         rowHeight,
         "Frontend",
@@ -648,9 +648,9 @@ static void DrawPaletteListRow(
 
     var titleMetrics = titlePaint.FontMetrics;
     var subtitleMetrics = subtitlePaint.FontMetrics;
-    var textX = left + width * 0.04f;
-    var titleBaseline = top + height * 0.38f - ((titleMetrics.Ascent + titleMetrics.Descent) / 2f);
-    var subtitleBaseline = top + height * 0.72f - ((subtitleMetrics.Ascent + subtitleMetrics.Descent) / 2f);
+    var textX = left + (width * 0.04f);
+    var titleBaseline = top + (height * 0.38f) - ((titleMetrics.Ascent + titleMetrics.Descent) / 2f);
+    var subtitleBaseline = top + (height * 0.72f) - ((subtitleMetrics.Ascent + subtitleMetrics.Descent) / 2f);
     canvas.DrawText(title, textX, titleBaseline, titlePaint);
     canvas.DrawText(TruncateToWidth(subtitle, subtitlePaint, width * 0.92f), textX, subtitleBaseline, subtitlePaint);
 }

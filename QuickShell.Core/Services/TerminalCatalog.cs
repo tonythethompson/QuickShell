@@ -64,7 +64,6 @@ internal sealed class TerminalCatalog : ITerminalCatalog
         _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     }
 
-
     string ITerminalCatalog.EncodeLaunchTargetId(TerminalShortcut shortcut) =>
         EncodeLaunchTargetId(shortcut);
 
@@ -87,7 +86,6 @@ internal sealed class TerminalCatalog : ITerminalCatalog
         IReadOnlyList<WorkspaceEntry> orderedLaunches,
         int index) =>
         ResolveLaunchEntry(entry, orderedLaunches, index);
-
 
     public IReadOnlyList<LaunchTarget> GetLaunchTargets(bool includeDefaultChoice = false)
     {

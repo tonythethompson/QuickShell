@@ -187,5 +187,4 @@ internal static class TestQuickShellServicesFactory
         var prewarm = new TerminalCatalogPrewarm(bundle.Catalog);
         return (appDataPaths, glyphs, listIcons, prewarm);
     }
-
 }

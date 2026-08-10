@@ -2,53 +2,32 @@ using QuickShell.Core.Services;
 
 namespace QuickShell.Services;
 
-
-
 internal static partial class ShortcutLaunchFormJson
-
 {
-
     private const string CommandColumnWidth = "2";
 
     private const string ProfileColumnWidth = "2";
 
     private const string AdminColumnWidth = "auto";
 
-
-
     public sealed class LaunchRowDraft
-
     {
-
         public string Label { get; set; } = string.Empty;
-
-
 
         public string Command { get; set; } = string.Empty;
 
-
-
         public string LaunchTarget { get; set; } = "default";
-
-
 
         public bool RunAsAdmin { get; set; }
 
-
-
         public bool IsEnabled { get; set; } = true;
-
     }
-
-
 
     public static string BuildCommandRowsJson(
         IReadOnlyList<QuickShell.Services.LaunchRowDraft> rows,
         string terminalChoices,
         LaunchEditorText text)
-
     {
-
         var blocks = new List<string>();
 
         var tipAdmin = Escape(WorkspaceFormTooltips.RunAsAdmin);
@@ -122,10 +101,7 @@ internal static partial class ShortcutLaunchFormJson
         blocks.Add("""{ "type": "Container", "spacing": "Medium", "items": [] }""");
 
         return string.Join(',', blocks);
-
     }
-
-
 
     public static string BuildCommandsSectionHeaderJson(LaunchEditorText text) =>
         $$"""
@@ -158,25 +134,16 @@ internal static partial class ShortcutLaunchFormJson
         """;
 
     public static string BuildLaunchRowsJson(IReadOnlyList<LaunchRowDraft> launches, string terminalChoices)
-
     {
-
         if (launches.Count == 0)
-
         {
-
             return string.Empty;
-
         }
-
-
 
         var blocks = new List<string>();
 
         for (var i = 0; i < launches.Count; i++)
-
         {
-
             var launch = launches[i];
 
             var escapedLabel = Escape(launch.Label);
@@ -188,8 +155,6 @@ internal static partial class ShortcutLaunchFormJson
             var adminValue = launch.RunAsAdmin ? "true" : "false";
 
             var enabledValue = launch.IsEnabled ? "true" : "false";
-
-
 
             var labelInput = $$"""
 
@@ -207,11 +172,7 @@ internal static partial class ShortcutLaunchFormJson
 
             """;
 
-
-
             var commandInput = BuildCommandInputWithClear(i, literalValue: escapedCommand, removeTooltip: FormActionGlyphs.ClearCommandTooltip);
-
-
 
             var adminInput = $$"""
 
@@ -233,8 +194,6 @@ internal static partial class ShortcutLaunchFormJson
 
             """;
 
-
-
             var enabledInput = $$"""
 
             {
@@ -254,8 +213,6 @@ internal static partial class ShortcutLaunchFormJson
             }
 
             """;
-
-
 
             blocks.Add($$"""
 
@@ -518,25 +475,16 @@ internal static partial class ShortcutLaunchFormJson
             }
 
             """);
-
         }
 
-
-
         return string.Join(',', blocks);
-
     }
-
-
 
     public static string WrapLaunchRowsForTest(string launchRows) =>
 
         $$"""{ "type": "AdaptiveCard", "version": "1.6", "body": [{{launchRows}}] }""";
 
-
-
     private static string Escape(string? value) =>
 
         (value ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
-
 }
