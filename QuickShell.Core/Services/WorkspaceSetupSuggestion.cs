@@ -168,7 +168,13 @@ internal static class WorkspaceSetupSuggestion
                 return;
             }
 
-            Add("Watch", "cargo watch -x run");
+            // cargo watch is a third-party crate (cargo install cargo-watch), not a built-in
+            // cargo subcommand like dotnet watch. Only suggest it when cargo-watch is installed.
+            if (AgentCliCatalog.IsCommandOnPath("cargo-watch"))
+            {
+                Add("Watch", "cargo watch -x run");
+            }
+
             Add("Run", "cargo run");
             Add("Tests", "cargo test");
             Add("Build", "cargo build");
