@@ -76,7 +76,7 @@ dotnet test QuickShell.Core.Tests/QuickShell.Core.Tests.csproj -c Release -p:Pla
 
 In Visual Studio: **Build > Deploy** (not just Build), then run **Reload Command Palette Extension** in CmdPal. After any deploy: open CmdPal (`Win+Alt+Space`), run **Reload Command Palette Extension**, search **Quick Shell**.
 
-**Raycast extension (Node).** `QuickShell.Raycast/` requires **Node.js >= 22.14.0** (`engines` in `package.json`, pinned by `.nvmrc`). It is **not** part of the .NET solution; CI runs it under the `raycast-check` job (`windows-latest`, matching `platforms: ["Windows"]`).
+**Raycast extension (Node).** `QuickShell.Raycast/` requires **Node.js >= 20** (`engines` in `package.json`; `.nvmrc` pins 22.22.2). It is **not** part of the .NET solution; CI runs it under the `raycast-check` (`windows-latest`) and `raycast-check-macos` (`macos-latest`) jobs, matching `platforms: ["Windows", "macOS"]`.
 
 ```bash
 cd QuickShell.Raycast
@@ -120,14 +120,14 @@ npm run dev     # ray develop
 
 ## Runtime / Tooling Preferences
 
-- **.NET 10 SDK** (no `global.json`; SDK version implied). Target frameworks differ by project: the `QuickShell` CmdPal host targets `net10.0-windows10.0.26100.0`; `QuickShell.Core`, `QuickShell.Core.Tests`, and `QuickShell.Suggest` target `net10.0-windows7.0`. All are Windows-only (CsWinRT/CsWin32, Windows App SDK, WinUI, MSIX tooling).
-- **`QuickShell.Core` has `<UseWindowsForms>true</UseWindowsForms>`** despite owning no CmdPal SDK dependency. It uses WinForms for clipboard/path pickers. So Core is only _compilable_ off-Windows (via `-p:EnableWindowsTargeting=true`); it cannot _execute_ on Linux. Keep Windows-only APIs in Core minimal so the swappable-host story holds.
+- **.NET 10 SDK** (`mise.toml` pins 10.0.302; no `global.json`). Target frameworks differ by project: the `QuickShell` CmdPal host and `QuickShell.Run` target `net10.0-windows10.0.26100.0`; `QuickShell.Core.Tests` targets `net10.0-windows10.0.26100.0` too (it references `QuickShell.csproj`); `QuickShell.Core` and `QuickShell.Suggest` target `net10.0-windows7.0`. All are Windows-only (CsWinRT/CsWin32, Windows App SDK, WinUI, MSIX tooling).
+- **`QuickShell.Core` is WinForms-free** despite owning the clipboard/path pickers: WinForms was removed to unblock trimming in the packaged host. `ShellFileDialog` + `Win32Clipboard` use source-generated COM / `LibraryImport` (`AllowUnsafeBlocks=true`), and the one GDI+ need (`TerminalListIconCache`) comes from the lighter `System.Drawing.Common` package. Core is only _compilable_ off-Windows (`EnableWindowsTargeting=true` is already set in `Directory.Build.props`); it cannot _execute_ on Linux. Keep Windows-only APIs in Core minimal so the swappable-host story holds.
 - **Package manager:** NuGet with **Central Package Management** (`Directory.Packages.props`, `ManagePackageVersionsCentrally=true`). CmdPal SDK is `Microsoft.CommandPalette.Extensions` (NuGet) or a sibling local PowerToys SDK via `-p:UseLocalCmdPalSdk=true` (defines `CMDPAL_HOVER_ACTIONS`; don't assume those APIs exist otherwise).
 - **No `.editorconfig` or `global.json`.** Analyzers are on: `EnableNETAnalyzers=true`, `AnalysisMode=Recommended`, plus StyleCop. Treat analyzer warnings seriously; they can break the Windows build.
-- **Node >= 22.14** for the Raycast surface; `npm`/`ray` CLI for its build/lint/test.
+- **Node >= 20** (`.nvmrc` pins 22.22.2) for the Raycast surface; `npm`/`ray` CLI for its build/lint/test.
 - **PowerShell** drives build/deploy (`scripts/*.ps1`). Platform flag (`x64`/`ARM64`) is required on CLI `dotnet build/test`.
 - **`Directory.Build.props` is protected** by a `PreToolUse` hook (`.claude/hooks/run-guard-directory-build-props.sh`); do not edit it unless explicitly asked.
-- **Cross-platform (Linux cloud VM):** only `QuickShell.Core` (and `QuickShell.Suggest`) build with `-p:EnableWindowsTargeting=true`; `net10.0-windows*` assemblies cannot execute there (see the `UseWindowsForms` note above). The full solution does **not** build on Linux because `QuickShell.Core.Tests` references `QuickShell.csproj` (Win10.26100). Validate shared-logic changes by building Core alone on Linux; anything touching the extension, Run plugin, tests, or packaging must be verified on Windows.
+- **Cross-platform (Linux cloud VM):** only `QuickShell.Core` (and `QuickShell.Suggest`) build with `-p:EnableWindowsTargeting=true`; `net10.0-windows*` assemblies cannot execute there (see the WinForms-free Core note above). The full solution does **not** build on Linux because `QuickShell.Core.Tests` references `QuickShell.csproj` (Win10.26100). Validate shared-logic changes by building Core alone on Linux; anything touching the extension, Run plugin, tests, or packaging must be verified on Windows.
 
 ## Testing & QA
 
@@ -136,7 +136,7 @@ npm run dev     # ray develop
 - **InternalsVisibleTo:** `QuickShell.Core` exposes internals to `QuickShell`, `QuickShell.Run`, `QuickShell.Core.Tests`, and `QuickShell.Suggest` (see `QuickShell.Core.csproj`).
 - **Raycast:** Vitest (`vitest run`) under `QuickShell.Raycast/src/__tests__/windows-launch.test.ts` (arg escaping, target resolution, `wt` launch plan), kept in parity with Core behavior.
 - **What is covered:** `AgentCliSuggestionTests`, `TaskTypeCatalogTests`, `LaunchRowListEditorTests`, `TerminalProfileIconResolverTests`, `RunQueryScoringTests`, `ShortcutDisplayTests`, `ShortcutFormSaveRunEditorTests`, `ShortcutLaunchFormJsonTests`, `WorkspaceUtilityTests`, `ShortcutLaunchExecutorTests`, `TerminalLauncherArgsTests`.
-- **CI gates:** `.github/workflows/ci.yml` -> `windows-latest` runs `dotnet test --no-build` and the `raycast-check` job (`npm test`/`lint`/`build`), plus `raycast-check-macos` (`npm test`). `.github/workflows/release-extension.yml` (on `v*` tag or dispatch) builds CmdPal/Run EXE installers, creates a GitHub Release, and opens WinGet manifest PRs. Raycast ships via the Raycast Store only (not GitHub/WinGet). **No coverage threshold**; CI gates on pass/fail only.
+- **CI gates:** `.github/workflows/ci.yml` -> `build-test` (`windows-latest`: solution build, `dotnet test --no-build`, Pester over `scripts/tests`), plus `raycast-check` (`windows-latest`) and `raycast-check-macos` (`macos-latest`) jobs that each run `npm test`/`lint`/`build`, plus an informational `perf-harness` job (`Category=PerformanceMeasurement`; never gates PRs). `.github/workflows/release-extension.yml` (on `v*` tag or dispatch) builds CmdPal/Run EXE installers, creates a GitHub Release, and opens WinGet manifest PRs. Raycast ships via the Raycast Store only (not GitHub/WinGet). **No coverage threshold**; CI gates on pass/fail only.
 
 ## Conventions & Gotchas
 
