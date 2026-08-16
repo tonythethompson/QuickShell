@@ -48,7 +48,7 @@ export type BuildSearchRootsOptions = {
   pathStyle?: "win32" | "posix";
 };
 
-function pathApi(options?: BuildSearchRootsOptions): path.PlatformPath {
+function pathApi(options?: BuildSearchRootsOptions): typeof path.posix {
   return useWin32Style(options) ? path.win32 : path.posix;
 }
 

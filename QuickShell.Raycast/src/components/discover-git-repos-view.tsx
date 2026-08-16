@@ -262,10 +262,14 @@ export default function DiscoverGitReposView({ onWorkspaceAdded, popOnAdd = true
           actions={
             <ActionPanel>
               <Action
-                title="Add Workspace"
+                title={pendingQuickAddKeys.has(repo.directory.toLowerCase()) ? "Adding…" : "Add Workspace"}
                 icon={Icon.Plus}
-                onAction={() => handleQuickAdd(repo.directory, repo.name, repo.remoteUrl)}
-                disabled={pendingQuickAddKeys.has(repo.directory.toLowerCase())}
+                onAction={() => {
+                  if (pendingQuickAddKeys.has(repo.directory.toLowerCase())) {
+                    return;
+                  }
+                  void handleQuickAdd(repo.directory, repo.name, repo.remoteUrl);
+                }}
               />
               <Action.Push
                 title="Review Before Adding"
