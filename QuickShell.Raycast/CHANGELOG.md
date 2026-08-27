@@ -1,6 +1,6 @@
 # Quick Shell Workspaces Changelog
 
-## [Command suggestions] - {PR_MERGE_DATE}
+## [Command suggestions] - 2026-08-27
 
 - Rename the Store listing to Quick Shell Workspaces and the command to Open Workspace (package id remains `quickshell`)
 - Package Windows `QuickShell.Suggest.exe` into Raycast assets for richer command suggestions

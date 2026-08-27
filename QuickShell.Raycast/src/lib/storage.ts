@@ -747,7 +747,7 @@ export class QuickShellStorage {
     }
 
     const raw = await this.adapter.getItem(STORAGE_KEY);
-    if (!raw) {
+    if (raw === undefined) {
       this.cache = createEmptyStoredData();
       return;
     }

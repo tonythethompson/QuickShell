@@ -375,6 +375,20 @@ describe("storage", () => {
     expect(stored).toBe(raw);
   });
 
+  it("does not treat an empty stored string as missing", async () => {
+    let setItemCalled = false;
+    const adapter = {
+      getItem: async () => "" as string | undefined,
+      setItem: async (_key: string, _value: string) => {
+        setItemCalled = true;
+      },
+    };
+    const storage = new QuickShellStorage(adapter);
+
+    await expect(storage.load()).rejects.toThrow(/not valid JSON/i);
+    expect(setItemCalled).toBe(false);
+  });
+
   it("preserves lastUsedUtc when editing a workspace after markUsed", async () => {
     const storage = new QuickShellStorage(createMemoryStorageAdapter());
     const workspace = createWorkspace(createStableId(), "Recents");
