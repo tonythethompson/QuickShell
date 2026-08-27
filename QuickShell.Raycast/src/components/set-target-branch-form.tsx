@@ -26,12 +26,15 @@ export default function SetTargetBranchForm({ directory, workspaceName, blockDir
     isLoading,
     error,
     revalidate,
-  } = usePromise(async () => {
-    const branches = await listLocalBranches(directory);
-    const worktreeKey = await resolveWorktreeKey(directory);
-    const target = worktreeKey ? await storage.getBranchTarget(worktreeKey) : null;
-    return { branches, target };
-  }, [directory]);
+  } = usePromise(
+    async (dir: string) => {
+      const branches = await listLocalBranches(dir);
+      const worktreeKey = await resolveWorktreeKey(dir);
+      const target = worktreeKey ? await storage.getBranchTarget(worktreeKey) : null;
+      return { branches, target };
+    },
+    [directory],
+  );
 
   const { handleSubmit, itemProps, setValue, values } = useForm<{ branch: string }>({
     async onSubmit(values) {
@@ -109,8 +112,8 @@ export default function SetTargetBranchForm({ directory, workspaceName, blockDir
       isLoading={isLoading}
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Switch Branch…" onSubmit={handleSubmit} disabled={isLoading} />
-          {error ? <Action title="Retry Loading Branches" onAction={revalidate} /> : null}
+          <Action.SubmitForm title="Switch Branch…" onSubmit={handleSubmit} />
+          {error ? <Action title="Retry Loading Branches" onAction={() => void revalidate()} /> : null}
         </ActionPanel>
       }
     >

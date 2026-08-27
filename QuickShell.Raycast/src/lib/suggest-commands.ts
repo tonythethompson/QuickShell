@@ -252,10 +252,11 @@ export async function fetchSuggestionPills(
 
   const executable = resolveSuggestExecutable(assetsPath);
   if (!executable || !existsSync(executable)) {
-    if (isWindowsPlatform()) {
+    if (fromEnv) {
+      console.warn(`[quickshell] Suggest CLI override not found: ${fromEnv}`);
+    } else if (isWindowsPlatform()) {
       console.warn(
-        "[quickshell] Suggest CLI not found (QuickShell.Suggest.exe). " +
-          "Run `npm run build` or `npm run publish` so assets/QuickShell.Suggest.exe is published.",
+        "[quickshell] Suggest CLI not found (assets/QuickShell.Suggest.exe missing from the extension package).",
       );
     }
     return null;

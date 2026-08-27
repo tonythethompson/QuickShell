@@ -341,6 +341,54 @@ describe("storage", () => {
     expect(stored).toBe(raw);
   });
 
+  it("does not overwrite malformed JSON with an empty cache", async () => {
+    const raw = "{not-json";
+    let stored = raw;
+    const adapter = {
+      getItem: async () => stored,
+      setItem: async (_key: string, value: string) => {
+        stored = value;
+      },
+    };
+    const storage = new QuickShellStorage(adapter);
+    const workspace = createWorkspace(createStableId(), "Keep");
+
+    await expect(storage.load()).rejects.toThrow(/not valid JSON/i);
+    expect(stored).toBe(raw);
+
+    await expect(storage.upsertWorkspace(workspace)).rejects.toThrow(/not valid JSON/i);
+    expect(stored).toBe(raw);
+  });
+
+  it("does not overwrite non-object JSON with an empty cache", async () => {
+    const raw = "null";
+    let stored = raw;
+    const adapter = {
+      getItem: async () => stored,
+      setItem: async (_key: string, value: string) => {
+        stored = value;
+      },
+    };
+    const storage = new QuickShellStorage(adapter);
+
+    await expect(storage.load()).rejects.toThrow(/malformed/i);
+    expect(stored).toBe(raw);
+  });
+
+  it("does not treat an empty stored string as missing", async () => {
+    let setItemCalled = false;
+    const adapter = {
+      getItem: async () => "" as string | undefined,
+      setItem: async (_key: string, _value: string) => {
+        setItemCalled = true;
+      },
+    };
+    const storage = new QuickShellStorage(adapter);
+
+    await expect(storage.load()).rejects.toThrow(/not valid JSON/i);
+    expect(setItemCalled).toBe(false);
+  });
+
   it("preserves lastUsedUtc when editing a workspace after markUsed", async () => {
     const storage = new QuickShellStorage(createMemoryStorageAdapter());
     const workspace = createWorkspace(createStableId(), "Recents");

@@ -1,6 +1,14 @@
-# Quick Shell Changelog
+# Quick Shell Workspaces Changelog
 
-## [macOS Tier A] - {PR_MERGE_DATE}
+## [Command suggestions] - 2026-08-27
+
+- Rename the Store listing to Quick Shell Workspaces and the command to Open Workspace (package id remains `quickshell`)
+- Package Windows `QuickShell.Suggest.exe` into Raycast assets for richer command suggestions
+- Manual Add Workspace shows suggestions in the dropdown without auto-applying them
+- Keep leftover suggestions selectable; fall back to local folder heuristics on macOS or when Suggest is unavailable
+- Improve discovered-repo workspace seeding and suggestion reliability
+
+## [macOS Tier A] - 2026-07-22
 
 - Add macOS to Raycast platforms: Terminal.app / iTerm2 launch, Mac companions, discover roots, import/export dialogs
 - Multi-launch tabs on Mac (Terminal.app / iTerm2) when the preference is enabled; Windows Terminal tab grouping unchanged on Windows
